@@ -1,6 +1,6 @@
 "use client";
 
-import { BUSINESS, GROOM_SLOTS, ROOMS } from "@/lib/business";
+import { BUSINESS, GROOM_SLOTS, ROOM_INVENTORY, ROOMS } from "@/lib/business";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 import { useLiff } from "@/components/LiffProvider";
@@ -37,9 +37,12 @@ export default function CustomerHome() {
       )}
 
       <section className="mb-5 rounded-catcha bg-card p-5 shadow-catcha">
-        <h2 className="mb-3 text-sm font-extrabold text-catcha-chocolate">
+        <h2 className="mb-1 text-sm font-extrabold text-catcha-chocolate">
           {m.services}
         </h2>
+        <p className="mb-3 text-[11px] font-medium text-brown-faint">
+          🏠 {m.room} · {m.roomsTotal} ({ROOM_INVENTORY.miniMeow}S + {ROOM_INVENTORY.midCozy}M + {ROOM_INVENTORY.catflix} Netflix)
+        </p>
         <div className="space-y-3">
           <div className="rounded-catcha-sm border border-catcha-line bg-paper/60 p-4">
             <div className="flex items-start gap-3">
@@ -61,7 +64,20 @@ export default function CustomerHome() {
                 <div className="flex gap-3">
                   <span className="text-2xl">🏠</span>
                   <div>
-                    <p className="font-bold text-brown">{room.name}</p>
+                    <p className="font-bold text-brown">
+                      {room.name}
+                      {room.subtitle ? (
+                        <span className="font-semibold text-brown-soft">
+                          {" "}
+                          ({room.subtitle[locale]})
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="text-xs text-brown-soft">
+                      {room.size}
+                      {room.count ? ` · ${room.count} ${m.roomUnits}` : ` · ${m.suite}`}
+                      {room.config ? ` · ${room.config[locale]}` : ""}
+                    </p>
                     <p className="text-xs text-brown-soft">
                       {room.cats[locale]} · {room.extra[locale]}
                     </p>

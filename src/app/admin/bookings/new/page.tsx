@@ -98,7 +98,8 @@ export default function NewBookingPage() {
               >
                 {ROOMS.map((r) => (
                   <option key={r.id} value={r.id}>
-                    {r.name} — {r.price} บาท/คืน
+                    {r.name} ({r.size}) — {r.price} บาท/คืน
+                    {r.count ? ` · ${r.count} ห้อง` : " · ห้องเชื่อม"}
                   </option>
                 ))}
               </select>

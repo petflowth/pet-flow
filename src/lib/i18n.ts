@@ -14,6 +14,9 @@ const messages = {
       map: "ดูแผนที่",
       slots: "รอบเวลา",
       perNight: "บาท/คืน",
+      roomsTotal: "ทั้งหมด 13 ห้อง",
+      roomUnits: "ห้อง",
+      suite: "ห้องเชื่อม",
     },
     bookings: {
       title: "คิวของฉัน",
@@ -63,6 +66,9 @@ const messages = {
       map: "Directions",
       slots: "Time slots",
       perNight: "THB/night",
+      roomsTotal: "13 rooms total",
+      roomUnits: "units",
+      suite: "Connected suite",
     },
     bookings: {
       title: "My bookings",

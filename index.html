@@ -218,7 +218,7 @@
             </div>
             <div class="field" style="margin-bottom:0">
               <label>นิสัยน้องแมว (โน้ตไว้ให้เรา 🐈)</label>
-              <input type="text" placeholder="เช่น ขี้กลัว จับยาก ต้องค่อยๆ">
+              <input type="text" id="fNote" placeholder="เช่น ขี้กลัว จับยาก ต้องค่อยๆ">
             </div>
           </div>
 
@@ -367,6 +367,24 @@
     var cust = document.getElementById("fCust").value.trim();
     var cat = document.getElementById("fCat").value.trim();
     if(!cust || !cat){ toast("ใส่ชื่อลูกค้ากับชื่อน้องแมวก่อนนะคะ 🐱"); return; }
+
+    // ── ส่งไปหลังบ้าน (Google Apps Script) ถ้าเปิดผ่านเว็บแอปจริง ──
+    var payload = {
+      service: svc, customer: cust, cat: cat,
+      contact: document.getElementById("fContact").value.trim(),
+      date: (document.getElementById("fDate")||{}).value || "",
+      time: (document.getElementById("fTime")||{}).value || "",
+      checkin: (document.getElementById("fCheckin")||{}).value || "",
+      checkout: (document.getElementById("fCheckout")||{}).value || "",
+      notes: (document.getElementById("fNote")||{}).value || ""
+    };
+    if (window.google && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler(function(){ toast("🗓️ สร้างนัดใน Google Calendar + เชิญเจ้าของ 2 คนแล้ว 🧡"); })
+        .withFailureHandler(function(err){ toast("⚠️ บันทึกไม่สำเร็จ: " + (err && err.message ? err.message : err)); })
+        .saveBooking(payload);
+    }
+
     if(svc === "room"){
       var ci = document.getElementById("fCheckin").value, co = document.getElementById("fCheckout").value;
       bookings.push({ time:"เช็คอิน", cust:cust, cat:cat, svc:"room",

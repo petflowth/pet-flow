@@ -1,7 +1,6 @@
 "use client";
 
 import { LangSwitch } from "@/components/LangSwitch";
-import { useLocale } from "@/components/LocaleProvider";
 
 export function PageHeader({
   title,

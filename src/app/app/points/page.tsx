@@ -1,14 +1,15 @@
 "use client";
 
-import { BUSINESS, POINTS_REWARDS } from "@/lib/business";
+import { BUSINESS } from "@/lib/business";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 import { useLiff } from "@/components/LiffProvider";
 import { LangSwitch } from "@/components/LangSwitch";
+import { PointsRedeem } from "@/components/PointsRedeem";
 
 export default function PointsPage() {
   const { locale } = useLocale();
-  const { profile } = useLiff();
+  const { profile, history } = useLiff();
   const m = t(locale).points;
   const points = profile?.points ?? 0;
 
@@ -27,28 +28,49 @@ export default function PointsPage() {
         </p>
       </div>
 
-      <section className="rounded-catcha bg-card p-5 shadow-catcha-sm">
-        <h2 className="mb-3 text-sm font-bold text-brown">
-          {locale === "th" ? "แลกของรางวัล" : "Redeem rewards"}
-        </h2>
-        <ul className="space-y-2">
-          {POINTS_REWARDS.map((tier) => (
-            <li
-              key={tier.points}
-              className="flex gap-3 rounded-catcha-sm border border-catcha-line bg-paper/50 px-3 py-2.5 text-xs"
-            >
-              <span className="shrink-0 font-extrabold text-latte-deep">
-                {tier.points} {locale === "th" ? "แต้ม" : "pts"}
-              </span>
-              <span className="text-brown-soft">{tier.reward[locale]}</span>
-            </li>
-          ))}
-        </ul>
+      <section className="mb-4 rounded-catcha bg-card p-5 shadow-catcha-sm">
+        <h2 className="mb-3 text-sm font-bold text-brown">{m.redeemTitle}</h2>
+        <PointsRedeem />
       </section>
 
-      <section className="mt-4 rounded-catcha bg-card p-5 shadow-catcha-sm">
+      <section className="rounded-catcha bg-card p-5 shadow-catcha-sm">
         <h2 className="mb-3 text-sm font-bold text-brown">{m.history}</h2>
-        <p className="text-center text-sm text-brown-faint py-6">{m.empty}</p>
+        {history.length === 0 ? (
+          <p className="py-6 text-center text-sm text-brown-faint">{m.empty}</p>
+        ) : (
+          <ul className="space-y-2">
+            {history.map((h) => (
+              <li
+                key={h.id}
+                className="rounded-catcha-sm border border-catcha-line bg-paper/50 px-3 py-2.5 text-xs"
+              >
+                <div className="flex justify-between gap-2">
+                  <span className="font-medium text-brown">
+                    {locale === "th" ? h.labelTh : h.labelEn}
+                  </span>
+                  <span
+                    className={`shrink-0 font-extrabold ${
+                      h.points > 0 ? "text-ok" : "text-latte-deep"
+                    }`}
+                  >
+                    {h.points > 0 ? "+" : ""}
+                    {h.points}
+                  </span>
+                </div>
+                {h.couponCode ? (
+                  <p className="mt-1 font-mono text-[10px] text-latte-deep">
+                    {h.couponCode}
+                  </p>
+                ) : null}
+                <p className="mt-1 text-[10px] text-brown-faint">
+                  {new Date(h.at).toLocaleDateString(
+                    locale === "th" ? "th-TH" : "en-GB"
+                  )}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );

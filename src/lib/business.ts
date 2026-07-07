@@ -239,11 +239,31 @@ export const TRANSPORT = {
 
 /** แลกแต้ม — 100 บาท = 1 แต้ม */
 export const POINTS_REWARDS = [
-  { points: 5, reward: { th: "ทรีทเหลวพรีเมียม 1 ซอง หรือของเล่นแมว", en: "Premium treat or cat toy" } },
-  { points: 10, reward: { th: "คูปองส่วนลด 50 บาท", en: "50 THB coupon" } },
-  { points: 20, reward: { th: "คูปองส่วนลด 100 บาท", en: "100 THB coupon" } },
-  { points: 30, reward: { th: "คูปองส่วนลด 200 บาท", en: "200 THB coupon" } },
-  { points: 40, reward: { th: "คูปองส่วนลด 500 บาท", en: "500 THB coupon" } },
+  {
+    id: "treat",
+    points: 5,
+    reward: { th: "ทรีทเหลวพรีเมียม 1 ซอง หรือของเล่นแมว", en: "Premium treat or cat toy" },
+  },
+  {
+    id: "coupon50",
+    points: 10,
+    reward: { th: "คูปองส่วนลด 50 บาท", en: "50 THB coupon" },
+  },
+  {
+    id: "coupon100",
+    points: 20,
+    reward: { th: "คูปองส่วนลด 100 บาท", en: "100 THB coupon" },
+  },
+  {
+    id: "coupon200",
+    points: 30,
+    reward: { th: "คูปองส่วนลด 200 บาท", en: "200 THB coupon" },
+  },
+  {
+    id: "coupon500",
+    points: 40,
+    reward: { th: "คูปองส่วนลด 500 บาท", en: "500 THB coupon" },
+  },
 ] as const;
 
 export const GROOM_SLOTS = ["09:30", "12:30", "15:30"] as const;
@@ -307,4 +327,8 @@ export const DEMO_PROMOS = [
 
 export function getRoomById(id: string) {
   return ROOMS.find((r) => r.id === id);
+}
+
+export function getActivePromos(now = new Date()) {
+  return DEMO_PROMOS.filter((p) => new Date(p.until) >= now);
 }

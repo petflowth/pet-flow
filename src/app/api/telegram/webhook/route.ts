@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { bookingsForDate } from "@/lib/bookings-store";
 
-/**
- * Telegram webhook — รับคำสั่งจากเจ้าของ
- * /start → แสดง chat id สำหรับตั้งค่า TELEGRAM_OWNER_CHAT_IDS
- * /today → ดูนัดวันนี้ (ต่อ DB ทีหลัง)
- */
 export async function POST(req: NextRequest) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {
@@ -27,9 +23,23 @@ export async function POST(req: NextRequest) {
       `Chat ID ของคุณ: <code>${chatId}</code>\n` +
       `นำไปใส่ใน TELEGRAM_OWNER_CHAT_IDS เพื่อรับแจ้งเตือนจอง`;
   } else if (text === "/today") {
-    reply = "📅 นัดวันนี้ — ต่อฐานข้อมูลแล้วจะแสดงรายการจริง";
+    const today = new Date().toISOString().slice(0, 10);
+    const list = bookingsForDate(today);
+    if (!list.length) {
+      reply = "📅 วันนี้ยังไม่มีนัดในระบบ";
+    } else {
+      reply =
+        `📅 นัดวันนี้ (${today})\n\n` +
+        list
+          .map(
+            (b, i) =>
+              `${i + 1}. ${b.catName} · ${b.customerName}\n` +
+              `   ${b.service === "room" ? "ห้องพัก" : "อาบน้ำ"} ${b.time || ""} · ${b.status === "confirmed" ? "✅" : "⏳"}`
+          )
+          .join("\n\n");
+    }
   } else if (text === "/help") {
-    reply = "คำสั่ง: /start /today /help";
+    reply = "คำสั่ง:\n/start — ดู Chat ID\n/today — นัดวันนี้\n/help";
   } else {
     reply = "พิมพ์ /help ดูคำสั่ง";
   }

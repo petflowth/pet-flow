@@ -1,29 +1,60 @@
 "use client";
 
-import { useState } from "react";
-import { DEMO_BOOKINGS, type Booking } from "@/lib/business";
+import { useCallback, useEffect, useState } from "react";
+import { type Booking } from "@/lib/business";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
+import { useLiff } from "@/components/LiffProvider";
 import { LangSwitch } from "@/components/LangSwitch";
 
 const CHECKIN_TIMES = ["10:00", "12:00", "14:00", "16:00", "18:00"];
 
 export default function BookingsPage() {
   const { locale } = useLocale();
+  const { profile, ready } = useLiff();
   const m = t(locale).bookings;
-  const [bookings, setBookings] = useState<Booking[]>(DEMO_BOOKINGS);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
   const [pickId, setPickId] = useState<string | null>(null);
   const [checkin, setCheckin] = useState("14:00");
 
-  const confirm = (id: string) => {
-    setBookings((prev) =>
-      prev.map((b) =>
-        b.id === id
-          ? { ...b, status: "confirmed" as const, checkinTime: b.service === "room" ? checkin : undefined }
-          : b
-      )
-    );
-    setPickId(null);
+  const load = useCallback(async () => {
+    if (!profile?.lineUserId) return;
+    const q = new URLSearchParams({ lineUserId: profile.lineUserId });
+    const res = await fetch(`/api/bookings?${q}`);
+    const data = await res.json();
+    setBookings(data.bookings || []);
+    setLoading(false);
+  }, [profile?.lineUserId]);
+
+  useEffect(() => {
+    if (!profile?.lineUserId) {
+      if (ready) setLoading(false);
+      return;
+    }
+    load();
+  }, [profile?.lineUserId, load, ready]);
+
+  const confirm = async (id: string) => {
+    const b = bookings.find((x) => x.id === id);
+    if (!b) return;
+
+    const res = await fetch("/api/bookings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id,
+        action: "confirm",
+        checkinTime: b.service === "room" ? checkin : undefined,
+      }),
+    });
+
+    if (res.ok) {
+      await load();
+      setPickId(null);
+    } else {
+      alert(locale === "th" ? "ยืนยันไม่สำเร็จ" : "Could not confirm");
+    }
   };
 
   return (
@@ -33,7 +64,9 @@ export default function BookingsPage() {
         <LangSwitch />
       </div>
 
-      {bookings.length === 0 ? (
+      {loading ? (
+        <p className="text-center text-sm text-brown-soft py-8">{t(locale).common.loading}</p>
+      ) : bookings.length === 0 ? (
         <p className="rounded-catcha bg-card p-6 text-center text-sm text-brown-soft shadow-catcha">
           {m.empty}
         </p>

@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   BUSINESS,
-  DEMO_BOOKINGS,
   getActivePromos,
   type Booking,
 } from "@/lib/business";
@@ -24,17 +23,17 @@ export default function CustomerHome() {
   const [nextBooking, setNextBooking] = useState<Booking | null>(null);
 
   useEffect(() => {
-    fetch("/api/bookings")
+    if (!profile?.lineUserId) return;
+    const q = new URLSearchParams({ lineUserId: profile.lineUserId });
+    fetch(`/api/bookings?${q}`)
       .then((r) => r.json())
       .then((data) => {
-        const list: Booking[] = data.bookings?.length
-          ? data.bookings
-          : DEMO_BOOKINGS;
+        const list: Booking[] = data.bookings || [];
         const pending = list.find((b) => b.status === "pending");
         setNextBooking(pending || null);
       })
-      .catch(() => setNextBooking(DEMO_BOOKINGS[0] ?? null));
-  }, []);
+      .catch(() => setNextBooking(null));
+  }, [profile?.lineUserId]);
 
   const points = profile?.points ?? 0;
 

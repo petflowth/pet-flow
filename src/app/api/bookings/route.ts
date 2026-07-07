@@ -1,24 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createCalendarEvent } from "@/lib/calendar";
+import {
+  addBooking,
+  getBooking,
+  listBookings,
+  toBooking,
+  updateBooking,
+} from "@/lib/bookings-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import { pushLineMessage, buildReminderFlex } from "@/lib/line";
 
-// ชั่วคราว — ต่อ Supabase ในรอบถัดไป
-const store: Array<Record<string, unknown>> = [];
-
-export async function GET() {
-  return NextResponse.json({ bookings: store });
+export async function GET(req: NextRequest) {
+  const lineUserId = req.nextUrl.searchParams.get("lineUserId") || undefined;
+  const items = listBookings(lineUserId).map((b) => ({
+    ...toBooking(b),
+    lineUserId: b.lineUserId,
+  }));
+  return NextResponse.json({ bookings: items });
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const id = `B${Date.now()}`;
-  const booking = {
-    id,
-    ...body,
-    status: "pending",
-    createdAt: new Date().toISOString(),
-  };
+  const booking = addBooking({
+    customerName: body.customerName,
+    catName: body.catName,
+    service: body.service,
+    date: body.date || body.checkin || "",
+    time: body.time,
+    checkout: body.checkout,
+    checkin: body.checkin,
+    room: body.room,
+    lineUserId: body.lineUserId,
+    notes: body.notes,
+  });
 
   const cal = await createCalendarEvent({
     summary: `🐱 ${body.catName} (${body.customerName})`,
@@ -30,8 +44,6 @@ export async function POST(req: NextRequest) {
 
   booking.calendarEventId = cal.eventId;
 
-  store.push(booking);
-
   await sendTelegram(
     formatBookingTelegram("📌 จองใหม่", {
       ลูกค้า: body.customerName,
@@ -41,23 +53,24 @@ export async function POST(req: NextRequest) {
     })
   );
 
-  return NextResponse.json({ ok: true, booking, calendar: cal });
+  return NextResponse.json({ ok: true, booking: toBooking(booking), calendar: cal });
 }
 
 export async function PATCH(req: NextRequest) {
-  const { id, action, lineUserId } = await req.json();
-  const b = store.find((x) => x.id === id);
+  const { id, action, lineUserId, checkinTime } = await req.json();
+  const b = getBooking(id);
   if (!b) return NextResponse.json({ error: "not found" }, { status: 404 });
 
   if (action === "confirm") {
-    b.status = "confirmed";
+    updateBooking(id, { status: "confirmed", checkinTime });
     await sendTelegram(
       formatBookingTelegram("✅ ลูกค้ายืนยันแล้ว", {
         ลูกค้า: String(b.customerName),
         น้องแมว: String(b.catName),
+        วันที่: String(b.date || b.checkin),
       })
     );
-    return NextResponse.json({ ok: true, booking: b });
+    return NextResponse.json({ ok: true, booking: toBooking(getBooking(id)!) });
   }
 
   if (action === "send_reminder" && lineUserId) {

@@ -1,22 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { DEMO_BOOKINGS, type Booking } from "@/lib/business";
+import { type Booking } from "@/lib/business";
 
 type ApiBooking = Booking & { lineUserId?: string };
 
 export default function AdminDashboard() {
   const [view, setView] = useState<"today" | "week">("today");
-  const [bookings, setBookings] = useState<ApiBooking[]>(DEMO_BOOKINGS);
+  const [bookings, setBookings] = useState<ApiBooking[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/bookings");
       const data = await res.json();
-      if (data.bookings?.length) {
-        setBookings(data.bookings as ApiBooking[]);
-      }
+      setBookings((data.bookings || []) as ApiBooking[]);
     } catch {
       /* ใช้ demo ถ้า API ไม่พร้อม */
     } finally {

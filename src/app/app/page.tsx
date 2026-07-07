@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  BUSINESS,
   type Booking,
 } from "@/lib/business";
+import { useConfig } from "@/components/ConfigProvider";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 import { useLiff } from "@/components/LiffProvider";
@@ -17,6 +17,7 @@ import { PointsRedeem } from "@/components/PointsRedeem";
 export default function CustomerHome() {
   const { locale } = useLocale();
   const { profile, ready } = useLiff();
+  const { config } = useConfig();
   const m = t(locale).home;
   const [promos, setPromos] = useState<
     { id: string; title: { th: string; en: string }; body: { th: string; en: string }; until: string }[]
@@ -88,7 +89,7 @@ export default function CustomerHome() {
               </span>
             </p>
             <p className="mt-1 text-[10px] text-brown-faint">
-              {t(locale).points.rate} · {BUSINESS.pointsRate}{" "}
+              {t(locale).points.rate} · {config.business.pointsRate}{" "}
               {locale === "th" ? "บาท" : "THB"}
             </p>
           </div>
@@ -204,7 +205,7 @@ export default function CustomerHome() {
         rel="noopener noreferrer"
         className="mt-4 block rounded-catcha-sm border border-catcha-line bg-card py-3 text-center text-xs font-bold text-brown-soft"
       >
-        💬 LINE {BUSINESS.lineOa} · {m.chatBook}
+        💬 LINE {config.business.lineOa} · {m.chatBook}
       </a>
     </div>
   );

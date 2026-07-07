@@ -1,4 +1,4 @@
-import { BUSINESS } from "./business";
+import { getSiteConfig } from "./config-store";
 import {
   deductMemberCredit,
   addServiceRecord,
@@ -192,7 +192,7 @@ export async function markInvoicePaid(
   inv.status = "paid";
   inv.paymentMethod = paymentMethod;
   inv.paidAt = new Date().toISOString();
-  inv.pointsEarned = Math.floor(inv.total / BUSINESS.pointsRate);
+  inv.pointsEarned = Math.floor(inv.total / (await getSiteConfig()).business.pointsRate);
 
   const sb = getSupabase();
   if (sb) {

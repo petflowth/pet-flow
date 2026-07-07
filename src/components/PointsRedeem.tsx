@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { POINTS_REWARDS } from "@/lib/business";
+import { useConfig } from "@/components/ConfigProvider";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 import { useLiff } from "@/components/LiffProvider";
@@ -13,6 +13,7 @@ export function PointsRedeem({
 }) {
   const { locale } = useLocale();
   const { profile, refreshAccount, setPoints } = useLiff();
+  const { config } = useConfig();
   const m = t(locale).points;
   const [loading, setLoading] = useState<string | null>(null);
   const [success, setSuccess] = useState<{
@@ -25,7 +26,7 @@ export function PointsRedeem({
 
   const redeem = async (rewardId: string) => {
     if (!profile?.lineUserId) return;
-    const tier = POINTS_REWARDS.find((r) => r.id === rewardId);
+    const tier = config.pointsRewards.find((r) => r.id === rewardId);
     if (!tier) return;
 
     const ok = window.confirm(
@@ -94,7 +95,7 @@ export function PointsRedeem({
       ) : null}
 
       <ul className={compact ? "space-y-2" : "space-y-3"}>
-        {POINTS_REWARDS.map((tier) => {
+        {config.pointsRewards.map((tier) => {
           const canRedeem = points >= tier.points;
           return (
             <li

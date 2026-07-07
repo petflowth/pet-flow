@@ -1,11 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { GROOM_SLOTS, ROOMS } from "@/lib/business";
+import { useEffect, useState } from "react";
+import type { RoomType } from "@/lib/business";
 
 export default function NewBookingPage() {
   const [service, setService] = useState<"groom" | "room">("groom");
   const [saved, setSaved] = useState(false);
+  const [rooms, setRooms] = useState<RoomType[]>([]);
+  const [groomSlots, setGroomSlots] = useState<string[]>(["09:30", "12:30", "15:30"]);
+
+  useEffect(() => {
+    fetch("/api/config")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.config?.rooms) setRooms(d.config.rooms);
+        if (d.config?.groomSlots) setGroomSlots(d.config.groomSlots);
+      });
+  }, []);
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -84,7 +95,7 @@ export default function NewBookingPage() {
                 className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
               />
               <datalist id="groom-slots">
-                {GROOM_SLOTS.map((t) => (
+                {groomSlots.map((t) => (
                   <option key={t} value={t} />
                 ))}
               </datalist>
@@ -101,7 +112,7 @@ export default function NewBookingPage() {
                 name="room"
                 className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
               >
-                {ROOMS.map((r) => (
+                {rooms.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.name} ({r.size}) — {r.price} บาท/คืน
                     {r.count ? ` · ${r.count} ห้อง` : " · ห้องเชื่อม"}

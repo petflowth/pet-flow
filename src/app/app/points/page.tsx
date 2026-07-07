@@ -1,6 +1,6 @@
 "use client";
 
-import { BUSINESS } from "@/lib/business";
+import { useConfig } from "@/components/ConfigProvider";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 import { useLiff } from "@/components/LiffProvider";
@@ -10,6 +10,7 @@ import { PointsRedeem } from "@/components/PointsRedeem";
 export default function PointsPage() {
   const { locale } = useLocale();
   const { profile, history } = useLiff();
+  const { config } = useConfig();
   const m = t(locale).points;
   const points = profile?.points ?? 0;
 
@@ -24,7 +25,7 @@ export default function PointsPage() {
         <p className="text-sm font-semibold text-brown-soft">{m.balance}</p>
         <p className="mt-2 text-5xl font-extrabold text-latte-deep">{points}</p>
         <p className="mt-3 text-xs text-brown-faint">
-          {m.rate} ({BUSINESS.pointsRate} {locale === "th" ? "บาท" : "THB"})
+          {m.rate} ({config.business.pointsRate} {locale === "th" ? "บาท" : "THB"})
         </p>
       </div>
 

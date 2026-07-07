@@ -2,22 +2,24 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { GROOM_SLOTS, TRANSPORT } from "@/lib/business";
-import {
-  GROOM_MENUS,
-  GROOM_NOTES,
-  GROOM_SIZE_LABELS,
-  GROOM_SPECIALS,
-} from "@/lib/grooming";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
+import { useConfig } from "@/components/ConfigProvider";
 import { LineBookingCta, PageHeader } from "@/components/PageHeader";
 
 export default function GroomingPage() {
   const { locale } = useLocale();
+  const { config } = useConfig();
   const m = t(locale).grooming;
   const [tab, setTab] = useState<"bath" | "advance">("bath");
   const [showPoster, setShowPoster] = useState(false);
+
+  const GROOM_MENUS = config.grooming.menus as typeof import("@/lib/grooming").GROOM_MENUS;
+  const GROOM_SPECIALS = config.grooming.specials;
+  const GROOM_NOTES = config.grooming.notes;
+  const GROOM_SIZE_LABELS = config.grooming.sizeLabels;
+  const GROOM_SLOTS = config.groomSlots;
+  const TRANSPORT = config.transport;
 
   const menu = GROOM_MENUS[tab];
 
@@ -87,9 +89,9 @@ export default function GroomingPage() {
       </section>
 
       {tab === "bath" ? (
-        <BathTables locale={locale} />
+        <BathTables locale={locale} menus={GROOM_MENUS} sizeLabels={GROOM_SIZE_LABELS} />
       ) : (
-        <AdvanceTable locale={locale} />
+        <AdvanceTable locale={locale} menus={GROOM_MENUS} sizeLabels={GROOM_SIZE_LABELS} />
       )}
 
       <section className="mt-4 rounded-catcha bg-card p-4 shadow-catcha-sm">
@@ -151,9 +153,17 @@ export default function GroomingPage() {
   );
 }
 
-function BathTables({ locale }: { locale: "th" | "en" }) {
-  const menu = GROOM_MENUS.bath;
-  const sizes = GROOM_SIZE_LABELS[locale];
+function BathTables({
+  locale,
+  menus,
+  sizeLabels,
+}: {
+  locale: "th" | "en";
+  menus: Record<string, unknown>;
+  sizeLabels: { th: Record<string, string>; en: Record<string, string> };
+}) {
+  const menu = menus.bath as typeof import("@/lib/grooming").GROOM_MENUS.bath;
+  const sizes = sizeLabels[locale];
 
   return (
     <div className="space-y-4">
@@ -215,9 +225,17 @@ function BathTables({ locale }: { locale: "th" | "en" }) {
   );
 }
 
-function AdvanceTable({ locale }: { locale: "th" | "en" }) {
-  const menu = GROOM_MENUS.advance;
-  const sizes = GROOM_SIZE_LABELS[locale];
+function AdvanceTable({
+  locale,
+  menus,
+  sizeLabels,
+}: {
+  locale: "th" | "en";
+  menus: Record<string, unknown>;
+  sizeLabels: { th: Record<string, string>; en: Record<string, string> };
+}) {
+  const menu = menus.advance as typeof import("@/lib/grooming").GROOM_MENUS.advance;
+  const sizes = sizeLabels[locale];
 
   return (
     <div className="space-y-4">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { BUSINESS } from "@/lib/business";
+import { useConfig } from "@/components/ConfigProvider";
 import Link from "next/link";
 
 type Invoice = {
@@ -25,6 +25,7 @@ type Payment = {
 
 export default function PayPage() {
   const params = useParams();
+  const { config } = useConfig();
   const id = String(params.id);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [payment, setPayment] = useState<Payment | null>(null);
@@ -94,7 +95,7 @@ export default function PayPage() {
         ) : null}
 
         <a
-          href={BUSINESS.maps}
+          href={config.business.maps}
           target="_blank"
           rel="noopener noreferrer"
           className="mt-4 block rounded-catcha-sm border border-catcha-line py-3 text-center text-xs font-bold text-brown-soft"

@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     if (!inv) return NextResponse.json({ error: "not found" }, { status: 404 });
     return NextResponse.json({
       invoice: inv,
-      payment: getPaymentConfig(),
+      payment: await getPaymentConfig(),
       mapsUrl: BUSINESS.maps,
     });
   }
@@ -60,7 +60,7 @@ export async function PATCH(req: NextRequest) {
   if (!inv) return NextResponse.json({ error: "not found" }, { status: 404 });
 
   const base = process.env.NEXT_PUBLIC_APP_URL || "";
-  const payment = getPaymentConfig();
+    const payment = await getPaymentConfig();
 
   if (action === "send_payment") {
     if (!inv.lineUserId) {

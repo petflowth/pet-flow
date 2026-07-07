@@ -1,15 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import type { RoomType } from "@/lib/business";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
+import { useConfig } from "@/components/ConfigProvider";
 import { LineBookingCta } from "@/components/PageHeader";
 import { RoomPoster } from "@/components/RoomPoster";
 
-export default function RoomDetailClient({ room }: { room: RoomType }) {
+export default function RoomDetailClient({ roomId }: { roomId: string }) {
   const { locale } = useLocale();
+  const { config, loading } = useConfig();
   const m = t(locale).rooms;
+  const room = config.rooms.find((r) => r.id === roomId);
+
+  if (loading) {
+    return <p className="p-6 text-center text-sm text-brown-soft">{t(locale).common.loading}</p>;
+  }
+
+  if (!room) {
+    return <p className="p-6 text-center text-sm text-brown-soft">ไม่พบห้อง</p>;
+  }
 
   return (
     <div className="pb-6">

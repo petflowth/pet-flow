@@ -157,3 +157,10 @@ values
    'MiNi Meow, Mid Cozy & Cat Tower — free CCTV for 7+ nights',
    '2026-01-01', '2026-12-31', true)
 on conflict (id) do nothing;
+
+-- ตั้งค่าเว็บทั้งหมด (CMS) — แก้จากหน้า Admin ตั้งค่า
+create table if not exists site_config (
+  id text primary key default 'main',
+  data jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);

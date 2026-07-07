@@ -1,4 +1,4 @@
-import { POINTS_REWARDS } from "./business";
+import { getSiteConfig } from "./config-store";
 import { getSupabase } from "./supabase/server";
 
 export type PointsHistoryEntry = {
@@ -120,7 +120,8 @@ export async function redeemReward(
   rewardId: string,
   displayName = ""
 ) {
-  const tier = POINTS_REWARDS.find((r) => r.id === rewardId);
+  const config = await getSiteConfig();
+  const tier = config.pointsRewards.find((r) => r.id === rewardId);
   if (!tier) return { ok: false as const, error: "invalid_reward" };
 
   const acc = await getAccount(lineUserId, displayName);

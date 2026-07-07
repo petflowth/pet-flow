@@ -1,0 +1,116 @@
+"use client";
+
+import { useState } from "react";
+import { DEMO_BOOKINGS, type Booking } from "@/lib/business";
+import { t } from "@/lib/i18n";
+import { useLocale } from "@/components/LocaleProvider";
+import { LangSwitch } from "@/components/LangSwitch";
+
+const CHECKIN_TIMES = ["10:00", "12:00", "14:00", "16:00", "18:00"];
+
+export default function BookingsPage() {
+  const { locale } = useLocale();
+  const m = t(locale).bookings;
+  const [bookings, setBookings] = useState<Booking[]>(DEMO_BOOKINGS);
+  const [pickId, setPickId] = useState<string | null>(null);
+  const [checkin, setCheckin] = useState("14:00");
+
+  const confirm = (id: string) => {
+    setBookings((prev) =>
+      prev.map((b) =>
+        b.id === id
+          ? { ...b, status: "confirmed" as const, checkinTime: b.service === "room" ? checkin : undefined }
+          : b
+      )
+    );
+    setPickId(null);
+  };
+
+  return (
+    <div className="px-4 pb-6 pt-5">
+      <div className="mb-5 flex items-center justify-between">
+        <h1 className="text-xl font-extrabold text-catcha-chocolate">📅 {m.title}</h1>
+        <LangSwitch />
+      </div>
+
+      {bookings.length === 0 ? (
+        <p className="rounded-catcha bg-card p-6 text-center text-sm text-brown-soft shadow-catcha">
+          {m.empty}
+        </p>
+      ) : (
+        <ul className="space-y-3">
+          {bookings.map((b) => (
+            <li
+              key={b.id}
+              className="rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm"
+            >
+              <div className="mb-2 flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-bold text-brown">
+                    {b.catName}{" "}
+                    <span className="font-medium text-brown-soft">· {b.customerName}</span>
+                  </p>
+                  <p className="mt-1 text-xs text-brown-soft">
+                    {b.service === "groom" ? m.groom : m.room} · {b.date}
+                    {b.time ? ` · ${b.time}` : ""}
+                  </p>
+                </div>
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                    b.status === "confirmed"
+                      ? "bg-sage/20 text-ok"
+                      : "bg-honey/25 text-wait"
+                  }`}
+                >
+                  {b.status === "confirmed" ? m.confirmed : m.pending}
+                </span>
+              </div>
+
+              {b.status === "pending" && (
+                <>
+                  {b.service === "room" && pickId === b.id && (
+                    <div className="mb-3 rounded-catcha-sm bg-paper p-3">
+                      <p className="mb-2 text-xs font-bold text-brown">{m.checkin}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {CHECKIN_TIMES.map((time) => (
+                          <button
+                            key={time}
+                            type="button"
+                            onClick={() => setCheckin(time)}
+                            className={`rounded-lg px-3 py-1.5 text-xs font-bold ${
+                              checkin === time
+                                ? "bg-latte-deep text-white"
+                                : "bg-card text-brown-soft"
+                            }`}
+                          >
+                            {time}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      b.service === "room" && pickId !== b.id
+                        ? setPickId(b.id)
+                        : confirm(b.id)
+                    }
+                    className="w-full rounded-catcha-sm bg-gradient-to-r from-latte to-latte-deep py-3 text-sm font-extrabold text-white"
+                  >
+                    🐾 {m.confirm}
+                  </button>
+                </>
+              )}
+              {b.checkinTime && (
+                <p className="mt-2 text-xs font-semibold text-ok">
+                  ✓ Check-in {b.checkinTime}
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

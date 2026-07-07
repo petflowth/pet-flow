@@ -1,0 +1,52 @@
+# 🚀 Deploy CatCha Hotel (เจ้าของทำครั้งเดียว ~10 นาที)
+
+## ทำไม Agent deploy ให้ตรงๆ ไม่ได้?
+Deploy ต้องใช้ **บัญชี Vercel ของคุณ** (login OAuth) — Agent ไม่มีสิทธิ์เข้าบัญชี Stopstop.w โดยตรง  
+คราวที่แล้วที่เห็น “deploy ได้” คือ **Google Apps Script** ที่รันบน Google ของคุณเอง ไม่ใช่ Vercel
+
+### ถ้าอยากให้ Agent deploy ให้ในอนาคต
+เพิ่ม **VERCEL_TOKEN** ใน Cursor → Settings → Secrets แล้วบอก Agent อีกครั้ง
+
+---
+
+## วิธีที่ง่ายที่สุด (แนะนำ)
+
+1. เปิด https://vercel.com → Login ด้วย GitHub `stopstopw-bit`
+2. **Add New Project** → เลือก repo `Catcha-hotel`
+3. ตั้ง **Root Directory** = `webapp`
+4. ใส่ Environment Variables:
+
+| ชื่อ | ค่า |
+|------|-----|
+| `NEXT_PUBLIC_LIFF_ID` | จาก LINE Developers |
+| `NEXT_PUBLIC_ADMIN_CODE` | รหัสหลังบ้านที่ต้องการ |
+| `NEXT_PUBLIC_APP_URL` | URL หลัง deploy เช่น `https://xxx.vercel.app` |
+| `LINE_CHANNEL_TOKEN` | LINE Messaging API token |
+| `TELEGRAM_BOT_TOKEN` | จาก @BotFather |
+| `TELEGRAM_OWNER_CHAT_IDS` | Chat ID ของเจ้าของ (ได้จาก /start ใน bot) |
+| `GOOGLE_CALENDAR_ID` | ID ปฏิทิน Catcha Hotel |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Service account |
+| `GOOGLE_PRIVATE_KEY` | Private key (วางทั้งก้อน) |
+
+5. กด **Deploy** → ได้ URL เช่น `https://catcha-hotel.vercel.app`
+
+---
+
+## ตั้ง LINE LIFF
+1. LINE Developers → LIFF → Endpoint = `https://YOUR-URL.vercel.app/app`
+2. Rich Menu @catchahotel → ลิงก์ไป `/app`
+
+## ตั้ง Telegram Bot
+1. ทัก @BotFather → `/newbot` → ได้ token
+2. ใส่ `TELEGRAM_BOT_TOKEN` ใน Vercel
+3. ตั้ง webhook (หลัง deploy):
+   ```
+   https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://YOUR-URL.vercel.app/api/telegram/webhook
+   ```
+4. ทัก bot → `/start` → copy Chat ID → ใส่ `TELEGRAM_OWNER_CHAT_IDS`
+
+## ดูเว็บบนคอมก่อน deploy
+```bash
+cd webapp && npm run dev
+```
+เปิด http://localhost:3000/app

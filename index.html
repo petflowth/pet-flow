@@ -380,7 +380,7 @@
     };
     if (window.google && google.script && google.script.run) {
       google.script.run
-        .withSuccessHandler(function(){ toast("🗓️ บันทึกนัดใน CatCha Hotel — Bookings แล้ว 🧡"); })
+        .withSuccessHandler(function(){ toast("🗓️ บันทึกนัดใน Catcha Hotel แล้ว 🧡"); })
         .withFailureHandler(function(err){ toast("⚠️ บันทึกไม่สำเร็จ: " + (err && err.message ? err.message : err)); })
         .saveBooking(payload);
     }

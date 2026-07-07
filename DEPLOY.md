@@ -14,6 +14,7 @@ Deploy ต้องใช้ **บัญชี Vercel ของคุณ** (logi
 1. เปิด https://vercel.com → Login ด้วย GitHub `stopstopw-bit`
 2. **Add New Project** → เลือก repo `Catcha-hotel`
 3. ตั้ง **Root Directory** = `webapp`
+4. Framework ควรขึ้น **Next.js** (ถ้าขึ้น Other ให้ Redeploy หลัง pull ล่าสุด)
 4. ใส่ Environment Variables:
 
 | ชื่อ | ค่า |

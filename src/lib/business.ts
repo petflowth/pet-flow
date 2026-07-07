@@ -36,6 +36,23 @@ export type RoomType = {
   /** ห้องเชื่อม — อธิบายการจัด */
   config?: { th: string; en: string };
   note?: { th: string; en: string };
+  image: string;
+  amenities: { th: string[]; en: string[] };
+};
+
+const BASE_AMENITIES = {
+  th: [
+    "พี่เลี้ยงทำความสะอาดห้องทุกวัน",
+    "บริการถาดน้ำ อาหาร กระบะทราย",
+    "จุดปลั๊กไฟ (เอาน้ำพุแมวมาใช้ได้ฟรี)",
+    "พี่เลี้ยงพาเล่น/เดินเล่น วันละ 2 รอบ",
+  ],
+  en: [
+    "Daily room cleaning",
+    "Water, food & litter service",
+    "Power outlet (bring your own fountain free)",
+    "Playtime twice daily",
+  ],
 };
 
 /** ประเภทห้องที่จองได้ (รวมห้องเชื่อม) */
@@ -53,6 +70,8 @@ export const ROOMS: RoomType[] = [
       th: "กล้อง CCTV +100/ครั้ง · พัก 7 วันขึ้นไป ฟรี",
       en: "CCTV +100/stay · free for 7+ nights",
     },
+    image: "/catalog/rooms/mini-meow.jpg",
+    amenities: { th: [...BASE_AMENITIES.th], en: [...BASE_AMENITIES.en] },
   },
   {
     id: "mid-cozy",
@@ -67,6 +86,8 @@ export const ROOMS: RoomType[] = [
       th: "กล้อง CCTV +100/ครั้ง · พัก 7 วันขึ้นไป ฟรี",
       en: "CCTV +100/stay · free for 7+ nights",
     },
+    image: "/catalog/rooms/mid-cozy.jpg",
+    amenities: { th: [...BASE_AMENITIES.th], en: [...BASE_AMENITIES.en] },
   },
   {
     id: "catflix",
@@ -82,6 +103,19 @@ export const ROOMS: RoomType[] = [
       th: "ฟรีกล้อง CCTV 24 ชม. · ฟรีน้ำพุแมวไร้สาย",
       en: "Free 24h CCTV · free wireless cat fountain",
     },
+    image: "/catalog/rooms/catflix.jpg",
+    amenities: {
+      th: [
+        ...BASE_AMENITIES.th,
+        "ฟรีกล้องวงจรปิด 24 ชม.",
+        "ฟรีน้ำพุแมวไร้สาย (เปลี่ยนไส้กรองทุกครั้ง)",
+      ],
+      en: [
+        ...BASE_AMENITIES.en,
+        "Free 24h CCTV",
+        "Free wireless fountain (fresh filter each stay)",
+      ],
+    },
   },
   {
     id: "mini-duo",
@@ -95,8 +129,21 @@ export const ROOMS: RoomType[] = [
       en: "2 S rooms · connecting door",
     },
     note: {
-      th: "กล้อง CCTV +100/ครั้ง · น้ำพุเช่า +50/ครั้ง",
-      en: "CCTV +100/stay · fountain rental +50",
+      th: "กล้อง CCTV +100/ครั้ง · น้ำพุเช่า +50/ครั้ง · พัก 7 วัน+ ฟรี CCTV",
+      en: "CCTV +100 · fountain rental +50 · free CCTV 7+ nights",
+    },
+    image: "/catalog/rooms/mini-duo.jpg",
+    amenities: {
+      th: [
+        ...BASE_AMENITIES.th.slice(0, 3),
+        "พี่เลี้ยงพาเล่น/เดินเล่น วันละ 2 รอบ",
+        "บริการเช่าน้ำพุแมว 50 บาท/ครั้ง (เปลี่ยนไส้กรองทุกครั้ง)",
+      ],
+      en: [
+        ...BASE_AMENITIES.en.slice(0, 3),
+        "Playtime twice daily",
+        "Fountain rental 50 THB (fresh filter each time)",
+      ],
     },
   },
   {
@@ -114,6 +161,19 @@ export const ROOMS: RoomType[] = [
       th: "ฟรีกล้อง CCTV 24 ชม. · ฟรีน้ำพุแมวไร้สาย",
       en: "Free 24h CCTV · free wireless cat fountain",
     },
+    image: "/catalog/rooms/cozy-duo.jpg",
+    amenities: {
+      th: [
+        ...BASE_AMENITIES.th,
+        "ฟรีกล้องวงจรปิด 24 ชม.",
+        "ฟรีน้ำพุแมวไร้สาย (เปลี่ยนไส้กรองทุกครั้ง)",
+      ],
+      en: [
+        ...BASE_AMENITIES.en,
+        "Free 24h CCTV",
+        "Free wireless fountain (fresh filter each stay)",
+      ],
+    },
   },
   {
     id: "cat-tower",
@@ -129,6 +189,19 @@ export const ROOMS: RoomType[] = [
     note: {
       th: "กล้อง CCTV +100/ครั้ง · พัก 7 วันขึ้นไป ฟรี",
       en: "CCTV +100/stay · free for 7+ nights",
+    },
+    image: "/catalog/rooms/cat-tower.jpg",
+    amenities: {
+      th: [
+        ...BASE_AMENITIES.th,
+        "ฟรีกล้องวงจรปิด 24 ชม.",
+        "ฟรีน้ำพุแมวไร้สาย (เปลี่ยนไส้กรองทุกครั้ง)",
+      ],
+      en: [
+        ...BASE_AMENITIES.en,
+        "Free 24h CCTV",
+        "Free wireless fountain (fresh filter each stay)",
+      ],
     },
   },
 ];

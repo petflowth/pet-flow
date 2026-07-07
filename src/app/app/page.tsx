@@ -1,12 +1,12 @@
 "use client";
 
-import { BUSINESS, GROOM_SLOTS, ROOM_INVENTORY, ROOMS } from "@/lib/business";
+import Link from "next/link";
+import { BUSINESS, GROOM_SLOTS } from "@/lib/business";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 import { useLiff } from "@/components/LiffProvider";
 import { Logo } from "@/components/Logo";
 import { LangSwitch } from "@/components/LangSwitch";
-import Link from "next/link";
 
 export default function CustomerHome() {
   const { locale } = useLocale();
@@ -36,63 +36,29 @@ export default function CustomerHome() {
         </p>
       )}
 
-      <section className="mb-5 rounded-catcha bg-card p-5 shadow-catcha">
-        <h2 className="mb-1 text-sm font-extrabold text-catcha-chocolate">
-          {m.services}
-        </h2>
-        <p className="mb-3 text-[11px] font-medium text-brown-faint">
-          🏠 {m.room} · {m.roomsTotal} ({ROOM_INVENTORY.miniMeow}S + {ROOM_INVENTORY.midCozy}M + {ROOM_INVENTORY.catflix} Netflix)
-        </p>
-        <div className="space-y-3">
-          <div className="rounded-catcha-sm border border-catcha-line bg-paper/60 p-4">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">🛁</span>
-              <div>
-                <p className="font-bold text-brown">{m.groom}</p>
-                <p className="mt-1 text-xs text-brown-soft">
-                  {m.slots}: {GROOM_SLOTS.join(" · ")}
-                </p>
-              </div>
-            </div>
-          </div>
-          {ROOMS.map((room) => (
-            <div
-              key={room.id}
-              className="rounded-catcha-sm border border-catcha-line bg-paper/60 p-4"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex gap-3">
-                  <span className="text-2xl">🏠</span>
-                  <div>
-                    <p className="font-bold text-brown">
-                      {room.name}
-                      {room.subtitle ? (
-                        <span className="font-semibold text-brown-soft">
-                          {" "}
-                          ({room.subtitle[locale]})
-                        </span>
-                      ) : null}
-                    </p>
-                    <p className="text-xs text-brown-soft">
-                      {room.size}
-                      {room.count ? ` · ${room.count} ${m.roomUnits}` : ` · ${m.suite}`}
-                      {room.config ? ` · ${room.config[locale]}` : ""}
-                    </p>
-                    <p className="text-xs text-brown-soft">
-                      {room.cats[locale]} · {room.extra[locale]}
-                    </p>
-                  </div>
-                </div>
-                <p className="shrink-0 text-right text-sm font-extrabold text-latte-deep">
-                  {room.price}
-                  <span className="block text-[10px] font-semibold text-brown-faint">
-                    {m.perNight}
-                  </span>
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
+      <section className="mb-5 grid grid-cols-2 gap-3">
+        <Link
+          href="/app/rooms"
+          className="rounded-catcha border border-catcha-line bg-gradient-to-br from-honey/30 to-card p-4 shadow-catcha-sm"
+        >
+          <span className="text-2xl">🛏️</span>
+          <p className="mt-2 text-sm font-extrabold text-catcha-chocolate">
+            {m.browseRooms}
+          </p>
+          <p className="mt-1 text-[10px] text-brown-soft">{m.roomsTotal}</p>
+        </Link>
+        <Link
+          href="/app/grooming"
+          className="rounded-catcha border border-catcha-line bg-gradient-to-br from-latte/20 to-card p-4 shadow-catcha-sm"
+        >
+          <span className="text-2xl">🛁</span>
+          <p className="mt-2 text-sm font-extrabold text-catcha-chocolate">
+            {m.browseGrooming}
+          </p>
+          <p className="mt-1 text-[10px] text-brown-soft">
+            {m.slots}: {GROOM_SLOTS.join(" · ")}
+          </p>
+        </Link>
       </section>
 
       <section className="mb-5 rounded-catcha bg-card p-5 shadow-catcha">
@@ -120,6 +86,12 @@ export default function CustomerHome() {
           >
             🗺️ {m.map}
           </a>
+          <Link
+            href="/app/promos"
+            className="rounded-full bg-paper px-4 py-2 text-sm font-bold text-brown-soft"
+          >
+            🎁 {t(locale).nav.promos}
+          </Link>
         </div>
       </section>
 

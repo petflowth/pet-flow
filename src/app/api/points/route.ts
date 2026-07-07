@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   }
 
   const displayName = req.nextUrl.searchParams.get("displayName") || "";
-  const account = getAccount(lineUserId, displayName);
+  const account = await getAccount(lineUserId, displayName);
 
   return NextResponse.json({
     points: account.points,
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "missing fields" }, { status: 400 });
   }
 
-  const result = redeemReward(lineUserId, rewardId, displayName || "");
+  const result = await redeemReward(lineUserId, rewardId, displayName || "");
 
   if (!result.ok) {
     const msg =

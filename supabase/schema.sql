@@ -1,0 +1,159 @@
+-- CatCha Hotel — รันใน Supabase SQL Editor (Dashboard → SQL → New query)
+
+create table if not exists customers (
+  id text primary key,
+  name text not null,
+  phone text,
+  line_user_id text unique,
+  is_member boolean not null default false,
+  member_credit numeric not null default 0,
+  member_since date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists cats (
+  id text primary key,
+  customer_id text not null references customers(id) on delete cascade,
+  name text not null,
+  photo_data_url text,
+  staff_note text
+);
+
+create index if not exists cats_customer_id_idx on cats(customer_id);
+
+create table if not exists bookings (
+  id text primary key,
+  customer_name text not null,
+  cat_name text not null,
+  service text not null check (service in ('groom', 'room')),
+  date date,
+  time text,
+  checkout date,
+  checkin date,
+  room text,
+  line_user_id text,
+  notes text,
+  status text not null default 'pending' check (status in ('pending', 'confirmed')),
+  checkin_time text,
+  calendar_event_id text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists bookings_line_user_id_idx on bookings(line_user_id);
+create index if not exists bookings_date_idx on bookings(date);
+create index if not exists bookings_checkin_idx on bookings(checkin);
+
+create table if not exists points_accounts (
+  line_user_id text primary key,
+  display_name text not null default '',
+  points integer not null default 0
+);
+
+create table if not exists points_history (
+  id text primary key,
+  line_user_id text not null references points_accounts(line_user_id) on delete cascade,
+  type text not null check (type in ('earn', 'redeem')),
+  points integer not null,
+  label_th text not null default '',
+  label_en text not null default '',
+  coupon_code text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists points_history_line_user_id_idx on points_history(line_user_id);
+
+create table if not exists promos (
+  id text primary key,
+  title_th text not null,
+  title_en text not null,
+  body_th text not null,
+  body_en text not null,
+  discount_percent integer,
+  discount_amount integer,
+  image_url text,
+  start_date date not null,
+  until date not null,
+  active boolean not null default true
+);
+
+create table if not exists finance_records (
+  id text primary key,
+  type text not null check (type in ('income', 'expense')),
+  amount numeric not null,
+  category text not null default 'ทั่วไป',
+  description text not null default '',
+  date date not null,
+  customer_id text references customers(id) on delete set null,
+  invoice_id text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists finance_records_date_idx on finance_records(date);
+
+create table if not exists invoices (
+  id text primary key,
+  customer_id text not null references customers(id) on delete cascade,
+  line_user_id text,
+  customer_name text not null,
+  cat_name text not null,
+  items jsonb not null default '[]'::jsonb,
+  subtotal numeric not null,
+  discount numeric not null default 0,
+  promo_id text,
+  promo_label text,
+  total numeric not null,
+  status text not null default 'pending' check (status in ('pending', 'paid')),
+  payment_method text,
+  paid_at timestamptz,
+  points_earned integer,
+  booking_id text,
+  sent_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists invoices_customer_id_idx on invoices(customer_id);
+create index if not exists invoices_status_idx on invoices(status);
+
+create table if not exists service_records (
+  id text primary key,
+  customer_id text not null references customers(id) on delete cascade,
+  cat_name text not null,
+  service text not null,
+  date date not null,
+  time text,
+  amount numeric,
+  invoice_id text,
+  booking_id text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists service_records_customer_id_idx on service_records(customer_id);
+
+-- ข้อมูลเริ่มต้น (รันครั้งเดียว)
+insert into customers (id, name, line_user_id, is_member, member_credit)
+values ('C001', 'คุณมาย', 'dev-user', false, 0)
+on conflict (id) do nothing;
+
+insert into cats (id, customer_id, name, staff_note)
+values ('CAT001', 'C001', 'น้องส้ม', 'อาบง่าย ไม่ดุ')
+on conflict (id) do nothing;
+
+insert into bookings (id, customer_name, cat_name, service, date, time, status, line_user_id)
+values ('B001', 'คุณมาย', 'น้องส้ม', 'groom', '2026-07-23', '12:30', 'pending', 'dev-user')
+on conflict (id) do nothing;
+
+insert into points_accounts (line_user_id, display_name, points)
+values ('dev-user', 'คุณทดสอบ', 42)
+on conflict (line_user_id) do nothing;
+
+insert into promos (id, title_th, title_en, body_th, body_en, start_date, until, active)
+values
+  ('P1', 'สมาชิกใหม่ รับแต้ม x2', 'New member double points',
+   'จองครั้งแรกรับแต้มสะสม 2 เท่า 🧡', 'First booking earns 2x loyalty points 🧡',
+   '2026-01-01', '2026-08-31', true),
+  ('P2', 'พัก 7 คืนขึ้นไป ฟรีกล้อง CCTV', '7+ nights free CCTV',
+   'ห้อง MiNi Meow / Mid Cozy / Cat Tower รับฟรีกล้องวงจรปิด',
+   'MiNi Meow, Mid Cozy & Cat Tower — free CCTV for 7+ nights',
+   '2026-01-01', '2026-12-31', true)
+on conflict (id) do nothing;

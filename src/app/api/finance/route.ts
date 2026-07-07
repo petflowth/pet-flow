@@ -7,15 +7,15 @@ export async function GET(req: NextRequest) {
   const summary = req.nextUrl.searchParams.get("summary") === "1";
 
   if (summary) {
-    return NextResponse.json({ summary: financeSummary(from, to) });
+    return NextResponse.json({ summary: await financeSummary(from, to) });
   }
 
-  return NextResponse.json({ records: listFinance(from, to) });
+  return NextResponse.json({ records: await listFinance(from, to) });
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const rec = addFinanceEntry({
+  const rec = await addFinanceEntry({
     type: body.type,
     amount: Number(body.amount),
     category: body.category || "ทั่วไป",

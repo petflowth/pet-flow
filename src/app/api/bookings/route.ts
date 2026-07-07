@@ -13,7 +13,7 @@ import { pushLineMessage, buildReminderFlex } from "@/lib/line";
 
 export async function GET(req: NextRequest) {
   const lineUserId = req.nextUrl.searchParams.get("lineUserId") || undefined;
-  const items = listBookings(lineUserId).map((b) => ({
+  const items = (await listBookings(lineUserId)).map((b) => ({
     ...toBooking(b),
     lineUserId: b.lineUserId,
   }));
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const customer = upsertCustomerFromBooking({
+  const customer = await upsertCustomerFromBooking({
     customerName: body.customerName,
     catName: body.catName,
     lineUserId: body.lineUserId,
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     staffNote: body.notes,
   });
 
-  const booking = addBooking({
+  const booking = await addBooking({
     customerName: body.customerName,
     catName: body.catName,
     service: body.service,
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     eventId: booking.id,
   });
 
-  booking.calendarEventId = cal.eventId;
+  await updateBooking(booking.id, { calendarEventId: cal.eventId });
 
   const base = process.env.NEXT_PUBLIC_APP_URL || "";
   const icsUrl = `${base}/api/calendar/${booking.id}`;
@@ -78,11 +78,11 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   const { id, action, lineUserId, checkinTime } = await req.json();
-  const b = getBooking(id);
+  const b = await getBooking(id);
   if (!b) return NextResponse.json({ error: "not found" }, { status: 404 });
 
   if (action === "confirm") {
-    updateBooking(id, { status: "confirmed", checkinTime });
+    await updateBooking(id, { status: "confirmed", checkinTime });
     await sendTelegram(
       formatBookingTelegram("✅ ลูกค้ายืนยันแล้ว", {
         ลูกค้า: String(b.customerName),
@@ -90,7 +90,8 @@ export async function PATCH(req: NextRequest) {
         วันที่: String(b.date || b.checkin),
       })
     );
-    return NextResponse.json({ ok: true, booking: toBooking(getBooking(id)!) });
+    const updated = await getBooking(id);
+    return NextResponse.json({ ok: true, booking: toBooking(updated!) });
   }
 
   if (action === "send_reminder" && lineUserId) {

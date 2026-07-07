@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   BUSINESS,
-  getActivePromos,
   type Booking,
 } from "@/lib/business";
 import { t } from "@/lib/i18n";
@@ -19,8 +18,16 @@ export default function CustomerHome() {
   const { locale } = useLocale();
   const { profile, ready } = useLiff();
   const m = t(locale).home;
-  const promos = getActivePromos();
+  const [promos, setPromos] = useState<
+    { id: string; title: { th: string; en: string }; body: { th: string; en: string }; until: string }[]
+  >([]);
   const [nextBooking, setNextBooking] = useState<Booking | null>(null);
+
+  useEffect(() => {
+    fetch("/api/promos?active=1")
+      .then((r) => r.json())
+      .then((data) => setPromos(data.promos || []));
+  }, []);
 
   useEffect(() => {
     if (!profile?.lineUserId) return;

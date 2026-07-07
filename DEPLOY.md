@@ -28,10 +28,22 @@ Deploy ต้องใช้ **บัญชี Vercel ของคุณ** (logi
 | `GOOGLE_CALENDAR_ID` | ID ปฏิทิน Catcha Hotel |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Service account |
 | `GOOGLE_PRIVATE_KEY` | Private key (วางทั้งก้อน) |
+| `NEXT_PUBLIC_SUPABASE_URL` | จาก Supabase → Settings → API |
+| `SUPABASE_SERVICE_ROLE_KEY` | service_role key (เก็บเป็นความลับ) |
+| `BANK_NAME` / `BANK_ACCOUNT_NUMBER` / `BANK_ACCOUNT_NAME` | บัญชีรับโอน |
+| `CRON_SECRET` | รหัสสำหรับ Vercel Cron |
 
 5. กด **Deploy** → ได้ URL เช่น `https://catcha-hotel.vercel.app`
 
 ---
+
+## ตั้ง Supabase (ฐานข้อมูลถาวร)
+
+1. สร้างโปรเจกต์ที่ [supabase.com](https://supabase.com)
+2. SQL Editor → รันไฟล์ `webapp/supabase/schema.sql`
+3. ใส่ `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` ใน Vercel
+4. Redeploy — ดูรายละเอียดใน `webapp/SUPABASE.md`
+
 
 ## ตั้ง LINE LIFF
 1. LINE Developers → LIFF → Endpoint = `https://YOUR-URL.vercel.app/app`

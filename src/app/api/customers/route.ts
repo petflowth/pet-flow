@@ -15,18 +15,18 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q");
 
   if (id) {
-    const summary = customerSummary(id);
+    const summary = await customerSummary(id);
     if (!summary) return NextResponse.json({ error: "not found" }, { status: 404 });
     return NextResponse.json(summary);
   }
 
-  const list = q ? searchCustomers(q) : listCustomers();
+  const list = q ? await searchCustomers(q) : await listCustomers();
   return NextResponse.json({ customers: list });
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const customer = upsertCustomerFromBooking({
+  const customer = await upsertCustomerFromBooking({
     customerName: body.customerName,
     catName: body.catName,
     lineUserId: body.lineUserId,
@@ -41,25 +41,25 @@ export async function PATCH(req: NextRequest) {
   const { id, action } = body;
 
   if (action === "update_customer") {
-    const c = updateCustomer(id, body.patch);
+    const c = await updateCustomer(id, body.patch);
     if (!c) return NextResponse.json({ error: "not found" }, { status: 404 });
     return NextResponse.json({ ok: true, customer: c });
   }
 
   if (action === "update_cat") {
-    const c = updateCat(id, body.catId, body.patch);
+    const c = await updateCat(id, body.catId, body.patch);
     if (!c) return NextResponse.json({ error: "not found" }, { status: 404 });
     return NextResponse.json({ ok: true, customer: c });
   }
 
   if (action === "topup_member") {
-    const c = addMemberCredit(id, Number(body.amount) || 0);
+    const c = await addMemberCredit(id, Number(body.amount) || 0);
     if (!c) return NextResponse.json({ error: "not found" }, { status: 404 });
     return NextResponse.json({ ok: true, customer: c });
   }
 
   if (action === "set_member") {
-    const c = updateCustomer(id, {
+    const c = await updateCustomer(id, {
       isMember: Boolean(body.isMember),
       memberCredit: Number(body.memberCredit) || 0,
     });
@@ -67,7 +67,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ ok: true, customer: c });
   }
 
-  const c = getCustomer(id);
+  const c = await getCustomer(id);
   if (!c) return NextResponse.json({ error: "not found" }, { status: 404 });
   return NextResponse.json({ customer: c });
 }

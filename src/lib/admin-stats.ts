@@ -2,10 +2,10 @@ import { listBookings } from "./bookings-store";
 import { todayFinance, monthFinance } from "./finance-store";
 import { salesSummary } from "./invoices-store";
 
-export function adminDashboardStats() {
+export async function adminDashboardStats() {
   const today = new Date().toISOString().slice(0, 10);
   const ym = today.slice(0, 7);
-  const bookings = listBookings();
+  const bookings = await listBookings();
   const todayBookings = bookings.filter(
     (b) => b.date === today || b.checkin === today
   );
@@ -17,24 +17,25 @@ export function adminDashboardStats() {
     queue: pending.length,
     todayAppointments: todayBookings.length,
     todayConfirmed: confirmedToday.length,
-    salesToday: salesSummary(today, today),
-    salesMonth: salesSummary(`${ym}-01`, `${ym}-31`),
-    financeToday: todayFinance(),
-    financeMonth: monthFinance(ym),
+    salesToday: await salesSummary(today, today),
+    salesMonth: await salesSummary(`${ym}-01`, `${ym}-31`),
+    financeToday: await todayFinance(),
+    financeMonth: await monthFinance(ym),
   };
 }
 
-export function bookingsForMonth(yearMonth: string) {
+export async function bookingsForMonth(yearMonth: string) {
   const prefix = yearMonth.slice(0, 7);
-  return listBookings().filter((b) => {
+  const all = await listBookings();
+  return all.filter((b) => {
     const d = b.date || b.checkin || "";
     return d.startsWith(prefix);
   });
 }
 
-export function bookingsByDateMap(yearMonth: string) {
-  const map = new Map<string, ReturnType<typeof listBookings>>();
-  for (const b of bookingsForMonth(yearMonth)) {
+export async function bookingsByDateMap(yearMonth: string) {
+  const map = new Map<string, Awaited<ReturnType<typeof listBookings>>>();
+  for (const b of await bookingsForMonth(yearMonth)) {
     const key = b.date || b.checkin || "";
     if (!key) continue;
     const list = map.get(key) || [];

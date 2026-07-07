@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const tomorrow = bookingsTomorrow();
+  const tomorrow = await bookingsTomorrow();
   const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
   const base = process.env.NEXT_PUBLIC_APP_URL || "";
   let sent = 0;

@@ -4,7 +4,7 @@ import { todayFinance, monthFinance } from "@/lib/finance-store";
 import { salesSummary } from "@/lib/invoices-store";
 import { adminDashboardStats, bookingsForMonth } from "@/lib/admin-stats";
 
-export function handleTelegramCommand(text: string) {
+export async function handleTelegramCommand(text: string) {
   const today = new Date().toISOString().slice(0, 10);
   const ym = today.slice(0, 7);
 
@@ -35,7 +35,7 @@ export function handleTelegramCommand(text: string) {
   }
 
   if (text === "/today") {
-    const list = bookingsForDate(today);
+    const list = await bookingsForDate(today);
     if (!list.length) return { message: "📅 วันนี้ยังไม่มีนัดในระบบ" };
     return {
       message:
@@ -51,7 +51,7 @@ export function handleTelegramCommand(text: string) {
   }
 
   if (text === "/month") {
-    const list = bookingsForMonth(ym);
+    const list = await bookingsForMonth(ym);
     const byDay = new Map<string, number>();
     for (const b of list) {
       const d = b.date || b.checkin || "";
@@ -67,7 +67,7 @@ export function handleTelegramCommand(text: string) {
   }
 
   if (text === "/queue") {
-    const pending = listBookings().filter((b) => b.status === "pending");
+    const pending = (await listBookings()).filter((b) => b.status === "pending");
     if (!pending.length) return { message: "⏳ ไม่มีคิวรอยืนยัน" };
     return {
       message:
@@ -82,8 +82,8 @@ export function handleTelegramCommand(text: string) {
   }
 
   if (text === "/sales") {
-    const s = salesSummary(today, today);
-    const stats = adminDashboardStats();
+    const s = await salesSummary(today, today);
+    const stats = await adminDashboardStats();
     return {
       message:
         `💰 ยอดขายวันนี้ (${today})\n` +
@@ -94,8 +94,8 @@ export function handleTelegramCommand(text: string) {
   }
 
   if (text === "/finance") {
-    const f = todayFinance();
-    const m = monthFinance(ym);
+    const f = await todayFinance();
+    const m = await monthFinance(ym);
     return {
       message:
         `📒 การเงินวันนี้\n` +
@@ -109,7 +109,7 @@ export function handleTelegramCommand(text: string) {
   if (text.startsWith("/search ")) {
     const q = text.slice(8).trim();
     if (!q) return { message: "พิมพ์ /search ชื่อลูกค้าหรือชื่อแมว" };
-    const found = searchCustomers(q);
+    const found = await searchCustomers(q);
     if (!found.length) return { message: `ไม่พบ "${q}"` };
     return {
       message: found
@@ -125,7 +125,7 @@ export function handleTelegramCommand(text: string) {
   }
 
   if (text === "/customers") {
-    const all = listCustomers().slice(0, 10);
+    const all = (await listCustomers()).slice(0, 10);
     return {
       message: all
         .map((c, i) => `${i + 1}. ${c.name} · ${c.cats[0]?.name || "-"}`)

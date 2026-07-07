@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   const customerId = req.nextUrl.searchParams.get("customerId") || undefined;
 
   if (id) {
-    const inv = getInvoice(id);
+    const inv = await getInvoice(id);
     if (!inv) return NextResponse.json({ error: "not found" }, { status: 404 });
     return NextResponse.json({
       invoice: inv,
@@ -31,14 +31,14 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  return NextResponse.json({ invoices: listInvoices(customerId) });
+  return NextResponse.json({ invoices: await listInvoices(customerId) });
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
   if (body.action === "create") {
-    const invoice = createInvoice({
+    const invoice = await createInvoice({
       customerId: body.customerId,
       lineUserId: body.lineUserId,
       customerName: body.customerName,
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const body = await req.json();
   const { id, action } = body;
-  const inv = getInvoice(id);
+  const inv = await getInvoice(id);
   if (!inv) return NextResponse.json({ error: "not found" }, { status: 404 });
 
   const base = process.env.NEXT_PUBLIC_APP_URL || "";
@@ -80,12 +80,12 @@ export async function PATCH(req: NextRequest) {
         accountName: payment.accountName,
       }),
     ]);
-    markInvoiceSent(id);
+    await markInvoiceSent(id);
     return NextResponse.json({ ok: true, payUrl });
   }
 
   if (action === "mark_paid") {
-    const result = markInvoicePaid(id, body.paymentMethod || "transfer");
+    const result = await markInvoicePaid(id, body.paymentMethod || "transfer");
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
@@ -137,7 +137,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   if (action === "send_member_balance") {
-    const customer = getCustomer(inv.customerId);
+    const customer = await getCustomer(inv.customerId);
     if (!customer?.lineUserId) {
       return NextResponse.json({ error: "no_line" }, { status: 400 });
     }

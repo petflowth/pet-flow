@@ -10,14 +10,14 @@ import {
 export async function GET(req: NextRequest) {
   const active = req.nextUrl.searchParams.get("active") === "1";
   if (active) {
-    return NextResponse.json({ promos: getActivePromos() });
+    return NextResponse.json({ promos: await getActivePromos() });
   }
-  return NextResponse.json({ promos: listPromos() });
+  return NextResponse.json({ promos: await listPromos() });
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const promo = addPromo({
+  const promo = await addPromo({
     title: body.title,
     body: body.body,
     discountPercent: body.discountPercent,
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   const body = await req.json();
-  const promo = updatePromo(body.id, body.patch || body);
+  const promo = await updatePromo(body.id, body.patch || body);
   if (!promo) return NextResponse.json({ error: "not found" }, { status: 404 });
   return NextResponse.json({ ok: true, promo });
 }
@@ -40,6 +40,6 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
-  deletePromo(id);
+  await deletePromo(id);
   return NextResponse.json({ ok: true });
 }

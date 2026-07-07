@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
   const chatId = message.chat.id;
   const text = String(message.text).trim();
-  const result = handleTelegramCommand(text);
+  const result = await handleTelegramCommand(text);
 
   await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: "POST",

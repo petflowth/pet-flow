@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: Promise<{ bookingId: string }> }
 ) {
   const { bookingId } = await params;
-  const b = getBooking(bookingId);
+  const b = await getBooking(bookingId);
   if (!b) return NextResponse.json({ error: "not found" }, { status: 404 });
 
   const ics = buildIcsContent({

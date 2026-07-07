@@ -180,7 +180,7 @@
             <div class="field"><label>ชื่อลูกค้า</label><input type="text" id="fCust" placeholder="เช่น คุณมาย"></div>
             <div class="field"><label>ชื่อน้องแมว</label><input type="text" id="fCat" placeholder="เช่น น้องส้ม"></div>
           </div>
-          <div class="field"><label>เบอร์ / LINE ลูกค้า</label><input type="text" id="fContact" placeholder="080-xxx-xxxx หรือ @lineID"></div>
+          <div class="field"><label>เบอร์ / LINE User ID</label><input type="text" id="fContact" placeholder="080-xxx หรือ Uxxxxxxxx (LINE ID)"></div>
 
           <div class="field">
             <label>บริการ</label>
@@ -246,11 +246,39 @@
   var MAPS = "https://maps.app.goo.gl/u38pzVGa9LiEsLEK8";
   var svc = "groom"; // groom | room
 
-  var bookings = [
-    { time: "09.30", cust: "คุณฟ้า", cat: "น้องเหมียว", svc: "groom", detail: "อาบน้ำ · ขนยาว M", status: "wait" },
-    { time: "12.30", cust: "คุณมาย", cat: "น้องส้ม", svc: "groom", detail: "อาบน้ำ · ขนสั้น M", status: "wait" },
-    { time: "เช็คอิน", sub: "รอเวลา", cust: "คุณเบนซ์", cat: "น้องโมจิ +1", svc: "room", detail: "Mid Cozy · 8→10 ก.ค. (2 คืน)", status: "ok", checkin: "14:00" }
-  ];
+  var bookings = [];
+
+  function statusKey(s) {
+    return (s === 'ยืนยันแล้ว' || s === 'ok') ? 'ok' : 'wait';
+  }
+
+  function mapBooking(b) {
+    return {
+      id: b.id, time: b.time || b.when2 || '—', cust: b.customer, cat: b.cat,
+      svc: b.service, detail: b.detail, status: statusKey(b.status),
+      checkin: b.checkin || null, lineUserId: b.lineUserId || ''
+    };
+  }
+
+  function loadBookings() {
+    if (!(window.google && google.script && google.script.run)) {
+      if (!bookings.length) {
+        bookings = [
+          { time: "09.30", cust: "คุณฟ้า", cat: "น้องเหมียว", svc: "groom", detail: "อาบน้ำ · ขนยาว M", status: "wait" },
+          { time: "12.30", cust: "คุณมาย", cat: "น้องส้ม", svc: "groom", detail: "อาบน้ำ · ขนสั้น M", status: "wait" }
+        ];
+      }
+      render();
+      return;
+    }
+    google.script.run
+      .withSuccessHandler(function(rows) {
+        bookings = (rows || []).map(mapBooking);
+        render();
+      })
+      .withFailureHandler(function() { render(); })
+      .getUpcomingBookings();
+  }
 
   function render() {
     var el = document.getElementById("list");
@@ -268,7 +296,24 @@
     }).join("");
   }
 
-  function sendCard(i){ bookings[i].status = "ok"; render(); toast("📨 ส่งการ์ดให้ " + bookings[i].cust + " แล้วน้า~"); }
+  function sendCard(i){
+    var b = bookings[i];
+    if (!b || !b.id) { toast("⚠️ ไม่พบรหัสจอง"); return; }
+    if (!(window.google && google.script && google.script.run)) {
+      bookings[i].status = "ok"; render();
+      toast("📨 ส่งการ์ดให้ " + b.cust + " แล้วน้า~ (โหมดตัวอย่าง)");
+      return;
+    }
+    google.script.run
+      .withSuccessHandler(function() {
+        toast("📨 ส่งการ์ด LINE ให้ " + b.cust + " แล้ว 🧡");
+        loadBookings();
+      })
+      .withFailureHandler(function(err) {
+        toast("⚠️ ส่งไม่ได้: " + (err && err.message ? err.message : err));
+      })
+      .sendReminderCard(b.id);
+  }
 
   function toast(msg){
     var t = document.getElementById("toast");
@@ -380,29 +425,36 @@
     };
     if (window.google && google.script && google.script.run) {
       google.script.run
-        .withSuccessHandler(function(){ toast("🗓️ บันทึกนัดใน Catcha Hotel แล้ว 🧡"); })
+        .withSuccessHandler(function() {
+          toast("🗓️ บันทึกนัดใน Catcha Hotel แล้ว 🧡");
+          document.getElementById("fCust").value = "";
+          document.getElementById("fCat").value = "";
+          document.getElementById("fContact").value = "";
+          renderCard();
+          loadBookings();
+        })
         .withFailureHandler(function(err){ toast("⚠️ บันทึกไม่สำเร็จ: " + (err && err.message ? err.message : err)); })
         .saveBooking(payload);
-    }
-
-    if(svc === "room"){
-      var ci = document.getElementById("fCheckin").value, co = document.getElementById("fCheckout").value;
-      bookings.push({ time:"เช็คอิน", cust:cust, cat:cat, svc:"room",
-        detail: "ห้องพัก · "+fmtDate(ci)+"→"+fmtDate(co)+" ("+nights(ci,co)+" คืน)", status:"wait", checkin:null });
-      toast("🧡 บันทึกห้องพักแล้ว + สร้างนัดใน Google Calendar");
     } else {
-      var time = document.getElementById("fTime").value;
-      bookings.push({ time:(time.indexOf("ระบุ")>=0?"—":time), cust:cust, cat:cat, svc:"groom",
-        detail:"อาบน้ำ · รอระบุขนาด", status:"wait" });
-      toast("🧡 บันทึกคิวอาบน้ำแล้ว + สร้างนัดใน Google Calendar");
+      if(svc === "room"){
+        var ci = document.getElementById("fCheckin").value, co = document.getElementById("fCheckout").value;
+        bookings.push({ time:"เช็คอิน", cust:cust, cat:cat, svc:"room",
+          detail: "ห้องพัก · "+fmtDate(ci)+"→"+fmtDate(co)+" ("+nights(ci,co)+" คืน)", status:"wait", checkin:null });
+        toast("🧡 บันทึกห้องพักแล้ว (โหมดตัวอย่าง)");
+      } else {
+        var time = document.getElementById("fTime").value;
+        bookings.push({ time:(time.indexOf("ระบุ")>=0?"—":time), cust:cust, cat:cat, svc:"groom",
+          detail:"อาบน้ำ · รอระบุขนาด", status:"wait" });
+        toast("🧡 บันทึกคิวอาบน้ำแล้ว (โหมดตัวอย่าง)");
+      }
+      render();
     }
-    render();
     document.getElementById("fCust").value = "";
     document.getElementById("fCat").value = "";
     document.getElementById("fContact").value = "";
     renderCard();
   });
 
-  render();
+  loadBookings();
   renderCard();
 </script>

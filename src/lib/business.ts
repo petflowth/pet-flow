@@ -1,3 +1,5 @@
+import { getActivePromos as getStorePromos } from "./promos-store";
+
 export const BUSINESS = {
   name: "CatCha Hotel",
   tagline: { th: "โรงแรมแมว · อาบน้ำ & กรูมมิ่ง", en: "Cat Hotel · Grooming & Spa" },
@@ -339,5 +341,5 @@ export function getRoomById(id: string) {
 }
 
 export function getActivePromos(now = new Date()) {
-  return DEMO_PROMOS.filter((p) => new Date(p.until) >= now);
+  return getStorePromos(now);
 }

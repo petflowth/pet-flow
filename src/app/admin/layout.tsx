@@ -31,6 +31,9 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     { href: "/admin", label: "แดชบอร์ด", icon: "📊" },
     { href: "/admin/bookings/new", label: "จองใหม่", icon: "➕" },
     { href: "/admin/customers", label: "ลูกค้า", icon: "👤" },
+    { href: "/admin/billing", label: "คิดเงิน", icon: "💳" },
+    { href: "/admin/finance", label: "การเงิน", icon: "📒" },
+    { href: "/admin/promos", label: "โปร", icon: "✨" },
   ];
 
   return (
@@ -59,7 +62,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               key={tab.href}
               href={tab.href}
               className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${
-                pathname === tab.href
+                pathname === tab.href || pathname.startsWith(tab.href + "/")
                   ? "bg-honey/40 text-catcha-chocolate"
                   : "text-brown-soft"
               }`}

@@ -1,13 +1,29 @@
 "use client";
 
-import { DEMO_PROMOS } from "@/lib/business";
+import { useEffect, useState } from "react";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 import { LangSwitch } from "@/components/LangSwitch";
 
+type Promo = {
+  id: string;
+  title: { th: string; en: string };
+  body: { th: string; en: string };
+  until: string;
+  imageUrl?: string;
+  discountPercent?: number;
+};
+
 export default function PromosPage() {
   const { locale } = useLocale();
   const m = t(locale).promos;
+  const [promos, setPromos] = useState<Promo[]>([]);
+
+  useEffect(() => {
+    fetch("/api/promos?active=1")
+      .then((r) => r.json())
+      .then((data) => setPromos(data.promos || []));
+  }, []);
 
   return (
     <div className="px-4 pb-6 pt-5">
@@ -17,16 +33,22 @@ export default function PromosPage() {
       </div>
 
       <ul className="space-y-3">
-        {DEMO_PROMOS.map((promo) => (
+        {promos.map((promo) => (
           <li
             key={promo.id}
             className="overflow-hidden rounded-catcha border border-catcha-line bg-card shadow-catcha-sm"
           >
-            <div className="bg-gradient-to-r from-catcha-yellow/50 to-honey/40 px-4 py-2">
-              <p className="text-sm font-extrabold text-catcha-chocolate">
-                {promo.title[locale]}
-              </p>
-            </div>
+            {promo.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={promo.imageUrl} alt="" className="h-32 w-full object-cover" />
+            ) : (
+              <div className="bg-gradient-to-r from-catcha-yellow/50 to-honey/40 px-4 py-2">
+                <p className="text-sm font-extrabold text-catcha-chocolate">
+                  {promo.title[locale]}
+                  {promo.discountPercent ? ` · ${promo.discountPercent}%` : ""}
+                </p>
+              </div>
+            )}
             <div className="p-4">
               <p className="text-sm leading-relaxed text-brown-soft">
                 {promo.body[locale]}
@@ -37,6 +59,11 @@ export default function PromosPage() {
             </div>
           </li>
         ))}
+        {!promos.length && (
+          <li className="rounded-catcha bg-card p-6 text-center text-sm text-brown-soft">
+            ยังไม่มีโปรช่วงนี้
+          </li>
+        )}
       </ul>
     </div>
   );

@@ -7,6 +7,7 @@ import {
   toBooking,
   updateBooking,
 } from "@/lib/bookings-store";
+import { upsertCustomerFromBooking } from "@/lib/customers-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import { pushLineMessage, buildReminderFlex } from "@/lib/line";
 
@@ -21,6 +22,14 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
+  const customer = upsertCustomerFromBooking({
+    customerName: body.customerName,
+    catName: body.catName,
+    lineUserId: body.lineUserId,
+    phone: body.phone,
+    staffNote: body.notes,
+  });
+
   const booking = addBooking({
     customerName: body.customerName,
     catName: body.catName,
@@ -30,30 +39,41 @@ export async function POST(req: NextRequest) {
     checkout: body.checkout,
     checkin: body.checkin,
     room: body.room,
-    lineUserId: body.lineUserId,
+    lineUserId: body.lineUserId || customer.lineUserId,
     notes: body.notes,
   });
 
   const cal = await createCalendarEvent({
     summary: `🐱 ${body.catName} (${body.customerName})`,
-    description: JSON.stringify(booking),
+    description: `${body.service === "room" ? "ห้องพัก" : "อาบน้ำ"} · ${body.notes || ""}`,
     start: body.date || body.checkin,
-    end: body.checkout || body.date,
-    allDay: body.service === "room",
+    end: body.checkout || body.date || body.checkin,
+    time: body.time,
+    allDay: body.service === "room" && !body.time,
+    eventId: booking.id,
   });
 
   booking.calendarEventId = cal.eventId;
+
+  const base = process.env.NEXT_PUBLIC_APP_URL || "";
+  const icsUrl = `${base}/api/calendar/${booking.id}`;
 
   await sendTelegram(
     formatBookingTelegram("📌 จองใหม่", {
       ลูกค้า: body.customerName,
       น้องแมว: body.catName,
       บริการ: body.service === "room" ? "ห้องพัก" : "อาบน้ำ",
-      วันที่: body.date || body.checkin,
+      วันที่: `${body.date || body.checkin}${body.time ? ` ${body.time}` : ""}`,
+      ปฏิทิน: cal.googleUrl || icsUrl,
     })
   );
 
-  return NextResponse.json({ ok: true, booking: toBooking(booking), calendar: cal });
+  return NextResponse.json({
+    ok: true,
+    booking: toBooking(booking),
+    customerId: customer.id,
+    calendar: { ...cal, icsUrl },
+  });
 }
 
 export async function PATCH(req: NextRequest) {

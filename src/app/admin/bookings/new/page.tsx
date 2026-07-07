@@ -76,16 +76,21 @@ export default function NewBookingPage() {
             <Field label="วันที่นัด" name="date" type="date" required />
             <label className="block text-xs font-bold text-brown-soft">
               รอบเวลา
-              <select
+              <input
                 name="time"
+                type="time"
+                list="groom-slots"
+                defaultValue="12:30"
                 className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
-              >
+              />
+              <datalist id="groom-slots">
                 {GROOM_SLOTS.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
+                  <option key={t} value={t} />
                 ))}
-              </select>
+              </datalist>
+              <p className="mt-1 text-[10px] text-brown-faint">
+                เลือกจากรอบแนะนำ หรือพิมพ์เวลาเองได้
+              </p>
             </label>
           </>
         ) : (

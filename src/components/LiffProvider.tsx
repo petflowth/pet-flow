@@ -1,24 +1,40 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import type { CustomerProfile } from "@/lib/business";
 import type { PointsHistoryEntry } from "@/lib/points-store";
+import type { CustomerTier } from "@/lib/customer-tier";
+
+type LineCustomer = {
+  id: string;
+  name: string;
+  phone?: string;
+  cats: { id: string; name: string }[];
+  tier: CustomerTier;
+};
 
 type LiffCtx = {
   ready: boolean;
   profile: CustomerProfile | null;
+  customer: LineCustomer | null;
+  needsRegistration: boolean;
   history: PointsHistoryEntry[];
   error: string | null;
   refreshAccount: () => Promise<void>;
+  refreshCustomer: () => Promise<void>;
   setPoints: (points: number) => void;
 };
 
 const LiffContext = createContext<LiffCtx>({
   ready: false,
   profile: null,
+  customer: null,
+  needsRegistration: false,
   history: [],
   error: null,
   refreshAccount: async () => {},
+  refreshCustomer: async () => {},
   setPoints: () => {},
 });
 
@@ -39,15 +55,30 @@ async function syncLineCustomer(lineUserId: string, displayName: string) {
     body: JSON.stringify({ lineUserId, displayName }),
   });
   if (!res.ok) return null;
-  const data = await res.json();
-  return data.customer as { id: string; name: string } | null;
+  return res.json() as Promise<{
+    customer: LineCustomer;
+    needsRegistration: boolean;
+  }>;
 }
 
 export function LiffProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
+  const [customer, setCustomer] = useState<LineCustomer | null>(null);
+  const [needsRegistration, setNeedsRegistration] = useState(false);
   const [history, setHistory] = useState<PointsHistoryEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  const refreshCustomer = useCallback(async () => {
+    if (!profile?.lineUserId) return;
+    const sync = await syncLineCustomer(profile.lineUserId, profile.displayName);
+    if (sync) {
+      setCustomer(sync.customer);
+      setNeedsRegistration(sync.needsRegistration);
+    }
+  }, [profile?.lineUserId, profile?.displayName]);
 
   const refreshAccount = useCallback(async () => {
     if (!profile?.lineUserId) return;
@@ -63,8 +94,12 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     async function applyAccount(base: CustomerProfile) {
-      await syncLineCustomer(base.lineUserId, base.displayName);
+      const sync = await syncLineCustomer(base.lineUserId, base.displayName);
       const data = await fetchAccount(base.lineUserId, base.displayName);
+      if (sync) {
+        setCustomer(sync.customer);
+        setNeedsRegistration(sync.needsRegistration);
+      }
       if (data) {
         setProfile({ ...base, points: data.points });
         setHistory(data.history);
@@ -106,9 +141,47 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
       });
   }, []);
 
+  useEffect(() => {
+    if (!ready || typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const path = params.get("path");
+    const bookingId = params.get("id");
+
+    if (path === "bookings") {
+      router.replace(
+        bookingId ? `/app/bookings?id=${bookingId}` : "/app/bookings"
+      );
+      return;
+    }
+    if (path === "register") {
+      router.replace("/app/register");
+      return;
+    }
+
+    const skipRegister =
+      pathname.startsWith("/app/register") ||
+      pathname.startsWith("/app/bookings") ||
+      pathname.startsWith("/app/pay");
+
+    if (needsRegistration && !skipRegister) {
+      router.replace("/app/register");
+    }
+  }, [ready, needsRegistration, pathname, router]);
+
   return (
     <LiffContext.Provider
-      value={{ ready, profile, history, error, refreshAccount, setPoints }}
+      value={{
+        ready,
+        profile,
+        customer,
+        needsRegistration,
+        history,
+        error,
+        refreshAccount,
+        refreshCustomer,
+        setPoints,
+      }}
     >
       {children}
     </LiffContext.Provider>

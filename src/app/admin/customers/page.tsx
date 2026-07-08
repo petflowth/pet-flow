@@ -4,6 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import type { CatRecord, CustomerRecord, MemberCreditUsageRecord, MemberTopupRecord } from "@/lib/customers-store";
+import type { CustomerTier } from "@/lib/customer-tier";
+import { TIER_LABELS, tierBadgeClass } from "@/lib/customer-tier";
+import { RegistrationQrSection } from "@/components/LineSetupSection";
 import type { PointsHistoryEntry } from "@/lib/points-store";
 import type { Booking } from "@/lib/business";
 import { ExportSheetsButton } from "@/components/ExportSheetsButton";
@@ -384,12 +387,14 @@ function CustomerProfileSection({
 }) {
   const [name, setName] = useState(customer.name);
   const [phone, setPhone] = useState(customer.phone || "");
+  const [tier, setTier] = useState<CustomerTier>(customer.tier || "new");
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
     setName(customer.name);
     setPhone(customer.phone || "");
-  }, [customer.id, customer.name, customer.phone]);
+    setTier(customer.tier || "new");
+  }, [customer.id, customer.name, customer.phone, customer.tier]);
 
   const save = async (patch: { name?: string; phone?: string }) => {
     const res = await fetch("/api/customers", {
@@ -448,6 +453,63 @@ function CustomerProfileSection({
           placeholder="08x-xxx-xxxx"
           className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
         />
+      </label>
+
+      <label className="mt-3 block text-xs font-bold text-brown-soft">
+        ระดับลูกค้า
+        <div className="mt-1 flex flex-wrap gap-2">
+          {(Object.keys(TIER_LABELS) as CustomerTier[]).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={async () => {
+                const res = await fetch("/api/customers", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    id: customer.id,
+                    action: "set_tier",
+                    tier: t,
+                  }),
+                });
+                if (res.ok) {
+                  setTier(t);
+                  setMsg("✅ อัปเดตระดับแล้ว");
+                  onSaved();
+                  setTimeout(() => setMsg(""), 2000);
+                }
+              }}
+              className={`rounded-full px-3 py-1.5 text-[10px] font-bold ${
+                tier === t ? tierBadgeClass(t) : "bg-paper text-brown-faint"
+              }`}
+            >
+              {TIER_LABELS[t]}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={async () => {
+              const res = await fetch("/api/customers", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  id: customer.id,
+                  action: "recalculate_tier",
+                }),
+              });
+              const data = await res.json();
+              if (res.ok && data.customer?.tier) {
+                setTier(data.customer.tier);
+                setMsg("✅ คำนวณระดับใหม่แล้ว");
+                onSaved();
+                setTimeout(() => setMsg(""), 2000);
+              }
+            }}
+            className="rounded-full bg-paper px-3 py-1.5 text-[10px] font-bold text-brown-soft"
+          >
+            🔄 คำนวณอัตโนมัติ
+          </button>
+        </div>
       </label>
 
       {msg && <p className="mt-2 text-center text-[10px] font-bold text-ok">{msg}</p>}
@@ -609,7 +671,11 @@ export default function CustomersPage() {
           ← กลับ
         </button>
         <h1 className="mb-1 text-lg font-extrabold text-catcha-chocolate">
-          {c.name} {c.isMember && <span className="text-sm text-latte-deep">💎 Member</span>}
+          {c.name}{" "}
+          <span className={`text-xs rounded-full px-2 py-0.5 ${tierBadgeClass(c.tier || "new")}`}>
+            {TIER_LABELS[c.tier || "new"]}
+          </span>
+          {c.isMember && <span className="text-sm text-latte-deep">💎 Member</span>}
         </h1>
         {c.lineDisplayName && c.lineDisplayName !== c.name && (
           <p className="mb-1 text-[10px] text-brown-soft">
@@ -754,7 +820,8 @@ export default function CustomersPage() {
   return (
     <div>
       <h1 className="mb-4 text-lg font-extrabold text-catcha-chocolate">👤 ลูกค้า</h1>
-      <ExportSheetsButton className="mb-4" />
+      <RegistrationQrSection compact />
+      <ExportSheetsButton className="mb-4 mt-4" />
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
@@ -785,6 +852,9 @@ export default function CustomersPage() {
                   <div>
                     <p className="font-bold text-brown">
                       {c.cats[0]?.name || "—"} · {c.name}
+                      <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[9px] ${tierBadgeClass(c.tier || "new")}`}>
+                        {TIER_LABELS[c.tier || "new"]}
+                      </span>
                       {c.isMember && " 💎"}
                       {(c.upcomingAppointments ?? 0) > 0 && (
                         <span className="ml-1 rounded-full bg-honey/30 px-2 py-0.5 text-[10px] font-bold text-catcha-chocolate">

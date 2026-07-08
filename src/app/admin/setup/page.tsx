@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { adminJson } from "@/lib/admin-fetch";
 import { GoogleSetupSection } from "@/components/GoogleSetupSection";
+import { LineSetupSection } from "@/components/LineSetupSection";
 import { TelegramSetupSection } from "@/components/TelegramSetupSection";
 
 type Status = {
@@ -73,6 +74,7 @@ export default function SetupPage() {
       </p>
 
       <GoogleSetupSection adminCode={adminCode} />
+      <LineSetupSection />
       <TelegramSetupSection adminCode={adminCode} />
 
       {msg && (

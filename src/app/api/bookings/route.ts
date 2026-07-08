@@ -17,7 +17,12 @@ import {
 import { bookingMatchesCustomer } from "@/lib/booking-customer-match";
 import { listCustomers, resolveCustomerForBooking } from "@/lib/customers-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
-import { pushLineMessage, buildReminderFlex } from "@/lib/line";
+import { pushLineMessage } from "@/lib/line";
+import { buildBookingConfirmFlex } from "@/lib/booking-line-card";
+import {
+  findCustomerForBooking,
+  recalculateCustomerTier,
+} from "@/lib/customers-store";
 
 export const dynamic = "force-dynamic";
 
@@ -141,27 +146,27 @@ export async function PATCH(req: NextRequest) {
         วันที่: String(b.date || b.checkin),
       })
     );
+    const matched = await findCustomerForBooking(b);
+    if (matched) await recalculateCustomerTier(matched.id);
     const updated = await getBooking(id);
     return NextResponse.json({ ok: true, booking: toBooking(updated!) });
   }
 
   if (action === "send_reminder" && lineUserId) {
-    const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-    const base = process.env.NEXT_PUBLIC_APP_URL || "";
-    const confirmUrl = liffId
-      ? `https://liff.line.me/${liffId}?id=${id}`
-      : `${base}/app/bookings`;
+    const flex = await buildBookingConfirmFlex({
+      id,
+      catName: String(b.catName),
+      customerName: String(b.customerName),
+      service: String(b.service),
+      date: b.date,
+      time: b.time,
+      checkin: b.checkin,
+      checkout: b.checkout,
+      room: b.room,
+      notes: b.notes,
+    });
 
-    await pushLineMessage(lineUserId, [
-      buildReminderFlex({
-        id,
-        catName: String(b.catName),
-        customerName: String(b.customerName),
-        service: String(b.service),
-        when: String(b.date || b.checkin),
-        confirmUrl,
-      }),
-    ]);
+    await pushLineMessage(lineUserId, [flex]);
     return NextResponse.json({ ok: true });
   }
 

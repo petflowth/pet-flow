@@ -1,8 +1,14 @@
 import { bookingMatchesCustomer, datesForBooking, isUpcomingBooking } from "./booking-customer-match";
 import type { Booking } from "./business";
+import {
+  computeTierFromVisits,
+  type CustomerTier,
+} from "./customer-tier";
 import { listBookings } from "./bookings-store";
 import { getAccount, getPointsHistory } from "./points-store";
 import { getSupabase } from "./supabase/server";
+
+export type { CustomerTier } from "./customer-tier";
 
 export type CatRecord = {
   id: string;
@@ -22,6 +28,7 @@ export type CustomerRecord = {
   isMember: boolean;
   memberCredit: number;
   memberSince?: string;
+  tier: CustomerTier;
   createdAt: string;
   updatedAt: string;
 };
@@ -78,6 +85,7 @@ type CustomerRow = {
   is_member: boolean;
   member_credit: number;
   member_since: string | null;
+  tier: string | null;
   created_at: string;
   updated_at: string;
   cats?: CatRow[];
@@ -119,6 +127,7 @@ function seedMem() {
     cats: [{ id: "CAT001", name: "น้องส้ม", staffNote: "อาบง่าย ไม่ดุ" }],
     isMember: false,
     memberCredit: 0,
+    tier: "new",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -136,6 +145,7 @@ function mapCustomer(row: CustomerRow): CustomerRecord {
     isMember: row.is_member,
     memberCredit: Number(row.member_credit),
     memberSince: row.member_since ?? undefined,
+    tier: (row.tier as CustomerTier) || "new",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     cats: (row.cats || []).map((c) => ({
@@ -281,6 +291,7 @@ export async function upsertCustomerFromLine(data: {
     cats: [],
     isMember: false,
     memberCredit: 0,
+    tier: "new",
     createdAt: now,
     updatedAt: now,
   };
@@ -293,6 +304,7 @@ export async function upsertCustomerFromLine(data: {
       line_display_name: displayName,
       is_member: false,
       member_credit: 0,
+      tier: "new",
       created_at: now,
       updated_at: now,
     });
@@ -411,6 +423,7 @@ export async function upsertCustomerFromBooking(data: {
       cats: [{ id: catId, name: data.catName, staffNote: data.staffNote }],
       isMember: false,
       memberCredit: 0,
+      tier: "new",
       createdAt: now,
       updatedAt: now,
     };
@@ -423,6 +436,7 @@ export async function upsertCustomerFromBooking(data: {
         line_user_id: data.lineUserId || null,
         is_member: false,
         member_credit: 0,
+        tier: "new",
         created_at: now,
         updated_at: now,
       });
@@ -493,7 +507,13 @@ export async function updateCustomer(
   patch: Partial<
     Pick<
       CustomerRecord,
-      "name" | "phone" | "lineUserId" | "isMember" | "memberCredit" | "memberSince"
+      | "name"
+      | "phone"
+      | "lineUserId"
+      | "isMember"
+      | "memberCredit"
+      | "memberSince"
+      | "tier"
     >
   >
 ) {
@@ -518,6 +538,7 @@ export async function updateCustomer(
         is_member: c.isMember,
         member_credit: c.memberCredit,
         member_since: c.memberSince || null,
+        tier: c.tier,
         updated_at: c.updatedAt,
       })
       .eq("id", id);
@@ -679,6 +700,7 @@ export async function topupMemberCredit(
     });
   }
 
+  await recalculateCustomerTier(customerId);
   return { customer: updated, topup };
 }
 
@@ -713,10 +735,12 @@ export async function addServiceRecord(
       created_at: rec.at,
     });
     await touchCustomer(rec.customerId);
+    await recalculateCustomerTier(rec.customerId);
     return rec;
   }
 
   memServices.unshift(rec);
+  await recalculateCustomerTier(rec.customerId);
   return rec;
 }
 
@@ -814,4 +838,72 @@ export async function customerSummary(customerId: string) {
     history.services.length +
     history.bookings.filter((b) => b.status === "confirmed").length;
   return { customer: c, history, points, visits };
+}
+
+export async function countCustomerVisits(customerId: string) {
+  const history = await getCustomerHistory(customerId);
+  return (
+    history.services.length +
+    history.bookings.filter((b) => b.status === "confirmed").length
+  );
+}
+
+/** อัปเกรดระดับลูกค้าตามจำนวนครั้งที่มาใช้บริการ */
+export async function recalculateCustomerTier(customerId: string) {
+  const c = await getCustomer(customerId);
+  if (!c) return null;
+  const visits = await countCustomerVisits(customerId);
+  const tier = computeTierFromVisits(visits, c.isMember);
+  if (tier === c.tier) return c;
+  return updateCustomer(customerId, { tier });
+}
+
+export async function listCustomersByTier(tier: CustomerTier | "all") {
+  const all = await fetchAllCustomers();
+  if (tier === "all") return all.filter((c) => Boolean(c.lineUserId));
+  return all.filter((c) => c.tier === tier && c.lineUserId);
+}
+
+/** ลูกค้ากรอกฟอร์มลงทะเบียนจาก LIFF */
+export async function registerCustomerFromLine(data: {
+  lineUserId: string;
+  name: string;
+  phone: string;
+  cats: { name: string; staffNote?: string }[];
+}) {
+  const lineUserId = data.lineUserId.trim();
+  const name = data.name.trim();
+  const phone = data.phone.trim();
+  const cats = data.cats
+    .map((c) => ({ name: c.name.trim(), staffNote: c.staffNote?.trim() }))
+    .filter((c) => c.name);
+
+  if (!lineUserId || !name || !phone || cats.length === 0) return null;
+
+  let customer = await findCustomerByLine(lineUserId);
+  if (!customer) {
+    customer = (await upsertCustomerFromLine({
+      lineUserId,
+      displayName: name,
+    })) ?? undefined;
+  }
+  if (!customer) return null;
+
+  await updateCustomer(customer.id, { name, phone });
+
+  for (const cat of cats) {
+    const exists = customer.cats.some(
+      (x) => x.name.toLowerCase() === cat.name.toLowerCase()
+    );
+    if (exists) continue;
+    await addCat(customer.id, {
+      name: cat.name,
+      staffNote: cat.staffNote,
+    });
+  }
+
+  const refreshed = await getCustomer(customer.id);
+  if (!refreshed) return null;
+  await recalculateCustomerTier(refreshed.id);
+  return getCustomer(refreshed.id);
 }

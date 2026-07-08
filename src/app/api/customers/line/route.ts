@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { upsertCustomerFromLine } from "@/lib/customers-store";
+import {
+  findCustomerByLine,
+  upsertCustomerFromLine,
+} from "@/lib/customers-store";
+import { isProfileComplete } from "@/lib/customer-tier";
 
 /** ลูกค้าเปิดแอปจาก LINE → สร้าง/ผูกบัญชีอัตโนมัติ */
 export async function POST(req: NextRequest) {
@@ -21,11 +25,38 @@ export async function POST(req: NextRequest) {
     customer: {
       id: customer.id,
       name: customer.name,
+      phone: customer.phone,
       lineUserId: customer.lineUserId,
       lineDisplayName: customer.lineDisplayName,
       cats: customer.cats,
       isMember: customer.isMember,
       memberCredit: customer.memberCredit,
+      tier: customer.tier,
+    },
+    needsRegistration: !isProfileComplete(customer),
+  });
+}
+
+export async function GET(req: NextRequest) {
+  const lineUserId = req.nextUrl.searchParams.get("lineUserId")?.trim();
+  if (!lineUserId) {
+    return NextResponse.json({ error: "lineUserId required" }, { status: 400 });
+  }
+
+  const customer = await findCustomerByLine(lineUserId);
+  if (!customer) {
+    return NextResponse.json({ found: false, needsRegistration: true });
+  }
+
+  return NextResponse.json({
+    found: true,
+    needsRegistration: !isProfileComplete(customer),
+    customer: {
+      id: customer.id,
+      name: customer.name,
+      phone: customer.phone,
+      cats: customer.cats,
+      tier: customer.tier,
     },
   });
 }

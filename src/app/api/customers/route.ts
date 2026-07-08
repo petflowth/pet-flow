@@ -10,7 +10,9 @@ import {
   topupMemberCredit,
   upsertCustomerFromBooking,
   customerSummary,
+  recalculateCustomerTier,
 } from "@/lib/customers-store";
+import type { CustomerTier } from "@/lib/customer-tier";
 
 export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
@@ -117,6 +119,21 @@ export async function PATCH(req: NextRequest) {
       isMember: Boolean(body.isMember),
       memberCredit: Number(body.memberCredit) || 0,
     });
+    if (!c) return NextResponse.json({ error: "not found" }, { status: 404 });
+    await recalculateCustomerTier(id);
+    const refreshed = await getCustomer(id);
+    return NextResponse.json({ ok: true, customer: refreshed });
+  }
+
+  if (action === "set_tier") {
+    const tier = body.tier as CustomerTier;
+    const c = await updateCustomer(id, { tier });
+    if (!c) return NextResponse.json({ error: "not found" }, { status: 404 });
+    return NextResponse.json({ ok: true, customer: c });
+  }
+
+  if (action === "recalculate_tier") {
+    const c = await recalculateCustomerTier(id);
     if (!c) return NextResponse.json({ error: "not found" }, { status: 404 });
     return NextResponse.json({ ok: true, customer: c });
   }

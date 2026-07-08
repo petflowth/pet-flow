@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { type Booking } from "@/lib/business";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
@@ -9,14 +10,17 @@ import { LangSwitch } from "@/components/LangSwitch";
 
 const CHECKIN_TIMES = ["10:00", "12:00", "14:00", "16:00", "18:00"];
 
-export default function BookingsPage() {
+function BookingsContent() {
   const { locale } = useLocale();
   const { profile, ready } = useLiff();
+  const searchParams = useSearchParams();
+  const highlightId = searchParams.get("id");
   const m = t(locale).bookings;
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [pickId, setPickId] = useState<string | null>(null);
   const [checkin, setCheckin] = useState("14:00");
+  const scrolledRef = useRef(false);
 
   const load = useCallback(async () => {
     if (!profile?.lineUserId) return;
@@ -34,6 +38,22 @@ export default function BookingsPage() {
     }
     load();
   }, [profile?.lineUserId, load, ready]);
+
+  useEffect(() => {
+    if (!highlightId || loading || scrolledRef.current) return;
+    const target = bookings.find((b) => b.id === highlightId);
+    if (!target) return;
+    scrolledRef.current = true;
+    if (target.status === "pending" && target.service === "room") {
+      setPickId(target.id);
+    }
+    requestAnimationFrame(() => {
+      document.getElementById(`booking-${highlightId}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    });
+  }, [highlightId, loading, bookings]);
 
   const confirm = async (id: string) => {
     const b = bookings.find((x) => x.id === id);
@@ -75,7 +95,12 @@ export default function BookingsPage() {
           {bookings.map((b) => (
             <li
               key={b.id}
-              className="rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm"
+              id={`booking-${b.id}`}
+              className={`rounded-catcha border bg-card p-4 shadow-catcha-sm ${
+                highlightId === b.id
+                  ? "border-sage ring-2 ring-sage/30"
+                  : "border-catcha-line"
+              }`}
             >
               <div className="mb-2 flex items-start justify-between gap-2">
                 <div>
@@ -145,5 +170,21 @@ export default function BookingsPage() {
         </ul>
       )}
     </div>
+  );
+}
+
+export default function BookingsPage() {
+  const { locale } = useLocale();
+  const m = t(locale).bookings;
+  return (
+    <Suspense
+      fallback={
+        <p className="px-4 py-10 text-center text-sm text-brown-soft">
+          {m.title}…
+        </p>
+      }
+    >
+      <BookingsContent />
+    </Suspense>
   );
 }

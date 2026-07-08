@@ -2,6 +2,10 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
+import {
+  TIER_LABELS,
+  type CustomerTier,
+} from "@/lib/customer-tier";
 
 type Promo = {
   id: string;
@@ -18,6 +22,17 @@ type Promo = {
 export default function PromosAdminPage() {
   const [promos, setPromos] = useState<Promo[]>([]);
   const [imageUrl, setImageUrl] = useState("");
+  const [broadcastTier, setBroadcastTier] = useState<CustomerTier | "all">("all");
+  const [broadcastTitle, setBroadcastTitle] = useState("");
+  const [broadcastBody, setBroadcastBody] = useState("");
+  const [broadcastImage, setBroadcastImage] = useState("");
+  const [broadcastCount, setBroadcastCount] = useState<number | null>(null);
+  const [broadcasting, setBroadcasting] = useState(false);
+  const [broadcastMsg, setBroadcastMsg] = useState("");
+  const adminCode =
+    typeof window !== "undefined"
+      ? sessionStorage.getItem("catcha-admin") || ""
+      : "";
 
   const load = useCallback(async () => {
     const res = await fetch("/api/promos");
@@ -28,6 +43,39 @@ export default function PromosAdminPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    fetch(`/api/line/broadcast?tier=${broadcastTier}`)
+      .then((r) => r.json())
+      .then((d) => setBroadcastCount(d.withLine ?? d.count ?? 0));
+  }, [broadcastTier]);
+
+  const sendBroadcast = async () => {
+    if (!broadcastTitle.trim() || !broadcastBody.trim()) {
+      setBroadcastMsg("กรอกหัวข้อและข้อความ");
+      return;
+    }
+    setBroadcasting(true);
+    setBroadcastMsg("");
+    const res = await fetch("/api/line/broadcast", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        adminCode,
+        tier: broadcastTier,
+        title: broadcastTitle,
+        body: broadcastBody,
+        imageUrl: broadcastImage || undefined,
+      }),
+    });
+    const data = await res.json();
+    setBroadcasting(false);
+    if (res.ok) {
+      setBroadcastMsg(`✅ ส่งแล้ว ${data.sent} คน (${data.tier})`);
+    } else {
+      setBroadcastMsg(data.error || "ส่งไม่สำเร็จ");
+    }
+  };
 
   const onImage = (file: File) => {
     const reader = new FileReader();
@@ -71,6 +119,57 @@ export default function PromosAdminPage() {
   return (
     <div>
       <h1 className="mb-4 text-lg font-extrabold text-catcha-chocolate">✨ โปรโมชั่น</h1>
+
+      <section className="mb-5 space-y-3 rounded-catcha border border-sage/40 bg-sage/10 p-4">
+        <h2 className="text-sm font-extrabold text-catcha-chocolate">📨 ส่งโปรทาง LINE</h2>
+        <p className="text-[10px] text-brown-soft">
+          เลือกกลุ่มลูกค้าแล้วส่งการ์ด Flex — ต้องตั้ง LINE_CHANNEL_TOKEN
+        </p>
+        <select
+          value={broadcastTier}
+          onChange={(e) =>
+            setBroadcastTier(e.target.value as CustomerTier | "all")
+          }
+          className="w-full rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-sm"
+        >
+          <option value="all">ทุกระดับ ({broadcastCount ?? "…"} คน)</option>
+          {(Object.keys(TIER_LABELS) as CustomerTier[]).map((t) => (
+            <option key={t} value={t}>
+              {TIER_LABELS[t]}
+            </option>
+          ))}
+        </select>
+        <input
+          value={broadcastTitle}
+          onChange={(e) => setBroadcastTitle(e.target.value)}
+          placeholder="หัวข้อการ์ด"
+          className="w-full rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-sm"
+        />
+        <textarea
+          value={broadcastBody}
+          onChange={(e) => setBroadcastBody(e.target.value)}
+          placeholder="ข้อความโปรโมชั่น"
+          rows={3}
+          className="w-full rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-sm"
+        />
+        <input
+          value={broadcastImage}
+          onChange={(e) => setBroadcastImage(e.target.value)}
+          placeholder="URL รูป (ไม่บังคับ)"
+          className="w-full rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-sm"
+        />
+        <button
+          type="button"
+          disabled={broadcasting}
+          onClick={sendBroadcast}
+          className="w-full rounded-catcha-sm bg-[#4A7348] py-3 text-sm font-extrabold text-white disabled:opacity-60"
+        >
+          {broadcasting ? "กำลังส่ง…" : `📨 ส่งให้ลูกค้า (${broadcastCount ?? "…"} คน)`}
+        </button>
+        {broadcastMsg && (
+          <p className="text-center text-xs font-bold text-brown">{broadcastMsg}</p>
+        )}
+      </section>
 
       <form onSubmit={submit} className="mb-5 space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm">
         <input name="titleTh" required placeholder="หัวข้อ (ไทย)" className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />

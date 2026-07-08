@@ -3,10 +3,50 @@
  * ตั้งค่า: LINE_CHANNEL_TOKEN
  */
 
-export async function pushLineMessage(
-  to: string,
-  messages: object[]
-) {
+import { formatBookingWhen, formatThaiDate } from "./format-thai-date";
+
+const BRAND_GREEN = "#5A8F5A";
+const BRAND_GREEN_DARK = "#4A7348";
+
+function flexDetailRow(icon: string, label: string, value: string) {
+  return {
+    type: "box" as const,
+    layout: "horizontal" as const,
+    spacing: "md" as const,
+    margin: "lg" as const,
+    contents: [
+      {
+        type: "text" as const,
+        text: icon,
+        size: "sm" as const,
+        flex: 0,
+      },
+      {
+        type: "box" as const,
+        layout: "vertical" as const,
+        flex: 5,
+        contents: [
+          {
+            type: "text" as const,
+            text: label,
+            size: "xxs" as const,
+            color: "#9B8B7E",
+          },
+          {
+            type: "text" as const,
+            text: value,
+            size: "sm" as const,
+            color: "#4E3E32",
+            wrap: true,
+            margin: "xs" as const,
+          },
+        ],
+      },
+    ],
+  };
+}
+
+export async function pushLineMessage(to: string, messages: object[]) {
   const token = process.env.LINE_CHANNEL_TOKEN;
   if (!token) throw new Error("LINE_CHANNEL_TOKEN not configured");
 
@@ -25,6 +65,158 @@ export async function pushLineMessage(
   return { ok: true };
 }
 
+/** ส่งหลายคนพร้อมกัน (สูงสุด 500 ต่อครั้ง) */
+export async function multicastLineMessage(to: string[], messages: object[]) {
+  const token = process.env.LINE_CHANNEL_TOKEN;
+  if (!token) throw new Error("LINE_CHANNEL_TOKEN not configured");
+  if (to.length === 0) return { ok: true, sent: 0 };
+
+  const chunks: string[][] = [];
+  for (let i = 0; i < to.length; i += 500) {
+    chunks.push(to.slice(i, i + 500));
+  }
+
+  let sent = 0;
+  for (const batch of chunks) {
+    const res = await fetch("https://api.line.me/v2/bot/message/multicast", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ to: batch, messages }),
+    });
+    if (!res.ok) {
+      throw new Error(`LINE multicast: ${await res.text()}`);
+    }
+    sent += batch.length;
+  }
+  return { ok: true, sent };
+}
+
+export function buildAppointmentConfirmFlex(booking: {
+  id: string;
+  catName: string;
+  customerName: string;
+  service: string;
+  date?: string;
+  time?: string;
+  checkin?: string;
+  checkout?: string;
+  room?: string;
+  notes?: string;
+  confirmUrl: string;
+  mapsUrl: string;
+  location: string;
+  businessName?: string;
+}) {
+  const isRoom = booking.service === "room";
+  const serviceTitle = isRoom
+    ? `ห้องพัก · ${booking.catName}`
+    : `อาบน้ำ & กรูมมิ่ง · ${booking.catName}`;
+  const dateText = isRoom
+    ? formatBookingWhen({
+        service: booking.service,
+        checkin: booking.checkin || booking.date,
+        checkout: booking.checkout,
+      })
+    : formatThaiDate(booking.date || booking.checkin || "");
+  const timeText = isRoom
+    ? booking.room
+      ? `ห้อง ${booking.room}`
+      : "เช็คอินตามเวลาที่ยืนยันในแอป"
+    : booking.time
+      ? `เวลา ${booking.time}`
+      : "รอเลือกเวลาในแอป";
+
+  const noteText =
+    booking.notes?.trim() ||
+    "หมายเหตุ แพ้อาหาร/ต้องการอาหารพิเศษ หรือมีความต้องการอื่น แจ้งในแชท LINE ได้เลยค่ะ";
+
+  const altText = `ยืนยันนัด ${booking.catName} — ${dateText}`;
+
+  return {
+    type: "flex",
+    altText,
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: BRAND_GREEN,
+        paddingAll: "16px",
+        contents: [
+          {
+            type: "text",
+            text: "📅 กำหนดการนัด",
+            color: "#FFFFFF",
+            weight: "bold",
+            size: "sm",
+          },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        paddingAll: "16px",
+        contents: [
+          {
+            type: "text",
+            text: serviceTitle,
+            weight: "bold",
+            size: "lg",
+            color: "#5C4033",
+            wrap: true,
+          },
+          {
+            type: "text",
+            text: `แจ้งกำหนดการนัด 🗓️\n${booking.customerName}`,
+            size: "xs",
+            color: "#A2907E",
+            margin: "md",
+            wrap: true,
+          },
+          flexDetailRow("🗓️", "วันที่", dateText),
+          flexDetailRow("⏰", "เวลา / รายละเอียด", timeText),
+          flexDetailRow("📍", "สถานที่", booking.location),
+          flexDetailRow("📝", "หมายเหตุ", noteText),
+        ],
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        spacing: "sm",
+        paddingAll: "12px",
+        contents: [
+          {
+            type: "button",
+            style: "primary",
+            color: BRAND_GREEN_DARK,
+            height: "sm",
+            action: {
+              type: "uri",
+              label: "🐾 ยืนยันนัด",
+              uri: booking.confirmUrl,
+            },
+          },
+          {
+            type: "button",
+            style: "link",
+            height: "sm",
+            action: {
+              type: "uri",
+              label: "🗺️ ดูแผนที่ / เส้นทาง",
+              uri: booking.mapsUrl,
+            },
+          },
+        ],
+      },
+    },
+  };
+}
+
+/** @deprecated ใช้ buildAppointmentConfirmFlex แทน */
 export function buildReminderFlex(booking: {
   id: string;
   catName: string;
@@ -33,42 +225,84 @@ export function buildReminderFlex(booking: {
   when: string;
   confirmUrl: string;
 }) {
-  const isRoom = booking.service === "room";
-  const hero = isRoom
-    ? "พรุ่งนี้ถึงวันเช็คอินแล้วค่ะ"
-    : "พรุ่งนี้ถึงคิวอาบน้ำแล้วค่ะ";
+  return buildAppointmentConfirmFlex({
+    ...booking,
+    date: booking.when,
+    mapsUrl: "https://maps.app.goo.gl/u38pzVGa9LiEsLEK8",
+    location: "CatCha Hotel · บางนา เมกะ เทพารักษ์",
+  });
+}
+
+export function buildPromoFlex(data: {
+  title: string;
+  body: string;
+  imageUrl?: string;
+  promoUrl: string;
+  discountLabel?: string;
+}) {
+  const hero = data.imageUrl
+    ? {
+        type: "image" as const,
+        url: data.imageUrl,
+        size: "full" as const,
+        aspectRatio: "20:13" as const,
+        aspectMode: "cover" as const,
+      }
+    : {
+        type: "box" as const,
+        layout: "vertical" as const,
+        backgroundColor: BRAND_GREEN,
+        paddingAll: "20px",
+        contents: [
+          {
+            type: "text" as const,
+            text: "✨ โปรโมชั่น CatCha",
+            color: "#FFFFFF",
+            weight: "bold" as const,
+            size: "md" as const,
+          },
+        ],
+      };
 
   return {
     type: "flex",
-    altText: hero,
+    altText: data.title,
     contents: {
       type: "bubble",
       size: "mega",
+      hero,
       body: {
         type: "box",
         layout: "vertical",
+        paddingAll: "16px",
         contents: [
           {
             type: "text",
-            text: hero,
+            text: data.title,
             weight: "bold",
-            size: "md",
+            size: "lg",
             color: "#5C4033",
-          },
-          {
-            type: "text",
-            text: `${booking.catName} · ${booking.customerName}`,
-            size: "sm",
-            color: "#A2907E",
-            margin: "md",
             wrap: true,
           },
+          ...(data.discountLabel
+            ? [
+                {
+                  type: "text" as const,
+                  text: data.discountLabel,
+                  size: "sm" as const,
+                  color: BRAND_GREEN_DARK,
+                  weight: "bold" as const,
+                  margin: "md" as const,
+                },
+              ]
+            : []),
           {
             type: "text",
-            text: booking.when,
+            text: data.body,
             size: "sm",
             color: "#4E3E32",
-            margin: "sm",
+            margin: "md",
+            wrap: true,
           },
         ],
       },
@@ -79,12 +313,12 @@ export function buildReminderFlex(booking: {
           {
             type: "button",
             style: "primary",
-            color: "#C4956A",
+            color: BRAND_GREEN_DARK,
             height: "sm",
             action: {
               type: "uri",
-              label: "🐾 ยืนยันคิว",
-              uri: booking.confirmUrl,
+              label: "ดูรายละเอียด",
+              uri: data.promoUrl,
             },
           },
         ],

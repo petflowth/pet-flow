@@ -6,6 +6,7 @@ create table if not exists customers (
   phone text,
   line_user_id text unique,
   line_display_name text,
+  tier text not null default 'new' check (tier in ('new', 'regular', 'member', 'vip')),
   is_member boolean not null default false,
   member_credit numeric not null default 0,
   member_since date,

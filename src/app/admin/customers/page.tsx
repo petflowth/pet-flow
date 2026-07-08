@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import type { CatRecord, CustomerRecord, MemberCreditUsageRecord, MemberTopupRecord } from "@/lib/customers-store";
+import { customerTierLabels } from "@/lib/promos-store";
 import type { PointsHistoryEntry } from "@/lib/points-store";
 import type { Booking } from "@/lib/business";
 import { ExportSheetsButton } from "@/components/ExportSheetsButton";
@@ -390,6 +391,7 @@ function CustomerSummaryCard({
   const [phone, setPhone] = useState(customer.phone || "");
   const [msg, setMsg] = useState("");
   const heroCat = customer.cats.find((cat) => cat.photoDataUrl) || customer.cats[0];
+  const tiers = customerTierLabels(customer, visits);
 
   useEffect(() => {
     setName(customer.name);
@@ -448,6 +450,28 @@ function CustomerSummaryCard({
               ✅ ผูก LINE แล้ว
             </p>
           )}
+          <div className="mt-3">
+            <p className="mb-1.5 text-[10px] font-bold text-brown-soft">กลุ่มลูกค้า (Tier)</p>
+            <div className="flex flex-wrap gap-1.5">
+              {tiers.map((t) => (
+                <span
+                  key={t.id}
+                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                    t.id === "member"
+                      ? "bg-latte/30 text-latte-deep"
+                      : t.id === "new"
+                        ? "bg-honey/30 text-catcha-chocolate"
+                        : "bg-paper text-brown-soft"
+                  }`}
+                >
+                  {t.label}
+                </span>
+              ))}
+            </div>
+            <p className="mt-1 text-[9px] text-brown-faint">
+              ใช้กำหนดว่าเห็นโปรไหน · Member = เติมเครดิตแล้ว
+            </p>
+          </div>
         </div>
       </div>
 

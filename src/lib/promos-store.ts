@@ -229,6 +229,17 @@ function currentMonth(now = new Date()) {
   return now.toISOString().slice(0, 7);
 }
 
+export function customerTierLabels(
+  customer: Pick<CustomerRecord, "isMember">,
+  visits: number
+): { id: CustomerTier; label: string }[] {
+  const tiers: { id: CustomerTier; label: string }[] = [];
+  if (customer.isMember) tiers.push({ id: "member", label: "💎 Member" });
+  if (visits === 0) tiers.push({ id: "new", label: "ลูกค้าใหม่" });
+  else tiers.push({ id: "returning", label: "ลูกค้าเก่า" });
+  return tiers;
+}
+
 export function customerMatchesTiers(
   customer: CustomerRecord,
   visits: number,

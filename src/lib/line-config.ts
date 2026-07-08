@@ -22,9 +22,6 @@ export async function getLineCredentials(): Promise<LineCredentials | null> {
   const envToken = process.env.LINE_CHANNEL_TOKEN?.trim();
   const envLiff = process.env.NEXT_PUBLIC_LIFF_ID?.trim();
 
-  const channelToken = line?.channelToken || envToken;
-  const liffId = line?.liffId || envLiff;
-
   if (line?.channelToken) {
     return {
       channelToken: line.channelToken,

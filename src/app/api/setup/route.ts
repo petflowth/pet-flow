@@ -5,17 +5,26 @@ import {
   getSchemaSqlForCopy,
 } from "@/lib/supabase/bootstrap";
 
+export const runtime = "nodejs";
+
 export async function GET(req: NextRequest) {
   const action = req.nextUrl.searchParams.get("action");
 
-  if (action === "schema") {
-    return new NextResponse(getSchemaSqlForCopy(), {
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
-    });
-  }
+  try {
+    if (action === "schema") {
+      return new NextResponse(getSchemaSqlForCopy(), {
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      });
+    }
 
-  const status = await checkSetupStatus();
-  return NextResponse.json({ status });
+    const status = await checkSetupStatus();
+    return NextResponse.json({ status });
+  } catch (e) {
+    return NextResponse.json(
+      { error: String(e), message: "ตรวจสอบ env แล้วลองใหม่" },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(req: NextRequest) {

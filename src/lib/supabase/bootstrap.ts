@@ -1,6 +1,5 @@
 import { readFileSync } from "fs";
 import { join } from "path";
-import pg from "pg";
 import { getSupabase, isSupabaseConfigured } from "./server";
 
 export type SetupStatus = {
@@ -55,8 +54,12 @@ export async function checkSetupStatus(): Promise<SetupStatus> {
 
   const missing: string[] = [];
   for (const table of REQUIRED_TABLES) {
-    const { error } = await sb.from(table).select("*").limit(1);
-    if (error) missing.push(table);
+    try {
+      const { error } = await sb.from(table).select("*").limit(1);
+      if (error) missing.push(table);
+    } catch {
+      missing.push(table);
+    }
   }
 
   return {
@@ -90,7 +93,7 @@ export async function bootstrapDatabase() {
     };
   }
 
-  const client = new pg.Client({
+  const client = new (await import("pg")).default.Client({
     connectionString: url,
     ssl: { rejectUnauthorized: false },
   });

@@ -591,6 +591,26 @@ export async function addCat(
   return c;
 }
 
+export async function deleteCat(customerId: string, catId: string) {
+  const c = await getCustomer(customerId);
+  if (!c) return null;
+
+  const idx = c.cats.findIndex((x) => x.id === catId);
+  if (idx < 0) return null;
+
+  c.cats.splice(idx, 1);
+  await touchCustomer(customerId);
+
+  const sb = getSupabase();
+  if (sb) {
+    const { error } = await sb.from("cats").delete().eq("id", catId);
+    if (error) throw new Error(error.message);
+  } else {
+    memCustomers.set(customerId, c);
+  }
+  return c;
+}
+
 export async function addMemberCredit(customerId: string, amount: number) {
   return topupMemberCredit(customerId, { paidAmount: amount, bonusAmount: 0 });
 }

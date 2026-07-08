@@ -568,6 +568,22 @@ export default function CustomersPage() {
     open(selected.customer.id);
   };
 
+  const deleteCatProfile = async (cat: CatRecord) => {
+    if (!selected) return;
+    if (!confirm(`ลบโปรไฟล์ ${cat.name}?`)) return;
+    const res = await fetch("/api/customers", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: selected.customer.id,
+        action: "delete_cat",
+        catId: cat.id,
+      }),
+    });
+    if (res.ok) open(selected.customer.id);
+    else alert("ลบไม่สำเร็จ");
+  };
+
   const saveCatNote = async (catId: string, staffNote: string, photoDataUrl?: string) => {
     await saveCat(catId, { staffNote, ...(photoDataUrl ? { photoDataUrl } : {}) });
   };
@@ -618,6 +634,15 @@ export default function CustomersPage() {
           )}
           {c.cats.map((cat) => (
             <div key={cat.id} className="rounded-catcha border border-catcha-line bg-card p-4">
+              <div className="mb-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => deleteCatProfile(cat)}
+                  className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-bold text-wait"
+                >
+                  🗑️ ลบ
+                </button>
+              </div>
               <div className="flex gap-3">
                 {cat.photoDataUrl ? (
                   <Image

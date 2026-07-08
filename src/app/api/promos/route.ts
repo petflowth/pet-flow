@@ -2,16 +2,35 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   listPromos,
   getActivePromos,
+  getCustomerPromos,
   addPromo,
   updatePromo,
   deletePromo,
+  listPromoClaims,
+  type PromoKind,
+  type CustomerTier,
 } from "@/lib/promos-store";
 
 export async function GET(req: NextRequest) {
   const active = req.nextUrl.searchParams.get("active") === "1";
-  if (active) {
-    return NextResponse.json({ promos: await getActivePromos() });
+  const forCustomer = req.nextUrl.searchParams.get("forCustomer") === "1";
+  const lineUserId = req.nextUrl.searchParams.get("lineUserId") || "";
+  const withClaims = req.nextUrl.searchParams.get("claims") === "1";
+  const promoId = req.nextUrl.searchParams.get("promoId") || undefined;
+
+  if (withClaims) {
+    return NextResponse.json({ claims: await listPromoClaims(promoId) });
   }
+
+  if (forCustomer && lineUserId) {
+    return NextResponse.json({ promos: await getCustomerPromos(lineUserId) });
+  }
+
+  if (active) {
+    const kind = req.nextUrl.searchParams.get("kind") as PromoKind | null;
+    return NextResponse.json({ promos: await getActivePromos(new Date(), kind || undefined) });
+  }
+
   return NextResponse.json({ promos: await listPromos() });
 }
 
@@ -26,6 +45,14 @@ export async function POST(req: NextRequest) {
     startDate: body.startDate || new Date().toISOString().slice(0, 10),
     until: body.until,
     active: body.active !== false,
+    kind: body.kind || "display",
+    restriction: body.restriction || "none",
+    validMonth: body.validMonth || undefined,
+    tiers: (body.tiers as CustomerTier[]) || ["all"],
+    couponCode: body.couponCode || undefined,
+    rewardType: body.rewardType || "discount",
+    pointsBonus: body.pointsBonus ? Number(body.pointsBonus) : undefined,
+    pointsMultiplier: body.pointsMultiplier ? Number(body.pointsMultiplier) : undefined,
   });
   return NextResponse.json({ ok: true, promo });
 }

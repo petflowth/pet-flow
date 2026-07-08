@@ -76,8 +76,32 @@ create table if not exists promos (
   image_url text,
   start_date date not null,
   until date not null,
-  active boolean not null default true
+  active boolean not null default true,
+  kind text not null default 'display' check (kind in ('display', 'customer')),
+  restriction text not null default 'none' check (restriction in ('none', 'first_visit', 'calendar_month')),
+  valid_month text,
+  tiers text[] not null default array['all']::text[],
+  coupon_code text,
+  reward_type text not null default 'discount' check (reward_type in ('discount', 'points', 'both')),
+  points_bonus integer,
+  points_multiplier numeric
 );
+
+create table if not exists promo_claims (
+  id text primary key,
+  promo_id text not null references promos(id) on delete cascade,
+  customer_id text not null references customers(id) on delete cascade,
+  line_user_id text,
+  customer_name text not null default '',
+  promo_title text not null default '',
+  source text not null default 'app' check (source in ('app', 'admin')),
+  points_awarded integer,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists promo_claims_promo_id_idx on promo_claims(promo_id);
+create index if not exists promo_claims_customer_id_idx on promo_claims(customer_id);
+create unique index if not exists promo_claims_once_per_customer on promo_claims(promo_id, customer_id);
 
 create table if not exists finance_records (
   id text primary key,

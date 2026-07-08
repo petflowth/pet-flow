@@ -1,4 +1,11 @@
+import { customerSummary, findCustomerByLine, type CustomerRecord } from "./customers-store";
+import { addPoints } from "./points-store";
 import { getSupabase } from "./supabase/server";
+
+export type PromoKind = "display" | "customer";
+export type PromoRestriction = "none" | "first_visit" | "calendar_month";
+export type CustomerTier = "all" | "member" | "new" | "returning";
+export type PromoRewardType = "discount" | "points" | "both";
 
 export type PromoRecord = {
   id: string;
@@ -10,6 +17,33 @@ export type PromoRecord = {
   startDate: string;
   until: string;
   active: boolean;
+  kind: PromoKind;
+  restriction: PromoRestriction;
+  validMonth?: string;
+  tiers: CustomerTier[];
+  couponCode?: string;
+  rewardType: PromoRewardType;
+  pointsBonus?: number;
+  pointsMultiplier?: number;
+};
+
+export type PromoClaimRecord = {
+  id: string;
+  promoId: string;
+  customerId: string;
+  lineUserId?: string;
+  customerName: string;
+  promoTitle: string;
+  source: "app" | "admin";
+  pointsAwarded?: number;
+  createdAt: string;
+};
+
+export type CustomerPromoView = PromoRecord & {
+  claimed: boolean;
+  eligible: boolean;
+  reason?: string;
+  claimedAt?: string;
 };
 
 type PromoRow = {
@@ -24,6 +58,26 @@ type PromoRow = {
   start_date: string;
   until: string;
   active: boolean;
+  kind?: string | null;
+  restriction?: string | null;
+  valid_month?: string | null;
+  tiers?: string[] | null;
+  coupon_code?: string | null;
+  reward_type?: string | null;
+  points_bonus?: number | null;
+  points_multiplier?: number | null;
+};
+
+type PromoClaimRow = {
+  id: string;
+  promo_id: string;
+  customer_id: string;
+  line_user_id: string | null;
+  customer_name: string;
+  promo_title: string;
+  source: string;
+  points_awarded?: number | null;
+  created_at: string;
 };
 
 const mem: PromoRecord[] = [
@@ -37,6 +91,11 @@ const mem: PromoRecord[] = [
     startDate: "2026-01-01",
     until: "2026-08-31",
     active: true,
+    kind: "display",
+    restriction: "none",
+    tiers: ["all"],
+    rewardType: "points",
+    pointsMultiplier: 2,
   },
   {
     id: "P2",
@@ -48,8 +107,36 @@ const mem: PromoRecord[] = [
     startDate: "2026-01-01",
     until: "2026-12-31",
     active: true,
+    kind: "display",
+    restriction: "none",
+    tiers: ["all"],
+    rewardType: "discount",
+  },
+  {
+    id: "PC1",
+    title: { th: "โปรต้อนรับลูกค้าใหม่", en: "Welcome offer" },
+    body: {
+      th: "ลูกค้าใหม่กดรับโปร ได้แต้มโบนัส 20 แต้มทันที",
+      en: "New customers claim 20 bonus points instantly",
+    },
+    startDate: "2026-01-01",
+    until: "2026-12-31",
+    active: true,
+    kind: "customer",
+    restriction: "first_visit",
+    tiers: ["new"],
+    couponCode: "WELCOME20",
+    rewardType: "points",
+    pointsBonus: 20,
   },
 ];
+
+const memClaims: PromoClaimRecord[] = [];
+
+function normalizeTiers(tiers?: string[] | null): CustomerTier[] {
+  const list = (tiers || []).filter(Boolean) as CustomerTier[];
+  return list.length ? list : ["all"];
+}
 
 function rowToPromo(r: PromoRow): PromoRecord {
   return {
@@ -62,6 +149,14 @@ function rowToPromo(r: PromoRow): PromoRecord {
     startDate: r.start_date,
     until: r.until,
     active: r.active,
+    kind: (r.kind as PromoKind) || "display",
+    restriction: (r.restriction as PromoRestriction) || "none",
+    validMonth: r.valid_month ?? undefined,
+    tiers: normalizeTiers(r.tiers),
+    couponCode: r.coupon_code ?? undefined,
+    rewardType: (r.reward_type as PromoRewardType) || "discount",
+    pointsBonus: r.points_bonus ?? undefined,
+    pointsMultiplier: r.points_multiplier != null ? Number(r.points_multiplier) : undefined,
   };
 }
 
@@ -78,7 +173,143 @@ function promoToRow(p: PromoRecord) {
     start_date: p.startDate,
     until: p.until,
     active: p.active,
+    kind: p.kind,
+    restriction: p.restriction,
+    valid_month: p.validMonth ?? null,
+    tiers: p.tiers,
+    coupon_code: p.couponCode ?? null,
+    reward_type: p.rewardType,
+    points_bonus: p.pointsBonus ?? null,
+    points_multiplier: p.pointsMultiplier ?? null,
   };
+}
+
+function rowToClaim(r: PromoClaimRow): PromoClaimRecord {
+  return {
+    id: r.id,
+    promoId: r.promo_id,
+    customerId: r.customer_id,
+    lineUserId: r.line_user_id ?? undefined,
+    customerName: r.customer_name,
+    promoTitle: r.promo_title,
+    source: r.source as PromoClaimRecord["source"],
+    pointsAwarded: r.points_awarded ?? undefined,
+    createdAt: r.created_at,
+  };
+}
+
+function claimToRow(c: PromoClaimRecord) {
+  return {
+    id: c.id,
+    promo_id: c.promoId,
+    customer_id: c.customerId,
+    line_user_id: c.lineUserId ?? null,
+    customer_name: c.customerName,
+    promo_title: c.promoTitle,
+    source: c.source,
+    points_awarded: c.pointsAwarded ?? null,
+    created_at: c.createdAt,
+  };
+}
+
+export function promoRewardLabel(p: Pick<PromoRecord, "rewardType" | "discountPercent" | "discountAmount" | "pointsBonus" | "pointsMultiplier">) {
+  const parts: string[] = [];
+  if (p.rewardType === "discount" || p.rewardType === "both") {
+    if (p.discountPercent) parts.push(`${p.discountPercent}%`);
+    if (p.discountAmount) parts.push(`-${p.discountAmount}฿`);
+  }
+  if (p.rewardType === "points" || p.rewardType === "both") {
+    if (p.pointsBonus) parts.push(`+${p.pointsBonus} แต้ม`);
+    if (p.pointsMultiplier && p.pointsMultiplier > 1) parts.push(`แต้ม x${p.pointsMultiplier}`);
+  }
+  return parts.join(" · ");
+}
+
+function currentMonth(now = new Date()) {
+  return now.toISOString().slice(0, 7);
+}
+
+export function customerTierLabels(
+  customer: Pick<CustomerRecord, "isMember">,
+  visits: number
+): { id: CustomerTier; label: string }[] {
+  const tiers: { id: CustomerTier; label: string }[] = [];
+  if (customer.isMember) tiers.push({ id: "member", label: "💎 Member" });
+  if (visits === 0) tiers.push({ id: "new", label: "ลูกค้าใหม่" });
+  else tiers.push({ id: "returning", label: "ลูกค้าเก่า" });
+  return tiers;
+}
+
+export function customerMatchesTiers(
+  customer: CustomerRecord,
+  visits: number,
+  tiers: CustomerTier[]
+): boolean {
+  if (!tiers.length || tiers.includes("all")) return true;
+  if (tiers.includes("member") && customer.isMember) return true;
+  if (tiers.includes("new") && visits === 0) return true;
+  if (tiers.includes("returning") && visits > 0) return true;
+  return false;
+}
+
+export function checkPromoEligibility(
+  promo: PromoRecord,
+  customer: CustomerRecord,
+  visits: number,
+  claimed: boolean,
+  now = new Date()
+): { eligible: boolean; reason?: string } {
+  const today = now.toISOString().slice(0, 10);
+
+  if (!promo.active) return { eligible: false, reason: "โปรนี้ปิดใช้งานแล้ว" };
+  if (promo.startDate > today) return { eligible: false, reason: "โปรยังไม่เริ่ม" };
+  if (promo.until < today) return { eligible: false, reason: "โปรหมดอายุแล้ว" };
+
+  if (promo.restriction === "calendar_month" && promo.validMonth) {
+    if (currentMonth(now) !== promo.validMonth) {
+      return { eligible: false, reason: `โปรนี้ใช้ได้เฉพาะเดือน ${promo.validMonth}` };
+    }
+  }
+
+  if (promo.restriction === "first_visit" && visits > 0) {
+    return { eligible: false, reason: "โปรนี้สำหรับลูกค้าใหม่เท่านั้น" };
+  }
+
+  if (!customerMatchesTiers(customer, visits, promo.tiers)) {
+    return { eligible: false, reason: "โปรนี้ไม่ตรงกับกลุ่มลูกค้าของคุณ" };
+  }
+
+  if (claimed) {
+    return { eligible: false, reason: "คุณใช้โปรนี้แล้ว" };
+  }
+
+  return { eligible: true };
+}
+
+export async function listPromoClaims(promoId?: string) {
+  const sb = getSupabase();
+  if (sb) {
+    let q = sb.from("promo_claims").select("*").order("created_at", { ascending: false });
+    if (promoId) q = q.eq("promo_id", promoId);
+    const { data } = await q;
+    return ((data as PromoClaimRow[] | null) || []).map(rowToClaim);
+  }
+  const list = [...memClaims].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return promoId ? list.filter((c) => c.promoId === promoId) : list;
+}
+
+async function getClaimForCustomer(promoId: string, customerId: string) {
+  const sb = getSupabase();
+  if (sb) {
+    const { data } = await sb
+      .from("promo_claims")
+      .select("*")
+      .eq("promo_id", promoId)
+      .eq("customer_id", customerId)
+      .maybeSingle();
+    return data ? rowToClaim(data as PromoClaimRow) : undefined;
+  }
+  return memClaims.find((c) => c.promoId === promoId && c.customerId === customerId);
 }
 
 export async function listPromos() {
@@ -90,10 +321,114 @@ export async function listPromos() {
   return [...mem].sort((a, b) => b.until.localeCompare(a.until));
 }
 
-export async function getActivePromos(now = new Date()) {
+export async function getActivePromos(now = new Date(), kind?: PromoKind) {
   const today = now.toISOString().slice(0, 10);
   const all = await listPromos();
-  return all.filter((p) => p.active && p.startDate <= today && p.until >= today);
+  return all.filter(
+    (p) =>
+      p.active &&
+      p.startDate <= today &&
+      p.until >= today &&
+      (kind ? p.kind === kind : true)
+  );
+}
+
+export async function getCustomerPromos(lineUserId: string, now = new Date()): Promise<CustomerPromoView[]> {
+  const customer = await findCustomerByLine(lineUserId);
+  if (!customer) return [];
+
+  const summary = await customerSummary(customer.id);
+  const visits = summary?.visits ?? 0;
+  const promos = await getActivePromos(now, "customer");
+
+  const views: CustomerPromoView[] = [];
+  for (const promo of promos) {
+    const claim = await getClaimForCustomer(promo.id, customer.id);
+    const { eligible, reason } = checkPromoEligibility(
+      promo,
+      customer,
+      visits,
+      Boolean(claim),
+      now
+    );
+    views.push({
+      ...promo,
+      claimed: Boolean(claim),
+      eligible,
+      reason,
+      claimedAt: claim?.createdAt,
+    });
+  }
+
+  return views;
+}
+
+export async function claimCustomerPromo(
+  promoId: string,
+  lineUserId: string,
+  source: PromoClaimRecord["source"] = "app"
+): Promise<
+  | { ok: true; claim: PromoClaimRecord; promo: PromoRecord; pointsAwarded: number; newPoints?: number }
+  | { ok: false; error: string }
+> {
+  const customer = await findCustomerByLine(lineUserId);
+  if (!customer) return { ok: false, error: "ไม่พบข้อมูลลูกค้า — เปิดแอปจาก LINE อีกครั้ง" };
+
+  const promo = await getPromo(promoId);
+  if (!promo || promo.kind !== "customer") {
+    return { ok: false, error: "ไม่พบโปรนี้" };
+  }
+
+  const summary = await customerSummary(customer.id);
+  const visits = summary?.visits ?? 0;
+  const existing = await getClaimForCustomer(promoId, customer.id);
+  const { eligible, reason } = checkPromoEligibility(
+    promo,
+    customer,
+    visits,
+    Boolean(existing)
+  );
+
+  if (!eligible) return { ok: false, error: reason || "ใช้โปรนี้ไม่ได้" };
+
+  const pointsAwarded =
+    promo.rewardType === "points" || promo.rewardType === "both"
+      ? Math.max(0, promo.pointsBonus || 0)
+      : 0;
+
+  const claim: PromoClaimRecord = {
+    id: `CL${Date.now()}`,
+    promoId,
+    customerId: customer.id,
+    lineUserId,
+    customerName: customer.name,
+    promoTitle: promo.title.th,
+    source,
+    pointsAwarded: pointsAwarded || undefined,
+    createdAt: new Date().toISOString(),
+  };
+
+  const sb = getSupabase();
+  if (sb) {
+    const { error } = await sb.from("promo_claims").insert(claimToRow(claim));
+    if (error) return { ok: false, error: "บันทึกไม่สำเร็จ — อาจใช้โปรนี้แล้ว" };
+  } else {
+    memClaims.unshift(claim);
+  }
+
+  let newPoints: number | undefined;
+  if (pointsAwarded > 0) {
+    const acc = await addPoints(
+      lineUserId,
+      pointsAwarded,
+      `โปร: ${promo.title.th}`,
+      `Promo: ${promo.title.en}`,
+      customer.name
+    );
+    newPoints = acc.points;
+  }
+
+  return { ok: true, claim, promo, pointsAwarded, newPoints };
 }
 
 export async function getPromo(id: string) {
@@ -106,7 +441,14 @@ export async function getPromo(id: string) {
 }
 
 export async function addPromo(data: Omit<PromoRecord, "id">) {
-  const promo: PromoRecord = { ...data, id: `P${Date.now()}` };
+  const promo: PromoRecord = {
+    ...data,
+    id: `P${Date.now()}`,
+    kind: data.kind || "display",
+    restriction: data.restriction || "none",
+    tiers: data.tiers?.length ? data.tiers : ["all"],
+    rewardType: data.rewardType || "discount",
+  };
   const sb = getSupabase();
   if (sb) {
     await sb.from("promos").insert(promoToRow(promo));

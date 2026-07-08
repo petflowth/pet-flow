@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createCalendarEvent, updateCalendarEventConfirmed } from "@/lib/calendar";
+import {
+  createCalendarEvent,
+  updateCalendarEventConfirmed,
+  updateCalendarEvent,
+  deleteCalendarEvent,
+} from "@/lib/calendar";
 import {
   addBooking,
+  cancelBooking,
   getBooking,
   listBookings,
   toBooking,
   updateBooking,
+  type StoredBooking,
 } from "@/lib/bookings-store";
 import { upsertCustomerFromBooking } from "@/lib/customers-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
@@ -13,11 +20,29 @@ import { pushLineMessage, buildReminderFlex } from "@/lib/line";
 
 export const dynamic = "force-dynamic";
 
+function bookingCalendarPayload(b: StoredBooking) {
+  return {
+    summary: `${b.service === "room" ? "🏠" : "🛁"} ${b.catName} (${b.customerName})`,
+    description: `${b.service === "room" ? "ห้องพัก" : "อาบน้ำ"} · ${b.notes || ""}`,
+    start: b.date || b.checkin || "",
+    end: b.checkout || b.date || b.checkin || "",
+    time: b.time,
+    allDay: b.service === "room" && !b.time,
+    service: b.service === "room" ? ("room" as const) : ("groom" as const),
+    eventId: b.id,
+  };
+}
+
 export async function GET(req: NextRequest) {
   const lineUserId = req.nextUrl.searchParams.get("lineUserId") || undefined;
   const items = (await listBookings(lineUserId)).map((b) => ({
     ...toBooking(b),
     lineUserId: b.lineUserId,
+    service: b.service,
+    room: b.room,
+    checkin: b.checkin,
+    checkout: b.checkout,
+    notes: b.notes,
   }));
   return NextResponse.json({ bookings: items });
 }
@@ -80,7 +105,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const { id, action, lineUserId, checkinTime } = await req.json();
+  const body = await req.json();
+  const { id, action, lineUserId, checkinTime } = body;
   const b = await getBooking(id);
   if (!b) return NextResponse.json({ error: "not found" }, { status: 404 });
 
@@ -127,6 +153,62 @@ export async function PATCH(req: NextRequest) {
       }),
     ]);
     return NextResponse.json({ ok: true });
+  }
+
+  if (action === "update") {
+    const patch: Parameters<typeof updateBooking>[1] = {};
+    if (body.customerName != null) patch.customerName = String(body.customerName);
+    if (body.catName != null) patch.catName = String(body.catName);
+    if (body.service != null) patch.service = body.service;
+    if (body.date != null) patch.date = String(body.date);
+    if (body.time != null) patch.time = String(body.time) || undefined;
+    if (body.checkin != null) patch.checkin = String(body.checkin) || undefined;
+    if (body.checkout != null) patch.checkout = String(body.checkout) || undefined;
+    if (body.room != null) patch.room = String(body.room) || undefined;
+    if (body.notes != null) patch.notes = String(body.notes) || undefined;
+    if (body.status != null) patch.status = body.status;
+
+    const updated = await updateBooking(id, patch);
+    if (!updated) return NextResponse.json({ error: "not found" }, { status: 404 });
+
+    if (updated.calendarEventId && updated.status !== "cancelled") {
+      await updateCalendarEvent(updated.calendarEventId, bookingCalendarPayload(updated));
+    }
+
+    await sendTelegram(
+      formatBookingTelegram("✏️ แก้ไขนัด", {
+        ลูกค้า: String(updated.customerName),
+        น้องแมว: String(updated.catName),
+        วันที่: String(updated.date || updated.checkin),
+        เวลา: String(updated.time || "-"),
+      })
+    );
+
+    return NextResponse.json({ ok: true, booking: toBooking(updated) });
+  }
+
+  if (action === "cancel") {
+    const updated = await cancelBooking(id);
+    if (!updated) return NextResponse.json({ error: "not found" }, { status: 404 });
+
+    if (b.calendarEventId) {
+      const del = await deleteCalendarEvent(b.calendarEventId);
+      if (!del.ok) {
+        await updateCalendarEvent(b.calendarEventId, bookingCalendarPayload(b), {
+          cancelled: true,
+        });
+      }
+    }
+
+    await sendTelegram(
+      formatBookingTelegram("❌ ยกเลิกนัด", {
+        ลูกค้า: String(b.customerName),
+        น้องแมว: String(b.catName),
+        วันที่: String(b.date || b.checkin),
+      })
+    );
+
+    return NextResponse.json({ ok: true, booking: toBooking(updated) });
   }
 
   return NextResponse.json({ error: "unknown action" }, { status: 400 });

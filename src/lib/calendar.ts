@@ -333,3 +333,71 @@ export async function updateCalendarEventConfirmed(
     return { ok: false, reason: e instanceof Error ? e.message : String(e) };
   }
 }
+
+export async function updateCalendarEvent(
+  googleEventId: string,
+  booking: CalendarBookingInput,
+  opts?: { cancelled?: boolean }
+) {
+  if (!(await isGoogleConfigured()) || !googleEventId) {
+    return { ok: false, reason: "not_configured" };
+  }
+
+  try {
+    const creds = await getGoogleCredentials();
+    if (!creds) return { ok: false, reason: "not_configured" };
+
+    const calendar = await getCalendarApi();
+    const calId = creds.calendarId;
+    const cancelled = opts?.cancelled;
+    const base = buildGoogleEventResource(booking, { confirmed: false });
+    const summary = cancelled
+      ? `❌ ยกเลิก — ${booking.summary.replace(/^(✅|❌)\s*/, "")}`
+      : booking.summary;
+
+    const description = [
+      booking.description,
+      cancelled ? "สถานะ: ยกเลิกแล้ว" : "สถานะ: แก้ไขนัด",
+      `เจ้าของ: ${CALENDAR_OWNER_EMAILS.join(", ")}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    await calendar.events.patch({
+      calendarId: calId,
+      eventId: googleEventId,
+      requestBody: {
+        ...base,
+        summary,
+        description,
+        status: cancelled ? "cancelled" : undefined,
+      },
+      sendUpdates: "none",
+    });
+
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function deleteCalendarEvent(googleEventId: string) {
+  if (!(await isGoogleConfigured()) || !googleEventId) {
+    return { ok: false, reason: "not_configured" };
+  }
+
+  try {
+    const creds = await getGoogleCredentials();
+    if (!creds) return { ok: false, reason: "not_configured" };
+
+    const calendar = await getCalendarApi();
+    await calendar.events.delete({
+      calendarId: creds.calendarId,
+      eventId: googleEventId,
+      sendUpdates: "none",
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : String(e) };
+  }
+}

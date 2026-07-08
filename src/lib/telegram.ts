@@ -141,6 +141,53 @@ export async function sendTelegramToChat(
   });
 }
 
+/** ลบปุ่มเก่าแล้วส่งเมนูใหม่ — Telegram ไม่อัปเดต reply keyboard เอง */
+export async function refreshTelegramMenuForChat(
+  token: string,
+  chatId: number | string,
+  text: string,
+  options?: { html?: boolean }
+) {
+  await telegramApi(token, "sendMessage", {
+    chat_id: chatId,
+    text: "…",
+    reply_markup: { remove_keyboard: true },
+  });
+
+  const html = options?.html === true;
+  return telegramApi(token, "sendMessage", {
+    chat_id: chatId,
+    text,
+    parse_mode: html ? "HTML" : undefined,
+    reply_markup: getTelegramMenuKeyboard(),
+  });
+}
+
+export async function pushTelegramMenuToOwners(text?: string) {
+  const creds = await getTelegramCredentials();
+  if (!creds?.botToken || !creds.ownerChatIds.length) {
+    return { ok: false as const, reason: "not_configured" };
+  }
+
+  await setTelegramBotCommands(creds.botToken).catch(() => {});
+
+  const results = await Promise.all(
+    creds.ownerChatIds.map((chatId) =>
+      refreshTelegramMenuForChat(
+        creds.botToken,
+        chatId,
+        text || "🔄 อัปเดตเมนูแล้ว — กดปุ่มด้านล่างได้เลย"
+      )
+    )
+  );
+
+  return {
+    ok: results.every((r) => r.ok),
+    pushed: creds.ownerChatIds.length,
+    results,
+  };
+}
+
 export async function sendTelegram(text: string) {
   const creds = await getTelegramCredentials();
   if (!creds?.botToken || !creds.ownerChatIds.length) {

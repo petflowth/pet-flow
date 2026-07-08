@@ -11,6 +11,8 @@ import {
   getTelegramWebhookUrl,
   normalizeTelegramInput,
   parseTelegramCommand,
+  pushTelegramMenuToOwners,
+  refreshTelegramMenuForChat,
   sendTelegramToChat,
   setTelegramBotCommands,
 } from "@/lib/telegram";
@@ -36,7 +38,19 @@ export async function GET(req: NextRequest) {
   }
 
   const register = req.nextUrl.searchParams.get("register") === "1";
+  const refreshMenu = req.nextUrl.searchParams.get("refresh_menu") === "1";
   const webhookUrl = getTelegramWebhookUrl(creds.appUrl);
+
+  if (refreshMenu) {
+    const pushed = await pushTelegramMenuToOwners();
+    return NextResponse.json({
+      ...pushed,
+      source: creds.source,
+      message: pushed.ok
+        ? "✅ ส่งเมนูใหม่ไปใน Telegram แล้ว — ดูแชทบอท"
+        : "❌ ส่งเมนูไม่สำเร็จ",
+    });
+  }
 
   if (register) {
     if (!webhookUrl) {
@@ -47,6 +61,7 @@ export async function GET(req: NextRequest) {
     }
 
     const result = await registerTelegramBot(creds.botToken, creds.appUrl);
+    await pushTelegramMenuToOwners().catch(() => {});
     return NextResponse.json({
       ...result,
       source: creds.source,
@@ -95,6 +110,20 @@ export async function POST(req: NextRequest) {
   if (command === "/start") {
     await setTelegramBotCommands(creds.botToken).catch(() => {});
     reply = { html: true, message: buildStartReply(chatId) };
+    const sent = await refreshTelegramMenuForChat(
+      creds.botToken,
+      chatId,
+      reply.message,
+      { html: true }
+    );
+    if (!sent.ok) {
+      console.error("telegram refresh menu failed", sent.status, sent.data);
+      return NextResponse.json(
+        { ok: false, error: "send_failed", detail: sent.data },
+        { status: 502 }
+      );
+    }
+    return NextResponse.json({ ok: true });
   } else {
     reply = await handleTelegramCommand(text, chatId);
   }

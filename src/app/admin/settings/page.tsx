@@ -351,6 +351,16 @@ function GroomingTab({
   const [transportTh, setTransportTh] = useState(config.transport.th.join("\n"));
   const [transportEn, setTransportEn] = useState(config.transport.en.join("\n"));
 
+  const onPoster = (which: "bath" | "advance", file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = String(reader.result);
+      if (which === "bath") setBathPoster(url);
+      else setAdvancePoster(url);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const submit = () => {
     const grooming = JSON.parse(JSON.stringify(config.grooming)) as SiteConfig["grooming"];
     const m = grooming.menus as { bath?: { poster?: string }; advance?: { poster?: string } };
@@ -369,8 +379,20 @@ function GroomingTab({
   return (
     <div className="space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm">
       <Field label="รอบเวลาแนะนำ (คั่นด้วย ,)" value={slots} onChange={setSlots} />
-      <Field label="โปสเตอร์เมนูอาบน้ำ (URL)" value={bathPoster} onChange={setBathPoster} />
-      <Field label="โปสเตอร์ Advance (URL)" value={advancePoster} onChange={setAdvancePoster} />
+
+      <PosterField
+        label="รูปเมนูอาบน้ำ"
+        value={bathPoster}
+        onChange={setBathPoster}
+        onUpload={(f) => onPoster("bath", f)}
+      />
+      <PosterField
+        label="รูปเมนู Advance"
+        value={advancePoster}
+        onChange={setAdvancePoster}
+        onUpload={(f) => onPoster("advance", f)}
+      />
+
       <label className="block text-xs font-bold text-brown-soft">
         รับส่ง (ไทย) — หนึ่งบรรทัดต่อข้อ
         <textarea value={transportTh} onChange={(e) => setTransportTh(e.target.value)} rows={4} className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
@@ -380,7 +402,7 @@ function GroomingTab({
         <textarea value={transportEn} onChange={(e) => setTransportEn(e.target.value)} rows={4} className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
       </label>
       <p className="text-[10px] text-brown-faint">
-        ตารางราคากรูมมิ่งละเอียด → แท็บขั้นสูง (แก้ JSON)
+        หน้าลูกค้าจะแสดงรูป 2 รูปนี้เต็มๆ — ไม่มีตารางราคา
       </p>
       <button type="button" disabled={saving} onClick={submit} className="w-full rounded-catcha-sm bg-honey/40 py-3 text-sm font-extrabold disabled:opacity-50">
         {saving ? "กำลังบันทึก…" : "💾 บันทึกอาบน้ำ/กรูมมิ่ง"}
@@ -484,6 +506,62 @@ function AdvancedTab({
         >
           {saving ? "…" : "📥 นำเข้า JSON"}
         </button>
+      </div>
+    </div>
+  );
+}
+
+function PosterField({
+  label,
+  value,
+  onChange,
+  onUpload,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  onUpload: (f: File) => void;
+}) {
+  const hasImage = value.startsWith("data:") || value.startsWith("http") || value.startsWith("/");
+
+  return (
+    <div className="rounded-catcha-sm border border-catcha-line bg-paper p-3">
+      <p className="mb-2 text-xs font-bold text-brown-soft">{label}</p>
+      <div className="flex gap-3">
+        {hasImage ? (
+          <Image
+            src={value}
+            alt=""
+            width={72}
+            height={96}
+            className="h-24 w-[72px] shrink-0 rounded-catcha-sm object-cover bg-card"
+            unoptimized
+          />
+        ) : (
+          <div className="flex h-24 w-[72px] shrink-0 items-center justify-center rounded-catcha-sm bg-card text-[9px] text-brown-faint">
+            ยังไม่มี
+          </div>
+        )}
+        <div className="flex flex-1 flex-col gap-2">
+          <label className="block text-[10px] font-bold text-latte-deep">
+            อัปโหลดรูป
+            <input
+              type="file"
+              accept="image/*"
+              className="mt-1 block w-full text-[10px]"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) onUpload(f);
+              }}
+            />
+          </label>
+          <input
+            value={value.startsWith("data:") ? "" : value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="หรือวาง URL"
+            className="w-full rounded-catcha-sm border border-catcha-line bg-card px-2 py-1.5 text-xs"
+          />
+        </div>
       </div>
     </div>
   );

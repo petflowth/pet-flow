@@ -112,6 +112,28 @@ export async function testTelegramToken(token: string) {
   };
 }
 
+export const TELEGRAM_BOT_COMMANDS = [
+  { command: "start", description: "เริ่มใช้ + ดู Chat ID" },
+  { command: "today", description: "นัดวันนี้" },
+  { command: "queue", description: "คิวรอยืนยัน" },
+  { command: "month", description: "ตารางเดือนนี้" },
+  { command: "sales", description: "ยอดขายวันนี้" },
+  { command: "finance", description: "การเงินวันนี้" },
+  { command: "book", description: "เพิ่มนัดลูกค้า" },
+  { command: "summary", description: "สรุปยอดลูกค้า" },
+  { command: "confirm", description: "ส่งยืนยันนัดทาง LINE" },
+  { command: "search", description: "ค้นหาลูกค้า" },
+  { command: "help", description: "วิธีใช้" },
+] as const;
+
+export async function syncTelegramBotCommands(token: string) {
+  return fetch(`https://api.telegram.org/bot${token}/setMyCommands`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ commands: TELEGRAM_BOT_COMMANDS }),
+  }).then((r) => r.json());
+}
+
 export async function registerTelegramBot(
   token: string,
   appUrl: string
@@ -128,22 +150,7 @@ export async function registerTelegramBot(
     }),
   }).then((r) => r.json());
 
-  const setCommands = await fetch(`https://api.telegram.org/bot${token}/setMyCommands`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      commands: [
-        { command: "start", description: "เริ่มใช้ + ดู Chat ID" },
-        { command: "today", description: "นัดวันนี้" },
-        { command: "queue", description: "คิวรอยืนยัน" },
-        { command: "month", description: "ตารางเดือนนี้" },
-        { command: "sales", description: "ยอดขายวันนี้" },
-        { command: "finance", description: "การเงินวันนี้" },
-        { command: "customers", description: "ลูกค้าล่าสุด" },
-        { command: "help", description: "วิธีใช้" },
-      ],
-    }),
-  }).then((r) => r.json());
+  const setCommands = await syncTelegramBotCommands(token);
 
   const webhookInfo = await fetch(
     `https://api.telegram.org/bot${token}/getWebhookInfo`
@@ -188,6 +195,7 @@ export async function ensureTelegramWebhook(token: string, appUrl: string) {
   const expected = `${appUrl.replace(/\/$/, "")}/api/telegram/webhook`;
 
   if (currentUrl === expected) {
+    await syncTelegramBotCommands(token).catch(() => {});
     return { ok: true as const, already: true, webhookUrl: expected };
   }
 

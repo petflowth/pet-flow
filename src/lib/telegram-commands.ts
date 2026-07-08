@@ -3,6 +3,11 @@ import { searchCustomers, listCustomers } from "@/lib/customers-store";
 import { todayFinance, monthFinance } from "@/lib/finance-store";
 import { salesSummary } from "@/lib/invoices-store";
 import { adminDashboardStats, bookingsForMonth } from "@/lib/admin-stats";
+import {
+  bookFromTelegram,
+  customerSummaryForTelegram,
+  sendBookingConfirmFromTelegram,
+} from "@/lib/telegram-actions";
 
 import { parseTelegramCommand } from "@/lib/telegram";
 
@@ -21,9 +26,14 @@ export async function handleTelegramCommand(
         `🐱 <b>วิธีใช้ CatCha Bot</b>\n\n` +
         `👇 กดปุ่มเมนูด้านล่างได้เลย\n` +
         `📅 นัดวันนี้ · ⏳ คิวรอยืนยัน · 🗓️ ตารางเดือน\n` +
-        `💰 ยอดขาย · 📒 การเงิน · 👥 ลูกค้าล่าสุด\n\n` +
-        `ค้นหา: พิมพ์ <code>/search ชื่อ</code>\n` +
-        `ตัวอย่าง: <code>/search ส้ม</code>`,
+        `💰 ยอดขาย · 📒 การเงิน\n` +
+        `➕ เพิ่มนัด · 📋 สรุปลูกค้า · ✅ ส่งยืนยันนัด\n\n` +
+        `<b>เพิ่มนัด</b>\n` +
+        `<code>/book อาบ น้องส้ม 2026-07-15 12:30</code>\n` +
+        `<code>/book ห้อง น้องมิว 2026-07-15 2026-07-20</code>\n\n` +
+        `<b>สรุปลูกค้า</b> <code>/summary ชื่อแมว</code>\n` +
+        `<b>ส่งยืนยันนัด</b> <code>/confirm รหัสนัด</code>\n` +
+        `<b>ค้นหา</b> <code>/search ชื่อ</code>`,
     };
   }
 
@@ -68,9 +78,10 @@ export async function handleTelegramCommand(
         pending
           .map(
             (b, i) =>
-              `${i + 1}. ${b.catName} · ${b.customerName}\n   ${b.date || b.checkin} ${b.time || ""}`
+              `${i + 1}. ${b.id} · ${b.catName} · ${b.customerName}\n   ${b.date || b.checkin} ${b.time || ""}`
           )
-          .join("\n\n"),
+          .join("\n\n") +
+        `\n\nส่งการ์ด: /confirm รหัสนัด`,
     };
   }
 
@@ -97,6 +108,21 @@ export async function handleTelegramCommand(
         `สุทธิ: ${f.net.toLocaleString()} บาท\n\n` +
         `เดือนนี้สุทธิ: ${m.net.toLocaleString()} บาท`,
     };
+  }
+
+  if (command === "/book") {
+    const result = await bookFromTelegram(payload || "");
+    return { message: result.message };
+  }
+
+  if (command === "/summary") {
+    const result = await customerSummaryForTelegram(payload || "");
+    return { message: result.message };
+  }
+
+  if (command === "/confirm") {
+    const result = await sendBookingConfirmFromTelegram(payload || "");
+    return { message: result.message };
   }
 
   if (command === "/search") {

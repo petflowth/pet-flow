@@ -29,6 +29,8 @@ export type CustomerRecord = {
   memberCredit: number;
   memberSince?: string;
   tier: CustomerTier;
+  /** วันที่ส่งข้อความตามลูกค้าครั้งล่าสุด */
+  lastFollowUpAt?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -86,6 +88,7 @@ type CustomerRow = {
   member_credit: number;
   member_since: string | null;
   tier: string | null;
+  last_follow_up_at: string | null;
   created_at: string;
   updated_at: string;
   cats?: CatRow[];
@@ -146,6 +149,7 @@ function mapCustomer(row: CustomerRow): CustomerRecord {
     memberCredit: Number(row.member_credit),
     memberSince: row.member_since ?? undefined,
     tier: (row.tier as CustomerTier) || "new",
+    lastFollowUpAt: row.last_follow_up_at ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     cats: (row.cats || []).map((c) => ({
@@ -514,6 +518,7 @@ export async function updateCustomer(
       | "memberCredit"
       | "memberSince"
       | "tier"
+      | "lastFollowUpAt"
     >
   >
 ) {
@@ -539,6 +544,7 @@ export async function updateCustomer(
         member_credit: c.memberCredit,
         member_since: c.memberSince || null,
         tier: c.tier,
+        last_follow_up_at: c.lastFollowUpAt || null,
         updated_at: c.updatedAt,
       })
       .eq("id", id);

@@ -10,6 +10,7 @@ create table if not exists customers (
   is_member boolean not null default false,
   member_credit numeric not null default 0,
   member_since date,
+  last_follow_up_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

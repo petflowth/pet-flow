@@ -8,7 +8,7 @@ import type { RoomType } from "@/lib/business";
 import { adminJson } from "@/lib/admin-fetch";
 import { ExportSheetsButton } from "@/components/ExportSheetsButton";
 
-type Tab = "shop" | "payment" | "rooms" | "grooming" | "points" | "advanced";
+type Tab = "shop" | "payment" | "rooms" | "grooming" | "points" | "crm" | "advanced";
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "shop", label: "ร้าน", icon: "🏪" },
@@ -16,6 +16,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "rooms", label: "ห้อง", icon: "🛏️" },
   { id: "grooming", label: "อาบน้ำ", icon: "🛁" },
   { id: "points", label: "แต้ม", icon: "🎁" },
+  { id: "crm", label: "ลูกค้า", icon: "👥" },
   { id: "advanced", label: "ขั้นสูง", icon: "⚙️" },
 ];
 
@@ -154,6 +155,9 @@ export default function SettingsPage() {
       )}
       {tab === "points" && (
         <PointsTab config={config} saving={saving} onSave={save} />
+      )}
+      {tab === "crm" && (
+        <CrmTab config={config} saving={saving} onSave={save} />
       )}
       {tab === "advanced" && (
         <AdvancedTab
@@ -468,6 +472,78 @@ function PointsTab({
         💾 บันทึกรางวัลแต้ม
       </button>
     </div>
+  );
+}
+
+function CrmTab({
+  config,
+  saving,
+  onSave,
+}: {
+  config: SiteConfig;
+  saving: boolean;
+  onSave: (p: Partial<SiteConfig>) => void;
+}) {
+  const [form, setForm] = useState(config.crm);
+  const [presetsText, setPresetsText] = useState(config.crm.tierPresets.join(", "));
+
+  useEffect(() => {
+    setForm(config.crm);
+    setPresetsText(config.crm.tierPresets.join(", "));
+  }, [config.crm]);
+
+  return (
+    <form
+      className="space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSave({
+          crm: {
+            ...form,
+            tierPresets: presetsText
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean),
+          },
+        });
+      }}
+    >
+      <p className="text-xs text-brown-soft">
+        ตั้งค่าตรวจจับลูกค้าที่หายไป + ข้อความตามทาง LINE · ใช้ใน Admin และ Telegram Bot
+      </p>
+      <Field
+        label="ถือว่าหายไป (วัน)"
+        type="number"
+        value={String(form.inactiveDays)}
+        onChange={(v) => setForm({ ...form, inactiveDays: Math.max(1, Number(v) || 60) })}
+      />
+      <Field
+        label="ไม่ส่งซ้ำภายใน (วัน)"
+        type="number"
+        value={String(form.followUpCooldownDays)}
+        onChange={(v) =>
+          setForm({ ...form, followUpCooldownDays: Math.max(1, Number(v) || 30) })
+        }
+      />
+      <label className="block text-xs font-bold text-brown-soft">
+        ข้อความตามลูกค้า — ใช้ {"{name}"} {"{days}"} {"{cats}"}
+        <textarea
+          value={form.followUpMessage}
+          onChange={(e) => setForm({ ...form, followUpMessage: e.target.value })}
+          rows={5}
+          className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+        />
+      </label>
+      <Field
+        label="Tier ที่ตั้งได้ (คั่นด้วย ,)"
+        value={presetsText}
+        onChange={setPresetsText}
+      />
+      <p className="text-[10px] text-brown-faint">
+        Cron อัตโนมัติ: GET /api/cron/inactive-followup (ตั้งใน Vercel Cron)
+      </p>
+      <SaveBtn saving={saving} />
+    </form>
   );
 }
 

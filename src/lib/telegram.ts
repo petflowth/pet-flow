@@ -7,6 +7,7 @@ import {
   ensureTelegramWebhook,
   getAppUrlFromEnv,
   getTelegramCredentials,
+  syncTelegramBotCommands,
 } from "./telegram-config";
 
 const TELEGRAM_API = "https://api.telegram.org";
@@ -23,7 +24,9 @@ export const TELEGRAM_MENU_BUTTONS = {
   month: "🗓️ ตารางเดือน",
   sales: "💰 ยอดขายวันนี้",
   finance: "📒 การเงินวันนี้",
-  customers: "👥 ลูกค้าล่าสุด",
+  book: "➕ เพิ่มนัด",
+  summary: "📋 สรุปลูกค้า",
+  confirm: "✅ ส่งยืนยันนัด",
   help: "❓ วิธีใช้",
 } as const;
 
@@ -33,7 +36,9 @@ const MENU_TO_COMMAND: Record<string, string> = {
   [TELEGRAM_MENU_BUTTONS.month]: "/month",
   [TELEGRAM_MENU_BUTTONS.sales]: "/sales",
   [TELEGRAM_MENU_BUTTONS.finance]: "/finance",
-  [TELEGRAM_MENU_BUTTONS.customers]: "/customers",
+  [TELEGRAM_MENU_BUTTONS.book]: "/book",
+  [TELEGRAM_MENU_BUTTONS.summary]: "/summary",
+  [TELEGRAM_MENU_BUTTONS.confirm]: "/confirm",
   [TELEGRAM_MENU_BUTTONS.help]: "/help",
 };
 
@@ -50,7 +55,11 @@ export function getTelegramMenuKeyboard() {
       ],
       [
         { text: TELEGRAM_MENU_BUTTONS.finance },
-        { text: TELEGRAM_MENU_BUTTONS.customers },
+        { text: TELEGRAM_MENU_BUTTONS.book },
+      ],
+      [
+        { text: TELEGRAM_MENU_BUTTONS.summary },
+        { text: TELEGRAM_MENU_BUTTONS.confirm },
       ],
       [{ text: TELEGRAM_MENU_BUTTONS.help }],
     ],
@@ -68,7 +77,9 @@ export function normalizeTelegramInput(text: string) {
   if (/ตารางเดือน/.test(trimmed)) return "/month";
   if (/ยอดขาย/.test(trimmed)) return "/sales";
   if (/การเงิน/.test(trimmed)) return "/finance";
-  if (/ลูกค้า/.test(trimmed)) return "/customers";
+  if (/เพิ่มนัด/.test(trimmed)) return "/book";
+  if (/สรุปลูกค้า/.test(trimmed)) return "/summary";
+  if (/ส่งยืนยัน|ยืนยันนัด/.test(trimmed)) return "/confirm";
   if (/วิธีใช้|help/i.test(trimmed)) return "/help";
   return trimmed;
 }
@@ -162,18 +173,7 @@ export async function setTelegramWebhook(token: string, url: string) {
 }
 
 export async function setTelegramBotCommands(token: string) {
-  return telegramApi(token, "setMyCommands", {
-    commands: [
-      { command: "start", description: "เริ่มใช้ + ดู Chat ID" },
-      { command: "today", description: "นัดวันนี้" },
-      { command: "queue", description: "คิวรอยืนยัน" },
-      { command: "month", description: "ตารางเดือนนี้" },
-      { command: "sales", description: "ยอดขายวันนี้" },
-      { command: "finance", description: "การเงินวันนี้" },
-      { command: "customers", description: "ลูกค้าล่าสุด" },
-      { command: "help", description: "วิธีใช้" },
-    ],
-  });
+  return syncTelegramBotCommands(token);
 }
 
 export function buildStartReply(chatId: number | string) {
@@ -181,7 +181,8 @@ export function buildStartReply(chatId: number | string) {
     `🐱 <b>สวัสดีจาก CatCha Hotel Bot</b>\n\n` +
     `Chat ID ของคุณ: <code>${chatId}</code>\n` +
     `👇 กดปุ่มเมนูด้านล่างได้เลย\n` +
-    `หรือพิมพ์ /search ชื่อ เพื่อค้นหาลูกค้า`
+    `➕ เพิ่มนัด · 📋 สรุปลูกค้า · ✅ ส่งยืนยันนัด\n` +
+    `พิมพ์ <code>/help</code> ดูตัวอย่างคำสั่ง`
   );
 }
 

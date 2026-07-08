@@ -15,9 +15,21 @@ export type GroomingConfig = {
   sizeLabels: { th: Record<string, string>; en: Record<string, string> };
 };
 
+export type CrmConfig = {
+  /** จำนวนวันที่ไม่มาใช้บริการ = ถือว่าหายไป */
+  inactiveDays: number;
+  /** ไม่ส่งตามซ้ำภายในกี่วัน */
+  followUpCooldownDays: number;
+  /** ข้อความตามลูกค้า — ใช้ {name} {days} {cats} */
+  followUpMessage: string;
+  /** tier ที่ตั้งเองได้ในโปรไฟล์ลูกค้า */
+  tierPresets: string[];
+};
+
 export type SiteConfig = {
   version: number;
   updatedAt: string;
+  crm: CrmConfig;
   business: {
     name: string;
     tagline: { th: string; en: string };

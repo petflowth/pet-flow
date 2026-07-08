@@ -7,7 +7,6 @@ import type { CatRecord, CustomerRecord, MemberCreditUsageRecord, MemberTopupRec
 import type { CustomerTier } from "@/lib/customer-tier";
 import { TIER_LABELS, tierBadgeClass } from "@/lib/customer-tier";
 import { RegistrationQrSection } from "@/components/LineSetupSection";
-import { customerTierLabels } from "@/lib/promos-store";
 import type { PointsHistoryEntry } from "@/lib/points-store";
 import type { Booking } from "@/lib/business";
 import { ExportSheetsButton } from "@/components/ExportSheetsButton";
@@ -17,6 +16,10 @@ type Summary = {
   customer: CustomerRecord;
   points: number;
   visits: number;
+  lastVisitDate?: string | null;
+  daysSinceVisit?: number | null;
+  inactive?: boolean;
+  canFollowUp?: boolean;
   history: {
     bookings: Booking[];
     upcomingBookings: EditableBooking[];
@@ -383,19 +386,27 @@ function CustomerSummaryCard({
   customer,
   points,
   visits,
+  lastVisitDate,
+  daysSinceVisit,
+  inactive,
+  canFollowUp,
   onSaved,
 }: {
   customer: CustomerRecord;
   points: number;
   visits: number;
+  lastVisitDate?: string | null;
+  daysSinceVisit?: number | null;
+  inactive?: boolean;
+  canFollowUp?: boolean;
   onSaved: () => void;
 }) {
   const [name, setName] = useState(customer.name);
   const [phone, setPhone] = useState(customer.phone || "");
   const [tier, setTier] = useState<CustomerTier>(customer.tier || "new");
   const [msg, setMsg] = useState("");
+  const [followUpBusy, setFollowUpBusy] = useState(false);
   const heroCat = customer.cats.find((cat) => cat.photoDataUrl) || customer.cats[0];
-  const tiers = customerTierLabels(customer, visits);
 
   useEffect(() => {
     setName(customer.name);
@@ -418,6 +429,33 @@ function CustomerSummaryCard({
       onSaved();
       setTimeout(() => setMsg(""), 2000);
     }
+  };
+
+  const sendFollowUp = async () => {
+    if (!customer.lineUserId) {
+      setMsg("❌ ลูกค้ายังไม่ได้ผูก LINE");
+      return;
+    }
+    if (!confirm(`ส่งข้อความตาม ${customer.name} ทาง LINE?`)) return;
+    setFollowUpBusy(true);
+    const res = await fetch("/api/customers", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: customer.id,
+        action: "send_follow_up",
+        force: !canFollowUp,
+      }),
+    });
+    const data = await res.json();
+    setFollowUpBusy(false);
+    if (res.ok) {
+      setMsg("✅ ส่งข้อความตามแล้ว");
+      onSaved();
+    } else {
+      setMsg(`❌ ${data.error || "ส่งไม่สำเร็จ"}`);
+    }
+    setTimeout(() => setMsg(""), 3000);
   };
 
   return (
@@ -457,26 +495,16 @@ function CustomerSummaryCard({
           )}
           <div className="mt-3">
             <p className="mb-1.5 text-[10px] font-bold text-brown-soft">กลุ่มลูกค้า (Tier)</p>
-            <div className="flex flex-wrap gap-1.5">
-              {tiers.map((t) => (
-                <span
-                  key={t.id}
-                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                    t.id === "member"
-                      ? "bg-latte/30 text-latte-deep"
-                      : t.id === "new"
-                        ? "bg-honey/30 text-catcha-chocolate"
-                        : "bg-paper text-brown-soft"
-                  }`}
-                >
-                  {t.label}
-                </span>
-              ))}
-            </div>
-            <p className="mt-1 text-[9px] text-brown-faint">
-              ใช้กำหนดว่าเห็นโปรไหน · Member = เติมเครดิตแล้ว
-            </p>
+            <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${tierBadgeClass(customer.tier || "new")}`}>
+              {TIER_LABELS[customer.tier || "new"]}
+            </span>
           </div>
+          {inactive && (
+            <p className="mt-2 rounded-catcha-sm bg-wait/10 px-2.5 py-1.5 text-[10px] font-bold text-wait">
+              😴 หายไป {daysSinceVisit} วัน
+              {lastVisitDate ? ` · มาครั้งล่าสุด ${lastVisitDate}` : ""}
+            </p>
+          )}
         </div>
       </div>
 
@@ -526,6 +554,32 @@ function CustomerSummaryCard({
             className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
           />
         </label>
+
+        {(inactive || customer.lineUserId) && (
+          <div className="rounded-catcha-sm border border-catcha-line bg-paper/60 p-3">
+            <p className="text-xs font-bold text-brown-soft">📲 ตามลูกค้าทาง LINE</p>
+            {customer.lastFollowUpAt && (
+              <p className="mt-1 text-[10px] text-brown-faint">
+                ส่งล่าสุด: {customer.lastFollowUpAt.slice(0, 10)}
+              </p>
+            )}
+            <button
+              type="button"
+              disabled={followUpBusy || !customer.lineUserId}
+              onClick={sendFollowUp}
+              className="mt-2 w-full rounded-catcha-sm bg-sage/25 px-3 py-2.5 text-xs font-bold text-ok disabled:opacity-50"
+            >
+              {followUpBusy
+                ? "กำลังส่ง…"
+                : canFollowUp
+                  ? "ส่งข้อความตามลูกค้า"
+                  : "ส่งซ้ำ (ข้าม cooldown)"}
+            </button>
+            {!customer.lineUserId && (
+              <p className="mt-1 text-[10px] text-wait">ต้องผูก LINE ก่อนจึงส่งได้</p>
+            )}
+          </div>
+        )}
       </div>
 
       <label className="mt-3 block text-xs font-bold text-brown-soft">
@@ -783,6 +837,10 @@ export default function CustomersPage() {
           customer={c}
           points={selected.points}
           visits={selected.visits}
+          lastVisitDate={selected.lastVisitDate}
+          daysSinceVisit={selected.daysSinceVisit}
+          inactive={selected.inactive}
+          canFollowUp={selected.canFollowUp}
           onSaved={() => open(c.id)}
         />
 

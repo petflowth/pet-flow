@@ -4,7 +4,7 @@ import { getSupabase } from "./supabase/server";
 
 export type PromoKind = "display" | "customer";
 export type PromoRestriction = "none" | "first_visit" | "calendar_month";
-export type CustomerTier = "all" | "member" | "new" | "returning";
+export type CustomerTier = "all" | "member" | "new" | "returning" | (string & {});
 export type PromoRewardType = "discount" | "points" | "both";
 
 export type PromoRecord = {
@@ -230,11 +230,14 @@ function currentMonth(now = new Date()) {
 }
 
 export function customerTierLabels(
-  customer: Pick<CustomerRecord, "isMember">,
+  customer: Pick<CustomerRecord, "tier" | "isMember">,
   visits: number
-): { id: CustomerTier; label: string }[] {
-  const tiers: { id: CustomerTier; label: string }[] = [];
-  if (customer.isMember) tiers.push({ id: "member", label: "💎 Member" });
+): { id: string; label: string }[] {
+  const tiers: { id: string; label: string }[] = [];
+  if (customer.tier) tiers.push({ id: customer.tier, label: customer.tier });
+  if (customer.isMember && customer.tier !== "member") {
+    tiers.push({ id: "member", label: "💎 Member" });
+  }
   if (visits === 0) tiers.push({ id: "new", label: "ลูกค้าใหม่" });
   else tiers.push({ id: "returning", label: "ลูกค้าเก่า" });
   return tiers;
@@ -246,9 +249,14 @@ export function customerMatchesTiers(
   tiers: CustomerTier[]
 ): boolean {
   if (!tiers.length || tiers.includes("all")) return true;
-  if (tiers.includes("member") && customer.isMember) return true;
-  if (tiers.includes("new") && visits === 0) return true;
-  if (tiers.includes("returning") && visits > 0) return true;
+  for (const tier of tiers) {
+    if (tier === "member" && (customer.isMember || customer.tier === "member")) return true;
+    if (tier === "new" && (visits === 0 || customer.tier === "new")) return true;
+    if (tier === "returning" && visits > 0) return true;
+    if (tier === "regular" && customer.tier === "regular") return true;
+    if (tier === "vip" && customer.tier === "vip") return true;
+    if (String(tier).toLowerCase() === String(customer.tier).toLowerCase()) return true;
+  }
   return false;
 }
 

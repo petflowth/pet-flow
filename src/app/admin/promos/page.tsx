@@ -44,11 +44,13 @@ type PromoClaim = {
   createdAt: string;
 };
 
-const TIER_OPTIONS: { value: CustomerTier; label: string }[] = [
+const BUILTIN_TIER_OPTIONS: { value: CustomerTier; label: string }[] = [
   { value: "all", label: "ทุกคน" },
-  { value: "member", label: "💎 Member" },
   { value: "new", label: "ลูกค้าใหม่" },
-  { value: "returning", label: "ลูกค้าเก่า" },
+  { value: "regular", label: "ลูกค้าประจำ" },
+  { value: "member", label: "💎 Member" },
+  { value: "vip", label: "VIP" },
+  { value: "returning", label: "เคยมาแล้ว" },
 ];
 
 function restrictionLabel(r: PromoRestriction, validMonth?: string) {
@@ -358,7 +360,7 @@ export default function PromosAdminPage() {
                   กลุ่มลูกค้า (Member = เติมเครดิตแล้ว · ใหม่ = ยังไม่เคยมา · เก่า = เคยมาแล้ว)
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {TIER_OPTIONS.map((opt) => (
+                  {BUILTIN_TIER_OPTIONS.map((opt) => (
                     <button
                       key={opt.value}
                       type="button"

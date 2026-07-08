@@ -12,6 +12,7 @@ import {
   normalizeTelegramInput,
   parseTelegramCommand,
   sendTelegramToChat,
+  setTelegramBotCommands,
 } from "@/lib/telegram";
 
 export const runtime = "nodejs";
@@ -92,6 +93,7 @@ export async function POST(req: NextRequest) {
 
   let reply: { message: string; html?: boolean };
   if (command === "/start") {
+    await setTelegramBotCommands(creds.botToken).catch(() => {});
     reply = { html: true, message: buildStartReply(chatId) };
   } else {
     reply = await handleTelegramCommand(text, chatId);

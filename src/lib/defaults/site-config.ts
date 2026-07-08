@@ -19,6 +19,13 @@ export function getDefaultSiteConfig(): SiteConfig {
     JSON.stringify({
       version: 1,
       updatedAt: new Date().toISOString(),
+      crm: {
+        inactiveDays: 60,
+        followUpCooldownDays: 30,
+        followUpMessage:
+          "สวัสดีค่ะ {name} จาก CatCha Hotel 🐱\nคิดถึงน้อง{cats} นะคะ มาไม่ได้นาน {days} วันแล้ว มีโปรพิเศษรออยู่ที่แอปนะคะ 💛",
+        tierPresets: ["VIP", "Gold", "Silver"],
+      },
       business: { ...BUSINESS },
       payment: {
         bankName: process.env.BANK_NAME || "กรุงไทย",

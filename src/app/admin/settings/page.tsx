@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { SiteConfig } from "@/lib/config-types";
 import type { RoomType } from "@/lib/business";
 import { adminJson } from "@/lib/admin-fetch";
+import { ExportSheetsButton } from "@/components/ExportSheetsButton";
 
 type Tab = "shop" | "payment" | "rooms" | "grooming" | "points" | "advanced";
 
@@ -485,6 +486,10 @@ function AdvancedTab({
 }) {
   return (
     <div className="space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm">
+      <ExportSheetsButton />
+      <p className="text-[10px] text-brown-faint">
+        ส่งออกแท็บ ลูกค้า + รายรับรายจ่าย ไป Google Sheet เดียว (ต้องตั้ง GOOGLE_SPREADSHEET_ID)
+      </p>
       <p className="text-xs text-brown-soft">
         แก้ตารางราคากรูมมิ่ง หรือสำรอง/กู้คืน config ทั้งหมด (สำหรับผู้ดูแลระบบ)
       </p>

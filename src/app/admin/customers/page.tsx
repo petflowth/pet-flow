@@ -5,6 +5,7 @@ import Image from "next/image";
 import type { CatRecord, CustomerRecord } from "@/lib/customers-store";
 import type { PointsHistoryEntry } from "@/lib/points-store";
 import type { Booking } from "@/lib/business";
+import { ExportSheetsButton } from "@/components/ExportSheetsButton";
 
 type Summary = {
   customer: CustomerRecord;
@@ -198,6 +199,7 @@ export default function CustomersPage() {
   return (
     <div>
       <h1 className="mb-4 text-lg font-extrabold text-catcha-chocolate">👤 ลูกค้า</h1>
+      <ExportSheetsButton className="mb-4" />
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}

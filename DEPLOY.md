@@ -26,6 +26,7 @@ Deploy ต้องใช้ **บัญชี Vercel ของคุณ** (logi
 | `TELEGRAM_BOT_TOKEN` | จาก @BotFather |
 | `TELEGRAM_OWNER_CHAT_IDS` | Chat ID ของเจ้าของ (ได้จาก /start ใน bot) |
 | `GOOGLE_CALENDAR_ID` | ID ปฏิทิน Catcha Hotel |
+| `GOOGLE_SPREADSHEET_ID` | ID Google Sheet สำหรับ export ลูกค้า/การเงิน |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Service account |
 | `GOOGLE_PRIVATE_KEY` | Private key (วางทั้งก้อน) |
 | `NEXT_PUBLIC_SUPABASE_URL` | จาก Supabase → Settings → API |
@@ -49,7 +50,12 @@ Deploy ต้องใช้ **บัญชี Vercel ของคุณ** (logi
 
 ดูรายละเอียดใน **`webapp/GOOGLE_CALENDAR.md`**
 
-ใส่ env แล้ว redeploy — จองใหม่จะยิง event เข้าปฏิทิน **Catcha Hotel** อัตโนมัติ
+## ตั้ง Google Sheets Export
+
+ดูรายละเอียดใน **`webapp/GOOGLE_SHEETS.md`**
+
+ใส่ `GOOGLE_SPREADSHEET_ID` + service account เดียวกับ Calendar → กด **ส่งออก Google Sheets** ในหลังบ้าน
+
 
 ## ตั้ง LINE LIFF
 1. LINE Developers → LIFF → Endpoint = `https://YOUR-URL.vercel.app/app`

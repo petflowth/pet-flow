@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ExportSheetsButton } from "@/components/ExportSheetsButton";
 
 type Record = {
   id: string;
@@ -49,6 +50,8 @@ export default function FinancePage() {
   return (
     <div>
       <h1 className="mb-4 text-lg font-extrabold text-catcha-chocolate">📒 รายรับ-รายจ่าย</h1>
+
+      <ExportSheetsButton className="mb-4" />
 
       <div className="mb-4 grid grid-cols-3 gap-2 text-center">
         <div className="rounded-catcha-sm bg-sage/15 p-3">

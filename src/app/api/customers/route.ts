@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  listCustomers,
+  listCustomersWithAppointmentCounts,
   searchCustomers,
   getCustomer,
   updateCustomer,
@@ -20,8 +20,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(summary);
   }
 
-  const list = q ? await searchCustomers(q) : await listCustomers();
-  return NextResponse.json({ customers: list });
+  if (q) {
+    const customers = await searchCustomers(q);
+    return NextResponse.json({ customers });
+  }
+  const customers = await listCustomersWithAppointmentCounts();
+  return NextResponse.json({ customers });
 }
 
 export async function POST(req: NextRequest) {

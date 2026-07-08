@@ -6,6 +6,7 @@ import type { CatRecord, CustomerRecord, MemberTopupRecord } from "@/lib/custome
 import type { PointsHistoryEntry } from "@/lib/points-store";
 import type { Booking } from "@/lib/business";
 import { ExportSheetsButton } from "@/components/ExportSheetsButton";
+import { BookingEditModal, type EditableBooking } from "@/components/BookingEditModal";
 
 type Summary = {
   customer: CustomerRecord;
@@ -13,11 +14,123 @@ type Summary = {
   visits: number;
   history: {
     bookings: Booking[];
+    upcomingBookings: EditableBooking[];
+    pastBookings: EditableBooking[];
     services: { id: string; service: string; date: string; amount?: number; catName: string }[];
     points: PointsHistoryEntry[];
     memberTopups: MemberTopupRecord[];
   };
 };
+
+type CustomerListItem = CustomerRecord & { upcomingAppointments?: number };
+
+function bookingWhen(b: EditableBooking) {
+  if (b.service === "room" || b.checkin) {
+    return `${b.checkin || b.date}${b.checkout ? ` → ${b.checkout}` : ""}`;
+  }
+  return `${b.date}${b.time ? ` ${b.time}` : ""}`;
+}
+
+function statusLabel(status: Booking["status"]) {
+  if (status === "confirmed") return "ยืนยันแล้ว";
+  if (status === "cancelled") return "ยกเลิกแล้ว";
+  return "รอยืนยัน";
+}
+
+function CustomerAppointmentsSection({
+  bookings,
+  onRefresh,
+}: {
+  bookings: EditableBooking[];
+  onRefresh: () => void;
+}) {
+  const [editing, setEditing] = useState<EditableBooking | null>(null);
+  const [rooms, setRooms] = useState<{ id: string; name: string; size: string; price: number }[]>([]);
+  const [groomSlots, setGroomSlots] = useState<string[]>(["09:30", "12:30", "15:30"]);
+
+  useEffect(() => {
+    fetch("/api/config")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.config?.rooms) setRooms(d.config.rooms);
+        if (d.config?.groomSlots) setGroomSlots(d.config.groomSlots);
+      });
+  }, []);
+
+  const cancelBooking = async (b: EditableBooking) => {
+    if (!confirm(`ยกเลิกนัด ${b.catName} · ${b.date}?`)) return;
+    const res = await fetch("/api/bookings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: b.id, action: "cancel" }),
+    });
+    if (res.ok) {
+      alert("ยกเลิกนัดแล้ว");
+      onRefresh();
+    } else {
+      alert("ยกเลิกไม่สำเร็จ");
+    }
+  };
+
+  return (
+    <section className="mb-4 rounded-catcha bg-card p-4">
+      {editing && (
+        <BookingEditModal
+          booking={editing}
+          rooms={rooms}
+          groomSlots={groomSlots}
+          onClose={() => setEditing(null)}
+          onSaved={onRefresh}
+        />
+      )}
+      <h2 className="mb-2 text-sm font-extrabold text-catcha-chocolate">📅 นัดหมาย</h2>
+      {bookings.length === 0 ? (
+        <p className="text-xs text-brown-soft">ยังไม่มีนัดที่กำลังจะมาถึง</p>
+      ) : (
+        <ul className="space-y-2">
+          {bookings.map((b) => (
+            <li
+              key={b.id}
+              className="rounded-catcha-sm border border-catcha-line bg-paper/50 p-3"
+            >
+              <div className="flex flex-wrap items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-brown">
+                    {b.catName} · {b.service === "room" ? "🏠 ห้องพัก" : "🛁 อาบน้ำ"}
+                  </p>
+                  <p className="text-xs text-brown-soft">{bookingWhen(b)}</p>
+                  <span
+                    className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      b.status === "confirmed"
+                        ? "bg-sage/20 text-ok"
+                        : "bg-honey/25 text-wait"
+                    }`}
+                  >
+                    {statusLabel(b.status)}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditing(b)}
+                  className="rounded-full bg-honey/25 px-2.5 py-1 text-[10px] font-bold text-catcha-chocolate"
+                >
+                  ✏️ แก้ไข
+                </button>
+                <button
+                  type="button"
+                  onClick={() => cancelBooking(b)}
+                  className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-bold text-wait"
+                >
+                  ❌ ยกเลิก
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
 
 const MEMBER_PROMOS = [
   { label: "10,000 → 12,000", paid: 10000, bonus: 2000 },
@@ -186,7 +299,7 @@ function MemberTopupSection({
 
 export default function CustomersPage() {
   const [q, setQ] = useState("");
-  const [list, setList] = useState<CustomerRecord[]>([]);
+  const [list, setList] = useState<CustomerListItem[]>([]);
   const [selected, setSelected] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -304,6 +417,11 @@ export default function CustomersPage() {
           onDone={() => open(c.id)}
         />
 
+        <CustomerAppointmentsSection
+          bookings={selected.history.upcomingBookings || []}
+          onRefresh={() => open(c.id)}
+        />
+
         <section className="mb-4 rounded-catcha bg-card p-4">
           <h2 className="mb-2 text-sm font-extrabold">📋 ประวัติใช้บริการ</h2>
           <ul className="space-y-2 text-xs text-brown-soft">
@@ -313,14 +431,14 @@ export default function CustomersPage() {
                 {s.amount ? ` · ${s.amount} บาท` : ""}
               </li>
             ))}
-            {selected.history.bookings.map((b) => (
+            {(selected.history.pastBookings || []).map((b) => (
               <li key={b.id}>
-                {b.date} · {b.catName} · {b.service === "room" ? "ห้องพัก" : "อาบน้ำ"} · {b.status}
+                {b.date} · {b.catName} · {b.service === "room" ? "ห้องพัก" : "อาบน้ำ"} ·{" "}
+                {statusLabel(b.status)}
               </li>
             ))}
-            {!selected.history.services.length && !selected.history.bookings.length && (
-              <li>ยังไม่มีประวัติ</li>
-            )}
+            {!selected.history.services.length &&
+              !(selected.history.pastBookings || []).length && <li>ยังไม่มีประวัติ</li>}
           </ul>
         </section>
 
@@ -375,6 +493,11 @@ export default function CustomersPage() {
                     <p className="font-bold text-brown">
                       {c.cats[0]?.name || "—"} · {c.name}
                       {c.isMember && " 💎"}
+                      {(c.upcomingAppointments ?? 0) > 0 && (
+                        <span className="ml-1 rounded-full bg-honey/30 px-2 py-0.5 text-[10px] font-bold text-catcha-chocolate">
+                          📅 {c.upcomingAppointments} นัด
+                        </span>
+                      )}
                     </p>
                     <p className="mt-1 text-xs text-brown-soft">
                       {c.cats.map((cat) => cat.staffNote).filter(Boolean).join(" · ") || "แตะดูประวัติ"}

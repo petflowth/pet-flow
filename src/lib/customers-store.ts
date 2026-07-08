@@ -1,3 +1,4 @@
+import { bookingMatchesCustomer, isUpcomingBooking } from "./booking-customer-match";
 import { listBookings } from "./bookings-store";
 import { getAccount, getPointsHistory } from "./points-store";
 import { getSupabase } from "./supabase/server";
@@ -156,8 +157,22 @@ async function touchCustomer(id: string) {
   }
 }
 
+async function attachAppointmentCounts(customers: CustomerRecord[]) {
+  const allBookings = await listBookings();
+  return customers.map((c) => ({
+    ...c,
+    upcomingAppointments: allBookings.filter(
+      (b) => bookingMatchesCustomer(b, c) && isUpcomingBooking(b)
+    ).length,
+  }));
+}
+
 export async function listCustomers() {
   return fetchAllCustomers();
+}
+
+export async function listCustomersWithAppointmentCounts() {
+  return attachAppointmentCounts(await fetchAllCustomers());
 }
 
 export async function getCustomer(id: string) {
@@ -181,8 +196,8 @@ export async function findCustomerByLine(lineUserId: string) {
 export async function searchCustomers(query: string) {
   const q = query.trim().toLowerCase();
   const all = await fetchAllCustomers();
-  if (!q) return all;
-  return all.filter((c) => {
+  if (!q) return attachAppointmentCounts(all);
+  const filtered = all.filter((c) => {
     const hay = [
       c.name,
       c.phone,
@@ -194,6 +209,7 @@ export async function searchCustomers(query: string) {
       .toLowerCase();
     return hay.includes(q);
   });
+  return attachAppointmentCounts(filtered);
 }
 
 export async function upsertCustomerFromBooking(data: {
@@ -520,13 +536,15 @@ async function listMemberTopups(customerId: string): Promise<MemberTopupRecord[]
 export async function getCustomerHistory(customerId: string) {
   const c = await getCustomer(customerId);
   const allBookings = await listBookings();
-  const bookings = allBookings.filter(
-    (b) => c?.lineUserId && b.lineUserId === c.lineUserId
-  );
+  const bookings = c
+    ? allBookings.filter((b) => bookingMatchesCustomer(b, c))
+    : [];
+  const upcomingBookings = bookings.filter((b) => isUpcomingBooking(b));
+  const pastBookings = bookings.filter((b) => !isUpcomingBooking(b));
   const services = await listServiceRecords(customerId);
   const points = c?.lineUserId ? await getPointsHistory(c.lineUserId) : [];
   const memberTopups = await listMemberTopups(customerId);
-  return { bookings, services, points, memberTopups };
+  return { bookings, upcomingBookings, pastBookings, services, points, memberTopups };
 }
 
 export async function customerSummary(customerId: string) {

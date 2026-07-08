@@ -1,32 +1,44 @@
 # Supabase Setup — CatCha Hotel
 
-## 1. สร้างโปรเจกต์
+## วิธีง่ายสุด (แนะนำ)
 
-1. ไปที่ [supabase.com](https://supabase.com) → New project
-2. เก็บ **Project URL** และ **service_role key** (Settings → API)
+1. สร้างโปรเจกต์ที่ [supabase.com](https://supabase.com) (ฟรี)
+2. ใส่ 3 ค่าใน **Vercel → Settings → Environment Variables**:
 
-## 2. รัน Schema
+| ตัวแปร | หาได้ที่ไหน (Supabase Dashboard) |
+|--------|----------------------------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Settings → API → Project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Settings → API → service_role (secret) |
+| `DATABASE_URL` | Settings → Database → Connection string → **URI** |
 
-1. Supabase Dashboard → **SQL Editor** → New query
-2. Copy ทั้งไฟล์ `supabase/schema.sql` วางแล้วกด **Run**
-3. ตรวจ Table Editor ว่ามีตาราง: customers, cats, bookings, points_accounts, promos, invoices, ฯลฯ
+3. **Redeploy** บน Vercel
+4. เข้า **Admin → 🚀 ติดตั้ง** (`/admin/setup`)
+5. กด **⚡ สร้างตารางอัตโนมัติ** — เสร็จ!
 
-## 3. ตั้งค่า Vercel
+หลังจากนั้นไป **Admin → ⚙️ ตั้งค่า** แก้รูป ราคา โปรได้เลย
 
-```
-NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJ...   # อย่าเปิดเผย — ใช้เฉพาะ server
-```
+---
 
-Redeploy หลังเพิ่ม env
+## วิธีที่ 2 — Copy SQL เอง
 
-## 4. ทดสอบ
+ถ้าไม่ใส่ `DATABASE_URL`:
 
-- จองใหม่ใน Admin → ดูใน Supabase Table `bookings`
-- คิดเงิน → ดู `invoices`
-- รีสตาร์ท Vercel แล้วข้อมูลยังอยู่ = สำเร็จ
+1. Admin → ติดตั้ง → กด **📋 Copy SQL**
+2. Supabase → SQL Editor → วาง → Run
 
-## หมายเหตุ
+หรือเปิดไฟล์ `webapp/supabase/schema.sql` บน GitHub
 
-- ถ้ายังไม่ตั้ง Supabase แอปจะใช้ **in-memory** เหมือนเดิม (ข้อมูลหายเมื่อ cold start)
-- `service_role` ข้าม RLS — ใช้เฉพาะใน API routes ฝั่ง server
+---
+
+## ทำไม Agent ทำให้ทั้งหมดไม่ได้?
+
+- **Supabase / Vercel** ต้องใช้บัญชีของเจ้าของ (login + password)
+- Agent ไม่มีสิทธิ์เข้าบัญชี Stopstop.w โดยตรง
+- หลังใส่ env 3 ตัวแล้ว → กดปุ่มเดียวใน Admin สร้างตารางให้เอง
+
+---
+
+## ทดสอบ
+
+- Admin → ติดตั้ง → ต้องขึ้น ✅ พร้อมใช้งาน
+- จองใหม่ → ดูตาราง `bookings` ใน Supabase Table Editor

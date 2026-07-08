@@ -35,6 +35,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     { href: "/admin/finance", label: "การเงิน", icon: "📒" },
     { href: "/admin/promos", label: "โปร", icon: "✨" },
     { href: "/admin/settings", label: "ตั้งค่า", icon: "⚙️" },
+    { href: "/admin/setup", label: "ติดตั้ง", icon: "🚀" },
   ];
 
   return (

@@ -1,0 +1,117 @@
+import { readFileSync } from "fs";
+import { join } from "path";
+import pg from "pg";
+import { getSupabase, isSupabaseConfigured } from "./server";
+
+export type SetupStatus = {
+  supabaseUrl: boolean;
+  serviceKey: boolean;
+  databaseUrl: boolean;
+  connected: boolean;
+  tablesReady: boolean;
+  missingTables: string[];
+  message: string;
+};
+
+const REQUIRED_TABLES = [
+  "customers",
+  "cats",
+  "bookings",
+  "points_accounts",
+  "promos",
+  "invoices",
+  "site_config",
+];
+
+export async function checkSetupStatus(): Promise<SetupStatus> {
+  const supabaseUrl = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const serviceKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const databaseUrl = Boolean(process.env.DATABASE_URL);
+
+  if (!supabaseUrl || !serviceKey) {
+    return {
+      supabaseUrl,
+      serviceKey,
+      databaseUrl,
+      connected: false,
+      tablesReady: false,
+      missingTables: REQUIRED_TABLES,
+      message: "ยังไม่ได้ใส่ NEXT_PUBLIC_SUPABASE_URL หรือ SUPABASE_SERVICE_ROLE_KEY ใน Vercel",
+    };
+  }
+
+  const sb = getSupabase();
+  if (!sb) {
+    return {
+      supabaseUrl,
+      serviceKey,
+      databaseUrl,
+      connected: false,
+      tablesReady: false,
+      missingTables: REQUIRED_TABLES,
+      message: "เชื่อม Supabase ไม่ได้",
+    };
+  }
+
+  const missing: string[] = [];
+  for (const table of REQUIRED_TABLES) {
+    const { error } = await sb.from(table).select("*").limit(1);
+    if (error) missing.push(table);
+  }
+
+  return {
+    supabaseUrl,
+    serviceKey,
+    databaseUrl,
+    connected: true,
+    tablesReady: missing.length === 0,
+    missingTables: missing,
+    message:
+      missing.length === 0
+        ? "พร้อมใช้งาน — ฐานข้อมูลครบแล้ว"
+        : `ยังไม่มีตาราง: ${missing.join(", ")} — กดสร้างตารางอัตโนมัติ`,
+  };
+}
+
+function loadSchemaSql() {
+  const path = join(process.cwd(), "supabase", "schema.sql");
+  return readFileSync(path, "utf-8");
+}
+
+/** สร้างตารางทั้งหมด — ต้องมี DATABASE_URL (Connection string จาก Supabase) */
+export async function bootstrapDatabase() {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    return {
+      ok: false as const,
+      error: "no_database_url",
+      message:
+        "ใส่ DATABASE_URL ใน Vercel (Supabase → Settings → Database → Connection string → URI)",
+    };
+  }
+
+  const client = new pg.Client({
+    connectionString: url,
+    ssl: { rejectUnauthorized: false },
+  });
+
+  try {
+    await client.connect();
+    const sql = loadSchemaSql();
+    await client.query(sql);
+    return { ok: true as const, message: "สร้างตารางและข้อมูลเริ่มต้นสำเร็จ" };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { ok: false as const, error: "bootstrap_failed", message: msg };
+  } finally {
+    await client.end().catch(() => {});
+  }
+}
+
+export function getSchemaSqlForCopy() {
+  return loadSchemaSql();
+}
+
+export function isSetupConfigured() {
+  return isSupabaseConfigured();
+}

@@ -21,5 +21,7 @@ export async function POST(req: NextRequest) {
     claim: result.claim,
     promo: result.promo,
     couponCode: result.promo.couponCode,
+    pointsAwarded: result.pointsAwarded,
+    newPoints: result.newPoints,
   });
 }

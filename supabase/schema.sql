@@ -80,7 +80,10 @@ create table if not exists promos (
   restriction text not null default 'none' check (restriction in ('none', 'first_visit', 'calendar_month')),
   valid_month text,
   tiers text[] not null default array['all']::text[],
-  coupon_code text
+  coupon_code text,
+  reward_type text not null default 'discount' check (reward_type in ('discount', 'points', 'both')),
+  points_bonus integer,
+  points_multiplier numeric
 );
 
 create table if not exists promo_claims (
@@ -91,6 +94,7 @@ create table if not exists promo_claims (
   customer_name text not null default '',
   promo_title text not null default '',
   source text not null default 'app' check (source in ('app', 'admin')),
+  points_awarded integer,
   created_at timestamptz not null default now()
 );
 

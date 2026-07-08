@@ -50,6 +50,9 @@ export async function POST(req: NextRequest) {
     validMonth: body.validMonth || undefined,
     tiers: (body.tiers as CustomerTier[]) || ["all"],
     couponCode: body.couponCode || undefined,
+    rewardType: body.rewardType || "discount",
+    pointsBonus: body.pointsBonus ? Number(body.pointsBonus) : undefined,
+    pointsMultiplier: body.pointsMultiplier ? Number(body.pointsMultiplier) : undefined,
   });
   return NextResponse.json({ ok: true, promo });
 }

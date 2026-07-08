@@ -1,9 +1,11 @@
 import { customerSummary, findCustomerByLine, type CustomerRecord } from "./customers-store";
+import { addPoints } from "./points-store";
 import { getSupabase } from "./supabase/server";
 
 export type PromoKind = "display" | "customer";
 export type PromoRestriction = "none" | "first_visit" | "calendar_month";
 export type CustomerTier = "all" | "member" | "new" | "returning";
+export type PromoRewardType = "discount" | "points" | "both";
 
 export type PromoRecord = {
   id: string;
@@ -20,6 +22,9 @@ export type PromoRecord = {
   validMonth?: string;
   tiers: CustomerTier[];
   couponCode?: string;
+  rewardType: PromoRewardType;
+  pointsBonus?: number;
+  pointsMultiplier?: number;
 };
 
 export type PromoClaimRecord = {
@@ -30,6 +35,7 @@ export type PromoClaimRecord = {
   customerName: string;
   promoTitle: string;
   source: "app" | "admin";
+  pointsAwarded?: number;
   createdAt: string;
 };
 
@@ -57,6 +63,9 @@ type PromoRow = {
   valid_month?: string | null;
   tiers?: string[] | null;
   coupon_code?: string | null;
+  reward_type?: string | null;
+  points_bonus?: number | null;
+  points_multiplier?: number | null;
 };
 
 type PromoClaimRow = {
@@ -67,6 +76,7 @@ type PromoClaimRow = {
   customer_name: string;
   promo_title: string;
   source: string;
+  points_awarded?: number | null;
   created_at: string;
 };
 
@@ -84,6 +94,8 @@ const mem: PromoRecord[] = [
     kind: "display",
     restriction: "none",
     tiers: ["all"],
+    rewardType: "points",
+    pointsMultiplier: 2,
   },
   {
     id: "P2",
@@ -98,22 +110,24 @@ const mem: PromoRecord[] = [
     kind: "display",
     restriction: "none",
     tiers: ["all"],
+    rewardType: "discount",
   },
   {
     id: "PC1",
     title: { th: "โปรต้อนรับลูกค้าใหม่", en: "Welcome offer" },
     body: {
-      th: "ลูกค้าใหม่รับส่วนลด 10% สำหรับบริการครั้งแรก — กดใช้ที่หน้าร้าน",
-      en: "New customers get 10% off first visit — tap to claim",
+      th: "ลูกค้าใหม่กดรับโปร ได้แต้มโบนัส 20 แต้มทันที",
+      en: "New customers claim 20 bonus points instantly",
     },
-    discountPercent: 10,
     startDate: "2026-01-01",
     until: "2026-12-31",
     active: true,
     kind: "customer",
     restriction: "first_visit",
     tiers: ["new"],
-    couponCode: "WELCOME10",
+    couponCode: "WELCOME20",
+    rewardType: "points",
+    pointsBonus: 20,
   },
 ];
 
@@ -140,6 +154,9 @@ function rowToPromo(r: PromoRow): PromoRecord {
     validMonth: r.valid_month ?? undefined,
     tiers: normalizeTiers(r.tiers),
     couponCode: r.coupon_code ?? undefined,
+    rewardType: (r.reward_type as PromoRewardType) || "discount",
+    pointsBonus: r.points_bonus ?? undefined,
+    pointsMultiplier: r.points_multiplier != null ? Number(r.points_multiplier) : undefined,
   };
 }
 
@@ -161,6 +178,9 @@ function promoToRow(p: PromoRecord) {
     valid_month: p.validMonth ?? null,
     tiers: p.tiers,
     coupon_code: p.couponCode ?? null,
+    reward_type: p.rewardType,
+    points_bonus: p.pointsBonus ?? null,
+    points_multiplier: p.pointsMultiplier ?? null,
   };
 }
 
@@ -173,6 +193,7 @@ function rowToClaim(r: PromoClaimRow): PromoClaimRecord {
     customerName: r.customer_name,
     promoTitle: r.promo_title,
     source: r.source as PromoClaimRecord["source"],
+    pointsAwarded: r.points_awarded ?? undefined,
     createdAt: r.created_at,
   };
 }
@@ -186,8 +207,22 @@ function claimToRow(c: PromoClaimRecord) {
     customer_name: c.customerName,
     promo_title: c.promoTitle,
     source: c.source,
+    points_awarded: c.pointsAwarded ?? null,
     created_at: c.createdAt,
   };
+}
+
+export function promoRewardLabel(p: Pick<PromoRecord, "rewardType" | "discountPercent" | "discountAmount" | "pointsBonus" | "pointsMultiplier">) {
+  const parts: string[] = [];
+  if (p.rewardType === "discount" || p.rewardType === "both") {
+    if (p.discountPercent) parts.push(`${p.discountPercent}%`);
+    if (p.discountAmount) parts.push(`-${p.discountAmount}฿`);
+  }
+  if (p.rewardType === "points" || p.rewardType === "both") {
+    if (p.pointsBonus) parts.push(`+${p.pointsBonus} แต้ม`);
+    if (p.pointsMultiplier && p.pointsMultiplier > 1) parts.push(`แต้ม x${p.pointsMultiplier}`);
+  }
+  return parts.join(" · ");
 }
 
 function currentMonth(now = new Date()) {
@@ -321,7 +356,10 @@ export async function claimCustomerPromo(
   promoId: string,
   lineUserId: string,
   source: PromoClaimRecord["source"] = "app"
-): Promise<{ ok: true; claim: PromoClaimRecord; promo: PromoRecord } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; claim: PromoClaimRecord; promo: PromoRecord; pointsAwarded: number; newPoints?: number }
+  | { ok: false; error: string }
+> {
   const customer = await findCustomerByLine(lineUserId);
   if (!customer) return { ok: false, error: "ไม่พบข้อมูลลูกค้า — เปิดแอปจาก LINE อีกครั้ง" };
 
@@ -342,6 +380,11 @@ export async function claimCustomerPromo(
 
   if (!eligible) return { ok: false, error: reason || "ใช้โปรนี้ไม่ได้" };
 
+  const pointsAwarded =
+    promo.rewardType === "points" || promo.rewardType === "both"
+      ? Math.max(0, promo.pointsBonus || 0)
+      : 0;
+
   const claim: PromoClaimRecord = {
     id: `CL${Date.now()}`,
     promoId,
@@ -350,6 +393,7 @@ export async function claimCustomerPromo(
     customerName: customer.name,
     promoTitle: promo.title.th,
     source,
+    pointsAwarded: pointsAwarded || undefined,
     createdAt: new Date().toISOString(),
   };
 
@@ -361,7 +405,19 @@ export async function claimCustomerPromo(
     memClaims.unshift(claim);
   }
 
-  return { ok: true, claim, promo };
+  let newPoints: number | undefined;
+  if (pointsAwarded > 0) {
+    const acc = await addPoints(
+      lineUserId,
+      pointsAwarded,
+      `โปร: ${promo.title.th}`,
+      `Promo: ${promo.title.en}`,
+      customer.name
+    );
+    newPoints = acc.points;
+  }
+
+  return { ok: true, claim, promo, pointsAwarded, newPoints };
 }
 
 export async function getPromo(id: string) {
@@ -380,6 +436,7 @@ export async function addPromo(data: Omit<PromoRecord, "id">) {
     kind: data.kind || "display",
     restriction: data.restriction || "none",
     tiers: data.tiers?.length ? data.tiers : ["all"],
+    rewardType: data.rewardType || "discount",
   };
   const sb = getSupabase();
   if (sb) {

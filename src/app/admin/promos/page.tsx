@@ -2,7 +2,13 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
-import type { CustomerTier, PromoKind, PromoRestriction } from "@/lib/promos-store";
+import {
+  promoRewardLabel,
+  type CustomerTier,
+  type PromoKind,
+  type PromoRestriction,
+  type PromoRewardType,
+} from "@/lib/promos-store";
 
 type Promo = {
   id: string;
@@ -19,6 +25,9 @@ type Promo = {
   validMonth?: string;
   tiers: CustomerTier[];
   couponCode?: string;
+  rewardType: PromoRewardType;
+  pointsBonus?: number;
+  pointsMultiplier?: number;
 };
 
 type PromoClaim = {
@@ -27,29 +36,42 @@ type PromoClaim = {
   customerName: string;
   promoTitle: string;
   source: string;
+  pointsAwarded?: number;
   createdAt: string;
 };
 
 const TIER_OPTIONS: { value: CustomerTier; label: string }[] = [
   { value: "all", label: "ทุกคน" },
   { value: "member", label: "💎 Member" },
-  { value: "new", label: "ลูกค้าใหม่ (ยังไม่เคยมา)" },
-  { value: "returning", label: "ลูกค้าเก่า (เคยมาแล้ว)" },
+  { value: "new", label: "ลูกค้าใหม่" },
+  { value: "returning", label: "ลูกค้าเก่า" },
 ];
 
 function restrictionLabel(r: PromoRestriction, validMonth?: string) {
-  if (r === "first_visit") return "เฉพาะครั้งแรก";
-  if (r === "calendar_month" && validMonth) return `เฉพาะเดือน ${validMonth}`;
+  if (r === "first_visit") return "ครั้งแรก";
+  if (r === "calendar_month" && validMonth) return `เดือน ${validMonth}`;
   return "ไม่จำกัด";
+}
+
+function resetFormState() {
+  return {
+    imageUrl: "",
+    kind: "display" as PromoKind,
+    restriction: "none" as PromoRestriction,
+    tiers: ["all"] as CustomerTier[],
+    rewardType: "discount" as PromoRewardType,
+  };
 }
 
 export default function PromosAdminPage() {
   const [promos, setPromos] = useState<Promo[]>([]);
   const [claims, setClaims] = useState<PromoClaim[]>([]);
+  const [open, setOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
   const [kind, setKind] = useState<PromoKind>("display");
   const [restriction, setRestriction] = useState<PromoRestriction>("none");
   const [tiers, setTiers] = useState<CustomerTier[]>(["all"]);
+  const [rewardType, setRewardType] = useState<PromoRewardType>("discount");
 
   const load = useCallback(async () => {
     const [promoRes, claimRes] = await Promise.all([
@@ -65,6 +87,16 @@ export default function PromosAdminPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const closeModal = () => {
+    setOpen(false);
+    const s = resetFormState();
+    setImageUrl(s.imageUrl);
+    setKind(s.kind);
+    setRestriction(s.restriction);
+    setTiers(s.tiers);
+    setRewardType(s.rewardType);
+  };
 
   const onImage = (file: File) => {
     const reader = new FileReader();
@@ -99,17 +131,19 @@ export default function PromosAdminPage() {
         until: String(fd.get("until")),
         active: true,
         kind,
-        restriction,
-        validMonth: restriction === "calendar_month" ? String(fd.get("validMonth") || "") : undefined,
-        tiers: tiers.length ? tiers : ["all"],
+        restriction: kind === "customer" ? restriction : "none",
+        validMonth:
+          kind === "customer" && restriction === "calendar_month"
+            ? String(fd.get("validMonth") || "")
+            : undefined,
+        tiers: kind === "customer" && tiers.length ? tiers : ["all"],
         couponCode: String(fd.get("couponCode") || "") || undefined,
+        rewardType,
+        pointsBonus: Number(fd.get("pointsBonus")) || undefined,
+        pointsMultiplier: Number(fd.get("pointsMultiplier")) || undefined,
       }),
     });
-    e.currentTarget.reset();
-    setImageUrl("");
-    setKind("display");
-    setRestriction("none");
-    setTiers(["all"]);
+    closeModal();
     load();
   };
 
@@ -124,220 +158,209 @@ export default function PromosAdminPage() {
 
   const hasImage = imageUrl.startsWith("data:") || imageUrl.startsWith("http") || imageUrl.startsWith("/");
   const claimsFor = (promoId: string) => claims.filter((c) => c.promoId === promoId);
+  const showDiscount = rewardType === "discount" || rewardType === "both";
+  const showPoints = rewardType === "points" || rewardType === "both";
 
   return (
     <div>
-      <h1 className="mb-1 text-lg font-extrabold text-catcha-chocolate">✨ โปรโมชั่น</h1>
-      <p className="mb-4 text-xs text-brown-soft">
-        โปรพิเศษลูกค้า = แสดงในหน้าแรกแอป · ลูกค้ากดใช้แล้วบันทึกอัตโนมัติ
-      </p>
-
-      <form onSubmit={submit} className="mb-5 space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm">
-        <div className="grid grid-cols-2 gap-2">
-          <label className="flex items-center gap-2 rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs font-bold">
-            <input
-              type="radio"
-              name="kindPick"
-              checked={kind === "display"}
-              onChange={() => setKind("display")}
-            />
-            โปรทั่วไป (หน้าโปร)
-          </label>
-          <label className="flex items-center gap-2 rounded-catcha-sm border border-honey/50 bg-honey/10 px-3 py-2 text-xs font-bold text-catcha-chocolate">
-            <input
-              type="radio"
-              name="kindPick"
-              checked={kind === "customer"}
-              onChange={() => setKind("customer")}
-            />
-            โปรพิเศษลูกค้า (หน้าแรก)
-          </label>
+      <div className="mb-4 flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-lg font-extrabold text-catcha-chocolate">✨ โปรโมชั่น</h1>
+          <p className="mt-1 text-xs text-brown-soft">
+            โปรพิเศษลูกค้า · ส่วนลด/แต้ม · กดใช้จากแอป
+          </p>
         </div>
+        <span className="shrink-0 rounded-full bg-sage/20 px-2 py-0.5 text-[9px] font-bold text-ok">
+          v2
+        </span>
+      </div>
 
-        <input name="titleTh" required placeholder="หัวข้อ (ไทย)" className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
-        <input name="titleEn" placeholder="หัวข้อ (EN)" className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
-        <textarea name="bodyTh" required placeholder="รายละเอียด" rows={2} className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
-        <div className="grid grid-cols-2 gap-2">
-          <input name="discountPercent" type="number" placeholder="ส่วนลด %" className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
-          <input name="discountAmount" type="number" placeholder="ส่วนลด บาท" className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
-        </div>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mb-5 w-full rounded-catcha-sm border border-dashed border-honey/60 bg-honey/15 py-3 text-sm font-extrabold text-catcha-chocolate"
+      >
+        ➕ เพิ่มโปรใหม่
+      </button>
 
-        {kind === "customer" && (
-          <>
-            <input
-              name="couponCode"
-              placeholder="รหัสโปร (แสดงหลังกดใช้) เช่น WELCOME10"
-              className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
-            />
-            <div>
-              <p className="mb-2 text-[10px] font-bold text-brown-soft">กลุ่มลูกค้า (เลือกได้หลายกลุ่ม)</p>
-              <div className="flex flex-wrap gap-2">
-                {TIER_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => toggleTier(opt.value)}
-                    className={`rounded-full px-3 py-1.5 text-[10px] font-bold ${
-                      tiers.includes(opt.value)
-                        ? "bg-latte/30 text-catcha-chocolate"
-                        : "bg-paper text-brown-faint"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-catcha bg-card p-5 shadow-catcha">
+            <h2 className="mb-3 text-sm font-extrabold text-catcha-chocolate">➕ เพิ่มโปรใหม่</h2>
+            <form onSubmit={submit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex items-center gap-2 rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs font-bold">
+                  <input type="radio" checked={kind === "display"} onChange={() => setKind("display")} />
+                  โปรทั่วไป
+                </label>
+                <label className="flex items-center gap-2 rounded-catcha-sm border border-honey/50 bg-honey/10 px-3 py-2 text-xs font-bold text-catcha-chocolate">
+                  <input type="radio" checked={kind === "customer"} onChange={() => setKind("customer")} />
+                  โปรพิเศษลูกค้า
+                </label>
               </div>
-            </div>
-            <div>
-              <p className="mb-2 text-[10px] font-bold text-brown-soft">เงื่อนไขการใช้</p>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                {(
-                  [
-                    ["none", "ไม่จำกัด"],
-                    ["first_visit", "เฉพาะครั้งแรก"],
-                    ["calendar_month", "เฉพาะเดือนที่กำหนด"],
-                  ] as const
-                ).map(([value, label]) => (
-                  <label
-                    key={value}
-                    className={`flex items-center gap-2 rounded-catcha-sm border px-3 py-2 text-[10px] font-bold ${
-                      restriction === value ? "border-latte bg-latte/15" : "border-catcha-line bg-paper"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      checked={restriction === value}
-                      onChange={() => setRestriction(value)}
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-            </div>
-            {restriction === "calendar_month" && (
-              <input
-                name="validMonth"
-                type="month"
-                required
-                className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
-              />
-            )}
-          </>
-        )}
 
-        <div className="rounded-catcha-sm border border-catcha-line bg-paper p-3">
-          <p className="mb-2 text-[10px] font-bold text-latte-deep">รูปโปรโมชั่น</p>
-          <div className="flex gap-3">
-            {hasImage ? (
-              <Image
-                src={imageUrl}
-                alt=""
-                width={96}
-                height={72}
-                className="h-[72px] w-[96px] shrink-0 rounded-catcha-sm object-cover bg-card"
-                unoptimized
-              />
-            ) : (
-              <div className="flex h-[72px] w-[96px] shrink-0 items-center justify-center rounded-catcha-sm bg-card text-[10px] text-brown-faint">
-                ยังไม่มีรูป
-              </div>
-            )}
-            <div className="flex flex-1 flex-col gap-2">
-              <label className="block text-[10px] font-bold text-latte-deep">
-                อัปโหลดรูป
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="mt-1 block w-full text-[10px]"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) onImage(f);
-                  }}
-                />
-              </label>
-              <input
-                value={imageUrl.startsWith("data:") ? "" : imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="หรือวาง URL รูป"
-                className="w-full rounded-catcha-sm border border-catcha-line bg-card px-2 py-1.5 text-xs"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <label className="text-[10px] font-bold text-brown-soft">
-            เริ่มโปร
-            <input name="startDate" type="date" required className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
-          </label>
-          <label className="text-[10px] font-bold text-brown-soft">
-            หมดอายุ
-            <input name="until" type="date" required className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
-          </label>
-        </div>
-        <button type="submit" className="w-full rounded-catcha-sm bg-honey/40 py-3 text-sm font-extrabold">
-          เพิ่มโปร
-        </button>
-      </form>
-
-      <h2 className="mb-2 text-sm font-extrabold text-catcha-chocolate">📋 รายการโปร</h2>
-      <ul className="space-y-3">
-        {promos.map((p) => (
-          <li key={p.id} className="overflow-hidden rounded-catcha border border-catcha-line bg-card">
-            {p.imageUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={p.imageUrl} alt="" className="h-24 w-full object-cover" />
-            )}
-            <div className="p-4">
-              <div className="flex justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold text-brown">
-                    {p.kind === "customer" ? "🎁 " : "✨ "}
-                    {p.title.th}
-                  </p>
-                  <p className="text-xs text-brown-soft">{p.body.th}</p>
-                  <p className="mt-1 text-[10px] text-brown-faint">
-                    {p.startDate} → {p.until}
-                    {p.discountPercent ? ` · ${p.discountPercent}%` : ""}
-                    {p.discountAmount ? ` · -${p.discountAmount}฿` : ""}
-                    {p.kind === "customer" && (
-                      <>
-                        {" · "}
-                        {restrictionLabel(p.restriction, p.validMonth)}
-                        {" · "}
-                        {p.tiers.join(", ")}
-                        {p.couponCode ? ` · รหัส ${p.couponCode}` : ""}
-                      </>
-                    )}
-                  </p>
-                  {p.kind === "customer" && claimsFor(p.id).length > 0 && (
-                    <div className="mt-2 rounded-catcha-sm bg-sage/10 px-2 py-1.5">
-                      <p className="text-[10px] font-extrabold text-ok">
-                        กดใช้จากแอปแล้ว {claimsFor(p.id).length} ครั้ง
-                      </p>
-                      <ul className="mt-1 space-y-0.5 text-[10px] text-brown-soft">
-                        {claimsFor(p.id).slice(0, 5).map((c) => (
-                          <li key={c.id}>
-                            {c.createdAt.slice(0, 10)} · {c.customerName} · {c.source}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+              <div>
+                <p className="mb-2 text-[10px] font-bold text-brown-soft">ประเภทรางวัล</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {(
+                    [
+                      ["discount", "ส่วนลด"],
+                      ["points", "แต้ม"],
+                      ["both", "ทั้งคู่"],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setRewardType(value)}
+                      className={`rounded-catcha-sm px-2 py-2 text-[10px] font-bold ${
+                        rewardType === value ? "bg-latte/30 text-catcha-chocolate" : "bg-paper text-brown-faint"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => toggle(p.id, p.active)}
-                  className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-bold ${
-                    p.active ? "bg-sage/20 text-ok" : "bg-paper text-brown-faint"
-                  }`}
-                >
-                  {p.active ? "เปิด" : "ปิด"}
+              </div>
+
+              <input name="titleTh" required placeholder="หัวข้อ (ไทย)" className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+              <textarea name="bodyTh" required placeholder="รายละเอียด" rows={2} className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+
+              {showDiscount && (
+                <div className="grid grid-cols-2 gap-2">
+                  <input name="discountPercent" type="number" placeholder="ส่วนลด %" className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+                  <input name="discountAmount" type="number" placeholder="ส่วนลด บาท" className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+                </div>
+              )}
+
+              {showPoints && (
+                <div className="grid grid-cols-2 gap-2">
+                  <input name="pointsBonus" type="number" placeholder="แต้มโบนัส (กดใช้แล้วได้ทันที)" className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+                  <input name="pointsMultiplier" type="number" step="0.1" placeholder="ตัวคูณแต้ม เช่น 2" className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+                </div>
+              )}
+
+              {kind === "customer" && (
+                <>
+                  <input name="couponCode" placeholder="รหัสโปร (ถ้ามี)" className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+                  <div className="flex flex-wrap gap-2">
+                    {TIER_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => toggleTier(opt.value)}
+                        className={`rounded-full px-3 py-1.5 text-[10px] font-bold ${
+                          tiers.includes(opt.value) ? "bg-latte/30 text-catcha-chocolate" : "bg-paper text-brown-faint"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(
+                      [
+                        ["none", "ไม่จำกัด"],
+                        ["first_visit", "ครั้งแรก"],
+                        ["calendar_month", "เฉพาะเดือน"],
+                      ] as const
+                    ).map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setRestriction(value)}
+                        className={`rounded-catcha-sm px-2 py-2 text-[10px] font-bold ${
+                          restriction === value ? "bg-latte/30" : "bg-paper text-brown-faint"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {restriction === "calendar_month" && (
+                    <input name="validMonth" type="month" required className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+                  )}
+                </>
+              )}
+
+              <div className="grid grid-cols-2 gap-2">
+                <input name="startDate" type="date" required className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+                <input name="until" type="date" required className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+              </div>
+
+              <label className="block text-[10px] font-bold text-latte-deep">
+                รูปโปร (ถ้ามี)
+                <input type="file" accept="image/*" className="mt-1 block w-full text-[10px]" onChange={(e) => e.target.files?.[0] && onImage(e.target.files[0])} />
+              </label>
+              {hasImage && (
+                <Image src={imageUrl} alt="" width={96} height={72} className="h-[72px] w-[96px] rounded-catcha-sm object-cover" unoptimized />
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={closeModal} className="flex-1 rounded-catcha-sm bg-paper py-2.5 text-xs font-bold text-brown-soft">
+                  ยกเลิก
+                </button>
+                <button type="submit" className="flex-1 rounded-catcha-sm bg-gradient-to-r from-honey to-honey-deep py-2.5 text-xs font-extrabold text-catcha-chocolate">
+                  บันทึกโปร
                 </button>
               </div>
-            </div>
-          </li>
-        ))}
+            </form>
+          </div>
+        </div>
+      )}
+
+      <h2 className="mb-2 text-sm font-extrabold text-catcha-chocolate">📋 รายการโปร ({promos.length})</h2>
+      <ul className="space-y-3">
+        {promos.map((p) => {
+          const reward = promoRewardLabel(p);
+          return (
+            <li key={p.id} className="overflow-hidden rounded-catcha border border-catcha-line bg-card">
+              <div className="p-4">
+                <div className="flex justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-brown">
+                      {p.kind === "customer" ? "🎁 " : "✨ "}
+                      {p.title.th}
+                    </p>
+                    <p className="text-xs text-brown-soft">{p.body.th}</p>
+                    <p className="mt-1 text-[10px] text-brown-faint">
+                      {p.startDate} → {p.until}
+                      {reward ? ` · ${reward}` : ""}
+                      {p.kind === "customer" && (
+                        <>
+                          {" · "}
+                          {restrictionLabel(p.restriction, p.validMonth)}
+                          {" · "}
+                          {p.tiers.join(", ")}
+                        </>
+                      )}
+                    </p>
+                    {claimsFor(p.id).length > 0 && (
+                      <div className="mt-2 rounded-catcha-sm bg-sage/10 px-2 py-1.5 text-[10px] text-brown-soft">
+                        ใช้แล้ว {claimsFor(p.id).length} ครั้ง
+                        {claimsFor(p.id).slice(0, 3).map((c) => (
+                          <div key={c.id}>
+                            {c.createdAt.slice(0, 10)} · {c.customerName}
+                            {c.pointsAwarded ? ` · +${c.pointsAwarded} แต้ม` : ""}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggle(p.id, p.active)}
+                    className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-bold ${
+                      p.active ? "bg-sage/20 text-ok" : "bg-paper text-brown-faint"
+                    }`}
+                  >
+                    {p.active ? "เปิด" : "ปิด"}
+                  </button>
+                </div>
+              </div>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

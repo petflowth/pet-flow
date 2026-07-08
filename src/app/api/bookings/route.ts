@@ -15,7 +15,7 @@ import {
   type StoredBooking,
 } from "@/lib/bookings-store";
 import { bookingMatchesCustomer } from "@/lib/booking-customer-match";
-import { listCustomers, upsertCustomerFromBooking } from "@/lib/customers-store";
+import { listCustomers, resolveCustomerForBooking } from "@/lib/customers-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import { pushLineMessage, buildReminderFlex } from "@/lib/line";
 
@@ -55,16 +55,20 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const customer = await upsertCustomerFromBooking({
+  const customer = await resolveCustomerForBooking({
     customerName: body.customerName,
     catName: body.catName,
     lineUserId: body.lineUserId,
+    customerId: body.customerId,
     phone: body.phone,
     staffNote: body.notes,
   });
+  if (!customer) {
+    return NextResponse.json({ error: "cat_name_required" }, { status: 400 });
+  }
 
   const booking = await addBooking({
-    customerName: body.customerName,
+    customerName: customer.name,
     catName: body.catName,
     service: body.service,
     date: body.date || body.checkin || "",
@@ -72,12 +76,12 @@ export async function POST(req: NextRequest) {
     checkout: body.checkout,
     checkin: body.checkin,
     room: body.room,
-    lineUserId: body.lineUserId || customer.lineUserId,
+    lineUserId: customer.lineUserId,
     notes: body.notes,
   });
 
   const cal = await createCalendarEvent({
-    summary: `${body.service === "room" ? "🏠" : "🛁"} ${body.catName} (${body.customerName})`,
+    summary: `${body.service === "room" ? "🏠" : "🛁"} ${body.catName} (${customer.name})`,
     description: `${body.service === "room" ? "ห้องพัก" : "อาบน้ำ"} · ${body.notes || ""}`,
     start: body.date || body.checkin,
     end: body.checkout || body.date || body.checkin,
@@ -94,7 +98,7 @@ export async function POST(req: NextRequest) {
 
   await sendTelegram(
     formatBookingTelegram("📌 จองใหม่", {
-      ลูกค้า: body.customerName,
+      ลูกค้า: customer.name,
       น้องแมว: body.catName,
       บริการ: body.service === "room" ? "ห้องพัก" : "อาบน้ำ",
       วันที่: `${body.date || body.checkin}${body.time ? ` ${body.time}` : ""}`,

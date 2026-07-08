@@ -303,6 +303,69 @@ async function linkBookingsToLineCustomer(customer: CustomerRecord) {
   }
 }
 
+export async function findCustomerByCatName(catName: string) {
+  const q = normName(catName);
+  if (!q) return [];
+  return (await fetchAllCustomers()).filter((c) =>
+    c.cats.some((cat) => normName(cat.name) === q)
+  );
+}
+
+/** หาลูกค้าตอนบันทึกนัด — รู้แค่ชื่อแมวหรือชื่อ LINE ก็ได้ */
+export async function resolveCustomerForBooking(data: {
+  customerName?: string;
+  catName: string;
+  lineUserId?: string;
+  customerId?: string;
+  phone?: string;
+  staffNote?: string;
+}) {
+  const catName = data.catName.trim();
+  if (!catName) return null;
+
+  let existing: CustomerRecord | undefined;
+
+  if (data.customerId) {
+    existing = await getCustomer(data.customerId);
+  }
+  if (!existing && data.lineUserId) {
+    existing = await findCustomerByLine(data.lineUserId);
+  }
+  if (!existing && data.customerName?.trim()) {
+    const name = data.customerName.trim();
+    existing = (await fetchAllCustomers()).find(
+      (c) =>
+        normName(c.name) === normName(name) &&
+        (c.cats.length === 0 ||
+          c.cats.some((cat) => normName(cat.name) === normName(catName)))
+    );
+  }
+  if (!existing) {
+    const byCat = await findCustomerByCatName(catName);
+    if (byCat.length === 1) {
+      existing = byCat[0];
+    } else if (byCat.length > 1 && data.customerName?.trim()) {
+      existing = byCat.find(
+        (c) => normName(c.name) === normName(data.customerName!.trim())
+      );
+    }
+  }
+
+  const customerName =
+    existing?.name ||
+    data.customerName?.trim() ||
+    `ลูกค้า (${catName})`;
+  const lineUserId = data.lineUserId || existing?.lineUserId;
+
+  return upsertCustomerFromBooking({
+    customerName,
+    catName,
+    lineUserId,
+    phone: data.phone,
+    staffNote: data.staffNote,
+  });
+}
+
 export async function upsertCustomerFromBooking(data: {
   customerName: string;
   catName: string;

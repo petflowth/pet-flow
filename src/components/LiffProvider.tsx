@@ -93,52 +93,66 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    async function applyAccount(base: CustomerProfile) {
-      const sync = await syncLineCustomer(base.lineUserId, base.displayName);
-      const data = await fetchAccount(base.lineUserId, base.displayName);
-      if (sync) {
-        setCustomer(sync.customer);
-        setNeedsRegistration(sync.needsRegistration);
-      }
-      if (data) {
-        setProfile({ ...base, points: data.points });
-        setHistory(data.history);
-      } else {
-        setProfile(base);
-      }
-      setReady(true);
-    }
-
-    const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-    if (!liffId) {
-      applyAccount({
-        lineUserId: "dev-user",
-        displayName: "คุณทดสอบ",
-        points: 0,
-      });
-      return;
-    }
-
-    import("@line/liff")
-      .then((liff) =>
-        liff.default.init({ liffId }).then(async () => {
-          if (!liff.default.isLoggedIn()) {
-            liff.default.login();
-            return;
-          }
-          const p = await liff.default.getProfile();
-          await applyAccount({
-            lineUserId: p.userId,
-            displayName: p.displayName,
-            pictureUrl: p.pictureUrl,
-            points: 0,
-          });
-        })
-      )
-      .catch((e) => {
-        setError(String(e));
+    async function initLiff() {
+      async function applyAccount(base: CustomerProfile) {
+        const sync = await syncLineCustomer(base.lineUserId, base.displayName);
+        const data = await fetchAccount(base.lineUserId, base.displayName);
+        if (sync) {
+          setCustomer(sync.customer);
+          setNeedsRegistration(sync.needsRegistration);
+        }
+        if (data) {
+          setProfile({ ...base, points: data.points });
+          setHistory(data.history);
+        } else {
+          setProfile(base);
+        }
         setReady(true);
-      });
+      }
+
+      let liffId = process.env.NEXT_PUBLIC_LIFF_ID?.trim() || "";
+      if (!liffId) {
+        try {
+          const res = await fetch("/api/line/liff");
+          const data = await res.json();
+          liffId = data.liffId || "";
+        } catch {
+          /* fallback dev */
+        }
+      }
+
+      if (!liffId) {
+        await applyAccount({
+          lineUserId: "dev-user",
+          displayName: "คุณทดสอบ",
+          points: 0,
+        });
+        return;
+      }
+
+      import("@line/liff")
+        .then((liff) =>
+          liff.default.init({ liffId }).then(async () => {
+            if (!liff.default.isLoggedIn()) {
+              liff.default.login();
+              return;
+            }
+            const p = await liff.default.getProfile();
+            await applyAccount({
+              lineUserId: p.userId,
+              displayName: p.displayName,
+              pictureUrl: p.pictureUrl,
+              points: 0,
+            });
+          })
+        )
+        .catch((e) => {
+          setError(String(e));
+          setReady(true);
+        });
+    }
+
+    initLiff();
   }, []);
 
   useEffect(() => {

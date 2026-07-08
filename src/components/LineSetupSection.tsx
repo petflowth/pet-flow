@@ -5,37 +5,42 @@ import { TIER_LABELS, type CustomerTier } from "@/lib/customer-tier";
 
 type LineStatus = {
   configured: boolean;
+  liffConfigured?: boolean;
   source: string;
   liffId?: string;
+  endpointUrl?: string;
+  testLiffUrl?: string;
   displayName?: string;
   basicId?: string;
 };
 
 export function RegistrationQrSection({ compact }: { compact?: boolean }) {
   const [copied, setCopied] = useState(false);
-  const [liffId, setLiffId] = useState(process.env.NEXT_PUBLIC_LIFF_ID || "");
+  const [liffId, setLiffId] = useState("");
+  const [registerUrl, setRegisterUrl] = useState("");
 
   useEffect(() => {
     fetch("/api/setup/line")
       .then((r) => r.json())
       .then((d: LineStatus) => {
-        if (d.liffId) setLiffId(d.liffId);
+        const lid = d.liffId || "";
+        setLiffId(lid);
+        const base =
+          typeof window !== "undefined" ? window.location.origin : "";
+        setRegisterUrl(
+          lid
+            ? `https://liff.line.me/${lid}?path=register`
+            : `${base}/app/register`
+        );
       });
   }, []);
 
-  const registerUrl = useMemo(() => {
-    const base =
-      process.env.NEXT_PUBLIC_APP_URL ||
-      (typeof window !== "undefined" ? window.location.origin : "");
-    if (liffId) {
-      return `https://liff.line.me/${liffId}?path=register`;
-    }
-    return `${base}/app/register`;
-  }, [liffId]);
-
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(registerUrl)}`;
+  const qrUrl = registerUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(registerUrl)}`
+    : "";
 
   const copy = async () => {
+    if (!registerUrl) return;
     await navigator.clipboard.writeText(registerUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -53,44 +58,55 @@ export function RegistrationQrSection({ compact }: { compact?: boolean }) {
       <p className="mb-3 text-[10px] text-brown-soft">
         ตั้งที่เคาน์เตอร์ — ลูกค้าสแกนแล้วกรอกชื่อ เบอร์ และน้องแมว
       </p>
-      <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={qrUrl}
-          alt="QR ลงทะเบียน"
-          width={140}
-          height={140}
-          className="rounded-catcha-sm bg-white p-2 shadow-catcha-sm"
-        />
-        <div className="min-w-0 flex-1 text-xs">
-          <p className="mb-2 break-all font-mono text-[10px] text-brown-soft">
-            {registerUrl}
-          </p>
-          <button
-            type="button"
-            onClick={copy}
-            className="rounded-catcha-sm bg-card px-3 py-2 text-[10px] font-bold text-latte-deep"
-          >
-            {copied ? "✅ Copy แล้ว" : "📋 Copy ลิงก์"}
-          </button>
-          {!liffId && (
-            <p className="mt-2 text-[10px] text-wait">
-              ตั้ง LIFF ID ด้านล่างเพื่อเปิดใน LINE โดยตรง
+      {qrUrl ? (
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={qrUrl}
+            alt="QR ลงทะเบียน"
+            width={140}
+            height={140}
+            className="rounded-catcha-sm bg-white p-2 shadow-catcha-sm"
+          />
+          <div className="min-w-0 flex-1 text-xs">
+            <p className="mb-2 break-all font-mono text-[10px] text-brown-soft">
+              {registerUrl}
             </p>
-          )}
+            <button
+              type="button"
+              onClick={copy}
+              className="rounded-catcha-sm bg-card px-3 py-2 text-[10px] font-bold text-latte-deep"
+            >
+              {copied ? "✅ Copy แล้ว" : "📋 Copy ลิงก์"}
+            </button>
+            {!liffId && (
+              <p className="mt-2 text-[10px] text-wait">
+                ตั้ง LIFF ด้านบนก่อน — QR จะเปิดใน LINE โดยตรง
+              </p>
+            )}
+          </div>
         </div>
-      </div>
+      ) : (
+        <p className="text-xs text-brown-soft">กำลังโหลด…</p>
+      )}
     </section>
   );
 }
 
-export function LineSetupSection({ adminCode }: { adminCode?: string }) {
+/** ตั้งค่า LIFF — แอปลูกค้าใน LINE */
+export function LiffSetupSection({ adminCode }: { adminCode?: string }) {
   const [status, setStatus] = useState<LineStatus | null>(null);
-  const [channelToken, setChannelToken] = useState("");
   const [liffId, setLiffId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const endpointUrl = useMemo(() => {
+    if (status?.endpointUrl) return status.endpointUrl;
+    if (typeof window !== "undefined") return `${window.location.origin}/app`;
+    return "https://catcha-hotel-five.vercel.app/app";
+  }, [status?.endpointUrl]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -105,7 +121,13 @@ export function LineSetupSection({ adminCode }: { adminCode?: string }) {
     load();
   }, [load]);
 
-  const save = async () => {
+  const copyEndpoint = async () => {
+    await navigator.clipboard.writeText(endpointUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const saveLiff = async () => {
     setSaving(true);
     setMsg("");
     const res = await fetch("/api/setup/line", {
@@ -113,8 +135,150 @@ export function LineSetupSection({ adminCode }: { adminCode?: string }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         adminCode,
-        channelToken,
+        action: "save_liff",
         liffId,
+      }),
+    });
+    const data = await res.json();
+    setMsg(data.message || data.error || "");
+    if (data.ok) await load();
+    setSaving(false);
+  };
+
+  if (loading) {
+    return <p className="text-xs text-brown-soft">กำลังตรวจ LIFF…</p>;
+  }
+
+  return (
+    <section className="mb-4 space-y-3 rounded-catcha border-2 border-latte/40 bg-gradient-to-b from-honey/15 to-card p-4 shadow-catcha-sm">
+      <h2 className="text-base font-extrabold text-catcha-chocolate">
+        📱 LINE LIFF — แอปลูกค้าใน LINE
+      </h2>
+      <p className="text-xs text-brown-soft">
+        ใช้สำหรับลูกค้าเปิดแอปจาก LINE · ลงทะเบียน · ยืนยันนัดจากการ์ดที่ส่ง
+      </p>
+
+      {status?.liffConfigured ? (
+        <div className="rounded-catcha-sm bg-sage/20 px-3 py-2 text-xs font-bold text-ok">
+          ✅ ตั้ง LIFF แล้ว · ID: {status.liffId}
+        </div>
+      ) : (
+        <div className="rounded-catcha-sm bg-honey/25 px-3 py-2 text-xs font-bold text-wait">
+          ⏳ ยังไม่ได้ตั้ง LIFF — ลูกค้าเปิดแอปจาก LINE ไม่ได้
+        </div>
+      )}
+
+      <ol className="space-y-2 rounded-catcha-sm bg-paper/80 p-3 text-xs text-brown-soft">
+        <li>
+          <b>1.</b> เปิด{" "}
+          <a
+            href="https://developers.line.biz/console/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-bold text-latte-deep"
+          >
+            LINE Developers
+          </a>{" "}
+          → เลือก Channel (LINE Login)
+        </li>
+        <li>
+          <b>2.</b> แท็บ <b>LIFF</b> → Add → Size: <b>Full</b>
+        </li>
+        <li>
+          <b>3.</b> Endpoint URL (copy ด้านล่าง):
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <code className="break-all rounded bg-card px-2 py-1 text-[10px] text-brown">
+              {endpointUrl}
+            </code>
+            <button
+              type="button"
+              onClick={copyEndpoint}
+              className="rounded-full bg-latte/20 px-2 py-1 text-[10px] font-bold"
+            >
+              {copied ? "✅" : "📋 Copy"}
+            </button>
+          </div>
+        </li>
+        <li>
+          <b>4.</b> Scope: <b>profile</b> (และ openid ถ้ามี)
+        </li>
+        <li>
+          <b>5.</b> Copy <b>LIFF ID</b> มาวางด้านล่าง → กดบันทึก
+        </li>
+      </ol>
+
+      <label className="block text-xs font-bold text-brown-soft">
+        LIFF ID
+        <input
+          value={liffId}
+          onChange={(e) => setLiffId(e.target.value)}
+          placeholder="เช่น 2001234567-AbCdEfGh"
+          className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-card px-3 py-2.5 text-sm font-mono"
+        />
+      </label>
+
+      {msg && (
+        <p className="rounded-catcha-sm bg-paper px-3 py-2 text-xs font-bold text-brown whitespace-pre-line">
+          {msg}
+        </p>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={saving || !liffId.trim()}
+          onClick={saveLiff}
+          className="flex-1 rounded-catcha-sm bg-gradient-to-r from-latte to-latte-deep py-3 text-sm font-extrabold text-white disabled:opacity-50"
+        >
+          {saving ? "กำลังบันทึก…" : "💾 บันทึก LIFF ID"}
+        </button>
+        {status?.testLiffUrl && (
+          <a
+            href={status.testLiffUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-catcha-sm border border-catcha-line bg-card px-4 py-3 text-xs font-bold text-latte-deep"
+          >
+            🔗 ทดสอบ LIFF
+          </a>
+        )}
+      </div>
+
+      <RegistrationQrSection compact />
+    </section>
+  );
+}
+
+/** ตั้งค่า LINE Messaging API — ส่งการ์ดยืนยันนัด */
+export function LineMessagingSetupSection({ adminCode }: { adminCode?: string }) {
+  const [status, setStatus] = useState<LineStatus | null>(null);
+  const [channelToken, setChannelToken] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch("/api/setup/line");
+    const data = await res.json();
+    setStatus(data);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const saveToken = async () => {
+    setSaving(true);
+    setMsg("");
+    const res = await fetch("/api/setup/line", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        adminCode,
+        action: "save_token",
+        channelToken,
       }),
     });
     const data = await res.json();
@@ -127,19 +291,19 @@ export function LineSetupSection({ adminCode }: { adminCode?: string }) {
   };
 
   if (loading) {
-    return <p className="text-xs text-brown-soft">กำลังตรวจ LINE…</p>;
+    return <p className="text-xs text-brown-soft">กำลังตรวจ LINE Messaging…</p>;
   }
 
   return (
     <section className="mb-4 space-y-3 rounded-catcha border border-sage/40 bg-card p-4 shadow-catcha-sm">
       <h2 className="text-sm font-extrabold text-catcha-chocolate">
-        💬 LINE Messaging (ส่งการ์ดยืนยันนัด)
+        💬 LINE Messaging — ส่งการ์ดยืนยันนัด
       </h2>
       <p className="text-xs text-brown-soft">
-        วาง Channel Access Token แล้วกดบันทึก — <b>ไม่ต้องใส่ Vercel</b> เหมือน Telegram
+        Channel Access Token สำหรับส่งการ์ด Flex ให้ลูกค้า (แยกจาก LIFF ด้านบน)
         {status?.source === "env" ? (
           <span className="mt-1 block text-wait">
-            ⚠️ ตอนนี้ใช้ Token จาก Vercel — ถ้าส่งไม่ได้ ให้บันทึก Token ที่นี่แทน
+            ⚠️ ใช้ Token จาก Vercel — ถ้าส่งไม่ได้ ให้บันทึกที่นี่แทน
           </span>
         ) : null}
       </p>
@@ -148,40 +312,23 @@ export function LineSetupSection({ adminCode }: { adminCode?: string }) {
         <div className="rounded-catcha-sm bg-sage/15 px-3 py-2 text-xs font-bold text-ok">
           ✅ พร้อมส่งการ์ด
           {status.displayName ? ` · ${status.displayName}` : ""}
-          {status.basicId ? ` (${status.basicId})` : ""}
         </div>
       ) : (
         <div className="rounded-catcha-sm bg-honey/20 px-3 py-2 text-xs font-bold text-wait">
-          ⏳ ยังไม่ได้ตั้ง LINE — ส่งการ์ดจะขึ้น &quot;ส่งไม่สำเร็จ&quot;
+          ⏳ ยังไม่ได้ตั้ง Token — กดส่งการ์ดจะขึ้น &quot;ส่งไม่สำเร็จ&quot;
         </div>
       )}
 
       <label className="block text-xs font-bold text-brown-soft">
-        Channel Access Token (Messaging API)
+        Channel Access Token
         <input
           type="password"
           value={channelToken}
           onChange={(e) => setChannelToken(e.target.value)}
-          placeholder="วาง Token จาก LINE Developers"
+          placeholder="LINE Developers → Messaging API → Issue token"
           className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
         />
       </label>
-
-      <label className="block text-xs font-bold text-brown-soft">
-        LIFF ID (ไม่บังคับ — สำหรับเปิดยืนยันนัดใน LINE)
-        <input
-          value={liffId}
-          onChange={(e) => setLiffId(e.target.value)}
-          placeholder="เช่น 200xxxxx-xxxx"
-          className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
-        />
-      </label>
-
-      <p className="text-[10px] text-brown-faint">
-        LINE Developers → Channel → Messaging API → Issue channel access token
-        <br />
-        LIFF Endpoint URL: <code>{typeof window !== "undefined" ? window.location.origin : ""}/app</code>
-      </p>
 
       {msg && (
         <p className="rounded-catcha-sm bg-paper px-3 py-2 text-xs font-bold text-brown whitespace-pre-line">
@@ -192,10 +339,10 @@ export function LineSetupSection({ adminCode }: { adminCode?: string }) {
       <button
         type="button"
         disabled={saving || !channelToken.trim()}
-        onClick={save}
+        onClick={saveToken}
         className="w-full rounded-catcha-sm bg-[#4A7348] py-3 text-sm font-extrabold text-white disabled:opacity-50"
       >
-        {saving ? "กำลังบันทึก…" : "💾 บันทึก LINE"}
+        {saving ? "กำลังบันทึก…" : "💾 บันทึก LINE Token"}
       </button>
 
       <div className="border-t border-catcha-line pt-3">
@@ -215,5 +362,15 @@ export function LineSetupSection({ adminCode }: { adminCode?: string }) {
         </ul>
       </div>
     </section>
+  );
+}
+
+/** @deprecated use LiffSetupSection + LineMessagingSetupSection */
+export function LineSetupSection({ adminCode }: { adminCode?: string }) {
+  return (
+    <>
+      <LiffSetupSection adminCode={adminCode} />
+      <LineMessagingSetupSection adminCode={adminCode} />
+    </>
   );
 }

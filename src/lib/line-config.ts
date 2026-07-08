@@ -19,29 +19,40 @@ export function parseLineChannelToken(raw: string) {
 export async function getLineCredentials(): Promise<LineCredentials | null> {
   const secrets = await getSecrets();
   const line = secrets.line;
+  const envToken = process.env.LINE_CHANNEL_TOKEN?.trim();
+  const envLiff = process.env.NEXT_PUBLIC_LIFF_ID?.trim();
+
+  const channelToken = line?.channelToken || envToken;
+  const liffId = line?.liffId || envLiff;
 
   if (line?.channelToken) {
     return {
       channelToken: line.channelToken,
-      liffId: line.liffId || process.env.NEXT_PUBLIC_LIFF_ID,
+      liffId: line.liffId || envLiff,
       source: "database",
     };
   }
-
-  const envToken = process.env.LINE_CHANNEL_TOKEN?.trim();
   if (envToken) {
-    return {
-      channelToken: envToken,
-      liffId: process.env.NEXT_PUBLIC_LIFF_ID,
-      source: "env",
-    };
+    return { channelToken: envToken, liffId: envLiff, source: "env" };
+  }
+  if (line?.liffId) {
+    return { channelToken: "", liffId: line.liffId, source: "database" };
+  }
+  if (envLiff) {
+    return { channelToken: "", liffId: envLiff, source: "env" };
   }
 
   return null;
 }
 
 export async function isLineConfigured() {
-  return Boolean((await getLineCredentials())?.channelToken);
+  const creds = await getLineCredentials();
+  return Boolean(creds?.channelToken);
+}
+
+export async function isLiffConfigured() {
+  const creds = await getLineCredentials();
+  return Boolean(creds?.liffId);
 }
 
 export async function testLineChannelToken(token: string) {

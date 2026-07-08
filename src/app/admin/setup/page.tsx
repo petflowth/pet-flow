@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { adminJson } from "@/lib/admin-fetch";
 import { GoogleSetupSection } from "@/components/GoogleSetupSection";
-import { LineSetupSection } from "@/components/LineSetupSection";
+import {
+  LiffSetupSection,
+  LineMessagingSetupSection,
+} from "@/components/LineSetupSection";
 import { TelegramSetupSection } from "@/components/TelegramSetupSection";
 
 type Status = {
@@ -74,7 +77,8 @@ export default function SetupPage() {
       </p>
 
       <GoogleSetupSection adminCode={adminCode} />
-      <LineSetupSection adminCode={adminCode} />
+      <LiffSetupSection adminCode={adminCode} />
+      <LineMessagingSetupSection adminCode={adminCode} />
       <TelegramSetupSection adminCode={adminCode} />
 
       {msg && (

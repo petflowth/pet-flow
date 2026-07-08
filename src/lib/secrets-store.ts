@@ -16,7 +16,7 @@ export type TelegramSecrets = {
 };
 
 export type LineSecrets = {
-  channelToken: string;
+  channelToken?: string;
   liffId?: string;
   updatedAt: string;
 };
@@ -78,11 +78,22 @@ export async function saveTelegramSecrets(
   return next.telegram!;
 }
 
-export async function saveLineSecrets(line: Omit<LineSecrets, "updatedAt">) {
+export async function saveLineSecrets(
+  line: Partial<Omit<LineSecrets, "updatedAt">>
+) {
   const current = await getSecrets();
+  const prev = current.line;
+  const merged: LineSecrets = {
+    channelToken: line.channelToken ?? prev?.channelToken,
+    liffId: line.liffId ?? prev?.liffId,
+    updatedAt: new Date().toISOString(),
+  };
+  if (!merged.channelToken && !merged.liffId) {
+    throw new Error("ไม่มีข้อมูล LINE ที่จะบันทึก");
+  }
   const next: SecretsPayload = {
     ...current,
-    line: { ...line, updatedAt: new Date().toISOString() },
+    line: merged,
   };
   await persistSecrets(next);
   return next.line!;

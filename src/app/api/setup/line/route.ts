@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { saveLineSecrets } from "@/lib/secrets-store";
+import { getSecrets, saveLineSecrets } from "@/lib/secrets-store";
 import {
+  getAppUrlFromEnv,
   getLineCredentials,
   isLineConfigured,
+  isLiffConfigured,
   parseLineChannelToken,
   testLineChannelToken,
 } from "@/lib/line-config";
@@ -17,7 +19,9 @@ function checkAdmin(body: { adminCode?: string }) {
 
 export async function GET() {
   const configured = await isLineConfigured();
+  const liffConfigured = await isLiffConfigured();
   const creds = await getLineCredentials();
+  const appUrl = getAppUrlFromEnv() || "https://catcha-hotel-five.vercel.app";
 
   let displayName: string | undefined;
   let basicId: string | undefined;
@@ -32,8 +36,11 @@ export async function GET() {
 
   return NextResponse.json({
     configured,
+    liffConfigured,
     source: creds?.source || "none",
-    liffId: creds?.liffId || process.env.NEXT_PUBLIC_LIFF_ID || "",
+    liffId: creds?.liffId || "",
+    endpointUrl: `${appUrl}/app`,
+    testLiffUrl: creds?.liffId ? `https://liff.line.me/${creds.liffId}` : "",
     displayName,
     basicId,
   });
@@ -45,9 +52,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const action = String(body.action || "save_token");
+
   try {
+    if (action === "save_liff") {
+      const liffId = String(body.liffId || "").trim();
+      if (!liffId || liffId.length < 6) {
+        return NextResponse.json(
+          { ok: false, message: "กรอก LIFF ID ให้ครบ (จาก LINE Developers → LIFF)" },
+          { status: 400 }
+        );
+      }
+
+      const current = await getSecrets();
+      await saveLineSecrets({
+        channelToken: current.line?.channelToken,
+        liffId,
+      });
+
+      return NextResponse.json({
+        ok: true,
+        message: `✅ บันทึก LIFF ID แล้ว\nทดสอบ: https://liff.line.me/${liffId}`,
+        liffId,
+      });
+    }
+
     const channelToken = parseLineChannelToken(String(body.channelToken || ""));
-    const liffId = String(body.liffId || process.env.NEXT_PUBLIC_LIFF_ID || "").trim();
+    const liffId = String(body.liffId || "").trim();
+    const current = await getSecrets();
 
     const test = await testLineChannelToken(channelToken);
     if (!test.ok) {
@@ -56,12 +88,12 @@ export async function POST(req: NextRequest) {
 
     await saveLineSecrets({
       channelToken,
-      liffId: liffId || undefined,
+      liffId: liffId || current.line?.liffId,
     });
 
     return NextResponse.json({
       ok: true,
-      message: `✅ LINE พร้อมส่งการ์ดแล้ว (${test.displayName || "OA"})`,
+      message: `✅ LINE Token พร้อมส่งการ์ด (${test.displayName || "OA"})`,
       displayName: test.displayName,
       basicId: test.basicId,
     });

@@ -62,15 +62,26 @@ Deploy ต้องใช้ **บัญชี Vercel ของคุณ** (logi
 2. Rich Menu @catchahotel → ลิงก์ไป `/app`
 
 ## ตั้ง Telegram Bot
+
+### ⚠️ สำคัญ — ปิด Deployment Protection ก่อน (ถ้าบอทไม่ตอบ)
+Vercel ถ้าเปิด **Deployment Protection** (หน้า login Vercel) จะบล็อก Telegram webhook → บอทไม่ตอบเลย
+
+1. Vercel → โปรเจกต์ CatCha → **Settings → Deployment Protection**
+2. ตั้ง **Production** = **ไม่ต้อง login** (Standard Protection: Off หรือ Only Preview)
+3. Save แล้ว Redeploy
+
+### ขั้นตอนตั้งบอท
 1. ทัก @BotFather → `/newbot` → ได้ token
-2. ใส่ `TELEGRAM_BOT_TOKEN` และ `NEXT_PUBLIC_APP_URL` ใน Vercel
-3. Redeploy แล้วเปิดในเบราว์เซอร์ (ลงทะเบียน webhook อัตโนมัติ):
+2. ใส่ใน Vercel Environment:
+   - `TELEGRAM_BOT_TOKEN`
+   - `NEXT_PUBLIC_APP_URL` = URL จริง เช่น `https://catcha-hotel-stopstopw-bits-projects.vercel.app`
+   - `TELEGRAM_OWNER_CHAT_IDS` = `2075576799`
+3. Redeploy แล้วเปิดในเบราว์เซอร์ (ลงทะเบียน webhook):
    ```
    https://YOUR-URL.vercel.app/api/telegram/webhook?register=1
    ```
-   ต้องเห็น `"ok": true` ใน JSON
-4. ทัก bot → `/start` → copy Chat ID → ใส่ `TELEGRAM_OWNER_CHAT_IDS`
-5. Redeploy อีกครั้งหลังใส่ Chat ID
+   ต้องเห็น JSON `"ok": true` — **ถ้าเด้งหน้า login Vercel = ยังไม่ได้ปิด Protection**
+4. ทัก bot → `/start` → จะเห็นปุ่มเมนูด้านล่าง
 
 ## ดูเว็บบนคอมก่อน deploy
 ```bash

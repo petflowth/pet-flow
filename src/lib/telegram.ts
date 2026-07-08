@@ -3,7 +3,11 @@
  * ตั้งค่า: หน้า Admin → ติดตั้ง หรือ env TELEGRAM_BOT_TOKEN
  */
 
-import { getAppUrlFromEnv, getTelegramCredentials } from "./telegram-config";
+import {
+  ensureTelegramWebhook,
+  getAppUrlFromEnv,
+  getTelegramCredentials,
+} from "./telegram-config";
 
 const TELEGRAM_API = "https://api.telegram.org";
 
@@ -58,7 +62,15 @@ export function getTelegramMenuKeyboard() {
 /** แปลงข้อความจากปุ่มเมนู → คำสั่ง */
 export function normalizeTelegramInput(text: string) {
   const trimmed = text.trim();
-  return MENU_TO_COMMAND[trimmed] || trimmed;
+  if (MENU_TO_COMMAND[trimmed]) return MENU_TO_COMMAND[trimmed];
+  if (/คิว.*ยืนยัน/.test(trimmed)) return "/queue";
+  if (/นัดวันนี้/.test(trimmed)) return "/today";
+  if (/ตารางเดือน/.test(trimmed)) return "/month";
+  if (/ยอดขาย/.test(trimmed)) return "/sales";
+  if (/การเงิน/.test(trimmed)) return "/finance";
+  if (/ลูกค้า/.test(trimmed)) return "/customers";
+  if (/วิธีใช้|help/i.test(trimmed)) return "/help";
+  return trimmed;
 }
 
 /** รองรับ /start, /start@BotName, /start payload */
@@ -122,6 +134,10 @@ export async function sendTelegram(text: string) {
   const creds = await getTelegramCredentials();
   if (!creds?.botToken || !creds.ownerChatIds.length) {
     return { ok: false, reason: "not_configured" };
+  }
+
+  if (creds.appUrl) {
+    await ensureTelegramWebhook(creds.botToken, creds.appUrl).catch(() => {});
   }
 
   const results = await Promise.all(

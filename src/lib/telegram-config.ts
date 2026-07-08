@@ -159,11 +159,13 @@ export async function registerTelegramBot(
     ? "✅ บอทพร้อมใช้งาน — ทัก /start ใน Telegram ได้เลย"
     : "❌ ตั้ง webhook ไม่สำเร็จ";
 
-  const webhookErr = (setWebhook as { description?: string }).description;
-  if (webhookErr === "Unauthorized") {
-    message = "❌ Token ผิด — ไป @BotFather copy API Token ใหม่";
-  } else if (webhookErr) {
-    message = `❌ ${webhookErr}`;
+  if (!(setWebhook as { ok?: boolean }).ok) {
+    const webhookErr = (setWebhook as { description?: string }).description;
+    if (webhookErr === "Unauthorized") {
+      message = "❌ Token ผิด — ไป @BotFather copy API Token ใหม่";
+    } else if (webhookErr) {
+      message = `❌ ${webhookErr}`;
+    }
   }
 
   return {
@@ -174,4 +176,20 @@ export async function registerTelegramBot(
     webhookInfo,
     message,
   };
+}
+
+/** ถ้า webhook ยังว่าง แต่ส่งแจ้งเตือนได้ — ลงทะเบียนรับคำสั่งอัตโนมัติ */
+export async function ensureTelegramWebhook(token: string, appUrl: string) {
+  const infoRes = await fetch(
+    `https://api.telegram.org/bot${token}/getWebhookInfo`
+  ).then((r) => r.json()) as { ok?: boolean; result?: { url?: string } };
+
+  const currentUrl = infoRes.result?.url || "";
+  const expected = `${appUrl.replace(/\/$/, "")}/api/telegram/webhook`;
+
+  if (currentUrl === expected) {
+    return { ok: true as const, already: true, webhookUrl: expected };
+  }
+
+  return registerTelegramBot(token, appUrl);
 }

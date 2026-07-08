@@ -21,7 +21,7 @@ export default function PromosPage() {
   const [promos, setPromos] = useState<Promo[]>([]);
 
   useEffect(() => {
-    fetch("/api/promos?active=1&kind=display")
+    fetch("/api/promos?active=1")
       .then((r) => r.json())
       .then((data) => setPromos(data.promos || []));
   }, []);

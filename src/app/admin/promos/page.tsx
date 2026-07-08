@@ -132,12 +132,9 @@ export default function PromosAdminPage() {
         until: String(fd.get("until")),
         active: true,
         kind,
-        restriction: showOnHome ? restriction : "none",
-        validMonth:
-          showOnHome && restriction === "calendar_month"
-            ? String(fd.get("validMonth") || "")
-            : undefined,
-        tiers: showOnHome && tiers.length ? tiers : ["all"],
+        restriction,
+        validMonth: restriction === "calendar_month" ? String(fd.get("validMonth") || "") : undefined,
+        tiers: tiers.length ? tiers : ["all"],
         couponCode: String(fd.get("couponCode") || "") || undefined,
         rewardType,
         pointsBonus: Number(fd.get("pointsBonus")) || undefined,
@@ -182,7 +179,7 @@ export default function PromosAdminPage() {
           </p>
         </div>
         <span className="shrink-0 rounded-full bg-sage/20 px-2 py-0.5 text-[9px] font-bold text-ok">
-          v2
+          v3
         </span>
       </div>
 
@@ -209,7 +206,7 @@ export default function PromosAdminPage() {
                 <span>
                   🏠 ขึ้นหน้าแรกแอปลูกค้า
                   <span className="mt-0.5 block text-[10px] font-normal text-brown-soft">
-                    ลูกค้ากดใช้โปรได้ · ไม่ติ๊ก = แสดงแค่หน้าโปรโมชั่น
+                    ติ๊ก = โชว์หน้าแรก + ลูกค้ากดใช้ได้ · ไม่ติ๊ก = แสดงแค่หน้าโปร
                   </span>
                 </span>
               </label>
@@ -255,50 +252,53 @@ export default function PromosAdminPage() {
                 </div>
               )}
 
-              {showOnHome && (
-                <>
-                  <p className="text-[10px] font-bold text-brown-soft">
-                    กลุ่มลูกค้า (ระบบจัดให้อัตโนมัติ — Member = เติมเครดิตแล้ว · ใหม่ = ยังไม่เคยมา · เก่า = เคยมาแล้ว)
-                  </p>
-                  <input name="couponCode" placeholder="รหัสโปร (ถ้ามี)" className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
-                  <div className="flex flex-wrap gap-2">
-                    {TIER_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => toggleTier(opt.value)}
-                        className={`rounded-full px-3 py-1.5 text-[10px] font-bold ${
-                          tiers.includes(opt.value) ? "bg-latte/30 text-catcha-chocolate" : "bg-paper text-brown-faint"
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(
-                      [
-                        ["none", "ไม่จำกัด"],
-                        ["first_visit", "ครั้งแรก"],
-                        ["calendar_month", "เฉพาะเดือน"],
-                      ] as const
-                    ).map(([value, label]) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => setRestriction(value)}
-                        className={`rounded-catcha-sm px-2 py-2 text-[10px] font-bold ${
-                          restriction === value ? "bg-latte/30" : "bg-paper text-brown-faint"
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                  {restriction === "calendar_month" && (
-                    <input name="validMonth" type="month" required className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
-                  )}
-                </>
+              <input name="couponCode" placeholder="รหัสโปร (ถ้ามี)" className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+
+              <div>
+                <p className="mb-2 text-[10px] font-bold text-brown-soft">
+                  กลุ่มลูกค้า (Member = เติมเครดิตแล้ว · ใหม่ = ยังไม่เคยมา · เก่า = เคยมาแล้ว)
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {TIER_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => toggleTier(opt.value)}
+                      className={`rounded-full px-3 py-1.5 text-[10px] font-bold ${
+                        tiers.includes(opt.value) ? "bg-latte/30 text-catcha-chocolate" : "bg-paper text-brown-faint"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-2 text-[10px] font-bold text-brown-soft">เงื่อนไขการใช้</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {(
+                    [
+                      ["none", "ไม่จำกัด"],
+                      ["first_visit", "ครั้งแรก"],
+                      ["calendar_month", "เฉพาะเดือน"],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setRestriction(value)}
+                      className={`rounded-catcha-sm px-2 py-2 text-[10px] font-bold ${
+                        restriction === value ? "bg-latte/30" : "bg-paper text-brown-faint"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {restriction === "calendar_month" && (
+                <input name="validMonth" type="month" required className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
               )}
 
               <div className="grid grid-cols-2 gap-2">
@@ -344,14 +344,10 @@ export default function PromosAdminPage() {
                     <p className="mt-1 text-[10px] text-brown-faint">
                       {p.startDate} → {p.until}
                       {reward ? ` · ${reward}` : ""}
-                      {p.kind === "customer" && (
-                        <>
-                          {" · "}
-                          {restrictionLabel(p.restriction, p.validMonth)}
-                          {" · "}
-                          {p.tiers.join(", ")}
-                        </>
-                      )}
+                      {" · "}
+                      {restrictionLabel(p.restriction, p.validMonth)}
+                      {" · "}
+                      {p.tiers.join(", ")}
                     </p>
                     {claimsFor(p.id).length > 0 && (
                       <div className="mt-2 rounded-catcha-sm bg-sage/10 px-2 py-1.5 text-[10px] text-brown-soft">

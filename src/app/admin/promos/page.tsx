@@ -34,6 +34,21 @@ type Promo = {
   pointsMultiplier?: number;
 };
 
+type BroadcastRecipient = {
+  id: string;
+  name: string;
+  lineDisplayName?: string;
+  cats: string;
+  tier?: string;
+};
+
+type BroadcastSkipped = {
+  id: string;
+  name: string;
+  cats: string;
+  reason: string;
+};
+
 type PromoClaim = {
   id: string;
   promoId: string;
@@ -83,6 +98,10 @@ export default function PromosAdminPage() {
   const [broadcastBody, setBroadcastBody] = useState("");
   const [broadcastImage, setBroadcastImage] = useState("");
   const [broadcastCount, setBroadcastCount] = useState<number | null>(null);
+  const [broadcastRecipients, setBroadcastRecipients] = useState<BroadcastRecipient[]>([]);
+  const [broadcastSkipped, setBroadcastSkipped] = useState<BroadcastSkipped[]>([]);
+  const [broadcastSkippedTotal, setBroadcastSkippedTotal] = useState(0);
+  const [broadcastLoading, setBroadcastLoading] = useState(false);
   const [broadcasting, setBroadcasting] = useState(false);
   const [broadcastMsg, setBroadcastMsg] = useState("");
   const adminCode =
@@ -106,14 +125,40 @@ export default function PromosAdminPage() {
   }, [load]);
 
   useEffect(() => {
+    setBroadcastLoading(true);
     fetch(`/api/line/broadcast?tier=${broadcastTier}`)
       .then((r) => r.json())
-      .then((d) => setBroadcastCount(d.withLine ?? d.count ?? 0));
+      .then((d) => {
+        setBroadcastCount(d.withLine ?? d.count ?? 0);
+        setBroadcastRecipients(d.recipients || []);
+        setBroadcastSkipped(d.skipped || []);
+        setBroadcastSkippedTotal(d.skippedNoLine ?? 0);
+      })
+      .finally(() => setBroadcastLoading(false));
   }, [broadcastTier]);
 
   const sendBroadcast = async () => {
     if (!broadcastTitle.trim() || !broadcastBody.trim()) {
       setBroadcastMsg("กรอกหัวข้อและข้อความ");
+      return;
+    }
+    if (!broadcastCount) {
+      setBroadcastMsg("ไม่มีลูกค้าที่จะส่ง — เลือกกลุ่มอื่นหรือให้ลูกค้าผูก LINE ก่อน");
+      return;
+    }
+    const names = broadcastRecipients
+      .slice(0, 5)
+      .map((r) => r.name)
+      .join(", ");
+    const more =
+      broadcastRecipients.length > 5
+        ? ` และอีก ${broadcastRecipients.length - 5} คน`
+        : "";
+    if (
+      !confirm(
+        `ส่งโปรให้ ${broadcastCount} คน?\n\n${names}${more}`
+      )
+    ) {
       return;
     }
     setBroadcasting(true);
@@ -252,6 +297,57 @@ export default function PromosAdminPage() {
             </option>
           ))}
         </select>
+
+        <div className="rounded-catcha-sm border border-catcha-line bg-card/80 p-3">
+          <p className="mb-2 text-xs font-extrabold text-catcha-chocolate">
+            👥 จะส่งหา ({broadcastCount ?? 0} คน)
+          </p>
+          {broadcastLoading ? (
+            <p className="text-[10px] text-brown-soft">กำลังโหลดรายชื่อ…</p>
+          ) : broadcastRecipients.length === 0 ? (
+            <p className="text-[10px] text-wait">
+              ไม่มีลูกค้าในกลุ่มนี้ที่ผูก LINE แล้ว
+            </p>
+          ) : (
+            <ul className="max-h-36 space-y-1 overflow-y-auto text-[10px]">
+              {broadcastRecipients.map((r) => (
+                <li
+                  key={r.id}
+                  className="flex items-start justify-between gap-2 rounded-lg bg-paper/60 px-2 py-1.5"
+                >
+                  <span className="min-w-0 font-bold text-brown">
+                    {r.cats !== "—" ? `🐱 ${r.cats}` : "👤"} · {r.name}
+                    {r.lineDisplayName && r.lineDisplayName !== r.name && (
+                      <span className="font-normal text-brown-soft">
+                        {" "}
+                        ({r.lineDisplayName})
+                      </span>
+                    )}
+                  </span>
+                  <span className="shrink-0 text-ok">LINE ✓</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {broadcastSkippedTotal > 0 && (
+            <div className="mt-2 border-t border-catcha-line pt-2">
+              <p className="mb-1 text-[10px] font-bold text-brown-faint">
+                ข้าม {broadcastSkippedTotal} คน (ยังไม่ผูก LINE)
+              </p>
+              <ul className="max-h-24 space-y-1 overflow-y-auto text-[10px] text-brown-faint">
+                {broadcastSkipped.map((r) => (
+                  <li key={r.id}>
+                    {r.cats !== "—" ? r.cats : r.name} · {r.name}
+                  </li>
+                ))}
+                {broadcastSkippedTotal > broadcastSkipped.length && (
+                  <li>…และอีก {broadcastSkippedTotal - broadcastSkipped.length} คน</li>
+                )}
+              </ul>
+            </div>
+          )}
+        </div>
+
         <input
           value={broadcastTitle}
           onChange={(e) => setBroadcastTitle(e.target.value)}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BUSINESS } from "@/lib/business";
-import { listCustomersByTier, type CustomerTier } from "@/lib/customers-store";
+import { listCustomersByTier, getBroadcastAudience, type CustomerTier } from "@/lib/customers-store";
 import { buildPromoFlex, multicastLineMessage } from "@/lib/line";
 import { TIER_LABELS } from "@/lib/customer-tier";
 
@@ -74,10 +74,25 @@ export async function GET(req: NextRequest) {
   const tier = (req.nextUrl.searchParams.get("tier") || "all") as
     | CustomerTier
     | "all";
-  const customers = await listCustomersByTier(tier);
+  const { recipients, skippedNoLine } = await getBroadcastAudience(tier);
+
   return NextResponse.json({
     tier,
-    count: customers.length,
-    withLine: customers.filter((c) => c.lineUserId).length,
+    count: recipients.length,
+    withLine: recipients.length,
+    skippedNoLine: skippedNoLine.length,
+    recipients: recipients.map((c) => ({
+      id: c.id,
+      name: c.name,
+      lineDisplayName: c.lineDisplayName,
+      cats: c.cats.map((cat) => cat.name).join(", ") || "—",
+      tier: c.tier,
+    })),
+    skipped: skippedNoLine.slice(0, 20).map((c) => ({
+      id: c.id,
+      name: c.name,
+      cats: c.cats.map((cat) => cat.name).join(", ") || "—",
+      reason: "ยังไม่ผูก LINE",
+    })),
   });
 }

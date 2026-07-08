@@ -925,9 +925,17 @@ export async function recalculateCustomerTier(customerId: string) {
 }
 
 export async function listCustomersByTier(tier: CustomerTier | "all") {
+  const { recipients } = await getBroadcastAudience(tier);
+  return recipients;
+}
+
+/** รายชื่อผู้รับ broadcast + คนที่ข้าม (ยังไม่ผูก LINE) */
+export async function getBroadcastAudience(tier: CustomerTier | "all") {
   const all = await fetchAllCustomers();
-  if (tier === "all") return all.filter((c) => Boolean(c.lineUserId));
-  return all.filter((c) => c.tier === tier && c.lineUserId);
+  const inTier = tier === "all" ? all : all.filter((c) => c.tier === tier);
+  const recipients = inTier.filter((c) => Boolean(c.lineUserId));
+  const skippedNoLine = inTier.filter((c) => !c.lineUserId);
+  return { recipients, skippedNoLine };
 }
 
 /** ลูกค้ากรอกฟอร์มลงทะเบียนจาก LIFF */

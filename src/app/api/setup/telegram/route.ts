@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { saveTelegramSecrets } from "@/lib/secrets-store";
 import {
+  ensureTelegramWebhook,
   getAppUrlFromEnv,
   getTelegramCredentials,
   isTelegramConfigured,
@@ -24,9 +25,20 @@ export async function GET() {
   const creds = await getTelegramCredentials();
 
   let botUsername: string | undefined;
+  let webhookConnected = false;
+  let webhookUrl = "";
+
   if (creds?.botToken) {
     const test = await testTelegramToken(creds.botToken);
     if (test.ok) botUsername = test.username;
+
+    if (creds.appUrl) {
+      const ensured = await ensureTelegramWebhook(creds.botToken, creds.appUrl);
+      webhookConnected = ensured.ok;
+      webhookUrl =
+        ("webhookUrl" in ensured && ensured.webhookUrl) ||
+        `${creds.appUrl.replace(/\/$/, "")}/api/telegram/webhook`;
+    }
   }
 
   return NextResponse.json({
@@ -36,6 +48,8 @@ export async function GET() {
     ownerChatIds: creds?.ownerChatIds?.join(", ") || "",
     botUsername,
     hasOwnerIds: Boolean(creds?.ownerChatIds?.length),
+    webhookConnected,
+    webhookUrl,
   });
 }
 

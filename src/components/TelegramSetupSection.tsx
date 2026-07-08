@@ -9,6 +9,7 @@ type TelegramStatus = {
   ownerChatIds?: string;
   botUsername?: string;
   hasOwnerIds?: boolean;
+  webhookConnected?: boolean;
 };
 
 export function TelegramSetupSection({ adminCode }: { adminCode: string }) {
@@ -84,6 +85,14 @@ export function TelegramSetupSection({ adminCode }: { adminCode: string }) {
             {status.botUsername ? ` (@${status.botUsername})` : ""}
             {status.source ? ` · ${status.source}` : ""}
           </p>
+          {status.webhookConnected === false && (
+            <p className="mt-1 text-wait">
+              ⚠️ ยังรับคำสั่งไม่ได้ — กดบันทึกอีกครั้ง หรือรีเฟรชหน้านี้
+            </p>
+          )}
+          {status.webhookConnected && (
+            <p className="mt-1 text-brown-soft">💬 รับคำสั่งจากแชทได้แล้ว (พิมพ์ /start)</p>
+          )}
           {!status.hasOwnerIds && (
             <p className="mt-1 text-wait">⚠️ ยังไม่มี Chat ID — ใส่ด้านล่างแล้วบันทึกอีกครั้ง</p>
           )}

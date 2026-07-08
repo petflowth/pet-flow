@@ -43,7 +43,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               <p className="truncate text-sm font-extrabold text-catcha-chocolate lg:text-base">
                 หลังบ้าน
               </p>
-              <p className="truncate text-[10px] font-bold text-latte-deep lg:hidden">
+              <p className="truncate text-[10px] font-bold text-latte-deep sm:text-xs">
                 {getActiveAdminTabLabel(pathname)}
               </p>
             </div>

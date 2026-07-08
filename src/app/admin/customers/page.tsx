@@ -375,16 +375,21 @@ function MemberCreditHistorySection({
   );
 }
 
-function CustomerProfileSection({
+function CustomerSummaryCard({
   customer,
+  points,
+  visits,
   onSaved,
 }: {
   customer: CustomerRecord;
+  points: number;
+  visits: number;
   onSaved: () => void;
 }) {
   const [name, setName] = useState(customer.name);
   const [phone, setPhone] = useState(customer.phone || "");
   const [msg, setMsg] = useState("");
+  const heroCat = customer.cats.find((cat) => cat.photoDataUrl) || customer.cats[0];
 
   useEffect(() => {
     setName(customer.name);
@@ -409,46 +414,90 @@ function CustomerProfileSection({
   };
 
   return (
-    <section className="mb-4 rounded-catcha border border-catcha-line bg-card p-4">
-      <h2 className="mb-3 text-sm font-extrabold text-catcha-chocolate">👤 ข้อมูลลูกค้า</h2>
-
-      {customer.lineUserId && (
-        <p className="mb-2 rounded-catcha-sm bg-sage/15 px-3 py-2 text-[10px] font-bold text-ok">
-          ✅ ผูก LINE แล้ว
-          {customer.lineDisplayName && customer.lineDisplayName !== name && (
-            <span className="ml-1 font-normal text-brown-soft">
-              · ชื่อใน LINE: <b>{customer.lineDisplayName}</b>
-            </span>
+    <section className="mb-4 overflow-hidden rounded-catcha bg-gradient-to-br from-honey/45 via-card to-latte/15 p-5 shadow-catcha">
+      <div className="mb-4 flex items-start gap-3">
+        {heroCat?.photoDataUrl ? (
+          <Image
+            src={heroCat.photoDataUrl}
+            alt={heroCat.name}
+            width={64}
+            height={64}
+            className="h-16 w-16 shrink-0 rounded-catcha-sm object-cover ring-2 ring-white/70"
+            unoptimized
+          />
+        ) : (
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-catcha-sm bg-card/80 text-3xl ring-2 ring-white/70">
+            {customer.cats.length > 0 ? "🐱" : "👤"}
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-brown-soft">ข้อมูลลูกค้า</p>
+          <h1 className="mt-0.5 text-xl font-extrabold text-catcha-chocolate">
+            {customer.name}
+            {customer.isMember && (
+              <span className="ml-2 align-middle text-sm font-extrabold text-latte-deep">💎 Member</span>
+            )}
+          </h1>
+          {customer.lineDisplayName && customer.lineDisplayName !== customer.name && (
+            <p className="mt-1 text-[10px] text-brown-soft">
+              ชื่อใน LINE: <span className="font-bold text-brown">{customer.lineDisplayName}</span>
+            </p>
           )}
-        </p>
-      )}
+          {customer.lineUserId && (
+            <p className="mt-2 inline-block rounded-full bg-sage/20 px-2.5 py-0.5 text-[10px] font-bold text-ok">
+              ✅ ผูก LINE แล้ว
+            </p>
+          )}
+        </div>
+      </div>
 
-      <label className="mb-3 block text-xs font-bold text-brown-soft">
-        ชื่อที่ใช้ในร้าน (ตั้งเองได้)
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={() => {
-            const trimmed = name.trim();
-            if (trimmed && trimmed !== customer.name) save({ name: trimmed });
-          }}
-          placeholder="เช่น คุณแม่น้องมะลิ"
-          className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm font-bold text-brown"
-        />
-      </label>
+      <div className="mb-4 grid grid-cols-3 gap-2">
+        <div className="rounded-catcha-sm bg-card/80 px-2 py-2.5 text-center shadow-catcha-sm">
+          <p className="text-[10px] font-bold text-brown-soft">แต้ม</p>
+          <p className="text-lg font-extrabold text-latte-deep">{points}</p>
+        </div>
+        <div className="rounded-catcha-sm bg-card/80 px-2 py-2.5 text-center shadow-catcha-sm">
+          <p className="text-[10px] font-bold text-brown-soft">มาใช้บริการ</p>
+          <p className="text-lg font-extrabold text-catcha-chocolate">{visits}</p>
+          <p className="text-[10px] text-brown-faint">ครั้ง</p>
+        </div>
+        <div className="rounded-catcha-sm bg-card/80 px-2 py-2.5 text-center shadow-catcha-sm">
+          <p className="text-[10px] font-bold text-brown-soft">เครดิต</p>
+          <p className="text-lg font-extrabold text-catcha-chocolate">
+            {customer.memberCredit.toLocaleString()}
+          </p>
+          <p className="text-[10px] text-brown-faint">บาท</p>
+        </div>
+      </div>
 
-      <label className="block text-xs font-bold text-brown-soft">
-        เบอร์โทร
-        <input
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          onBlur={() => {
-            if (phone.trim() !== (customer.phone || "")) save({ phone: phone.trim() || undefined });
-          }}
-          placeholder="08x-xxx-xxxx"
-          className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
-        />
-      </label>
+      <div className="space-y-3 rounded-catcha-sm border border-white/60 bg-card/70 p-3">
+        <label className="block text-xs font-bold text-brown-soft">
+          ชื่อที่ใช้ในร้าน (ตั้งเองได้)
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={() => {
+              const trimmed = name.trim();
+              if (trimmed && trimmed !== customer.name) save({ name: trimmed });
+            }}
+            placeholder="เช่น คุณแม่น้องมะลิ"
+            className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm font-bold text-brown"
+          />
+        </label>
+
+        <label className="block text-xs font-bold text-brown-soft">
+          เบอร์โทร
+          <input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            onBlur={() => {
+              if (phone.trim() !== (customer.phone || "")) save({ phone: phone.trim() || undefined });
+            }}
+            placeholder="08x-xxx-xxxx"
+            className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
+          />
+        </label>
+      </div>
 
       {msg && <p className="mt-2 text-center text-[10px] font-bold text-ok">{msg}</p>}
     </section>
@@ -644,19 +693,12 @@ export default function CustomersPage() {
         >
           ← กลับ
         </button>
-        <h1 className="mb-1 text-lg font-extrabold text-catcha-chocolate">
-          {c.name} {c.isMember && <span className="text-sm text-latte-deep">💎 Member</span>}
-        </h1>
-        {c.lineDisplayName && c.lineDisplayName !== c.name && (
-          <p className="mb-1 text-[10px] text-brown-soft">
-            ชื่อใน LINE: <span className="font-bold">{c.lineDisplayName}</span>
-          </p>
-        )}
-        <p className="mb-4 text-xs text-brown-soft">
-          {selected.points} แต้ม · {selected.visits} ครั้ง · เครดิต {c.memberCredit.toLocaleString()} บาท
-        </p>
-
-        <CustomerProfileSection customer={c} onSaved={() => open(c.id)} />
+        <CustomerSummaryCard
+          customer={c}
+          points={selected.points}
+          visits={selected.visits}
+          onSaved={() => open(c.id)}
+        />
 
         <section className="mb-4 space-y-3">
           <h2 className="text-sm font-extrabold text-catcha-chocolate">

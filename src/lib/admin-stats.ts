@@ -6,10 +6,11 @@ export async function adminDashboardStats() {
   const today = new Date().toISOString().slice(0, 10);
   const ym = today.slice(0, 7);
   const bookings = await listBookings();
-  const todayBookings = bookings.filter(
+  const active = bookings.filter((b) => b.status !== "cancelled");
+  const todayBookings = active.filter(
     (b) => b.date === today || b.checkin === today
   );
-  const pending = bookings.filter((b) => b.status === "pending");
+  const pending = active.filter((b) => b.status === "pending");
   const confirmedToday = todayBookings.filter((b) => b.status === "confirmed");
 
   return {
@@ -28,6 +29,7 @@ export async function bookingsForMonth(yearMonth: string) {
   const prefix = yearMonth.slice(0, 7);
   const all = await listBookings();
   return all.filter((b) => {
+    if (b.status === "cancelled") return false;
     const d = b.date || b.checkin || "";
     return d.startsWith(prefix);
   });

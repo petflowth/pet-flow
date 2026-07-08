@@ -125,15 +125,50 @@ export async function addBooking(
 
 export async function updateBooking(
   id: string,
-  patch: Partial<Pick<StoredBooking, "status" | "checkinTime" | "calendarEventId">>
+  patch: Partial<
+    Pick<
+      StoredBooking,
+      | "status"
+      | "checkinTime"
+      | "calendarEventId"
+      | "customerName"
+      | "catName"
+      | "service"
+      | "date"
+      | "time"
+      | "checkin"
+      | "checkout"
+      | "room"
+      | "notes"
+      | "lineUserId"
+    >
+  >
 ) {
   const sb = getSupabase();
+  const existing = await getBooking(id);
+  if (!existing) return null;
+
+  const merged = { ...existing, ...patch };
+
   if (sb) {
-    const row: Record<string, string | undefined> = {};
-    if (patch.status) row.status = patch.status;
-    if (patch.checkinTime !== undefined) row.checkin_time = patch.checkinTime;
-    if (patch.calendarEventId !== undefined) row.calendar_event_id = patch.calendarEventId;
-    await sb.from("bookings").update(row).eq("id", id);
+    await sb
+      .from("bookings")
+      .update({
+        customer_name: merged.customerName,
+        cat_name: merged.catName,
+        service: merged.service,
+        date: merged.date || null,
+        time: merged.time || null,
+        checkout: merged.checkout || null,
+        checkin: merged.checkin || null,
+        room: merged.room || null,
+        line_user_id: merged.lineUserId || null,
+        notes: merged.notes || null,
+        status: merged.status,
+        checkin_time: merged.checkinTime || null,
+        calendar_event_id: merged.calendarEventId || null,
+      })
+      .eq("id", id);
     return getBooking(id);
   }
 
@@ -143,9 +178,17 @@ export async function updateBooking(
   return b;
 }
 
+export async function cancelBooking(id: string) {
+  return updateBooking(id, { status: "cancelled" });
+}
+
 export async function bookingsForDate(isoDate: string) {
   const all = await listBookings();
-  return all.filter((b) => b.date === isoDate || b.checkin === isoDate);
+  return all.filter(
+    (b) =>
+      b.status !== "cancelled" &&
+      (b.date === isoDate || b.checkin === isoDate)
+  );
 }
 
 export async function bookingsTomorrow() {

@@ -34,7 +34,7 @@ create table if not exists bookings (
   room text,
   line_user_id text,
   notes text,
-  status text not null default 'pending' check (status in ('pending', 'confirmed')),
+  status text not null default 'pending' check (status in ('pending', 'confirmed', 'cancelled')),
   checkin_time text,
   calendar_event_id text,
   created_at timestamptz not null default now()

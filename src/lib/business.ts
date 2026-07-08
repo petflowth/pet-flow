@@ -279,7 +279,7 @@ export const GROOM_SLOTS = ["09:30", "12:30", "15:30"] as const;
 
 export type Locale = "th" | "en";
 
-export type BookingStatus = "pending" | "confirmed";
+export type BookingStatus = "pending" | "confirmed" | "cancelled";
 
 export type Booking = {
   id: string;

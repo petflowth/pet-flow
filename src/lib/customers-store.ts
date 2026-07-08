@@ -49,6 +49,16 @@ export type MemberTopupRecord = {
   createdAt: string;
 };
 
+/** รายการใช้เครดิต Member จ่ายบิล */
+export type MemberCreditUsageRecord = {
+  id: string;
+  customerId: string;
+  amount: number;
+  description: string;
+  date: string;
+  at: string;
+};
+
 type CatRow = {
   id: string;
   customer_id: string;
@@ -695,6 +705,22 @@ async function listMemberTopups(customerId: string): Promise<MemberTopupRecord[]
   return memMemberTopups.filter((t) => t.customerId === customerId);
 }
 
+async function listMemberCreditUsage(customerId: string): Promise<MemberCreditUsageRecord[]> {
+  const { listInvoices } = await import("./invoices-store");
+  const invoices = await listInvoices(customerId);
+  return invoices
+    .filter((i) => i.status === "paid" && i.paymentMethod === "member_credit" && i.paidAt)
+    .map((i) => ({
+      id: i.id,
+      customerId: i.customerId,
+      amount: i.total,
+      description: `${i.catName} · ${i.items.map((x) => x.label).join(", ")}`,
+      date: i.paidAt!.slice(0, 10),
+      at: i.paidAt!,
+    }))
+    .sort((a, b) => b.at.localeCompare(a.at));
+}
+
 export async function getCustomerHistory(customerId: string) {
   const c = await getCustomer(customerId);
   const allBookings = await listBookings();
@@ -706,7 +732,16 @@ export async function getCustomerHistory(customerId: string) {
   const services = await listServiceRecords(customerId);
   const points = c?.lineUserId ? await getPointsHistory(c.lineUserId) : [];
   const memberTopups = await listMemberTopups(customerId);
-  return { bookings, upcomingBookings, pastBookings, services, points, memberTopups };
+  const memberCreditUsage = await listMemberCreditUsage(customerId);
+  return {
+    bookings,
+    upcomingBookings,
+    pastBookings,
+    services,
+    points,
+    memberTopups,
+    memberCreditUsage,
+  };
 }
 
 export async function customerSummary(customerId: string) {

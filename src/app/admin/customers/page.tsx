@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import type { CatRecord, CustomerRecord, MemberTopupRecord } from "@/lib/customers-store";
+import type { CatRecord, CustomerRecord, MemberCreditUsageRecord, MemberTopupRecord } from "@/lib/customers-store";
 import type { PointsHistoryEntry } from "@/lib/points-store";
 import type { Booking } from "@/lib/business";
 import { ExportSheetsButton } from "@/components/ExportSheetsButton";
@@ -20,6 +20,7 @@ type Summary = {
     services: { id: string; service: string; date: string; amount?: number; catName: string }[];
     points: PointsHistoryEntry[];
     memberTopups: MemberTopupRecord[];
+    memberCreditUsage: MemberCreditUsageRecord[];
   };
 };
 
@@ -142,12 +143,10 @@ const MEMBER_PROMOS = [
 function MemberTopupSection({
   customerId,
   memberCredit,
-  topups,
   onDone,
 }: {
   customerId: string;
   memberCredit: number;
-  topups: MemberTopupRecord[];
   onDone: () => void;
 }) {
   const [paid, setPaid] = useState("");
@@ -273,26 +272,104 @@ function MemberTopupSection({
       {msg && (
         <p className="mt-2 text-center text-[10px] font-bold text-brown">{msg}</p>
       )}
+    </section>
+  );
+}
 
-      {topups.length > 0 && (
-        <div className="mt-4 border-t border-catcha-line pt-3">
-          <p className="mb-2 text-[10px] font-extrabold text-brown-soft">ประวัติเติม Member</p>
-          <ul className="space-y-2 text-[10px] text-brown-soft">
-            {topups.map((t) => (
-              <li key={t.id} className="rounded-catcha-sm bg-paper/60 px-2 py-1.5">
-                <span className="font-bold text-brown">{t.createdAt.slice(0, 10)}</span>
-                {" · "}
-                รับ {t.paidAmount.toLocaleString()} บาท
-                {t.bonusAmount > 0 && (
-                  <> · แถม {t.bonusAmount.toLocaleString()} บาท</>
-                )}
-                {" · "}
-                <span className="text-latte-deep">+{t.creditAdded.toLocaleString()} เครดิต</span>
-                {t.note && <span className="block text-brown-faint">{t.note}</span>}
+function MemberCreditHistorySection({
+  memberCredit,
+  topups,
+  usage,
+}: {
+  memberCredit: number;
+  topups: MemberTopupRecord[];
+  usage: MemberCreditUsageRecord[];
+}) {
+  const totalToppedUp = topups.reduce((s, t) => s + t.creditAdded, 0);
+  const totalUsed = usage.reduce((s, u) => s + u.amount, 0);
+
+  type LedgerRow =
+    | { kind: "topup"; at: string; topup: MemberTopupRecord }
+    | { kind: "usage"; at: string; usage: MemberCreditUsageRecord };
+
+  const ledger: LedgerRow[] = [
+    ...topups.map((t) => ({ kind: "topup" as const, at: t.createdAt, topup: t })),
+    ...usage.map((u) => ({ kind: "usage" as const, at: u.at, usage: u })),
+  ].sort((a, b) => b.at.localeCompare(a.at));
+
+  if (!topups.length && !usage.length && memberCredit <= 0) return null;
+
+  return (
+    <section className="mb-4 rounded-catcha bg-card p-4">
+      <h2 className="mb-1 text-sm font-extrabold text-catcha-chocolate">📒 ประวัติเครดิต Member</h2>
+      <p className="mb-3 text-[10px] text-brown-soft">
+        คงเหลือ{" "}
+        <span className="font-bold text-latte-deep">{memberCredit.toLocaleString()} บาท</span>
+        {totalToppedUp > 0 && (
+          <>
+            {" · "}
+            เติมรวม {totalToppedUp.toLocaleString()} บาท
+          </>
+        )}
+        {totalUsed > 0 && (
+          <>
+            {" · "}
+            ใช้ไป {totalUsed.toLocaleString()} บาท
+          </>
+        )}
+      </p>
+
+      {ledger.length === 0 ? (
+        <p className="text-xs text-brown-soft">ยังไม่มีประวัติเติม/ใช้เครดิต</p>
+      ) : (
+        <ul className="space-y-2">
+          {ledger.map((row) =>
+            row.kind === "topup" ? (
+              <li
+                key={row.topup.id}
+                className="rounded-catcha-sm border border-catcha-line bg-paper/50 px-3 py-2 text-xs"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-bold text-ok">+ เติมเครดิต</p>
+                    <p className="text-brown-soft">
+                      {row.topup.createdAt.slice(0, 10)} · รับ {row.topup.paidAmount.toLocaleString()} บาท
+                      {row.topup.bonusAmount > 0 && (
+                        <> · แถม {row.topup.bonusAmount.toLocaleString()} บาท</>
+                      )}
+                    </p>
+                    {row.topup.note && (
+                      <p className="text-[10px] text-brown-faint">{row.topup.note}</p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <p className="font-extrabold text-ok">
+                      +{row.topup.creditAdded.toLocaleString()}
+                    </p>
+                    <p className="text-[10px] text-brown-faint">
+                      คงเหลือ {row.topup.balanceAfter.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
               </li>
-            ))}
-          </ul>
-        </div>
+            ) : (
+              <li
+                key={row.usage.id}
+                className="rounded-catcha-sm border border-catcha-line bg-paper/50 px-3 py-2 text-xs"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-bold text-wait">− ใช้เครดิต</p>
+                    <p className="text-brown-soft">
+                      {row.usage.date} · {row.usage.description}
+                    </p>
+                  </div>
+                  <p className="font-extrabold text-wait">−{row.usage.amount.toLocaleString()}</p>
+                </div>
+              </li>
+            )
+          )}
+        </ul>
       )}
     </section>
   );
@@ -420,8 +497,13 @@ export default function CustomersPage() {
         <MemberTopupSection
           customerId={c.id}
           memberCredit={c.memberCredit}
-          topups={selected.history.memberTopups || []}
           onDone={() => open(c.id)}
+        />
+
+        <MemberCreditHistorySection
+          memberCredit={c.memberCredit}
+          topups={selected.history.memberTopups || []}
+          usage={selected.history.memberCreditUsage || []}
         />
 
         <CustomerAppointmentsSection

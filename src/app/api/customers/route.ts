@@ -9,17 +9,29 @@ import {
   deleteCat,
   topupMemberCredit,
   upsertCustomerFromBooking,
-  customerSummary,
 } from "@/lib/customers-store";
+import {
+  customerActivityInfo,
+  listInactiveCustomers,
+  sendCustomerFollowUp,
+  sendInactiveFollowUps,
+} from "@/lib/customer-crm";
 
 export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
   const q = req.nextUrl.searchParams.get("q");
+  const inactive = req.nextUrl.searchParams.get("inactive");
+
+  if (inactive === "1") {
+    const days = Number(req.nextUrl.searchParams.get("days")) || undefined;
+    const rows = await listInactiveCustomers(days);
+    return NextResponse.json({ inactive: rows });
+  }
 
   if (id) {
-    const summary = await customerSummary(id);
-    if (!summary) return NextResponse.json({ error: "not found" }, { status: 404 });
-    return NextResponse.json(summary);
+    const activity = await customerActivityInfo(id);
+    if (!activity) return NextResponse.json({ error: "not found" }, { status: 404 });
+    return NextResponse.json(activity);
   }
 
   if (q) {
@@ -119,6 +131,35 @@ export async function PATCH(req: NextRequest) {
     });
     if (!c) return NextResponse.json({ error: "not found" }, { status: 404 });
     return NextResponse.json({ ok: true, customer: c });
+  }
+
+  if (action === "set_staff_tiers") {
+    const tiers = Array.isArray(body.staffTiers)
+      ? body.staffTiers.map((t: unknown) => String(t).trim()).filter(Boolean)
+      : [];
+    const c = await updateCustomer(id, { staffTiers: tiers });
+    if (!c) return NextResponse.json({ error: "not found" }, { status: 404 });
+    return NextResponse.json({ ok: true, customer: c });
+  }
+
+  if (action === "send_follow_up") {
+    const result = await sendCustomerFollowUp(id, {
+      message: body.message ? String(body.message) : undefined,
+      force: Boolean(body.force),
+    });
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+    return NextResponse.json({ ok: true, customer: result.customer, message: result.message });
+  }
+
+  if (action === "send_inactive_follow_ups") {
+    const result = await sendInactiveFollowUps({
+      inactiveDays: body.inactiveDays != null ? Number(body.inactiveDays) : undefined,
+      limit: body.limit != null ? Number(body.limit) : 20,
+      force: Boolean(body.force),
+    });
+    return NextResponse.json({ ok: true, ...result });
   }
 
   const c = await getCustomer(id);

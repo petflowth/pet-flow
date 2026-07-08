@@ -40,7 +40,7 @@ type PromoClaim = {
   createdAt: string;
 };
 
-const TIER_OPTIONS: { value: CustomerTier; label: string }[] = [
+const BUILTIN_TIER_OPTIONS: { value: CustomerTier; label: string }[] = [
   { value: "all", label: "ทุกคน" },
   { value: "member", label: "💎 Member" },
   { value: "new", label: "ลูกค้าใหม่" },
@@ -72,16 +72,24 @@ export default function PromosAdminPage() {
   const [restriction, setRestriction] = useState<PromoRestriction>("none");
   const [tiers, setTiers] = useState<CustomerTier[]>(["all"]);
   const [rewardType, setRewardType] = useState<PromoRewardType>("discount");
+  const [tierOptions, setTierOptions] = useState(BUILTIN_TIER_OPTIONS);
 
   const load = useCallback(async () => {
-    const [promoRes, claimRes] = await Promise.all([
+    const [promoRes, claimRes, configRes] = await Promise.all([
       fetch("/api/promos"),
       fetch("/api/promos?claims=1"),
+      fetch("/api/config"),
     ]);
     const promoData = await promoRes.json();
     const claimData = await claimRes.json();
+    const configData = await configRes.json();
     setPromos(promoData.promos || []);
     setClaims(claimData.claims || []);
+    const presets = (configData.config?.crm?.tierPresets || []) as string[];
+    setTierOptions([
+      ...BUILTIN_TIER_OPTIONS,
+      ...presets.map((p) => ({ value: p as CustomerTier, label: `🏷️ ${p}` })),
+    ]);
   }, []);
 
   useEffect(() => {
@@ -259,7 +267,7 @@ export default function PromosAdminPage() {
                   กลุ่มลูกค้า (Member = เติมเครดิตแล้ว · ใหม่ = ยังไม่เคยมา · เก่า = เคยมาแล้ว)
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {TIER_OPTIONS.map((opt) => (
+                  {tierOptions.map((opt) => (
                     <button
                       key={opt.value}
                       type="button"

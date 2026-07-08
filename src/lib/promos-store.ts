@@ -4,7 +4,7 @@ import { getSupabase } from "./supabase/server";
 
 export type PromoKind = "display" | "customer";
 export type PromoRestriction = "none" | "first_visit" | "calendar_month";
-export type CustomerTier = "all" | "member" | "new" | "returning";
+export type CustomerTier = "all" | "member" | "new" | "returning" | (string & {});
 export type PromoRewardType = "discount" | "points" | "both";
 
 export type PromoRecord = {
@@ -230,10 +230,13 @@ function currentMonth(now = new Date()) {
 }
 
 export function customerTierLabels(
-  customer: Pick<CustomerRecord, "isMember">,
+  customer: Pick<CustomerRecord, "isMember" | "staffTiers">,
   visits: number
-): { id: CustomerTier; label: string }[] {
-  const tiers: { id: CustomerTier; label: string }[] = [];
+): { id: string; label: string; custom?: boolean }[] {
+  const tiers: { id: string; label: string; custom?: boolean }[] = [];
+  for (const t of customer.staffTiers || []) {
+    if (t.trim()) tiers.push({ id: t, label: t, custom: true });
+  }
   if (customer.isMember) tiers.push({ id: "member", label: "💎 Member" });
   if (visits === 0) tiers.push({ id: "new", label: "ลูกค้าใหม่" });
   else tiers.push({ id: "returning", label: "ลูกค้าเก่า" });
@@ -246,9 +249,13 @@ export function customerMatchesTiers(
   tiers: CustomerTier[]
 ): boolean {
   if (!tiers.length || tiers.includes("all")) return true;
-  if (tiers.includes("member") && customer.isMember) return true;
-  if (tiers.includes("new") && visits === 0) return true;
-  if (tiers.includes("returning") && visits > 0) return true;
+  const staff = new Set((customer.staffTiers || []).map((t) => t.toLowerCase()));
+  for (const tier of tiers) {
+    if (tier === "member" && customer.isMember) return true;
+    if (tier === "new" && visits === 0) return true;
+    if (tier === "returning" && visits > 0) return true;
+    if (staff.has(String(tier).toLowerCase())) return true;
+  }
   return false;
 }
 

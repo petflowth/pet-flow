@@ -9,9 +9,13 @@ create table if not exists customers (
   is_member boolean not null default false,
   member_credit numeric not null default 0,
   member_since date,
+  staff_tiers text[] not null default '{}',
+  last_follow_up_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+create index if not exists customers_staff_tiers_idx on customers using gin (staff_tiers);
 
 create table if not exists cats (
   id text primary key,

@@ -172,9 +172,19 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
       router.replace("/app/register");
       return;
     }
+    if (path === "link") {
+      const customerId = params.get("customerId");
+      router.replace(
+        customerId
+          ? `/app/link?customerId=${encodeURIComponent(customerId)}`
+          : "/app"
+      );
+      return;
+    }
 
     const skipRegister =
       pathname.startsWith("/app/register") ||
+      pathname.startsWith("/app/link") ||
       pathname.startsWith("/app/bookings") ||
       pathname.startsWith("/app/pay");
 

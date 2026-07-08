@@ -320,6 +320,66 @@ export async function upsertCustomerFromLine(data: {
   return customer;
 }
 
+/** ผูก LINE กับลูกค้าที่ร้านสร้างไว้แล้ว (ลิงก์เชิญจากหลังบ้าน) */
+export async function linkCustomerToLine(data: {
+  customerId: string;
+  lineUserId: string;
+  displayName: string;
+}) {
+  const customerId = data.customerId.trim();
+  const lineUserId = data.lineUserId.trim();
+  const displayName = data.displayName.trim() || "ลูกค้า LINE";
+  if (!customerId || !lineUserId) return null;
+
+  const customer = await getCustomer(customerId);
+  if (!customer) return { ok: false as const, error: "not_found" };
+
+  if (customer.lineUserId && customer.lineUserId !== lineUserId) {
+    return { ok: false as const, error: "already_linked" };
+  }
+
+  const other = await findCustomerByLine(lineUserId);
+  if (other && other.id !== customerId) {
+    return { ok: false as const, error: "line_in_use" };
+  }
+
+  customer.lineUserId = lineUserId;
+  customer.lineDisplayName = displayName;
+  customer.updatedAt = new Date().toISOString();
+
+  const sb = getSupabase();
+  if (sb) {
+    await sb
+      .from("customers")
+      .update({
+        line_user_id: lineUserId,
+        line_display_name: displayName,
+        updated_at: customer.updatedAt,
+      })
+      .eq("id", customerId);
+  } else {
+    memCustomers.set(customerId, customer);
+  }
+
+  await linkBookingsToLineCustomer(customer);
+  const refreshed = await getCustomer(customerId);
+  if (refreshed) await recalculateCustomerTier(refreshed.id);
+  return { ok: true as const, customer: refreshed || customer };
+}
+
+/** ข้อมูลย่อสำหรับหน้าผูก LINE */
+export async function getCustomerLinkPreview(customerId: string) {
+  const c = await getCustomer(customerId);
+  if (!c) return null;
+  return {
+    id: c.id,
+    name: c.name,
+    phone: c.phone,
+    cats: c.cats.map((cat) => ({ id: cat.id, name: cat.name })),
+    hasLine: Boolean(c.lineUserId),
+  };
+}
+
 /** ผูกนัดเก่าที่ชื่อตรงแต่ยังไม่มี LINE ID */
 async function linkBookingsToLineCustomer(customer: CustomerRecord) {
   if (!customer.lineUserId) return;

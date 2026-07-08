@@ -7,6 +7,8 @@ import type { CatRecord, CustomerRecord, MemberCreditUsageRecord, MemberTopupRec
 import type { CustomerTier } from "@/lib/customer-tier";
 import { TIER_LABELS, tierBadgeClass } from "@/lib/customer-tier";
 import { RegistrationQrSection } from "@/components/LineSetupSection";
+import { AddCustomerModal } from "@/components/AddCustomerModal";
+import { CustomerLinkSection } from "@/components/CustomerLinkSection";
 import type { PointsHistoryEntry } from "@/lib/points-store";
 import type { Booking } from "@/lib/business";
 import { ExportSheetsButton } from "@/components/ExportSheetsButton";
@@ -844,6 +846,12 @@ export default function CustomersPage() {
           onSaved={() => open(c.id)}
         />
 
+        <CustomerLinkSection
+          customerId={c.id}
+          customerName={c.name}
+          hasLine={Boolean(c.lineUserId)}
+        />
+
         <section className="mb-4 space-y-3">
           <h2 className="text-sm font-extrabold text-catcha-chocolate">
             🐱 น้องแมว ({c.cats.length}) — โน้ตแยกแต่ละตัว
@@ -976,6 +984,12 @@ export default function CustomersPage() {
   return (
     <div>
       <h1 className="mb-4 text-lg font-extrabold text-catcha-chocolate">👤 ลูกค้า</h1>
+      <AddCustomerModal
+        onAdded={(id) => {
+          search(q);
+          open(id);
+        }}
+      />
       <RegistrationQrSection compact />
       <ExportSheetsButton className="mb-4 mt-4" />
       <input

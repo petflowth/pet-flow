@@ -46,9 +46,17 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
+  const catName = String(body.catName || "").trim();
+  const customerName = String(body.customerName || "").trim();
+  if (!customerName || !catName) {
+    return NextResponse.json(
+      { error: "กรอกชื่อลูกค้าและชื่อน้องแมว" },
+      { status: 400 }
+    );
+  }
   const customer = await upsertCustomerFromBooking({
-    customerName: body.customerName,
-    catName: body.catName,
+    customerName,
+    catName,
     lineUserId: body.lineUserId,
     phone: body.phone,
     staffNote: body.staffNote,

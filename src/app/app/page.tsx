@@ -12,23 +12,14 @@ import { useLocale } from "@/components/LocaleProvider";
 import { useLiff } from "@/components/LiffProvider";
 import { Logo } from "@/components/Logo";
 import { LangSwitch } from "@/components/LangSwitch";
-import { PointsRedeem } from "@/components/PointsRedeem";
+import { CustomerExclusivePromos } from "@/components/CustomerExclusivePromos";
 
 export default function CustomerHome() {
   const { locale } = useLocale();
   const { profile, ready } = useLiff();
   const { config } = useConfig();
   const m = t(locale).home;
-  const [promos, setPromos] = useState<
-    { id: string; title: { th: string; en: string }; body: { th: string; en: string }; until: string }[]
-  >([]);
   const [nextBooking, setNextBooking] = useState<Booking | null>(null);
-
-  useEffect(() => {
-    fetch("/api/promos?active=1")
-      .then((r) => r.json())
-      .then((data) => setPromos(data.promos || []));
-  }, []);
 
   useEffect(() => {
     if (!profile?.lineUserId) return;
@@ -102,55 +93,14 @@ export default function CustomerHome() {
         </div>
       </section>
 
-      {/* แลกแต้มด่วน */}
-      <section className="mb-4 rounded-catcha bg-card p-4 shadow-catcha-sm">
-        <h2 className="mb-3 text-sm font-extrabold text-catcha-chocolate">
-          🎁 {m.redeemNow}
-        </h2>
-        <PointsRedeem compact />
-      </section>
+      {/* โปรพิเศษลูกค้า — กดใช้จากแอป */}
+      <CustomerExclusivePromos compact />
 
-      {/* โปรช่วงนี้ */}
-      <section className="mb-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-extrabold text-catcha-chocolate">
-            ✨ {m.promosNow}
-          </h2>
-          <Link
-            href="/app/promos"
-            className="text-[10px] font-bold text-latte-deep"
-          >
-            {m.seeAll} →
-          </Link>
-        </div>
-        <div className="space-y-3">
-          {promos.map((promo, i) => (
-            <div
-              key={promo.id}
-              className={`overflow-hidden rounded-catcha border bg-card shadow-catcha-sm ${
-                i === 0 ? "border-honey/60" : "border-catcha-line"
-              }`}
-            >
-              {i === 0 ? (
-                <div className="bg-gradient-to-r from-catcha-yellow/60 to-honey/50 px-3 py-1 text-[10px] font-extrabold text-catcha-chocolate">
-                  🔥 {m.featuredPromo}
-                </div>
-              ) : null}
-              <div className="p-4">
-                <p className="text-sm font-extrabold text-catcha-chocolate">
-                  {promo.title[locale]}
-                </p>
-                <p className="mt-1 text-xs leading-relaxed text-brown-soft">
-                  {promo.body[locale]}
-                </p>
-                <p className="mt-2 text-[10px] font-bold text-brown-faint">
-                  {t(locale).promos.until} {promo.until}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      <div className="mb-4 text-right">
+        <Link href="/app/promos" className="text-[10px] font-bold text-latte-deep">
+          {m.promosNow} · {m.seeAll} →
+        </Link>
+      </div>
 
       {/* คิวถัดไป */}
       {nextBooking ? (

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 import { LangSwitch } from "@/components/LangSwitch";
+import { CustomerExclusivePromos } from "@/components/CustomerExclusivePromos";
 
 type Promo = {
   id: string;
@@ -20,7 +21,7 @@ export default function PromosPage() {
   const [promos, setPromos] = useState<Promo[]>([]);
 
   useEffect(() => {
-    fetch("/api/promos?active=1")
+    fetch("/api/promos?active=1&kind=display")
       .then((r) => r.json())
       .then((data) => setPromos(data.promos || []));
   }, []);
@@ -32,6 +33,9 @@ export default function PromosPage() {
         <LangSwitch />
       </div>
 
+      <CustomerExclusivePromos />
+
+      <h2 className="mb-3 mt-5 text-sm font-extrabold text-catcha-chocolate">✨ {m.title}</h2>
       <ul className="space-y-3">
         {promos.map((promo) => (
           <li
@@ -61,7 +65,7 @@ export default function PromosPage() {
         ))}
         {!promos.length && (
           <li className="rounded-catcha bg-card p-6 text-center text-sm text-brown-soft">
-            ยังไม่มีโปรช่วงนี้
+            ยังไม่มีโปรทั่วไปช่วงนี้
           </li>
         )}
       </ul>

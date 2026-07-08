@@ -56,7 +56,7 @@ function restrictionLabel(r: PromoRestriction, validMonth?: string) {
 function resetFormState() {
   return {
     imageUrl: "",
-    kind: "display" as PromoKind,
+    showOnHome: false,
     restriction: "none" as PromoRestriction,
     tiers: ["all"] as CustomerTier[],
     rewardType: "discount" as PromoRewardType,
@@ -68,7 +68,7 @@ export default function PromosAdminPage() {
   const [claims, setClaims] = useState<PromoClaim[]>([]);
   const [open, setOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
-  const [kind, setKind] = useState<PromoKind>("display");
+  const [showOnHome, setShowOnHome] = useState(false);
   const [restriction, setRestriction] = useState<PromoRestriction>("none");
   const [tiers, setTiers] = useState<CustomerTier[]>(["all"]);
   const [rewardType, setRewardType] = useState<PromoRewardType>("discount");
@@ -92,7 +92,7 @@ export default function PromosAdminPage() {
     setOpen(false);
     const s = resetFormState();
     setImageUrl(s.imageUrl);
-    setKind(s.kind);
+    setShowOnHome(s.showOnHome);
     setRestriction(s.restriction);
     setTiers(s.tiers);
     setRewardType(s.rewardType);
@@ -118,6 +118,7 @@ export default function PromosAdminPage() {
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    const kind: PromoKind = showOnHome ? "customer" : "display";
     await fetch("/api/promos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -131,12 +132,12 @@ export default function PromosAdminPage() {
         until: String(fd.get("until")),
         active: true,
         kind,
-        restriction: kind === "customer" ? restriction : "none",
+        restriction: showOnHome ? restriction : "none",
         validMonth:
-          kind === "customer" && restriction === "calendar_month"
+          showOnHome && restriction === "calendar_month"
             ? String(fd.get("validMonth") || "")
             : undefined,
-        tiers: kind === "customer" && tiers.length ? tiers : ["all"],
+        tiers: showOnHome && tiers.length ? tiers : ["all"],
         couponCode: String(fd.get("couponCode") || "") || undefined,
         rewardType,
         pointsBonus: Number(fd.get("pointsBonus")) || undefined,
@@ -156,6 +157,16 @@ export default function PromosAdminPage() {
     load();
   };
 
+  const toggleHome = async (p: Promo) => {
+    const nextKind: PromoKind = p.kind === "customer" ? "display" : "customer";
+    await fetch("/api/promos", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: p.id, patch: { kind: nextKind } }),
+    });
+    load();
+  };
+
   const hasImage = imageUrl.startsWith("data:") || imageUrl.startsWith("http") || imageUrl.startsWith("/");
   const claimsFor = (promoId: string) => claims.filter((c) => c.promoId === promoId);
   const showDiscount = rewardType === "discount" || rewardType === "both";
@@ -167,7 +178,7 @@ export default function PromosAdminPage() {
         <div>
           <h1 className="text-lg font-extrabold text-catcha-chocolate">✨ โปรโมชั่น</h1>
           <p className="mt-1 text-xs text-brown-soft">
-            โปรพิเศษลูกค้า · ส่วนลด/แต้ม · กดใช้จากแอป
+            สร้างโปรเดียว · ติ๊กขึ้นหน้าแรกได้ · ส่วนลดหรือแต้ม
           </p>
         </div>
         <span className="shrink-0 rounded-full bg-sage/20 px-2 py-0.5 text-[9px] font-bold text-ok">
@@ -188,16 +199,20 @@ export default function PromosAdminPage() {
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-catcha bg-card p-5 shadow-catcha">
             <h2 className="mb-3 text-sm font-extrabold text-catcha-chocolate">➕ เพิ่มโปรใหม่</h2>
             <form onSubmit={submit} className="space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                <label className="flex items-center gap-2 rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs font-bold">
-                  <input type="radio" checked={kind === "display"} onChange={() => setKind("display")} />
-                  โปรทั่วไป
-                </label>
-                <label className="flex items-center gap-2 rounded-catcha-sm border border-honey/50 bg-honey/10 px-3 py-2 text-xs font-bold text-catcha-chocolate">
-                  <input type="radio" checked={kind === "customer"} onChange={() => setKind("customer")} />
-                  โปรพิเศษลูกค้า
-                </label>
-              </div>
+              <label className="flex items-start gap-3 rounded-catcha-sm border border-honey/50 bg-honey/10 px-3 py-3 text-xs font-bold text-catcha-chocolate">
+                <input
+                  type="checkbox"
+                  checked={showOnHome}
+                  onChange={(e) => setShowOnHome(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>
+                  🏠 ขึ้นหน้าแรกแอปลูกค้า
+                  <span className="mt-0.5 block text-[10px] font-normal text-brown-soft">
+                    ลูกค้ากดใช้โปรได้ · ไม่ติ๊ก = แสดงแค่หน้าโปรโมชั่น
+                  </span>
+                </span>
+              </label>
 
               <div>
                 <p className="mb-2 text-[10px] font-bold text-brown-soft">ประเภทรางวัล</p>
@@ -240,8 +255,11 @@ export default function PromosAdminPage() {
                 </div>
               )}
 
-              {kind === "customer" && (
+              {showOnHome && (
                 <>
+                  <p className="text-[10px] font-bold text-brown-soft">
+                    กลุ่มลูกค้า (ระบบจัดให้อัตโนมัติ — Member = เติมเครดิตแล้ว · ใหม่ = ยังไม่เคยมา · เก่า = เคยมาแล้ว)
+                  </p>
                   <input name="couponCode" placeholder="รหัสโปร (ถ้ามี)" className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
                   <div className="flex flex-wrap gap-2">
                     {TIER_OPTIONS.map((opt) => (
@@ -319,7 +337,7 @@ export default function PromosAdminPage() {
                 <div className="flex justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-brown">
-                      {p.kind === "customer" ? "🎁 " : "✨ "}
+                      {p.kind === "customer" ? "🏠 " : "✨ "}
                       {p.title.th}
                     </p>
                     <p className="text-xs text-brown-soft">{p.body.th}</p>
@@ -347,15 +365,26 @@ export default function PromosAdminPage() {
                       </div>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => toggle(p.id, p.active)}
-                    className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-bold ${
-                      p.active ? "bg-sage/20 text-ok" : "bg-paper text-brown-faint"
-                    }`}
-                  >
-                    {p.active ? "เปิด" : "ปิด"}
-                  </button>
+                  <div className="flex shrink-0 flex-col gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => toggleHome(p)}
+                      className={`rounded-full px-3 py-1 text-[10px] font-bold ${
+                        p.kind === "customer" ? "bg-honey/30 text-catcha-chocolate" : "bg-paper text-brown-faint"
+                      }`}
+                    >
+                      {p.kind === "customer" ? "🏠 หน้าแรก" : "หน้าโปร"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggle(p.id, p.active)}
+                      className={`rounded-full px-3 py-1 text-[10px] font-bold ${
+                        p.active ? "bg-sage/20 text-ok" : "bg-paper text-brown-faint"
+                      }`}
+                    >
+                      {p.active ? "เปิด" : "ปิด"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </li>

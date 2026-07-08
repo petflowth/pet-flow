@@ -32,6 +32,17 @@ async function fetchAccount(lineUserId: string, displayName: string) {
   }>;
 }
 
+async function syncLineCustomer(lineUserId: string, displayName: string) {
+  const res = await fetch("/api/customers/line", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ lineUserId, displayName }),
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.customer as { id: string; name: string } | null;
+}
+
 export function LiffProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
@@ -52,6 +63,7 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     async function applyAccount(base: CustomerProfile) {
+      await syncLineCustomer(base.lineUserId, base.displayName);
       const data = await fetchAccount(base.lineUserId, base.displayName);
       if (data) {
         setProfile({ ...base, points: data.points });

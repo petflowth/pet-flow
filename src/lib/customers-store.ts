@@ -213,6 +213,96 @@ export async function searchCustomers(query: string) {
   return attachAppointmentCounts(filtered);
 }
 
+function normName(s: string) {
+  return s.trim().toLowerCase();
+}
+
+/** ลูกค้าเปิดแอปจาก LINE → สร้าง/ผูกบัญชีอัตโนมัติ */
+export async function upsertCustomerFromLine(data: {
+  lineUserId: string;
+  displayName: string;
+}) {
+  const lineUserId = data.lineUserId.trim();
+  const displayName = data.displayName.trim() || "ลูกค้า LINE";
+  if (!lineUserId) return null;
+
+  const sb = getSupabase();
+  let existing = await findCustomerByLine(lineUserId);
+
+  if (!existing) {
+    existing = (await fetchAllCustomers()).find(
+      (c) => !c.lineUserId && normName(c.name) === normName(displayName)
+    );
+  }
+
+  const now = new Date().toISOString();
+
+  if (existing) {
+    existing.lineUserId = lineUserId;
+    if (displayName && normName(existing.name) !== normName(displayName)) {
+      existing.name = displayName;
+    }
+    existing.updatedAt = now;
+    if (sb) {
+      await sb
+        .from("customers")
+        .update({
+          line_user_id: lineUserId,
+          name: existing.name,
+          updated_at: now,
+        })
+        .eq("id", existing.id);
+    } else {
+      memCustomers.set(existing.id, existing);
+    }
+    await linkBookingsToLineCustomer(existing);
+    return existing;
+  }
+
+  const id = `C${Date.now()}`;
+  const customer: CustomerRecord = {
+    id,
+    name: displayName,
+    lineUserId,
+    cats: [],
+    isMember: false,
+    memberCredit: 0,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  if (sb) {
+    await sb.from("customers").insert({
+      id,
+      name: displayName,
+      line_user_id: lineUserId,
+      is_member: false,
+      member_credit: 0,
+      created_at: now,
+      updated_at: now,
+    });
+  } else {
+    memCustomers.set(id, customer);
+  }
+
+  await linkBookingsToLineCustomer(customer);
+  return customer;
+}
+
+/** ผูกนัดเก่าที่ชื่อตรงแต่ยังไม่มี LINE ID */
+async function linkBookingsToLineCustomer(customer: CustomerRecord) {
+  if (!customer.lineUserId) return;
+  const { listBookings, updateBooking } = await import("./bookings-store");
+  const { bookingMatchesCustomer } = await import("./booking-customer-match");
+  const bookings = await listBookings();
+  for (const b of bookings) {
+    if (b.lineUserId) continue;
+    if (bookingMatchesCustomer(b, customer)) {
+      await updateBooking(b.id, { lineUserId: customer.lineUserId });
+    }
+  }
+}
+
 export async function upsertCustomerFromBooking(data: {
   customerName: string;
   catName: string;
@@ -225,8 +315,9 @@ export async function upsertCustomerFromBooking(data: {
     (data.lineUserId && (await findCustomerByLine(data.lineUserId))) ||
     (await fetchAllCustomers()).find(
       (c) =>
-        c.name === data.customerName &&
-        c.cats.some((cat) => cat.name === data.catName)
+        normName(c.name) === normName(data.customerName) &&
+        (c.cats.length === 0 ||
+          c.cats.some((cat) => normName(cat.name) === normName(data.catName)))
     );
 
   const now = new Date().toISOString();

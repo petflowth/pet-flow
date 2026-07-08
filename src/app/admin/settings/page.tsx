@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { SiteConfig } from "@/lib/config-types";
 import type { RoomType } from "@/lib/business";
+import { adminJson } from "@/lib/admin-fetch";
 
 type Tab = "shop" | "payment" | "rooms" | "grooming" | "points" | "advanced";
 
@@ -21,14 +22,23 @@ export default function SettingsPage() {
   const [config, setConfig] = useState<SiteConfig | null>(null);
   const [tab, setTab] = useState<Tab>("shop");
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
   const [jsonText, setJsonText] = useState("");
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/config");
-    const data = await res.json();
-    setConfig(data.config);
-    setJsonText(JSON.stringify(data.config, null, 2));
+    setLoading(true);
+    setError("");
+    const result = await adminJson<{ config: SiteConfig }>("/api/config");
+    if (result.ok && result.data.config) {
+      setConfig(result.data.config);
+      setJsonText(JSON.stringify(result.data.config, null, 2));
+    } else {
+      setConfig(null);
+      setError(result.ok ? "โหลดข้อมูลไม่สำเร็จ" : result.error);
+    }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -75,8 +85,23 @@ export default function SettingsPage() {
     setSaving(false);
   };
 
-  if (!config) {
+  if (loading) {
     return <p className="text-center text-sm text-brown-soft py-10">กำลังโหลด…</p>;
+  }
+
+  if (!config) {
+    return (
+      <div className="py-10 text-center">
+        <p className="text-sm font-bold text-wait">{error || "โหลดไม่สำเร็จ"}</p>
+        <button
+          type="button"
+          onClick={load}
+          className="mt-4 rounded-catcha-sm bg-honey/40 px-4 py-2 text-xs font-bold"
+        >
+          🔄 ลองใหม่
+        </button>
+      </div>
+    );
   }
 
   return (

@@ -59,19 +59,25 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
         <nav className="mx-auto flex max-w-3xl gap-1 overflow-x-auto px-4 pb-2">
-          {tabs.map((tab) => (
+          {tabs.map((tab) => {
+            const active =
+              tab.href === "/admin"
+                ? pathname === "/admin"
+                : pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+            return (
             <Link
               key={tab.href}
               href={tab.href}
               className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${
-                pathname === tab.href || pathname.startsWith(tab.href + "/")
+                active
                   ? "bg-honey/40 text-catcha-chocolate"
                   : "text-brown-soft"
               }`}
             >
               {tab.icon} {tab.label}
             </Link>
-          ))}
+            );
+          })}
         </nav>
       </header>
       <main className="mx-auto max-w-3xl px-4 py-5">{children}</main>

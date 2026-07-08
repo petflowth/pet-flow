@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { Booking } from "@/lib/business";
+import { adminJson } from "@/lib/admin-fetch";
 
 type Stats = {
   today: string;
@@ -22,17 +23,28 @@ export default function AdminDashboard() {
   const [calendar, setCalendar] = useState<Record<string, CalendarDay[]>>({});
   const [bookings, setBookings] = useState<CalendarDay[]>([]);
   const [view, setView] = useState<"today" | "week">("today");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const load = useCallback(async () => {
-    const [sRes, bRes] = await Promise.all([
-      fetch("/api/admin/stats"),
-      fetch("/api/bookings"),
+    setLoading(true);
+    setError("");
+    const [sResult, bResult] = await Promise.all([
+      adminJson<{ stats: Stats; calendar: Record<string, CalendarDay[]> }>("/api/admin/stats"),
+      adminJson<{ bookings: CalendarDay[] }>("/api/bookings"),
     ]);
-    const sData = await sRes.json();
-    const bData = await bRes.json();
-    setStats(sData.stats);
-    setCalendar(sData.calendar || {});
-    setBookings(bData.bookings || []);
+
+    if (sResult.ok && sResult.data.stats) {
+      setStats(sResult.data.stats);
+      setCalendar(sResult.data.calendar || {});
+      if (bResult.ok) setBookings(bResult.data.bookings || []);
+      else setBookings([]);
+    } else {
+      setStats(null);
+      setError(sResult.ok ? "โหลดสถิติไม่สำเร็จ" : sResult.error);
+    }
+
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -73,6 +85,25 @@ export default function AdminDashboard() {
   const firstDay = new Date(y, m - 1, 1);
   const daysInMonth = new Date(y, m, 0).getDate();
   const startPad = firstDay.getDay();
+
+  if (loading) {
+    return <p className="text-center text-sm text-brown-soft py-10">กำลังโหลด…</p>;
+  }
+
+  if (!stats) {
+    return (
+      <div className="py-10 text-center">
+        <p className="text-sm font-bold text-wait">{error || "โหลดไม่สำเร็จ"}</p>
+        <button
+          type="button"
+          onClick={load}
+          className="mt-4 rounded-catcha-sm bg-honey/40 px-4 py-2 text-xs font-bold"
+        >
+          🔄 ลองใหม่
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">

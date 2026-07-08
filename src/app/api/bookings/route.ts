@@ -11,6 +11,8 @@ import { upsertCustomerFromBooking } from "@/lib/customers-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import { pushLineMessage, buildReminderFlex } from "@/lib/line";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const lineUserId = req.nextUrl.searchParams.get("lineUserId") || undefined;
   const items = (await listBookings(lineUserId)).map((b) => ({

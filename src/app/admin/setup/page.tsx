@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { adminJson } from "@/lib/admin-fetch";
 
 type Status = {
   supabaseUrl: boolean;
@@ -21,14 +22,13 @@ export default function SetupPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/setup");
-    const data = await res.json();
-    if (data.status) {
-      setStatus(data.status);
-      if (!res.ok) setMsg(data.message || data.error || "");
+    setMsg("");
+    const result = await adminJson<{ status: Status }>("/api/setup");
+    if (result.ok && result.data.status) {
+      setStatus(result.data.status);
     } else {
       setStatus(null);
-      setMsg(data.message || data.error || "ตรวจสอบ env ใน Vercel แล้ว Redeploy");
+      setMsg(result.ok ? "ตรวจสอบไม่สำเร็จ" : result.error);
     }
     setLoading(false);
   }, []);

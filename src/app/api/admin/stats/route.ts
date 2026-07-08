@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { adminDashboardStats, bookingsByDateMap } from "@/lib/admin-stats";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const stats = await adminDashboardStats();
   const ym = stats.today.slice(0, 7);

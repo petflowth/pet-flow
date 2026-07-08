@@ -43,13 +43,15 @@ function NavLink({
     <Link
       href={href}
       onClick={onNavigate}
-      className={`flex items-center gap-2 rounded-catcha-sm font-bold transition ${
+      className={`flex items-center gap-3 rounded-catcha-sm font-bold transition ${
         active
           ? "bg-honey/40 text-catcha-chocolate"
           : "text-brown-soft hover:bg-honey/15 hover:text-catcha-chocolate"
       } ${className}`}
     >
-      <span aria-hidden>{icon}</span>
+      <span aria-hidden className="text-lg leading-none">
+        {icon}
+      </span>
       <span>{label}</span>
     </Link>
   );
@@ -66,10 +68,10 @@ export function AdminMenuButton({
     <button
       type="button"
       aria-expanded={open}
-      aria-controls="admin-mobile-menu"
+      aria-controls="admin-menu"
       aria-label={open ? "ปิดเมนู" : "เปิดเมนู"}
       onClick={onClick}
-      className="flex h-10 w-10 items-center justify-center rounded-catcha-sm border border-catcha-line bg-paper lg:hidden"
+      className="flex h-10 w-10 items-center justify-center rounded-catcha-sm border border-catcha-line bg-paper"
     >
       <span className="relative block h-4 w-5">
         <span
@@ -120,50 +122,34 @@ export function AdminNav({
 
   const closeMenu = () => setMenuOpen(false);
 
+  if (!menuOpen) return null;
+
   return (
     <>
+      <button
+        type="button"
+        aria-label="ปิดเมนู"
+        className="fixed inset-0 z-40 bg-catcha-chocolate/25"
+        onClick={closeMenu}
+      />
       <nav
-        className="mx-auto hidden max-w-6xl flex-wrap gap-1 px-4 pb-3 lg:flex lg:gap-2"
+        id="admin-menu"
+        className="absolute left-0 right-0 top-full z-50 border-b border-catcha-line bg-card px-3 py-3 shadow-catcha"
         aria-label="เมนูหลังบ้าน"
       >
-        {TABS.map((tab) => (
-          <NavLink
-            key={tab.href}
-            {...tab}
-            active={isTabActive(pathname, tab.href)}
-            className="px-3 py-2 text-sm"
-          />
-        ))}
+        <ul className="mx-auto grid max-w-6xl gap-1 sm:grid-cols-2">
+          {TABS.map((tab) => (
+            <li key={tab.href}>
+              <NavLink
+                {...tab}
+                active={isTabActive(pathname, tab.href)}
+                onNavigate={closeMenu}
+                className="w-full px-4 py-3 text-sm"
+              />
+            </li>
+          ))}
+        </ul>
       </nav>
-
-      {menuOpen && (
-        <>
-          <button
-            type="button"
-            aria-label="ปิดเมนู"
-            className="fixed inset-0 z-40 bg-catcha-chocolate/25 lg:hidden"
-            onClick={closeMenu}
-          />
-          <nav
-            id="admin-mobile-menu"
-            className="absolute left-0 right-0 top-full z-50 border-b border-catcha-line bg-card px-3 py-3 shadow-catcha lg:hidden"
-            aria-label="เมนูหลังบ้าน"
-          >
-            <ul className="mx-auto max-w-3xl space-y-1">
-              {TABS.map((tab) => (
-                <li key={tab.href}>
-                  <NavLink
-                    {...tab}
-                    active={isTabActive(pathname, tab.href)}
-                    onNavigate={closeMenu}
-                    className="w-full px-4 py-3 text-sm"
-                  />
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </>
-      )}
     </>
   );
 }

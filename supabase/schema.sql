@@ -5,6 +5,7 @@ create table if not exists customers (
   name text not null,
   phone text,
   line_user_id text unique,
+  line_display_name text,
   is_member boolean not null default false,
   member_credit numeric not null default 0,
   member_since date,

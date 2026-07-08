@@ -5,6 +5,7 @@ import {
   getCustomer,
   updateCustomer,
   updateCat,
+  addCat,
   topupMemberCredit,
   upsertCustomerFromBooking,
   customerSummary,
@@ -53,6 +54,17 @@ export async function PATCH(req: NextRequest) {
   if (action === "update_cat") {
     const c = await updateCat(id, body.catId, body.patch);
     if (!c) return NextResponse.json({ error: "not found" }, { status: 404 });
+    return NextResponse.json({ ok: true, customer: c });
+  }
+
+  if (action === "add_cat") {
+    const c = await addCat(id, {
+      name: String(body.name || ""),
+      staffNote: body.staffNote ? String(body.staffNote) : undefined,
+    });
+    if (!c) {
+      return NextResponse.json({ error: "กรอกชื่อน้องแมว" }, { status: 400 });
+    }
     return NextResponse.json({ ok: true, customer: c });
   }
 

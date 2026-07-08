@@ -187,7 +187,7 @@ export default function AdminDashboard() {
             </button>
           )}
         </div>
-        <p className="mb-2 text-[10px] text-brown-soft">แตะวันที่เพื่อดูรายการนัด</p>
+        <p className="mb-2 text-[10px] text-brown-soft">แตะวันที่เพื่อดูรายการนัด · กดจองคิวได้เลย</p>
         <div className="grid grid-cols-7 gap-1 text-center text-[9px] font-bold text-brown-faint">
           {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((d) => (
             <div key={d}>{d}</div>
@@ -225,15 +225,33 @@ export default function AdminDashboard() {
       </section>
 
       <section ref={queueRef} className="rounded-catcha bg-card p-4 shadow-catcha-sm">
-        <h2 className="mb-1 text-sm font-extrabold text-catcha-chocolate">
-          📋 นัดวันที่ {formatThaiDate(activeDate)}
-        </h2>
-        <p className="mb-3 text-[10px] text-brown-soft">
-          {dayBookings.length} นัด{activeDate === today ? " (วันนี้)" : ""}
-        </p>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-extrabold text-catcha-chocolate">
+              📋 นัดวันที่ {formatThaiDate(activeDate)}
+            </h2>
+            <p className="text-[10px] text-brown-soft">
+              {dayBookings.length} นัด{activeDate === today ? " (วันนี้)" : ""}
+            </p>
+          </div>
+          <Link
+            href={`/admin/bookings/new?date=${activeDate}`}
+            className="rounded-catcha-sm bg-gradient-to-r from-honey to-honey-deep px-4 py-2.5 text-xs font-extrabold text-catcha-chocolate shadow-catcha-sm"
+          >
+            ➕ จองคิววันนี้
+          </Link>
+        </div>
         <ul className="space-y-2">
           {dayBookings.length === 0 ? (
-            <li className="text-center text-xs text-brown-soft py-4">ไม่มีนัดในวันนี้</li>
+            <li className="rounded-catcha-sm border border-dashed border-catcha-line py-6 text-center">
+              <p className="text-xs text-brown-soft">ไม่มีนัดในวันนี้</p>
+              <Link
+                href={`/admin/bookings/new?date=${activeDate}`}
+                className="mt-2 inline-block text-xs font-bold text-latte-deep underline"
+              >
+                ➕ จองคิววันที่ {formatThaiDate(activeDate)}
+              </Link>
+            </li>
           ) : (
             dayBookings.map((b) => (
               <li

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import type { RoomType } from "@/lib/business";
 import type { CustomerRecord } from "@/lib/customers-store";
 
@@ -115,6 +116,8 @@ function CustomerPicker({
 }
 
 export default function NewBookingPage() {
+  const searchParams = useSearchParams();
+  const presetDate = searchParams.get("date") || "";
   const [service, setService] = useState<"groom" | "room">("groom");
   const [saved, setSaved] = useState(false);
   const [rooms, setRooms] = useState<RoomType[]>([]);
@@ -123,6 +126,22 @@ export default function NewBookingPage() {
   const [customerName, setCustomerName] = useState("");
   const [catName, setCatName] = useState("");
   const [lineUserId, setLineUserId] = useState("");
+  const [appointmentDate, setAppointmentDate] = useState(presetDate);
+  const [checkoutDate, setCheckoutDate] = useState(() => {
+    if (!presetDate) return "";
+    const d = new Date(`${presetDate}T12:00:00`);
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+  });
+
+  useEffect(() => {
+    const d = searchParams.get("date");
+    if (!d) return;
+    setAppointmentDate(d);
+    const out = new Date(`${d}T12:00:00`);
+    out.setDate(out.getDate() + 1);
+    setCheckoutDate(out.toISOString().slice(0, 10));
+  }, [searchParams]);
 
   useEffect(() => {
     fetch("/api/config")
@@ -177,9 +196,14 @@ export default function NewBookingPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-lg font-extrabold text-catcha-chocolate">
+      <h1 className="mb-1 text-lg font-extrabold text-catcha-chocolate">
         ➕ บันทึกจองให้ลูกค้า
       </h1>
+      {appointmentDate && (
+        <p className="mb-4 text-xs font-bold text-latte-deep">
+          📅 จองวันที่ {appointmentDate}
+        </p>
+      )}
 
       <div className="mb-4 flex gap-2">
         {(
@@ -237,7 +261,14 @@ export default function NewBookingPage() {
 
         {service === "groom" ? (
           <>
-            <Field label="วันที่นัด" name="date" type="date" required />
+            <Field
+              label="วันที่นัด"
+              name="date"
+              type="date"
+              required
+              value={appointmentDate}
+              onChange={setAppointmentDate}
+            />
             <label className="block text-xs font-bold text-brown-soft">
               รอบเวลา
               <input
@@ -273,8 +304,22 @@ export default function NewBookingPage() {
                 ))}
               </select>
             </label>
-            <Field label="เช็คอิน" name="checkin" type="date" required />
-            <Field label="เช็คเอาท์" name="checkout" type="date" required />
+            <Field
+              label="เช็คอิน"
+              name="checkin"
+              type="date"
+              required
+              value={appointmentDate}
+              onChange={setAppointmentDate}
+            />
+            <Field
+              label="เช็คเอาท์"
+              name="checkout"
+              type="date"
+              required
+              value={checkoutDate}
+              onChange={setCheckoutDate}
+            />
           </>
         )}
 

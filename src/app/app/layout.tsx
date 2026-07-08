@@ -12,7 +12,7 @@ export default function CustomerLayout({
     <LocaleProvider>
       <ConfigProvider>
         <LiffProvider>
-          <div className="bg-catcha-gradient min-h-screen pb-24">
+          <div className="bg-catcha-gradient min-h-screen pb-28">
             <div className="mx-auto max-w-lg">{children}</div>
             <CustomerNav />
           </div>

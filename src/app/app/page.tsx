@@ -179,26 +179,6 @@ export default function CustomerHome() {
         </section>
       ) : null}
 
-      {/* ทางลัด */}
-      <section className="grid grid-cols-3 gap-2">
-        {[
-          { href: "/app/rooms", icon: "🛏️", label: m.shortRooms },
-          { href: "/app/grooming", icon: "🛁", label: m.shortGroom },
-          { href: "/app/bookings", icon: "📋", label: m.shortBookings },
-        ].map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="rounded-catcha-sm border border-catcha-line bg-paper/60 py-3 text-center"
-          >
-            <span className="text-lg">{item.icon}</span>
-            <p className="mt-1 text-[9px] font-bold text-brown-soft">
-              {item.label}
-            </p>
-          </Link>
-        ))}
-      </section>
-
       <a
         href="https://line.me/R/ti/p/@catchahotel"
         target="_blank"

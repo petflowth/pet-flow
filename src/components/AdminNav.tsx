@@ -69,7 +69,7 @@ export function AdminMenuButton({
       aria-controls="admin-mobile-menu"
       aria-label={open ? "ปิดเมนู" : "เปิดเมนู"}
       onClick={onClick}
-      className="flex h-10 w-10 items-center justify-center rounded-catcha-sm border border-catcha-line bg-paper md:hidden"
+      className="flex h-10 w-10 items-center justify-center rounded-catcha-sm border border-catcha-line bg-paper lg:hidden"
     >
       <span className="relative block h-4 w-5">
         <span
@@ -123,7 +123,7 @@ export function AdminNav({
   return (
     <>
       <nav
-        className="mx-auto hidden max-w-6xl flex-wrap gap-1 px-4 pb-3 md:flex lg:gap-2"
+        className="mx-auto hidden max-w-6xl flex-wrap gap-1 px-4 pb-3 lg:flex lg:gap-2"
         aria-label="เมนูหลังบ้าน"
       >
         {TABS.map((tab) => (
@@ -141,12 +141,12 @@ export function AdminNav({
           <button
             type="button"
             aria-label="ปิดเมนู"
-            className="fixed inset-0 z-40 bg-catcha-chocolate/25 md:hidden"
+            className="fixed inset-0 z-40 bg-catcha-chocolate/25 lg:hidden"
             onClick={closeMenu}
           />
           <nav
             id="admin-mobile-menu"
-            className="absolute left-0 right-0 top-full z-50 border-b border-catcha-line bg-card px-3 py-3 shadow-catcha md:hidden"
+            className="absolute left-0 right-0 top-full z-50 border-b border-catcha-line bg-card px-3 py-3 shadow-catcha lg:hidden"
             aria-label="เมนูหลังบ้าน"
           >
             <ul className="mx-auto max-w-3xl space-y-1">

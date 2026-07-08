@@ -35,15 +35,15 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-catcha-gradient">
       <header className="sticky top-0 z-50 border-b border-catcha-line bg-card/90 backdrop-blur-md">
-        <div className="relative mx-auto max-w-3xl md:max-w-6xl">
+        <div className="relative mx-auto max-w-3xl lg:max-w-6xl">
           <div className="flex items-center gap-3 px-4 py-3">
             <Logo size={40} />
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold text-brown-soft">CatCha Admin</p>
-              <p className="truncate text-sm font-extrabold text-catcha-chocolate md:text-base">
+              <p className="truncate text-sm font-extrabold text-catcha-chocolate lg:text-base">
                 หลังบ้าน
               </p>
-              <p className="truncate text-[10px] font-bold text-latte-deep md:hidden">
+              <p className="truncate text-[10px] font-bold text-latte-deep lg:hidden">
                 {getActiveAdminTabLabel(pathname)}
               </p>
             </div>
@@ -58,7 +58,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                   sessionStorage.removeItem("catcha-admin");
                   router.push("/admin/login");
                 }}
-                className="rounded-catcha-sm px-2 py-1.5 text-xs font-bold text-brown-faint hover:bg-honey/15 md:text-sm"
+                className="rounded-catcha-sm px-2 py-1.5 text-xs font-bold text-brown-faint hover:bg-honey/15 lg:text-sm"
               >
                 ออก
               </button>
@@ -67,7 +67,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           <AdminNav menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
         </div>
       </header>
-      <main className="mx-auto max-w-3xl px-4 py-5 md:max-w-6xl md:px-6 md:py-8">
+      <main className="mx-auto max-w-3xl px-4 py-5 lg:max-w-6xl lg:px-6 lg:py-8">
         {children}
       </main>
     </div>

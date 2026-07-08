@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listFinance, addFinanceEntry, financeSummary } from "@/lib/finance-store";
+import { listFinance, listFinanceEnriched, addFinanceEntry, financeSummary } from "@/lib/finance-store";
 
 export async function GET(req: NextRequest) {
   const from = req.nextUrl.searchParams.get("from") || undefined;
@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ summary: await financeSummary(from, to) });
   }
 
-  return NextResponse.json({ records: await listFinance(from, to) });
+  return NextResponse.json({ records: await listFinanceEnriched(from, to) });
 }
 
 export async function POST(req: NextRequest) {

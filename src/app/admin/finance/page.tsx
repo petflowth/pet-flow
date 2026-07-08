@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { ExportSheetsButton } from "@/components/ExportSheetsButton";
 
 type Record = {
@@ -10,6 +11,10 @@ type Record = {
   category: string;
   description: string;
   date: string;
+  customerId?: string;
+  customerName?: string;
+  catName?: string;
+  displayTitle: string;
 };
 
 export default function FinancePage() {
@@ -84,12 +89,20 @@ export default function FinancePage() {
 
       <ul className="space-y-2">
         {records.map((r) => (
-          <li key={r.id} className="flex justify-between rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs">
-            <div>
-              <p className="font-bold text-brown">{r.description || r.category}</p>
+          <li key={r.id} className="flex justify-between gap-2 rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs">
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-brown">{r.displayTitle}</p>
               <p className="text-brown-faint">{r.date} · {r.category}</p>
+              {r.customerId && (
+                <Link
+                  href={`/admin/customers?id=${r.customerId}`}
+                  className="mt-0.5 inline-block text-[10px] font-bold text-latte-deep underline"
+                >
+                  👤 {r.customerName || "ดูลูกค้า"}
+                </Link>
+              )}
             </div>
-            <p className={`font-extrabold ${r.type === "income" ? "text-ok" : "text-wait"}`}>
+            <p className={`shrink-0 font-extrabold ${r.type === "income" ? "text-ok" : "text-wait"}`}>
               {r.type === "income" ? "+" : "-"}{r.amount.toLocaleString()}
             </p>
           </li>

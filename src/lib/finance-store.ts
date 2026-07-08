@@ -59,6 +59,65 @@ export async function listFinance(from?: string, to?: string) {
   return list;
 }
 
+export type FinanceRecordEnriched = FinanceRecord & {
+  customerName?: string;
+  catName?: string;
+  displayTitle: string;
+};
+
+export async function listFinanceEnriched(
+  from?: string,
+  to?: string
+): Promise<FinanceRecordEnriched[]> {
+  const list = await listFinance(from, to);
+  const { getCustomer } = await import("./customers-store");
+  const { getInvoice } = await import("./invoices-store");
+
+  return Promise.all(
+    list.map(async (r) => {
+      let customerName: string | undefined;
+      let catName: string | undefined;
+
+      if (r.invoiceId) {
+        const inv = await getInvoice(r.invoiceId);
+        if (inv) {
+          customerName = inv.customerName;
+          catName = inv.catName;
+        }
+      }
+      if (r.customerId) {
+        const c = await getCustomer(r.customerId);
+        if (c) {
+          customerName = customerName || c.name;
+          if (!catName && c.cats.length === 1) catName = c.cats[0].name;
+        }
+      }
+
+      const desc = r.description.trim();
+      const hasCustomerInDesc =
+        customerName && desc.includes(customerName);
+      const genericDesc =
+        !desc || desc === r.category || desc === "อาบน้ำ" || desc === "service";
+
+      let displayTitle = desc;
+      if (customerName && (!desc || genericDesc || !hasCustomerInDesc)) {
+        displayTitle = catName
+          ? `🐱 ${catName} · ${customerName}`
+          : `👤 ${customerName}`;
+        if (desc && genericDesc && desc !== r.category) {
+          displayTitle += ` — ${desc}`;
+        } else if (r.category && r.category !== "member" && r.category !== "service") {
+          displayTitle += ` — ${r.category}`;
+        }
+      } else if (!displayTitle) {
+        displayTitle = r.category || "รายการ";
+      }
+
+      return { ...r, customerName, catName, displayTitle };
+    })
+  );
+}
+
 export async function addFinanceEntry(
   data: Omit<FinanceRecord, "id" | "createdAt">
 ) {

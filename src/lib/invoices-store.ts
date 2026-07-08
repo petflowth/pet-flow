@@ -217,11 +217,13 @@ export async function markInvoicePaid(
     );
   }
 
+  const serviceLabel = inv.items.map((i) => i.label).join(", ") || "บริการ";
+
   await addFinanceEntry({
     type: "income",
     amount: inv.total,
-    category: paymentMethod === "member_credit" ? "member" : "service",
-    description: `${inv.catName} · ${inv.customerName}`,
+    category: paymentMethod === "member_credit" ? "member" : serviceLabel,
+    description: `${inv.catName} · ${inv.customerName} — ${serviceLabel}`,
     date: inv.paidAt.slice(0, 10),
     customerId: inv.customerId,
     invoiceId: inv.id,

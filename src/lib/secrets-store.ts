@@ -8,12 +8,33 @@ export type GoogleSecrets = {
   updatedAt: string;
 };
 
+export type TelegramSecrets = {
+  botToken: string;
+  ownerChatIds: string;
+  appUrl: string;
+  updatedAt: string;
+};
+
 type SecretsPayload = {
   google?: GoogleSecrets;
+  telegram?: TelegramSecrets;
 };
 
 const SECRETS_ID = "secrets";
 let memSecrets: SecretsPayload = {};
+
+async function persistSecrets(next: SecretsPayload) {
+  const sb = getSupabase();
+  if (sb) {
+    await sb.from("site_config").upsert({
+      id: SECRETS_ID,
+      data: next,
+      updated_at: new Date().toISOString(),
+    });
+  } else {
+    memSecrets = next;
+  }
+}
 
 export async function getSecrets(): Promise<SecretsPayload> {
   const sb = getSupabase();
@@ -29,26 +50,30 @@ export async function getSecrets(): Promise<SecretsPayload> {
 }
 
 export async function saveGoogleSecrets(google: Omit<GoogleSecrets, "updatedAt">) {
+  const current = await getSecrets();
   const next: SecretsPayload = {
+    ...current,
     google: { ...google, updatedAt: new Date().toISOString() },
   };
-  const sb = getSupabase();
-  if (sb) {
-    await sb.from("site_config").upsert({
-      id: SECRETS_ID,
-      data: next,
-      updated_at: new Date().toISOString(),
-    });
-  } else {
-    memSecrets = next;
-  }
+  await persistSecrets(next);
   return next.google!;
 }
 
+export async function saveTelegramSecrets(
+  telegram: Omit<TelegramSecrets, "updatedAt">
+) {
+  const current = await getSecrets();
+  const next: SecretsPayload = {
+    ...current,
+    telegram: { ...telegram, updatedAt: new Date().toISOString() },
+  };
+  await persistSecrets(next);
+  return next.telegram!;
+}
+
 export async function clearGoogleSecrets() {
-  const sb = getSupabase();
-  if (sb) {
-    await sb.from("site_config").delete().eq("id", SECRETS_ID);
-  }
-  memSecrets = {};
+  const current = await getSecrets();
+  const next = { ...current };
+  delete next.google;
+  await persistSecrets(next);
 }

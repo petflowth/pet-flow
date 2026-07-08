@@ -1,7 +1,9 @@
 /**
  * Telegram Bot — แจ้งเตือนเจ้าของเมื่อมีจอง / ลูกค้ายืนยัน
- * ตั้งค่า: TELEGRAM_BOT_TOKEN + TELEGRAM_OWNER_CHAT_IDS (คั่นด้วย comma)
+ * ตั้งค่า: หน้า Admin → ติดตั้ง หรือ env TELEGRAM_BOT_TOKEN
  */
+
+import { getAppUrlFromEnv, getTelegramCredentials } from "./telegram-config";
 
 const TELEGRAM_API = "https://api.telegram.org";
 
@@ -70,21 +72,16 @@ export function parseTelegramCommand(text: string): TelegramCommand {
   return payload ? { command, payload } : { command };
 }
 
-export function getTelegramWebhookUrl() {
-  const base = (
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "")
-  ).replace(/\/$/, "");
+export function getTelegramWebhookUrl(appUrl?: string) {
+  const base = (appUrl || getAppUrlFromEnv()).replace(/\/$/, "");
   return base ? `${base}/api/telegram/webhook` : "";
 }
 
 async function telegramApi<T = unknown>(
+  token: string,
   method: string,
   body?: Record<string, unknown>
 ) {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  if (!token) return { ok: false as const, reason: "not_configured" as const };
-
   const res = await fetch(`${TELEGRAM_API}/bot${token}/${method}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -94,6 +91,7 @@ async function telegramApi<T = unknown>(
   const data = (await res.json().catch(() => ({}))) as T & {
     ok?: boolean;
     description?: string;
+    error_code?: number;
   };
 
   return {
@@ -104,6 +102,7 @@ async function telegramApi<T = unknown>(
 }
 
 export async function sendTelegramToChat(
+  token: string,
   chatId: number | string,
   text: string,
   options?: { html?: boolean; showMenu?: boolean }
@@ -111,7 +110,7 @@ export async function sendTelegramToChat(
   const html = options?.html !== false;
   const showMenu = options?.showMenu !== false;
 
-  return telegramApi("sendMessage", {
+  return telegramApi(token, "sendMessage", {
     chat_id: chatId,
     text,
     parse_mode: html ? "HTML" : undefined,
@@ -120,44 +119,42 @@ export async function sendTelegramToChat(
 }
 
 export async function sendTelegram(text: string) {
-  const chats = (process.env.TELEGRAM_OWNER_CHAT_IDS || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  if (!process.env.TELEGRAM_BOT_TOKEN || !chats.length) {
+  const creds = await getTelegramCredentials();
+  if (!creds?.botToken || !creds.ownerChatIds.length) {
     return { ok: false, reason: "not_configured" };
   }
 
   const results = await Promise.all(
-    chats.map((chatId) => sendTelegramToChat(chatId, text))
+    creds.ownerChatIds.map((chatId) =>
+      sendTelegramToChat(creds.botToken, chatId, text, { showMenu: false })
+    )
   );
 
   return { ok: results.every((r) => r.ok) };
 }
 
-export async function getTelegramWebhookInfo() {
-  return telegramApi("getWebhookInfo");
+export async function getTelegramWebhookInfo(token: string) {
+  return telegramApi(token, "getWebhookInfo");
 }
 
-export async function setTelegramWebhook(url: string) {
-  return telegramApi("setWebhook", {
+export async function setTelegramWebhook(token: string, url: string) {
+  return telegramApi(token, "setWebhook", {
     url,
     allowed_updates: ["message"],
     drop_pending_updates: true,
   });
 }
 
-export async function setTelegramBotCommands() {
-  return telegramApi("setMyCommands", {
+export async function setTelegramBotCommands(token: string) {
+  return telegramApi(token, "setMyCommands", {
     commands: [
+      { command: "start", description: "เริ่มใช้ + ดู Chat ID" },
       { command: "today", description: "นัดวันนี้" },
       { command: "queue", description: "คิวรอยืนยัน" },
       { command: "month", description: "ตารางเดือนนี้" },
       { command: "sales", description: "ยอดขายวันนี้" },
       { command: "finance", description: "การเงินวันนี้" },
       { command: "customers", description: "ลูกค้าล่าสุด" },
-      { command: "search", description: "ค้นหาลูกค้า เช่น /search ส้ม" },
       { command: "help", description: "วิธีใช้" },
     ],
   });
@@ -167,7 +164,6 @@ export function buildStartReply(chatId: number | string) {
   return (
     `🐱 <b>สวัสดีจาก CatCha Hotel Bot</b>\n\n` +
     `Chat ID ของคุณ: <code>${chatId}</code>\n` +
-    `นำไปใส่ใน <code>TELEGRAM_OWNER_CHAT_IDS</code> บน Vercel เพื่อรับแจ้งเตือนจอง\n\n` +
     `👇 กดปุ่มเมนูด้านล่างได้เลย\n` +
     `หรือพิมพ์ /search ชื่อ เพื่อค้นหาลูกค้า`
   );

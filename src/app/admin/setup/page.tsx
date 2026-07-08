@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { adminJson } from "@/lib/admin-fetch";
 import { GoogleSetupSection } from "@/components/GoogleSetupSection";
+import { TelegramSetupSection } from "@/components/TelegramSetupSection";
 
 type Status = {
   supabaseUrl: boolean;
@@ -72,6 +73,7 @@ export default function SetupPage() {
       </p>
 
       <GoogleSetupSection adminCode={adminCode} />
+      <TelegramSetupSection adminCode={adminCode} />
 
       {msg && (
         <p className="mb-4 rounded-catcha-sm bg-paper px-3 py-2 text-xs font-bold text-brown">

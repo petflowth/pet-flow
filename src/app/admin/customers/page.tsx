@@ -375,6 +375,150 @@ function MemberCreditHistorySection({
   );
 }
 
+function CustomerProfileSection({
+  customer,
+  onSaved,
+}: {
+  customer: CustomerRecord;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState(customer.name);
+  const [phone, setPhone] = useState(customer.phone || "");
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    setName(customer.name);
+    setPhone(customer.phone || "");
+  }, [customer.id, customer.name, customer.phone]);
+
+  const save = async (patch: { name?: string; phone?: string }) => {
+    const res = await fetch("/api/customers", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: customer.id,
+        action: "update_customer",
+        patch,
+      }),
+    });
+    if (res.ok) {
+      setMsg("✅ บันทึกแล้ว");
+      onSaved();
+      setTimeout(() => setMsg(""), 2000);
+    }
+  };
+
+  return (
+    <section className="mb-4 rounded-catcha border border-catcha-line bg-card p-4">
+      <h2 className="mb-3 text-sm font-extrabold text-catcha-chocolate">👤 ข้อมูลลูกค้า</h2>
+
+      {customer.lineUserId && (
+        <p className="mb-2 rounded-catcha-sm bg-sage/15 px-3 py-2 text-[10px] font-bold text-ok">
+          ✅ ผูก LINE แล้ว
+          {customer.lineDisplayName && customer.lineDisplayName !== name && (
+            <span className="ml-1 font-normal text-brown-soft">
+              · ชื่อใน LINE: <b>{customer.lineDisplayName}</b>
+            </span>
+          )}
+        </p>
+      )}
+
+      <label className="mb-3 block text-xs font-bold text-brown-soft">
+        ชื่อที่ใช้ในร้าน (ตั้งเองได้)
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={() => {
+            const trimmed = name.trim();
+            if (trimmed && trimmed !== customer.name) save({ name: trimmed });
+          }}
+          placeholder="เช่น คุณแม่น้องมะลิ"
+          className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm font-bold text-brown"
+        />
+      </label>
+
+      <label className="block text-xs font-bold text-brown-soft">
+        เบอร์โทร
+        <input
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          onBlur={() => {
+            if (phone.trim() !== (customer.phone || "")) save({ phone: phone.trim() || undefined });
+          }}
+          placeholder="08x-xxx-xxxx"
+          className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
+        />
+      </label>
+
+      {msg && <p className="mt-2 text-center text-[10px] font-bold text-ok">{msg}</p>}
+    </section>
+  );
+}
+
+function AddCatForm({ customerId, onAdded }: { customerId: string; onAdded: () => void }) {
+  const [name, setName] = useState("");
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    setError("");
+    const res = await fetch("/api/customers", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: customerId,
+        action: "add_cat",
+        name: name.trim(),
+        staffNote: note.trim() || undefined,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSaving(false);
+    if (res.ok && data.ok) {
+      setName("");
+      setNote("");
+      onAdded();
+    } else {
+      setError(data.error || "บันทึกไม่สำเร็จ — ลองใหม่อีกครั้ง");
+    }
+  };
+
+  return (
+    <form
+      onSubmit={submit}
+      className="rounded-catcha border border-honey/50 bg-honey/15 p-4 space-y-2"
+    >
+      <p className="text-sm font-extrabold text-catcha-chocolate">➕ เพิ่มน้องแมว</p>
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="ชื่อน้องแมว *"
+        required
+        className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm font-bold"
+      />
+      <textarea
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="โน้ตนิสัย เช่น แมวดุ อาบยาก กลัวเสียง"
+        rows={2}
+        className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs"
+      />
+      {error && <p className="text-xs font-bold text-wait">{error}</p>}
+      <button
+        type="submit"
+        disabled={saving || !name.trim()}
+        className="w-full rounded-catcha-sm bg-gradient-to-r from-honey to-honey-deep py-2.5 text-sm font-extrabold text-catcha-chocolate disabled:opacity-50"
+      >
+        {saving ? "กำลังบันทึก…" : "💾 บันทึกน้องแมว"}
+      </button>
+    </form>
+  );
+}
+
 export default function CustomersPage() {
   const searchParams = useSearchParams();
   const [q, setQ] = useState("");
@@ -406,7 +550,10 @@ export default function CustomersPage() {
     if (id) open(id);
   }, [searchParams, open]);
 
-  const saveCatNote = async (catId: string, staffNote: string, photoDataUrl?: string) => {
+  const saveCat = async (
+    catId: string,
+    patch: { name?: string; staffNote?: string; photoDataUrl?: string }
+  ) => {
     if (!selected) return;
     await fetch("/api/customers", {
       method: "PATCH",
@@ -415,10 +562,14 @@ export default function CustomersPage() {
         id: selected.customer.id,
         action: "update_cat",
         catId,
-        patch: { staffNote, ...(photoDataUrl ? { photoDataUrl } : {}) },
+        patch,
       }),
     });
     open(selected.customer.id);
+  };
+
+  const saveCatNote = async (catId: string, staffNote: string, photoDataUrl?: string) => {
+    await saveCat(catId, { staffNote, ...(photoDataUrl ? { photoDataUrl } : {}) });
   };
 
 
@@ -444,12 +595,27 @@ export default function CustomersPage() {
         <h1 className="mb-1 text-lg font-extrabold text-catcha-chocolate">
           {c.name} {c.isMember && <span className="text-sm text-latte-deep">💎 Member</span>}
         </h1>
+        {c.lineDisplayName && c.lineDisplayName !== c.name && (
+          <p className="mb-1 text-[10px] text-brown-soft">
+            ชื่อใน LINE: <span className="font-bold">{c.lineDisplayName}</span>
+          </p>
+        )}
         <p className="mb-4 text-xs text-brown-soft">
           {selected.points} แต้ม · {selected.visits} ครั้ง · เครดิต {c.memberCredit.toLocaleString()} บาท
         </p>
 
+        <CustomerProfileSection customer={c} onSaved={() => open(c.id)} />
+
         <section className="mb-4 space-y-3">
-          <h2 className="text-sm font-extrabold text-catcha-chocolate">🐱 น้องแมว (โน้ตพนักงาน)</h2>
+          <h2 className="text-sm font-extrabold text-catcha-chocolate">
+            🐱 น้องแมว ({c.cats.length}) — โน้ตแยกแต่ละตัว
+          </h2>
+
+          <AddCatForm customerId={c.id} onAdded={() => open(c.id)} />
+
+          {c.cats.length === 0 && (
+            <p className="text-xs text-brown-soft">ยังไม่มีน้องแมว — กรอกด้านบนแล้วกดบันทึก</p>
+          )}
           {c.cats.map((cat) => (
             <div key={cat.id} className="rounded-catcha border border-catcha-line bg-card p-4">
               <div className="flex gap-3">
@@ -468,14 +634,27 @@ export default function CustomersPage() {
                   </div>
                 )}
                 <div className="flex-1">
-                  <p className="font-bold text-brown">{cat.name}</p>
-                  <textarea
-                    defaultValue={cat.staffNote}
-                    placeholder="โน้ต เช่น แมวดุ อาบยาก"
-                    className="mt-2 w-full rounded-catcha-sm border border-catcha-line bg-paper px-2 py-1.5 text-xs"
-                    rows={2}
-                    onBlur={(e) => saveCatNote(cat.id, e.target.value, cat.photoDataUrl)}
-                  />
+                  <label className="block text-[10px] font-bold text-brown-soft">
+                    ชื่อน้องแมว
+                    <input
+                      defaultValue={cat.name}
+                      onBlur={(e) => {
+                        const v = e.target.value.trim();
+                        if (v && v !== cat.name) saveCat(cat.id, { name: v });
+                      }}
+                      className="mt-0.5 w-full rounded-catcha-sm border border-catcha-line bg-paper px-2 py-1.5 text-sm font-bold text-brown"
+                    />
+                  </label>
+                  <label className="mt-2 block text-[10px] font-bold text-brown-soft">
+                    โน้ตนิสัย (เฉพาะตัวนี้)
+                    <textarea
+                      defaultValue={cat.staffNote}
+                      placeholder="เช่น แมวดุ อาบยาก ชอบให้ใส่ตะกร้า"
+                      className="mt-0.5 w-full rounded-catcha-sm border border-catcha-line bg-paper px-2 py-1.5 text-xs"
+                      rows={2}
+                      onBlur={(e) => saveCatNote(cat.id, e.target.value, cat.photoDataUrl)}
+                    />
+                  </label>
                   <label className="mt-2 block text-[10px] font-bold text-latte-deep">
                     📷 อัปโหลดรูป (เห็นเฉพาะหลังบ้าน)
                     <input

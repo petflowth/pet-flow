@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
       id: customer.id,
       name: customer.name,
       lineUserId: customer.lineUserId,
+      lineDisplayName: customer.lineDisplayName,
       cats: customer.cats,
       isMember: customer.isMember,
       memberCredit: customer.memberCredit,

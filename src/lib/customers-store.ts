@@ -16,6 +16,8 @@ export type CustomerRecord = {
   name: string;
   phone?: string;
   lineUserId?: string;
+  /** ชื่อจากโปรไฟล์ LINE — อัปเดตอัตโนมัติ ไม่ทับชื่อที่ร้านตั้ง */
+  lineDisplayName?: string;
   cats: CatRecord[];
   isMember: boolean;
   memberCredit: number;
@@ -72,6 +74,7 @@ type CustomerRow = {
   name: string;
   phone: string | null;
   line_user_id: string | null;
+  line_display_name: string | null;
   is_member: boolean;
   member_credit: number;
   member_since: string | null;
@@ -129,6 +132,7 @@ function mapCustomer(row: CustomerRow): CustomerRecord {
     name: row.name,
     phone: row.phone ?? undefined,
     lineUserId: row.line_user_id ?? undefined,
+    lineDisplayName: row.line_display_name ?? undefined,
     isMember: row.is_member,
     memberCredit: Number(row.member_credit),
     memberSince: row.member_since ?? undefined,
@@ -249,16 +253,15 @@ export async function upsertCustomerFromLine(data: {
 
   if (existing) {
     existing.lineUserId = lineUserId;
-    if (displayName && normName(existing.name) !== normName(displayName)) {
-      existing.name = displayName;
-    }
+    existing.lineDisplayName = displayName;
+    // ไม่ทับชื่อที่ร้านตั้งเอง — อัปเดตแค่ชื่อ LINE
     existing.updatedAt = now;
     if (sb) {
       await sb
         .from("customers")
         .update({
           line_user_id: lineUserId,
-          name: existing.name,
+          line_display_name: displayName,
           updated_at: now,
         })
         .eq("id", existing.id);
@@ -274,6 +277,7 @@ export async function upsertCustomerFromLine(data: {
     id,
     name: displayName,
     lineUserId,
+    lineDisplayName: displayName,
     cats: [],
     isMember: false,
     memberCredit: 0,
@@ -286,6 +290,7 @@ export async function upsertCustomerFromLine(data: {
       id,
       name: displayName,
       line_user_id: lineUserId,
+      line_display_name: displayName,
       is_member: false,
       member_credit: 0,
       created_at: now,
@@ -509,6 +514,7 @@ export async function updateCustomer(
         name: c.name,
         phone: c.phone || null,
         line_user_id: c.lineUserId || null,
+        line_display_name: c.lineDisplayName || null,
         is_member: c.isMember,
         member_credit: c.memberCredit,
         member_since: c.memberSince || null,
@@ -544,6 +550,41 @@ export async function updateCat(
         staff_note: cat.staffNote || null,
       })
       .eq("id", catId);
+  } else {
+    memCustomers.set(customerId, c);
+  }
+  return c;
+}
+
+export async function addCat(
+  customerId: string,
+  data: { name: string; staffNote?: string }
+) {
+  const name = data.name.trim();
+  if (!name) return null;
+
+  const c = await getCustomer(customerId);
+  if (!c) return null;
+
+  const catId = `CAT${Date.now()}`;
+  const cat: CatRecord = {
+    id: catId,
+    name,
+    staffNote: data.staffNote?.trim() || undefined,
+  };
+
+  c.cats.push(cat);
+  await touchCustomer(customerId);
+
+  const sb = getSupabase();
+  if (sb) {
+    const { error } = await sb.from("cats").insert({
+      id: catId,
+      customer_id: customerId,
+      name,
+      staff_note: cat.staffNote || null,
+    });
+    if (error) throw new Error(error.message);
   } else {
     memCustomers.set(customerId, c);
   }

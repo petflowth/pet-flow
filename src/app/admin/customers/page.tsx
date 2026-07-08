@@ -456,10 +456,18 @@ function CustomerProfileSection({
 }
 
 function AddCatForm({ customerId, onAdded }: { customerId: string; onAdded: () => void }) {
+  const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  const close = () => {
+    setOpen(false);
+    setName("");
+    setNote("");
+    setError("");
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -479,8 +487,7 @@ function AddCatForm({ customerId, onAdded }: { customerId: string; onAdded: () =
     const data = await res.json().catch(() => ({}));
     setSaving(false);
     if (res.ok && data.ok) {
-      setName("");
-      setNote("");
+      close();
       onAdded();
     } else {
       setError(data.error || "บันทึกไม่สำเร็จ — ลองใหม่อีกครั้ง");
@@ -488,34 +495,63 @@ function AddCatForm({ customerId, onAdded }: { customerId: string; onAdded: () =
   };
 
   return (
-    <form
-      onSubmit={submit}
-      className="rounded-catcha border border-honey/50 bg-honey/15 p-4 space-y-2"
-    >
-      <p className="text-sm font-extrabold text-catcha-chocolate">➕ เพิ่มน้องแมว</p>
-      <input
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="ชื่อน้องแมว *"
-        required
-        className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm font-bold"
-      />
-      <textarea
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="โน้ตนิสัย เช่น แมวดุ อาบยาก กลัวเสียง"
-        rows={2}
-        className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs"
-      />
-      {error && <p className="text-xs font-bold text-wait">{error}</p>}
+    <>
       <button
-        type="submit"
-        disabled={saving || !name.trim()}
-        className="w-full rounded-catcha-sm bg-gradient-to-r from-honey to-honey-deep py-2.5 text-sm font-extrabold text-catcha-chocolate disabled:opacity-50"
+        type="button"
+        onClick={() => setOpen(true)}
+        className="w-full rounded-catcha-sm border border-dashed border-latte/50 bg-paper/50 py-2.5 text-xs font-extrabold text-latte-deep"
       >
-        {saving ? "กำลังบันทึก…" : "💾 บันทึกน้องแมว"}
+        ➕ เพิ่มน้องแมว
       </button>
-    </form>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+          <div className="w-full max-w-md rounded-catcha bg-card p-5 shadow-catcha">
+            <h2 className="mb-3 text-sm font-extrabold text-catcha-chocolate">➕ เพิ่มน้องแมว</h2>
+            <form onSubmit={submit} className="space-y-3">
+              <label className="block text-xs font-bold text-brown-soft">
+                ชื่อน้องแมว *
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="เช่น น้องจู๊ด"
+                  required
+                  autoFocus
+                  className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm font-bold"
+                />
+              </label>
+              <label className="block text-xs font-bold text-brown-soft">
+                โน้ตนิสัย (ถ้ามี)
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="เช่น แมวดุ อาบยาก กลัวเสียง"
+                  rows={3}
+                  className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs"
+                />
+              </label>
+              {error && <p className="text-xs font-bold text-wait">{error}</p>}
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={close}
+                  className="flex-1 rounded-catcha-sm bg-paper py-2.5 text-xs font-bold text-brown-soft"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving || !name.trim()}
+                  className="flex-1 rounded-catcha-sm bg-gradient-to-r from-honey to-honey-deep py-2.5 text-xs font-extrabold text-catcha-chocolate disabled:opacity-50"
+                >
+                  {saving ? "กำลังบันทึก…" : "💾 บันทึก"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -630,7 +666,7 @@ export default function CustomersPage() {
           <AddCatForm customerId={c.id} onAdded={() => open(c.id)} />
 
           {c.cats.length === 0 && (
-            <p className="text-xs text-brown-soft">ยังไม่มีน้องแมว — กรอกด้านบนแล้วกดบันทึก</p>
+            <p className="text-xs text-brown-soft">ยังไม่มีน้องแมว — กดปุ่มด้านบนเพื่อเพิ่ม</p>
           )}
           {c.cats.map((cat) => (
             <div key={cat.id} className="rounded-catcha border border-catcha-line bg-card p-4">

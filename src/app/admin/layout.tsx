@@ -4,12 +4,17 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { LocaleProvider } from "@/components/LocaleProvider";
 import { Logo } from "@/components/Logo";
-import Link from "next/link";
+import {
+  AdminMenuButton,
+  AdminNav,
+  getActiveAdminTabLabel,
+} from "@/components/AdminNav";
 
 function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [ok, setOk] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     if (pathname === "/admin/login") {
@@ -27,60 +32,44 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  const tabs = [
-    { href: "/admin", label: "แดชบอร์ด", icon: "📊" },
-    { href: "/admin/bookings/new", label: "จองใหม่", icon: "➕" },
-    { href: "/admin/customers", label: "ลูกค้า", icon: "👤" },
-    { href: "/admin/billing", label: "คิดเงิน", icon: "💳" },
-    { href: "/admin/finance", label: "การเงิน", icon: "📒" },
-    { href: "/admin/promos", label: "โปร", icon: "✨" },
-    { href: "/admin/settings", label: "ตั้งค่า", icon: "⚙️" },
-    { href: "/admin/setup", label: "ติดตั้ง", icon: "🚀" },
-  ];
-
   return (
     <div className="min-h-screen bg-catcha-gradient">
-      <header className="sticky top-0 z-40 border-b border-catcha-line bg-card/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
-          <Logo size={40} />
-          <div className="flex-1">
-            <p className="text-xs font-bold text-brown-soft">CatCha Admin</p>
-            <p className="text-sm font-extrabold text-catcha-chocolate">หลังบ้าน</p>
+      <header className="sticky top-0 z-50 border-b border-catcha-line bg-card/90 backdrop-blur-md">
+        <div className="relative mx-auto max-w-3xl md:max-w-6xl">
+          <div className="flex items-center gap-3 px-4 py-3">
+            <Logo size={40} />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-brown-soft">CatCha Admin</p>
+              <p className="truncate text-sm font-extrabold text-catcha-chocolate md:text-base">
+                หลังบ้าน
+              </p>
+              <p className="truncate text-[10px] font-bold text-latte-deep md:hidden">
+                {getActiveAdminTabLabel(pathname)}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <AdminMenuButton
+                open={menuOpen}
+                onClick={() => setMenuOpen((v) => !v)}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  sessionStorage.removeItem("catcha-admin");
+                  router.push("/admin/login");
+                }}
+                className="rounded-catcha-sm px-2 py-1.5 text-xs font-bold text-brown-faint hover:bg-honey/15 md:text-sm"
+              >
+                ออก
+              </button>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              sessionStorage.removeItem("catcha-admin");
-              router.push("/admin/login");
-            }}
-            className="text-xs font-bold text-brown-faint"
-          >
-            ออก
-          </button>
+          <AdminNav menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
         </div>
-        <nav className="mx-auto flex max-w-3xl gap-1 overflow-x-auto px-4 pb-2">
-          {tabs.map((tab) => {
-            const active =
-              tab.href === "/admin"
-                ? pathname === "/admin"
-                : pathname === tab.href || pathname.startsWith(`${tab.href}/`);
-            return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${
-                active
-                  ? "bg-honey/40 text-catcha-chocolate"
-                  : "text-brown-soft"
-              }`}
-            >
-              {tab.icon} {tab.label}
-            </Link>
-            );
-          })}
-        </nav>
       </header>
-      <main className="mx-auto max-w-3xl px-4 py-5">{children}</main>
+      <main className="mx-auto max-w-3xl px-4 py-5 md:max-w-6xl md:px-6 md:py-8">
+        {children}
+      </main>
     </div>
   );
 }

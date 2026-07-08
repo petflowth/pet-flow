@@ -7,6 +7,7 @@ import {
   ensureTelegramWebhook,
   getAppUrlFromEnv,
   getTelegramCredentials,
+  syncTelegramBotCommands,
 } from "./telegram-config";
 
 const TELEGRAM_API = "https://api.telegram.org";
@@ -172,21 +173,7 @@ export async function setTelegramWebhook(token: string, url: string) {
 }
 
 export async function setTelegramBotCommands(token: string) {
-  return telegramApi(token, "setMyCommands", {
-    commands: [
-      { command: "start", description: "เริ่มใช้ + ดู Chat ID" },
-      { command: "today", description: "นัดวันนี้" },
-      { command: "queue", description: "คิวรอยืนยัน" },
-      { command: "month", description: "ตารางเดือนนี้" },
-      { command: "sales", description: "ยอดขายวันนี้" },
-      { command: "finance", description: "การเงินวันนี้" },
-      { command: "book", description: "เพิ่มนัดลูกค้า" },
-      { command: "summary", description: "สรุปยอดลูกค้า" },
-      { command: "confirm", description: "ส่งยืนยันนัดทาง LINE" },
-      { command: "search", description: "ค้นหาลูกค้า" },
-      { command: "help", description: "วิธีใช้" },
-    ],
-  });
+  return syncTelegramBotCommands(token);
 }
 
 export function buildStartReply(chatId: number | string) {

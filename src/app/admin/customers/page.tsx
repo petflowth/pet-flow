@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import type { CatRecord, CustomerRecord, MemberTopupRecord } from "@/lib/customers-store";
 import type { PointsHistoryEntry } from "@/lib/points-store";
 import type { Booking } from "@/lib/business";
@@ -298,6 +299,7 @@ function MemberTopupSection({
 }
 
 export default function CustomersPage() {
+  const searchParams = useSearchParams();
   const [q, setQ] = useState("");
   const [list, setList] = useState<CustomerListItem[]>([]);
   const [selected, setSelected] = useState<Summary | null>(null);
@@ -312,15 +314,20 @@ export default function CustomersPage() {
     setLoading(false);
   }, []);
 
+  const open = useCallback(async (id: string) => {
+    const res = await fetch(`/api/customers?id=${id}`);
+    const data = await res.json();
+    setSelected(data);
+  }, []);
+
   useEffect(() => {
     search("");
   }, [search]);
 
-  const open = async (id: string) => {
-    const res = await fetch(`/api/customers?id=${id}`);
-    const data = await res.json();
-    setSelected(data);
-  };
+  useEffect(() => {
+    const id = searchParams.get("id");
+    if (id) open(id);
+  }, [searchParams, open]);
 
   const saveCatNote = async (catId: string, staffNote: string, photoDataUrl?: string) => {
     if (!selected) return;

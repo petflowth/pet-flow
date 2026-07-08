@@ -1,4 +1,5 @@
 import { listBookings } from "./bookings-store";
+import { datesForBooking } from "./booking-customer-match";
 import { todayFinance, monthFinance } from "./finance-store";
 import { salesSummary } from "./invoices-store";
 
@@ -30,19 +31,20 @@ export async function bookingsForMonth(yearMonth: string) {
   const all = await listBookings();
   return all.filter((b) => {
     if (b.status === "cancelled") return false;
-    const d = b.date || b.checkin || "";
-    return d.startsWith(prefix);
+    return datesForBooking(b).some((d) => d.startsWith(prefix));
   });
 }
 
 export async function bookingsByDateMap(yearMonth: string) {
+  const prefix = yearMonth.slice(0, 7);
   const map = new Map<string, Awaited<ReturnType<typeof listBookings>>>();
   for (const b of await bookingsForMonth(yearMonth)) {
-    const key = b.date || b.checkin || "";
-    if (!key) continue;
-    const list = map.get(key) || [];
-    list.push(b);
-    map.set(key, list);
+    for (const key of datesForBooking(b)) {
+      if (!key.startsWith(prefix)) continue;
+      const list = map.get(key) || [];
+      list.push(b);
+      map.set(key, list);
+    }
   }
   return map;
 }

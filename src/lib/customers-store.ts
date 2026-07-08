@@ -1,4 +1,5 @@
-import { bookingMatchesCustomer, isUpcomingBooking } from "./booking-customer-match";
+import { bookingMatchesCustomer, datesForBooking, isUpcomingBooking } from "./booking-customer-match";
+import type { Booking } from "./business";
 import { listBookings } from "./bookings-store";
 import { getAccount, getPointsHistory } from "./points-store";
 import { getSupabase } from "./supabase/server";
@@ -309,6 +310,13 @@ export async function upsertCustomerFromBooking(data: {
     memCustomers.set(existing.id, existing);
   }
   return existing;
+}
+
+export async function findCustomerForBooking(
+  booking: Pick<Booking, "customerName" | "catName"> & { lineUserId?: string }
+) {
+  const all = await fetchAllCustomers();
+  return all.find((c) => bookingMatchesCustomer(booking, c));
 }
 
 export async function updateCustomer(

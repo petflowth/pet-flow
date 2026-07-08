@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { adminJson } from "@/lib/admin-fetch";
 import { BookingEditModal, type EditableBooking } from "@/components/BookingEditModal";
+import { bookingOnDate } from "@/lib/booking-customer-match";
 
 type Stats = {
   today: string;
@@ -16,7 +17,7 @@ type Stats = {
   financeMonth: { income: number; expense: number; net: number };
 };
 
-type CalendarDay = EditableBooking;
+type CalendarDay = EditableBooking & { customerId?: string };
 
 function bookingWhen(b: CalendarDay) {
   if (b.service === "room" || b.checkin) {
@@ -25,16 +26,26 @@ function bookingWhen(b: CalendarDay) {
   return `${b.date} ${b.time || ""}`.trim();
 }
 
+function formatThaiDate(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  const months = [
+    "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+    "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
+  ];
+  return `${d} ${months[m - 1]} ${y + 543}`;
+}
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [calendar, setCalendar] = useState<Record<string, CalendarDay[]>>({});
   const [bookings, setBookings] = useState<CalendarDay[]>([]);
-  const [view, setView] = useState<"today" | "week">("today");
+  const [selectedDate, setSelectedDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<CalendarDay | null>(null);
   const [rooms, setRooms] = useState<{ id: string; name: string; size: string; price: number }[]>([]);
   const [groomSlots, setGroomSlots] = useState<string[]>(["09:30", "12:30", "15:30"]);
+  const queueRef = useRef<HTMLElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -49,6 +60,7 @@ export default function AdminDashboard() {
       setCalendar(sResult.data.calendar || {});
       if (bResult.ok) setBookings(bResult.data.bookings || []);
       else setBookings([]);
+      setSelectedDate((prev) => prev || sResult.data.stats.today);
     } else {
       setStats(null);
       setError(sResult.ok ? "โหลดสถิติไม่สำเร็จ" : sResult.error);
@@ -71,16 +83,16 @@ export default function AdminDashboard() {
   }, []);
 
   const today = stats?.today || new Date().toISOString().slice(0, 10);
-  const weekEnd = new Date(today);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-  const weekEndStr = weekEnd.toISOString().slice(0, 10);
+  const activeDate = selectedDate || today;
 
-  const filtered = bookings.filter((b) => {
-    if (b.status === "cancelled") return false;
-    const d = b.date || b.checkin || "";
-    if (view === "today") return d === today;
-    return d >= today && d <= weekEndStr;
-  });
+  const dayBookings = bookings.filter(
+    (b) => b.status !== "cancelled" && bookingOnDate(b, activeDate)
+  );
+
+  const pickDate = (key: string) => {
+    setSelectedDate(key);
+    queueRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const cancelBooking = async (b: CalendarDay) => {
     if (!confirm(`ยกเลิกนัด ${b.catName} · ${b.customerName}?`)) return;
@@ -161,9 +173,21 @@ export default function AdminDashboard() {
       )}
 
       <section className="rounded-catcha bg-card p-4 shadow-catcha-sm">
-        <h2 className="mb-3 text-sm font-extrabold text-catcha-chocolate">
-          🗓️ ตารางนัดเดือน {m}/{y}
-        </h2>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="text-sm font-extrabold text-catcha-chocolate">
+            🗓️ ตารางนัดเดือน {m}/{y}
+          </h2>
+          {activeDate !== today && (
+            <button
+              type="button"
+              onClick={() => pickDate(today)}
+              className="rounded-full bg-honey/30 px-3 py-1 text-[10px] font-bold text-catcha-chocolate"
+            >
+              กลับวันนี้
+            </button>
+          )}
+        </div>
+        <p className="mb-2 text-[10px] text-brown-soft">แตะวันที่เพื่อดูรายการนัด</p>
         <div className="grid grid-cols-7 gap-1 text-center text-[9px] font-bold text-brown-faint">
           {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((d) => (
             <div key={d}>{d}</div>
@@ -176,45 +200,42 @@ export default function AdminDashboard() {
             const key = `${ym}-${String(day).padStart(2, "0")}`;
             const count = calendar[key]?.length || 0;
             const isToday = key === today;
+            const isSelected = key === activeDate;
             return (
-              <div
+              <button
                 key={key}
-                className={`rounded-lg py-1.5 ${
-                  isToday ? "bg-honey/40 font-extrabold text-catcha-chocolate" : "bg-paper/50"
+                type="button"
+                onClick={() => pickDate(key)}
+                className={`rounded-lg py-1.5 transition ${
+                  isSelected
+                    ? "bg-latte/40 font-extrabold text-catcha-chocolate ring-2 ring-latte-deep"
+                    : isToday
+                      ? "bg-honey/40 font-extrabold text-catcha-chocolate"
+                      : "bg-paper/50 hover:bg-paper"
                 } ${count ? "ring-1 ring-latte/40" : ""}`}
               >
                 {day}
                 {count > 0 && (
                   <div className="text-[8px] text-latte-deep">{count}นัด</div>
                 )}
-              </div>
+              </button>
             );
           })}
         </div>
       </section>
 
-      <div className="flex gap-2">
-        {(["today", "week"] as const).map((v) => (
-          <button
-            key={v}
-            type="button"
-            onClick={() => setView(v)}
-            className={`rounded-full px-4 py-2 text-xs font-bold ${
-              view === v ? "bg-honey/50 text-catcha-chocolate" : "bg-paper text-brown-soft"
-            }`}
-          >
-            {v === "today" ? "📅 วันนี้" : "🗓️ 7 วัน"}
-          </button>
-        ))}
-      </div>
-
-      <section className="rounded-catcha bg-card p-4 shadow-catcha-sm">
-        <h2 className="mb-3 text-sm font-extrabold text-catcha-chocolate">คิวนัด</h2>
+      <section ref={queueRef} className="rounded-catcha bg-card p-4 shadow-catcha-sm">
+        <h2 className="mb-1 text-sm font-extrabold text-catcha-chocolate">
+          📋 นัดวันที่ {formatThaiDate(activeDate)}
+        </h2>
+        <p className="mb-3 text-[10px] text-brown-soft">
+          {dayBookings.length} นัด{activeDate === today ? " (วันนี้)" : ""}
+        </p>
         <ul className="space-y-2">
-          {filtered.length === 0 ? (
-            <li className="text-center text-xs text-brown-soft py-4">ไม่มีนัดในช่วงนี้</li>
+          {dayBookings.length === 0 ? (
+            <li className="text-center text-xs text-brown-soft py-4">ไม่มีนัดในวันนี้</li>
           ) : (
-            filtered.map((b) => (
+            dayBookings.map((b) => (
               <li
                 key={b.id}
                 className="flex flex-wrap items-center gap-2 rounded-catcha-sm border border-catcha-line bg-paper/50 p-3"
@@ -226,6 +247,16 @@ export default function AdminDashboard() {
                   <p className="text-xs text-brown-soft">
                     {b.service === "room" ? "🏠 ห้องพัก" : "🛁 อาบน้ำ"} · {bookingWhen(b)}
                   </p>
+                  {b.customerId ? (
+                    <Link
+                      href={`/admin/customers?id=${b.customerId}`}
+                      className="mt-1 inline-block text-[10px] font-bold text-latte-deep underline"
+                    >
+                      👤 ดูข้อมูลลูกค้า
+                    </Link>
+                  ) : (
+                    <p className="mt-1 text-[10px] text-brown-faint">ยังไม่มีข้อมูลลูกค้าในระบบ</p>
+                  )}
                 </div>
                 <button
                   type="button"

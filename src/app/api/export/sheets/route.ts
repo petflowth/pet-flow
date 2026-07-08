@@ -16,9 +16,9 @@ export async function POST(req: NextRequest) {
   if (!result.ok) {
     const messages: Record<string, string> = {
       google_not_configured:
-        "ยังไม่ได้ใส่ GOOGLE_SERVICE_ACCOUNT_EMAIL / GOOGLE_PRIVATE_KEY ใน Vercel",
+        "ยังไม่ได้ตั้ง Google — ไป Admin → ติดตั้ง → วาง JSON + ลิงก์ Sheet/Calendar",
       spreadsheet_not_configured:
-        "ยังไม่ได้ใส่ GOOGLE_SPREADSHEET_ID ใน Vercel",
+        "ยังไม่ได้ตั้ง Google Spreadsheet — ไป Admin → ติดตั้ง",
     };
     return NextResponse.json(
       {

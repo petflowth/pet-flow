@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { adminJson } from "@/lib/admin-fetch";
+import { GoogleSetupSection } from "@/components/GoogleSetupSection";
 
 type Status = {
   supabaseUrl: boolean;
@@ -67,8 +68,10 @@ export default function SetupPage() {
     <div>
       <h1 className="mb-1 text-lg font-extrabold text-catcha-chocolate">🚀 ติดตั้งระบบ</h1>
       <p className="mb-4 text-xs text-brown-soft">
-        ทำครั้งเดียว — หลังจากนี้แก้ทุกอย่างจากเมนูตั้งค่าได้เลย
+        ทำครั้งเดียว — วาง JSON / ลิงก์ แล้วกดบันทึก ไม่ต้องไล่ใส่ Vercel ทีละตัว
       </p>
+
+      <GoogleSetupSection adminCode={adminCode} />
 
       {msg && (
         <p className="mb-4 rounded-catcha-sm bg-paper px-3 py-2 text-xs font-bold text-brown">

@@ -1,0 +1,133 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+
+type GoogleStatus = {
+  configured: boolean;
+  source: string;
+  serviceAccountEmail?: string;
+  test?: { ok: boolean; messages: string[] };
+};
+
+export function GoogleSetupSection({ adminCode }: { adminCode: string }) {
+  const [status, setStatus] = useState<GoogleStatus | null>(null);
+  const [jsonText, setJsonText] = useState("");
+  const [spreadsheetUrl, setSpreadsheetUrl] = useState(
+    "https://docs.google.com/spreadsheets/d/1VQD7eHUpkiy6TuyfgVATsUM_aOxNdbxyZYSbrw1EF74/edit"
+  );
+  const [calendarUrl, setCalendarUrl] = useState(
+    "https://calendar.google.com/calendar/u/0?cid=OGU5ZDJkZjU3ODBiOWJmY2U0NmI2NjBhZGQzY2VlMmVkNDFlZDcxZTFiZDcwNjViMWFlY2YzZTgxZTI3OTI3Y0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t"
+  );
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch("/api/setup/google");
+    const data = await res.json();
+    setStatus(data);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const save = async () => {
+    setSaving(true);
+    setMsg("");
+    const res = await fetch("/api/setup/google", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ adminCode, jsonText, spreadsheetUrl, calendarUrl }),
+    });
+    const data = await res.json();
+    setMsg(data.message || data.error || "");
+    if (data.ok) await load();
+    setSaving(false);
+  };
+
+  if (loading) {
+    return <p className="text-xs text-brown-soft">กำลังตรวจ Google…</p>;
+  }
+
+  return (
+    <section className="mb-4 space-y-3 rounded-catcha border border-latte/40 bg-card p-4 shadow-catcha-sm">
+      <h2 className="text-sm font-extrabold text-catcha-chocolate">
+        📅 Google Calendar + Sheets
+      </h2>
+      <p className="text-xs text-brown-soft">
+        วาง 3 อย่างแล้วกดบันทึก — <b>ไม่ต้องใส่ Vercel</b> (เก็บในระบบให้)
+      </p>
+
+      {status?.configured ? (
+        <div className="rounded-catcha-sm bg-sage/15 px-3 py-2 text-xs">
+          <p className="font-bold text-ok">✅ Google พร้อมแล้ว ({status.source})</p>
+          {status.serviceAccountEmail && (
+            <p className="mt-1 text-brown-soft">Service: {status.serviceAccountEmail}</p>
+          )}
+        </div>
+      ) : null}
+
+      {msg && (
+        <p className="whitespace-pre-line rounded-catcha-sm bg-paper px-3 py-2 text-xs font-bold text-brown">
+          {msg}
+        </p>
+      )}
+
+      <label className="block text-xs font-bold text-brown-soft">
+        1. วางไฟล์ JSON จาก Google Cloud (ทั้งก้อน)
+        <textarea
+          value={jsonText}
+          onChange={(e) => setJsonText(e.target.value)}
+          rows={6}
+          placeholder='วางเนื้อหา catcha-hote-xxxxx.json ทั้งไฟล์…'
+          className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper p-2 font-mono text-[10px]"
+        />
+      </label>
+
+      <label className="block text-xs font-bold text-brown-soft">
+        2. ลิงก์ Google Sheet
+        <input
+          value={spreadsheetUrl}
+          onChange={(e) => setSpreadsheetUrl(e.target.value)}
+          className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs"
+        />
+      </label>
+
+      <label className="block text-xs font-bold text-brown-soft">
+        3. ลิงก์ Google Calendar
+        <input
+          value={calendarUrl}
+          onChange={(e) => setCalendarUrl(e.target.value)}
+          className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs"
+        />
+      </label>
+
+      <div className="rounded-catcha-sm bg-honey/15 px-3 py-2 text-[10px] text-brown-soft">
+        <p className="font-bold text-catcha-chocolate">ก่อนกดบันทึก — Share ให้ service account:</p>
+        <p className="mt-1">
+          เปิด JSON ดู <code>client_email</code> → Share Sheet (Editor) + Calendar (แก้ไข event)
+        </p>
+      </div>
+
+      <button
+        type="button"
+        disabled={saving || !jsonText.trim()}
+        onClick={save}
+        className="w-full rounded-catcha-sm bg-gradient-to-r from-latte/40 to-sage/30 py-3 text-sm font-extrabold text-catcha-chocolate disabled:opacity-40"
+      >
+        {saving ? "กำลังทดสอบและบันทึก…" : "💾 บันทึก Google (ทดสอบอัตโนมัติ)"}
+      </button>
+
+      {status?.test?.messages?.length ? (
+        <ul className="space-y-1 text-[10px] text-brown-soft">
+          {status.test.messages.map((m) => (
+            <li key={m}>{m}</li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  );
+}

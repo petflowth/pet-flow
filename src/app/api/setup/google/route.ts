@@ -1,0 +1,102 @@
+import { NextRequest, NextResponse } from "next/server";
+import {
+  getGoogleCredentials,
+  getGoogleIds,
+  isGoogleConfigured,
+  parseCalendarId,
+  parseServiceAccountJson,
+  parseSpreadsheetId,
+  testGoogleConnection,
+} from "@/lib/google-config";
+import { getSecrets, saveGoogleSecrets } from "@/lib/secrets-store";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+function checkAdmin(body: { adminCode?: string }) {
+  const secret = process.env.NEXT_PUBLIC_ADMIN_CODE;
+  return !secret || body.adminCode === secret;
+}
+
+export async function GET() {
+  const configured = await isGoogleConfigured();
+  const ids = await getGoogleIds();
+  const secrets = await getSecrets();
+  const hasDb = Boolean(secrets.google?.serviceAccountEmail);
+
+  let test = null;
+  if (configured) {
+    const creds = await getGoogleCredentials();
+    if (creds) test = await testGoogleConnection(creds);
+  }
+
+  return NextResponse.json({
+    configured,
+    source: ids.source || (hasDb ? "database" : "none"),
+    serviceAccountEmail: ids.serviceAccountEmail,
+    calendarId: ids.calendarId,
+    spreadsheetId: ids.spreadsheetId,
+    test,
+  });
+}
+
+export async function POST(req: NextRequest) {
+  const body = await req.json().catch(() => ({}));
+  if (!checkAdmin(body)) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { serviceAccountEmail, privateKey } = parseServiceAccountJson(
+      String(body.jsonText || "")
+    );
+    const spreadsheetId = parseSpreadsheetId(String(body.spreadsheetUrl || ""));
+    const calendarId = parseCalendarId(String(body.calendarUrl || ""));
+
+    if (!spreadsheetId || !calendarId) {
+      return NextResponse.json(
+        { ok: false, message: "วางลิงก์ Google Sheet และ Calendar ให้ครบ" },
+        { status: 400 }
+      );
+    }
+
+    const creds = {
+      serviceAccountEmail,
+      privateKey,
+      calendarId,
+      spreadsheetId,
+      source: "database" as const,
+    };
+
+    const test = await testGoogleConnection(creds);
+    if (!test.ok) {
+      return NextResponse.json({
+        ok: false,
+        test,
+        message: test.messages.join("\n"),
+      });
+    }
+
+    await saveGoogleSecrets({
+      serviceAccountEmail,
+      privateKey,
+      calendarId,
+      spreadsheetId,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      test,
+      message: "✅ บันทึก Google สำเร็จ — Calendar + Sheets พร้อมใช้งาน",
+      serviceAccountEmail,
+    });
+  } catch (e) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message: e instanceof Error ? e.message : String(e),
+      },
+      { status: 400 }
+    );
+  }
+}

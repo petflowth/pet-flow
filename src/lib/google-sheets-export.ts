@@ -1,6 +1,7 @@
 import type { CustomerRecord } from "./customers-store";
 import type { FinanceRecord } from "./finance-store";
-import { getSheetsApi, googleServiceConfigured } from "./google-auth";
+import { getGoogleCredentials, isGoogleConfigured } from "./google-config";
+import { getSheetsApi } from "./google-auth";
 import { listCustomers } from "./customers-store";
 import { listFinance } from "./finance-store";
 
@@ -133,8 +134,8 @@ export type SheetsExportResult = {
 };
 
 export async function exportToGoogleSheets(): Promise<SheetsExportResult> {
-  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
-  if (!googleServiceConfigured()) {
+  const creds = await getGoogleCredentials();
+  if (!(await isGoogleConfigured()) || !creds) {
     return {
       ok: false,
       reason: "google_not_configured",
@@ -142,14 +143,7 @@ export async function exportToGoogleSheets(): Promise<SheetsExportResult> {
       finance: 0,
     };
   }
-  if (!spreadsheetId) {
-    return {
-      ok: false,
-      reason: "spreadsheet_not_configured",
-      customers: 0,
-      finance: 0,
-    };
-  }
+  const spreadsheetId = creds.spreadsheetId;
 
   const [customers, finance] = await Promise.all([
     listCustomers(),

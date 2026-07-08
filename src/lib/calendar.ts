@@ -3,6 +3,7 @@
  */
 
 import type { calendar_v3 } from "googleapis";
+import { getGoogleCredentials, isGoogleConfigured } from "./google-config";
 
 export const CALENDAR_OWNER_EMAILS = [
   "chutchanok.than@gmail.com",
@@ -157,20 +158,13 @@ type CalendarResult = {
   htmlLink?: string;
 };
 
-function calendarConfigured() {
-  return Boolean(
-    process.env.GOOGLE_CALENDAR_ID &&
-      process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
-      process.env.GOOGLE_PRIVATE_KEY
-  );
-}
-
 async function getCalendarApi() {
+  const creds = await getGoogleCredentials();
+  if (!creds) throw new Error("google_not_configured");
   const { google } = await import("googleapis");
-  const key = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
   const auth = new google.auth.JWT({
-    email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    key,
+    email: creds.serviceAccountEmail,
+    key: creds.privateKey,
     scopes: ["https://www.googleapis.com/auth/calendar"],
   });
   return google.calendar({ version: "v3", auth });
@@ -255,13 +249,16 @@ export async function createCalendarEvent(
   const uid = booking.eventId || `evt_${Date.now()}`;
   const payload = { ...booking, bookingId: booking.eventId || booking.bookingId };
 
-  if (!calendarConfigured()) {
+  if (!(await isGoogleConfigured())) {
     return fallbackResult(payload, uid, "calendar_not_configured");
   }
 
   try {
+    const creds = await getGoogleCredentials();
+    if (!creds) return fallbackResult(payload, uid, "calendar_not_configured");
+
     const calendar = await getCalendarApi();
-    const calId = process.env.GOOGLE_CALENDAR_ID!;
+    const calId = creds.calendarId;
     const resource = buildGoogleEventResource(payload);
 
     const res = await calendar.events.insert({
@@ -300,11 +297,16 @@ export async function updateCalendarEventConfirmed(
   googleEventId: string,
   booking: CalendarBookingInput & { checkinTime?: string }
 ) {
-  if (!calendarConfigured() || !googleEventId) return { ok: false, reason: "not_configured" };
+  if (!(await isGoogleConfigured()) || !googleEventId) {
+    return { ok: false, reason: "not_configured" };
+  }
 
   try {
+    const creds = await getGoogleCredentials();
+    if (!creds) return { ok: false, reason: "not_configured" };
+
     const calendar = await getCalendarApi();
-    const calId = process.env.GOOGLE_CALENDAR_ID!;
+    const calId = creds.calendarId;
     const existing = await calendar.events.get({ calendarId: calId, eventId: googleEventId });
     const base = buildGoogleEventResource(booking, { confirmed: true });
 

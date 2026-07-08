@@ -130,6 +130,20 @@ create table if not exists service_records (
 
 create index if not exists service_records_customer_id_idx on service_records(customer_id);
 
+-- ประวัติเติมเครดิต Member (แยกเงินที่รับจริง vs แถม)
+create table if not exists member_topups (
+  id text primary key,
+  customer_id text not null references customers(id) on delete cascade,
+  paid_amount numeric not null default 0,
+  bonus_amount numeric not null default 0,
+  credit_added numeric not null,
+  balance_after numeric not null,
+  note text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists member_topups_customer_id_idx on member_topups(customer_id);
+
 -- ข้อมูลเริ่มต้น (รันครั้งเดียว)
 insert into customers (id, name, line_user_id, is_member, member_credit)
 values ('C001', 'คุณมาย', 'dev-user', false, 0)

@@ -5,7 +5,7 @@ import {
   getCustomer,
   updateCustomer,
   updateCat,
-  addMemberCredit,
+  topupMemberCredit,
   upsertCustomerFromBooking,
   customerSummary,
 } from "@/lib/customers-store";
@@ -53,9 +53,24 @@ export async function PATCH(req: NextRequest) {
   }
 
   if (action === "topup_member") {
-    const c = await addMemberCredit(id, Number(body.amount) || 0);
-    if (!c) return NextResponse.json({ error: "not found" }, { status: 404 });
-    return NextResponse.json({ ok: true, customer: c });
+    const paidAmount =
+      body.paidAmount != null
+        ? Number(body.paidAmount)
+        : Number(body.amount) || 0;
+    const bonusAmount = Number(body.bonusAmount) || 0;
+    const result = await topupMemberCredit(id, {
+      paidAmount,
+      bonusAmount,
+      note: body.note,
+    });
+    if (!result) {
+      return NextResponse.json({ error: "invalid_topup" }, { status: 400 });
+    }
+    return NextResponse.json({
+      ok: true,
+      customer: result.customer,
+      topup: result.topup,
+    });
   }
 
   if (action === "set_member") {

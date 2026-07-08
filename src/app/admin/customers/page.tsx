@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
-import type { CatRecord, CustomerRecord } from "@/lib/customers-store";
+import type { CatRecord, CustomerRecord, MemberTopupRecord } from "@/lib/customers-store";
 import type { PointsHistoryEntry } from "@/lib/points-store";
 import type { Booking } from "@/lib/business";
 import { ExportSheetsButton } from "@/components/ExportSheetsButton";
@@ -15,8 +15,174 @@ type Summary = {
     bookings: Booking[];
     services: { id: string; service: string; date: string; amount?: number; catName: string }[];
     points: PointsHistoryEntry[];
+    memberTopups: MemberTopupRecord[];
   };
 };
+
+const MEMBER_PROMOS = [
+  { label: "10,000 → 12,000", paid: 10000, bonus: 2000 },
+  { label: "5,000 → 5,500", paid: 5000, bonus: 500 },
+  { label: "3,000 → 3,200", paid: 3000, bonus: 200 },
+] as const;
+
+function MemberTopupSection({
+  customerId,
+  memberCredit,
+  topups,
+  onDone,
+}: {
+  customerId: string;
+  memberCredit: number;
+  topups: MemberTopupRecord[];
+  onDone: () => void;
+}) {
+  const [paid, setPaid] = useState("");
+  const [bonus, setBonus] = useState("");
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const paidNum = Math.max(0, Number(paid) || 0);
+  const bonusNum = Math.max(0, Number(bonus) || 0);
+  const total = paidNum + bonusNum;
+
+  const applyPromo = (p: number, b: number) => {
+    setPaid(String(p));
+    setBonus(String(b));
+    setMsg("");
+  };
+
+  const submit = async () => {
+    if (total <= 0) {
+      setMsg("กรอกยอดรับเงินหรือแถมอย่างน้อย 1 บาท");
+      return;
+    }
+    setSaving(true);
+    setMsg("");
+    const res = await fetch("/api/customers", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: customerId,
+        action: "topup_member",
+        paidAmount: paidNum,
+        bonusAmount: bonusNum,
+        note: note.trim() || undefined,
+      }),
+    });
+    const data = await res.json();
+    setSaving(false);
+    if (res.ok) {
+      setPaid("");
+      setBonus("");
+      setNote("");
+      setMsg(`✅ เติมสำเร็จ +${total.toLocaleString()} บาท (คงเหลือ ${data.customer.memberCredit.toLocaleString()} บาท)`);
+      onDone();
+    } else {
+      setMsg("❌ บันทึกไม่สำเร็จ");
+    }
+  };
+
+  return (
+    <section className="mb-4 rounded-catcha bg-card p-4">
+      <h2 className="mb-1 text-sm font-extrabold">💎 เติมเครดิต Member</h2>
+      <p className="mb-3 text-[10px] text-brown-soft">
+        คงเหลือ <span className="font-bold text-latte-deep">{memberCredit.toLocaleString()} บาท</span>
+      </p>
+
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        <label className="block text-[10px] font-bold text-brown-soft">
+          💵 รับเงินจริง (บาท)
+          <input
+            type="number"
+            min={0}
+            value={paid}
+            onChange={(e) => setPaid(e.target.value)}
+            placeholder="10000"
+            className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm font-bold text-catcha-chocolate"
+          />
+        </label>
+        <label className="block text-[10px] font-bold text-brown-soft">
+          🎁 แถมเครดิต (บาท)
+          <input
+            type="number"
+            min={0}
+            value={bonus}
+            onChange={(e) => setBonus(e.target.value)}
+            placeholder="2000"
+            className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm font-bold text-latte-deep"
+          />
+        </label>
+      </div>
+
+      {total > 0 && (
+        <p className="mb-3 rounded-catcha-sm bg-honey/20 px-3 py-2 text-center text-xs font-bold text-catcha-chocolate">
+          ลูกค้าได้เครดิตรวม <span className="text-base">{total.toLocaleString()}</span> บาท
+          {bonusNum > 0 && (
+            <span className="block text-[10px] font-normal text-brown-soft">
+              (จ่าย {paidNum.toLocaleString()} + แถม {bonusNum.toLocaleString()})
+            </span>
+          )}
+        </p>
+      )}
+
+      <p className="mb-2 text-[10px] font-bold text-brown-faint">โปรด่วน</p>
+      <div className="mb-3 flex flex-wrap gap-2">
+        {MEMBER_PROMOS.map((p) => (
+          <button
+            key={p.label}
+            type="button"
+            onClick={() => applyPromo(p.paid, p.bonus)}
+            className="rounded-full bg-honey/30 px-3 py-1.5 text-[10px] font-bold text-catcha-chocolate"
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      <input
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="โน้ต (ถ้ามี) เช่น โปรปีใหม่"
+        className="mb-3 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs"
+      />
+
+      <button
+        type="button"
+        disabled={saving || total <= 0}
+        onClick={submit}
+        className="w-full rounded-catcha-sm bg-latte/30 py-2.5 text-sm font-extrabold text-catcha-chocolate disabled:opacity-40"
+      >
+        {saving ? "กำลังบันทึก…" : `บันทึกเติม Member +${total > 0 ? total.toLocaleString() : "—"} บาท`}
+      </button>
+
+      {msg && (
+        <p className="mt-2 text-center text-[10px] font-bold text-brown">{msg}</p>
+      )}
+
+      {topups.length > 0 && (
+        <div className="mt-4 border-t border-catcha-line pt-3">
+          <p className="mb-2 text-[10px] font-extrabold text-brown-soft">ประวัติเติม Member</p>
+          <ul className="space-y-2 text-[10px] text-brown-soft">
+            {topups.map((t) => (
+              <li key={t.id} className="rounded-catcha-sm bg-paper/60 px-2 py-1.5">
+                <span className="font-bold text-brown">{t.createdAt.slice(0, 10)}</span>
+                {" · "}
+                รับ {t.paidAmount.toLocaleString()} บาท
+                {t.bonusAmount > 0 && (
+                  <> · แถม {t.bonusAmount.toLocaleString()} บาท</>
+                )}
+                {" · "}
+                <span className="text-latte-deep">+{t.creditAdded.toLocaleString()} เครดิต</span>
+                {t.note && <span className="block text-brown-faint">{t.note}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  );
+}
 
 export default function CustomersPage() {
   const [q, setQ] = useState("");
@@ -58,19 +224,6 @@ export default function CustomersPage() {
     open(selected.customer.id);
   };
 
-  const topup = async (amount: number) => {
-    if (!selected) return;
-    await fetch("/api/customers", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: selected.customer.id,
-        action: "topup_member",
-        amount,
-      }),
-    });
-    open(selected.customer.id);
-  };
 
   const onPhoto = (cat: CatRecord, file: File) => {
     const reader = new FileReader();
@@ -144,21 +297,12 @@ export default function CustomersPage() {
           ))}
         </section>
 
-        <section className="mb-4 rounded-catcha bg-card p-4">
-          <h2 className="mb-2 text-sm font-extrabold">💎 Member</h2>
-          <div className="flex gap-2">
-            {[500, 1000, 2000].map((amt) => (
-              <button
-                key={amt}
-                type="button"
-                onClick={() => topup(amt)}
-                className="flex-1 rounded-catcha-sm bg-honey/30 py-2 text-xs font-bold"
-              >
-                +{amt}
-              </button>
-            ))}
-          </div>
-        </section>
+        <MemberTopupSection
+          customerId={c.id}
+          memberCredit={c.memberCredit}
+          topups={selected.history.memberTopups || []}
+          onDone={() => open(c.id)}
+        />
 
         <section className="mb-4 rounded-catcha bg-card p-4">
           <h2 className="mb-2 text-sm font-extrabold">📋 ประวัติใช้บริการ</h2>

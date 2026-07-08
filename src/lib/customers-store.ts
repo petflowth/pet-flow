@@ -35,6 +35,18 @@ export type ServiceRecord = {
   at: string;
 };
 
+/** ประวัติเติมเครดิต Member — แยกเงินที่รับจริง vs แถม */
+export type MemberTopupRecord = {
+  id: string;
+  customerId: string;
+  paidAmount: number;
+  bonusAmount: number;
+  creditAdded: number;
+  balanceAfter: number;
+  note?: string;
+  createdAt: string;
+};
+
 type CatRow = {
   id: string;
   customer_id: string;
@@ -69,8 +81,20 @@ type ServiceRow = {
   created_at: string;
 };
 
+type MemberTopupRow = {
+  id: string;
+  customer_id: string;
+  paid_amount: number;
+  bonus_amount: number;
+  credit_added: number;
+  balance_after: number;
+  note: string | null;
+  created_at: string;
+};
+
 const memCustomers = new Map<string, CustomerRecord>();
 const memServices: ServiceRecord[] = [];
+const memMemberTopups: MemberTopupRecord[] = [];
 
 function seedMem() {
   const c: CustomerRecord = {
@@ -339,16 +363,74 @@ export async function updateCat(
 }
 
 export async function addMemberCredit(customerId: string, amount: number) {
+  return topupMemberCredit(customerId, { paidAmount: amount, bonusAmount: 0 });
+}
+
+export async function topupMemberCredit(
+  customerId: string,
+  data: { paidAmount: number; bonusAmount?: number; note?: string }
+) {
+  const paid = Math.max(0, Number(data.paidAmount) || 0);
+  const bonus = Math.max(0, Number(data.bonusAmount) || 0);
+  const creditAdded = paid + bonus;
+  if (creditAdded <= 0) return null;
+
   const c = await getCustomer(customerId);
   if (!c) return null;
-  c.memberCredit += amount;
+
+  c.memberCredit += creditAdded;
   c.isMember = true;
   if (!c.memberSince) c.memberSince = new Date().toISOString().slice(0, 10);
-  return updateCustomer(customerId, {
+
+  const updated = await updateCustomer(customerId, {
     isMember: c.isMember,
     memberCredit: c.memberCredit,
     memberSince: c.memberSince,
   });
+  if (!updated) return null;
+
+  const topup: MemberTopupRecord = {
+    id: `MT${Date.now()}`,
+    customerId,
+    paidAmount: paid,
+    bonusAmount: bonus,
+    creditAdded,
+    balanceAfter: c.memberCredit,
+    note: data.note?.trim() || undefined,
+    createdAt: new Date().toISOString(),
+  };
+
+  const sb = getSupabase();
+  if (sb) {
+    await sb.from("member_topups").insert({
+      id: topup.id,
+      customer_id: topup.customerId,
+      paid_amount: topup.paidAmount,
+      bonus_amount: topup.bonusAmount,
+      credit_added: topup.creditAdded,
+      balance_after: topup.balanceAfter,
+      note: topup.note || null,
+      created_at: topup.createdAt,
+    });
+  } else {
+    memMemberTopups.unshift(topup);
+  }
+
+  if (paid > 0) {
+    const { addFinanceEntry } = await import("./finance-store");
+    const bonusLabel =
+      bonus > 0 ? ` (แถม ${bonus.toLocaleString()} บาท)` : "";
+    await addFinanceEntry({
+      type: "income",
+      amount: paid,
+      category: "member",
+      description: `เติม Member ${c.name} +${creditAdded.toLocaleString()} บาท${bonusLabel}`,
+      date: topup.createdAt.slice(0, 10),
+      customerId,
+    });
+  }
+
+  return { customer: updated, topup };
 }
 
 export async function deductMemberCredit(customerId: string, amount: number) {
@@ -413,6 +495,28 @@ async function listServiceRecords(customerId: string) {
   return memServices.filter((s) => s.customerId === customerId);
 }
 
+async function listMemberTopups(customerId: string): Promise<MemberTopupRecord[]> {
+  const sb = getSupabase();
+  if (sb) {
+    const { data } = await sb
+      .from("member_topups")
+      .select("*")
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: false });
+    return ((data as MemberTopupRow[] | null) || []).map((r) => ({
+      id: r.id,
+      customerId: r.customer_id,
+      paidAmount: Number(r.paid_amount),
+      bonusAmount: Number(r.bonus_amount),
+      creditAdded: Number(r.credit_added),
+      balanceAfter: Number(r.balance_after),
+      note: r.note ?? undefined,
+      createdAt: r.created_at,
+    }));
+  }
+  return memMemberTopups.filter((t) => t.customerId === customerId);
+}
+
 export async function getCustomerHistory(customerId: string) {
   const c = await getCustomer(customerId);
   const allBookings = await listBookings();
@@ -421,7 +525,8 @@ export async function getCustomerHistory(customerId: string) {
   );
   const services = await listServiceRecords(customerId);
   const points = c?.lineUserId ? await getPointsHistory(c.lineUserId) : [];
-  return { bookings, services, points };
+  const memberTopups = await listMemberTopups(customerId);
+  return { bookings, services, points, memberTopups };
 }
 
 export async function customerSummary(customerId: string) {

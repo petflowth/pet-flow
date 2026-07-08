@@ -63,12 +63,14 @@ Deploy ต้องใช้ **บัญชี Vercel ของคุณ** (logi
 
 ## ตั้ง Telegram Bot
 1. ทัก @BotFather → `/newbot` → ได้ token
-2. ใส่ `TELEGRAM_BOT_TOKEN` ใน Vercel
-3. ตั้ง webhook (หลัง deploy):
+2. ใส่ `TELEGRAM_BOT_TOKEN` และ `NEXT_PUBLIC_APP_URL` ใน Vercel
+3. Redeploy แล้วเปิดในเบราว์เซอร์ (ลงทะเบียน webhook อัตโนมัติ):
    ```
-   https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://YOUR-URL.vercel.app/api/telegram/webhook
+   https://YOUR-URL.vercel.app/api/telegram/webhook?register=1
    ```
+   ต้องเห็น `"ok": true` ใน JSON
 4. ทัก bot → `/start` → copy Chat ID → ใส่ `TELEGRAM_OWNER_CHAT_IDS`
+5. Redeploy อีกครั้งหลังใส่ Chat ID
 
 ## ดูเว็บบนคอมก่อน deploy
 ```bash

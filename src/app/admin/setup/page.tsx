@@ -23,7 +23,13 @@ export default function SetupPage() {
     setLoading(true);
     const res = await fetch("/api/setup");
     const data = await res.json();
-    setStatus(data.status);
+    if (data.status) {
+      setStatus(data.status);
+      if (!res.ok) setMsg(data.message || data.error || "");
+    } else {
+      setStatus(null);
+      setMsg(data.message || data.error || "ตรวจสอบ env ใน Vercel แล้ว Redeploy");
+    }
     setLoading(false);
   }, []);
 

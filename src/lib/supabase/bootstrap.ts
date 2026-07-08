@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
 import { join } from "path";
-import { getSupabase, isSupabaseConfigured } from "./server";
+import { getSupabase, getSupabaseUrl, isSupabaseConfigured } from "./server";
 
 export type SetupStatus = {
   supabaseUrl: boolean;
@@ -23,9 +23,11 @@ const REQUIRED_TABLES = [
 ];
 
 export async function checkSetupStatus(): Promise<SetupStatus> {
-  const supabaseUrl = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const serviceKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
-  const databaseUrl = Boolean(process.env.DATABASE_URL);
+  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const supabaseUrl = Boolean(rawUrl);
+  const serviceKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim());
+  const databaseUrl = Boolean(process.env.DATABASE_URL?.trim());
+  const normalizedUrl = getSupabaseUrl();
 
   if (!supabaseUrl || !serviceKey) {
     return {
@@ -36,6 +38,19 @@ export async function checkSetupStatus(): Promise<SetupStatus> {
       tablesReady: false,
       missingTables: REQUIRED_TABLES,
       message: "ยังไม่ได้ใส่ NEXT_PUBLIC_SUPABASE_URL หรือ SUPABASE_SERVICE_ROLE_KEY ใน Vercel",
+    };
+  }
+
+  if (!normalizedUrl) {
+    return {
+      supabaseUrl,
+      serviceKey,
+      databaseUrl,
+      connected: false,
+      tablesReady: false,
+      missingTables: REQUIRED_TABLES,
+      message:
+        "NEXT_PUBLIC_SUPABASE_URL ไม่ถูกต้อง — ใส่เป็น https://nqperjfuuntbzskbrqql.supabase.co (ไม่มีเครื่องหมายคำพูด)",
     };
   }
 

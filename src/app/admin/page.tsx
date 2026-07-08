@@ -123,8 +123,9 @@ export default function AdminDashboard() {
         lineUserId: b.lineUserId,
       }),
     });
+    const data = await res.json().catch(() => ({}));
     if (res.ok) alert("ส่งการ์ด LINE แล้ว 📨");
-    else alert("ส่งไม่สำเร็จ");
+    else alert(data.error || "ส่งไม่สำเร็จ — ไป Admin → ติดตั้ง → ตั้ง LINE Token");
   };
 
   const ym = today.slice(0, 7);

@@ -152,22 +152,39 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ ok: true, booking: toBooking(updated!) });
   }
 
-  if (action === "send_reminder" && lineUserId) {
-    const flex = await buildBookingConfirmFlex({
-      id,
-      catName: String(b.catName),
-      customerName: String(b.customerName),
-      service: String(b.service),
-      date: b.date,
-      time: b.time,
-      checkin: b.checkin,
-      checkout: b.checkout,
-      room: b.room,
-      notes: b.notes,
-    });
+  if (action === "send_reminder") {
+    let to = String(lineUserId || b.lineUserId || "").trim();
+    if (!to) {
+      const matched = await findCustomerForBooking(b);
+      to = matched?.lineUserId || "";
+    }
+    if (!to) {
+      return NextResponse.json(
+        { error: "ยังไม่มี LINE User ID — ให้ลูกค้าเปิดแอปจาก LINE หรือผูกในโปรไฟล์ลูกค้า" },
+        { status: 400 }
+      );
+    }
 
-    await pushLineMessage(lineUserId, [flex]);
-    return NextResponse.json({ ok: true });
+    try {
+      const flex = await buildBookingConfirmFlex({
+        id,
+        catName: String(b.catName),
+        customerName: String(b.customerName),
+        service: String(b.service),
+        date: b.date,
+        time: b.time,
+        checkin: b.checkin,
+        checkout: b.checkout,
+        room: b.room,
+        notes: b.notes,
+      });
+
+      await pushLineMessage(to, [flex]);
+      return NextResponse.json({ ok: true });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
   }
 
   if (action === "update") {

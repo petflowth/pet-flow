@@ -74,7 +74,7 @@ export default function SetupPage() {
       </p>
 
       <GoogleSetupSection adminCode={adminCode} />
-      <LineSetupSection />
+      <LineSetupSection adminCode={adminCode} />
       <TelegramSetupSection adminCode={adminCode} />
 
       {msg && (

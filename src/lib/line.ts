@@ -4,9 +4,20 @@
  */
 
 import { formatBookingWhen, formatThaiDate } from "./format-thai-date";
+import { getLineCredentials } from "./line-config";
 
 const BRAND_GREEN = "#5A8F5A";
 const BRAND_GREEN_DARK = "#4A7348";
+
+async function lineChannelToken() {
+  const creds = await getLineCredentials();
+  if (!creds?.channelToken) {
+    throw new Error(
+      "ยังไม่ได้ตั้ง LINE — ไป Admin → ติดตั้ง → วาง Channel Access Token"
+    );
+  }
+  return creds.channelToken;
+}
 
 function flexDetailRow(icon: string, label: string, value: string) {
   return {
@@ -47,8 +58,7 @@ function flexDetailRow(icon: string, label: string, value: string) {
 }
 
 export async function pushLineMessage(to: string, messages: object[]) {
-  const token = process.env.LINE_CHANNEL_TOKEN;
-  if (!token) throw new Error("LINE_CHANNEL_TOKEN not configured");
+  const token = await lineChannelToken();
 
   const res = await fetch("https://api.line.me/v2/bot/message/push", {
     method: "POST",
@@ -60,15 +70,26 @@ export async function pushLineMessage(to: string, messages: object[]) {
   });
 
   if (!res.ok) {
-    throw new Error(`LINE API: ${await res.text()}`);
+    const errText = await res.text();
+    let hint = errText;
+    try {
+      const parsed = JSON.parse(errText) as { message?: string };
+      if (parsed.message?.includes("Authentication")) {
+        hint = "LINE Token ผิด — ไป Admin → ติดตั้ง → LINE แล้ววาง Token ใหม่";
+      } else if (parsed.message) {
+        hint = parsed.message;
+      }
+    } catch {
+      /* keep raw */
+    }
+    throw new Error(hint);
   }
   return { ok: true };
 }
 
 /** ส่งหลายคนพร้อมกัน (สูงสุด 500 ต่อครั้ง) */
 export async function multicastLineMessage(to: string[], messages: object[]) {
-  const token = process.env.LINE_CHANNEL_TOKEN;
-  if (!token) throw new Error("LINE_CHANNEL_TOKEN not configured");
+  const token = await lineChannelToken();
   if (to.length === 0) return { ok: true, sent: 0 };
 
   const chunks: string[][] = [];
@@ -87,7 +108,8 @@ export async function multicastLineMessage(to: string[], messages: object[]) {
       body: JSON.stringify({ to: batch, messages }),
     });
     if (!res.ok) {
-      throw new Error(`LINE multicast: ${await res.text()}`);
+      const errText = await res.text();
+      throw new Error(`LINE multicast: ${errText}`);
     }
     sent += batch.length;
   }

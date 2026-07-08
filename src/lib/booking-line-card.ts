@@ -1,13 +1,12 @@
 import { BUSINESS } from "./business";
 import { getSiteConfig } from "./config-store";
+import { bookingConfirmUrl as buildConfirmUrl } from "./line-config";
+import { getLineCredentials } from "./line-config";
 import { buildAppointmentConfirmFlex } from "./line";
 
-export function bookingConfirmUrl(bookingId: string) {
-  const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-  const base = process.env.NEXT_PUBLIC_APP_URL || "";
-  return liffId
-    ? `https://liff.line.me/${liffId}?path=bookings&id=${bookingId}`
-    : `${base}/app/bookings?id=${bookingId}`;
+export async function bookingConfirmUrl(bookingId: string) {
+  const creds = await getLineCredentials();
+  return buildConfirmUrl(bookingId, creds?.liffId);
 }
 
 export async function buildBookingConfirmFlex(
@@ -31,7 +30,7 @@ export async function buildBookingConfirmFlex(
 
   return buildAppointmentConfirmFlex({
     ...booking,
-    confirmUrl: bookingConfirmUrl(booking.id),
+    confirmUrl: await bookingConfirmUrl(booking.id),
     mapsUrl,
     location: `CatCha Hotel · ${location}`,
     businessName: config.business.name,

@@ -15,9 +15,16 @@ export type TelegramSecrets = {
   updatedAt: string;
 };
 
+export type LineSecrets = {
+  channelToken: string;
+  liffId?: string;
+  updatedAt: string;
+};
+
 type SecretsPayload = {
   google?: GoogleSecrets;
   telegram?: TelegramSecrets;
+  line?: LineSecrets;
 };
 
 const SECRETS_ID = "secrets";
@@ -69,6 +76,16 @@ export async function saveTelegramSecrets(
   };
   await persistSecrets(next);
   return next.telegram!;
+}
+
+export async function saveLineSecrets(line: Omit<LineSecrets, "updatedAt">) {
+  const current = await getSecrets();
+  const next: SecretsPayload = {
+    ...current,
+    line: { ...line, updatedAt: new Date().toISOString() },
+  };
+  await persistSecrets(next);
+  return next.line!;
 }
 
 export async function clearGoogleSecrets() {

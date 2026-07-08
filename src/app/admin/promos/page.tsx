@@ -13,6 +13,11 @@ import {
   TIER_LABELS,
   type CustomerTier as StoreCustomerTier,
 } from "@/lib/customer-tier";
+import {
+  BROADCAST_ACTIONS,
+  BROADCAST_TEMPLATES,
+  type BroadcastActionId,
+} from "@/lib/line-broadcast";
 
 type Promo = {
   id: string;
@@ -97,6 +102,9 @@ export default function PromosAdminPage() {
   const [broadcastTitle, setBroadcastTitle] = useState("");
   const [broadcastBody, setBroadcastBody] = useState("");
   const [broadcastImage, setBroadcastImage] = useState("");
+  const [broadcastActions, setBroadcastActions] = useState<BroadcastActionId[]>([
+    "line_chat",
+  ]);
   const [broadcastCount, setBroadcastCount] = useState<number | null>(null);
   const [broadcastRecipients, setBroadcastRecipients] = useState<BroadcastRecipient[]>([]);
   const [broadcastSkipped, setBroadcastSkipped] = useState<BroadcastSkipped[]>([]);
@@ -154,9 +162,14 @@ export default function PromosAdminPage() {
       broadcastRecipients.length > 5
         ? ` และอีก ${broadcastRecipients.length - 5} คน`
         : "";
+    const actionLabels = broadcastActions
+      .map((id) => BROADCAST_ACTIONS.find((a) => a.id === id)?.label || id)
+      .join(", ");
     if (
       !confirm(
-        `ส่งโปรให้ ${broadcastCount} คน?\n\n${names}${more}`
+        `ส่งโปรให้ ${broadcastCount} คน?\n\n${names}${more}${
+          actionLabels ? `\n\nปุ่ม: ${actionLabels}` : ""
+        }`
       )
     ) {
       return;
@@ -171,7 +184,8 @@ export default function PromosAdminPage() {
         tier: broadcastTier,
         title: broadcastTitle,
         body: broadcastBody,
-        imageUrl: broadcastImage || undefined,
+        imageData: broadcastImage.startsWith("data:") ? broadcastImage : undefined,
+        actions: broadcastActions,
       }),
     });
     const data = await res.json();
@@ -182,6 +196,31 @@ export default function PromosAdminPage() {
       setBroadcastMsg(data.error || "ส่งไม่สำเร็จ");
     }
   };
+
+  const applyBroadcastTemplate = (idx: number) => {
+    const tpl = BROADCAST_TEMPLATES[idx];
+    if (!tpl) return;
+    setBroadcastTitle(tpl.title);
+    setBroadcastBody(tpl.body);
+    setBroadcastActions(tpl.suggestedActions);
+  };
+
+  const onBroadcastImage = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => setBroadcastImage(String(reader.result));
+    reader.readAsDataURL(file);
+  };
+
+  const toggleBroadcastAction = (id: BroadcastActionId) => {
+    setBroadcastActions((prev) => {
+      if (prev.includes(id)) return prev.filter((a) => a !== id);
+      if (prev.length >= 3) return prev;
+      return [...prev, id];
+    });
+  };
+
+  const hasBroadcastImage =
+    broadcastImage.startsWith("data:") || broadcastImage.startsWith("http");
 
   const closeModal = () => {
     setOpen(false);
@@ -348,6 +387,24 @@ export default function PromosAdminPage() {
           )}
         </div>
 
+        <div className="rounded-catcha-sm border border-catcha-line bg-card/80 p-3">
+          <p className="mb-2 text-xs font-extrabold text-catcha-chocolate">
+            📝 ตัวอย่างข้อความ
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {BROADCAST_TEMPLATES.map((tpl, i) => (
+              <button
+                key={tpl.label}
+                type="button"
+                onClick={() => applyBroadcastTemplate(i)}
+                className="rounded-full bg-paper px-3 py-1.5 text-[10px] font-bold text-brown hover:bg-latte/20"
+              >
+                {tpl.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <input
           value={broadcastTitle}
           onChange={(e) => setBroadcastTitle(e.target.value)}
@@ -361,12 +418,73 @@ export default function PromosAdminPage() {
           rows={3}
           className="w-full rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-sm"
         />
-        <input
-          value={broadcastImage}
-          onChange={(e) => setBroadcastImage(e.target.value)}
-          placeholder="URL รูป (ไม่บังคับ)"
-          className="w-full rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-sm"
-        />
+
+        <div className="rounded-catcha-sm border border-catcha-line bg-card/80 p-3">
+          <p className="mb-2 text-xs font-extrabold text-catcha-chocolate">
+            🖼️ รูปโปร (ไม่บังคับ)
+          </p>
+          <input
+            type="file"
+            accept="image/*"
+            className="block w-full text-[10px]"
+            onChange={(e) => e.target.files?.[0] && onBroadcastImage(e.target.files[0])}
+          />
+          {hasBroadcastImage && (
+            <div className="mt-2 flex items-center gap-2">
+              {broadcastImage.startsWith("data:") && (
+                <Image
+                  src={broadcastImage}
+                  alt="preview"
+                  width={64}
+                  height={64}
+                  className="h-16 w-16 rounded-lg object-cover"
+                  unoptimized
+                />
+              )}
+              <button
+                type="button"
+                onClick={() => setBroadcastImage("")}
+                className="text-[10px] font-bold text-wait"
+              >
+                ลบรูป
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-catcha-sm border border-catcha-line bg-card/80 p-3">
+          <p className="mb-1 text-xs font-extrabold text-catcha-chocolate">
+            🔘 ปุ่มกดในการ์ด (เลือกได้สูงสุด 3)
+          </p>
+          <p className="mb-2 text-[10px] text-brown-soft">
+            ลูกค้ากดแล้วเปิดแอป / แชท LINE / แผนที่ได้ทันที
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {BROADCAST_ACTIONS.map((action) => {
+              const selected = broadcastActions.includes(action.id);
+              const disabled = !selected && broadcastActions.length >= 3;
+              return (
+                <button
+                  key={action.id}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => toggleBroadcastAction(action.id)}
+                  title={action.description}
+                  className={`rounded-full px-3 py-1.5 text-[10px] font-bold ${
+                    selected
+                      ? "bg-[#4A7348] text-white"
+                      : disabled
+                        ? "bg-paper text-brown-faint opacity-50"
+                        : "bg-paper text-brown hover:bg-latte/20"
+                  }`}
+                >
+                  {action.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <button
           type="button"
           disabled={broadcasting}

@@ -1,12 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BUSINESS } from "@/lib/business";
-import { listCustomersByTier, getBroadcastAudience, type CustomerTier } from "@/lib/customers-store";
+import { storeBroadcastImage } from "@/lib/broadcast-image-store";
+import {
+  listCustomersByTier,
+  getBroadcastAudience,
+  type CustomerTier,
+} from "@/lib/customers-store";
+import {
+  buildBroadcastButtons,
+  type BroadcastActionId,
+} from "@/lib/line-broadcast";
 import { buildPromoFlex, multicastLineMessage } from "@/lib/line";
+import { getLineCredentials, getAppUrlFromEnv } from "@/lib/line-config";
 import { TIER_LABELS } from "@/lib/customer-tier";
 
 function checkAdmin(body: { adminCode?: string }) {
   const secret = process.env.NEXT_PUBLIC_ADMIN_CODE;
   return !secret || body.adminCode === secret;
+}
+
+async function resolveLineImageUrl(body: {
+  imageData?: string;
+  imageUrl?: string;
+}): Promise<string | undefined> {
+  if (body.imageData && body.imageData.startsWith("data:")) {
+    const id = await storeBroadcastImage(body.imageData);
+    const base = getAppUrlFromEnv() || "https://catcha-hotel-five.vercel.app";
+    return `${base}/api/line/broadcast-image/${id}`;
+  }
+  if (body.imageUrl) {
+    return String(body.imageUrl);
+  }
+  return undefined;
 }
 
 /** ส่งโปรโมชั่น / ข้อความไปยังกลุ่มลูกค้าตามระดับ */
@@ -19,10 +44,12 @@ export async function POST(req: NextRequest) {
   const tier = (body.tier || "all") as CustomerTier | "all";
   const title = String(body.title || "").trim();
   const message = String(body.body || "").trim();
-  const imageUrl = body.imageUrl ? String(body.imageUrl) : undefined;
   const discountLabel = body.discountLabel
     ? String(body.discountLabel)
     : undefined;
+  const actions = Array.isArray(body.actions)
+    ? (body.actions as BroadcastActionId[])
+    : [];
 
   if (!title || !message) {
     return NextResponse.json(
@@ -44,8 +71,11 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const base = process.env.NEXT_PUBLIC_APP_URL || "";
+  const creds = await getLineCredentials();
+  const base = getAppUrlFromEnv() || "";
   const promoUrl = `${base}/app/promos`;
+  const imageUrl = await resolveLineImageUrl(body);
+  const buttons = buildBroadcastButtons(actions, creds?.liffId);
 
   try {
     const flex = buildPromoFlex({
@@ -54,6 +84,7 @@ export async function POST(req: NextRequest) {
       imageUrl,
       promoUrl,
       discountLabel,
+      buttons: buttons.length ? buttons : undefined,
     });
     const result = await multicastLineMessage(lineIds, [flex]);
     return NextResponse.json({

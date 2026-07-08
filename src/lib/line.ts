@@ -261,6 +261,7 @@ export function buildPromoFlex(data: {
   imageUrl?: string;
   promoUrl: string;
   discountLabel?: string;
+  buttons?: { label: string; uri: string }[];
 }) {
   const hero = data.imageUrl
     ? {
@@ -331,19 +332,21 @@ export function buildPromoFlex(data: {
       footer: {
         type: "box",
         layout: "vertical",
-        contents: [
-          {
-            type: "button",
-            style: "primary",
-            color: BRAND_GREEN_DARK,
-            height: "sm",
-            action: {
-              type: "uri",
-              label: "ดูรายละเอียด",
-              uri: data.promoUrl,
-            },
+        spacing: "sm",
+        contents: (data.buttons?.length
+          ? data.buttons.slice(0, 3)
+          : [{ label: "ดูรายละเอียด", uri: data.promoUrl }]
+        ).map((btn, i) => ({
+          type: "button" as const,
+          style: (i === 0 ? "primary" : "secondary") as "primary" | "secondary",
+          color: i === 0 ? BRAND_GREEN_DARK : undefined,
+          height: "sm" as const,
+          action: {
+            type: "uri" as const,
+            label: btn.label,
+            uri: btn.uri,
           },
-        ],
+        })),
       },
     },
   };

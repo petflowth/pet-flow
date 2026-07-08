@@ -94,21 +94,32 @@ export function PointsRedeem({
         </p>
       ) : null}
 
-      <ul className={compact ? "space-y-2" : "space-y-3"}>
+      <p className="mb-2 text-[10px] text-brown-faint">
+        {locale === "th" ? "← เลื่อนดูรางวัล →" : "← swipe rewards →"}
+      </p>
+
+      <div
+        className="-mx-1 flex gap-3 overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory overscroll-x-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      >
         {config.pointsRewards.map((tier) => {
           const canRedeem = points >= tier.points;
           return (
-            <li
+            <div
               key={tier.id}
-              className={`flex items-center gap-3 rounded-catcha-sm border bg-paper/50 px-3 py-2.5 ${
-                canRedeem ? "border-catcha-line" : "border-catcha-line/50 opacity-70"
+              className={`flex snap-start shrink-0 flex-col justify-between rounded-catcha-sm border bg-paper/50 p-3 ${
+                compact ? "w-[72%] min-w-[220px]" : "w-[78%] min-w-[240px]"
+              } max-w-[300px] ${
+                canRedeem ? "border-catcha-line" : "border-catcha-line/50 opacity-75"
               }`}
             >
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-extrabold text-latte-deep">
-                  {tier.points} {locale === "th" ? "แต้ม" : "pts"}
+              <div>
+                <p className="text-sm font-extrabold text-latte-deep">
+                  {tier.points}{" "}
+                  <span className="text-xs font-bold text-brown-faint">
+                    {locale === "th" ? "แต้ม" : "pts"}
+                  </span>
                 </p>
-                <p className="text-[11px] leading-snug text-brown-soft">
+                <p className="mt-2 text-xs leading-relaxed text-brown-soft">
                   {tier.reward[locale]}
                 </p>
               </div>
@@ -116,7 +127,7 @@ export function PointsRedeem({
                 type="button"
                 disabled={!canRedeem || loading === tier.id}
                 onClick={() => redeem(tier.id)}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-[10px] font-extrabold ${
+                className={`mt-3 w-full rounded-catcha-sm py-2 text-xs font-extrabold ${
                   canRedeem
                     ? "bg-gradient-to-r from-honey to-honey-deep text-catcha-chocolate"
                     : "bg-paper text-brown-faint"
@@ -124,10 +135,10 @@ export function PointsRedeem({
               >
                 {loading === tier.id ? "…" : m.redeem}
               </button>
-            </li>
+            </div>
           );
         })}
-      </ul>
+      </div>
     </div>
   );
 }

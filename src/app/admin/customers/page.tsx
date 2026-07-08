@@ -379,15 +379,16 @@ function CustomerProfileSection({
 }
 
 function AddCatForm({ customerId, onAdded }: { customerId: string; onAdded: () => void }) {
-  const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
+    setError("");
     const res = await fetch("/api/customers", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -398,36 +399,29 @@ function AddCatForm({ customerId, onAdded }: { customerId: string; onAdded: () =
         staffNote: note.trim() || undefined,
       }),
     });
+    const data = await res.json().catch(() => ({}));
     setSaving(false);
-    if (res.ok) {
+    if (res.ok && data.ok) {
       setName("");
       setNote("");
-      setOpen(false);
       onAdded();
+    } else {
+      setError(data.error || "บันทึกไม่สำเร็จ — ลองใหม่อีกครั้ง");
     }
   };
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="w-full rounded-catcha-sm border border-dashed border-latte/50 bg-honey/10 py-2.5 text-xs font-bold text-catcha-chocolate"
-      >
-        ➕ เพิ่มน้องแมว
-      </button>
-    );
-  }
-
   return (
-    <form onSubmit={submit} className="rounded-catcha-sm border border-latte/40 bg-honey/10 p-3 space-y-2">
-      <p className="text-xs font-extrabold text-catcha-chocolate">➕ เพิ่มน้องแมวใหม่</p>
+    <form
+      onSubmit={submit}
+      className="rounded-catcha border border-honey/50 bg-honey/15 p-4 space-y-2"
+    >
+      <p className="text-sm font-extrabold text-catcha-chocolate">➕ เพิ่มน้องแมว</p>
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="ชื่อน้องแมว *"
         required
-        className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+        className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm font-bold"
       />
       <textarea
         value={note}
@@ -436,22 +430,14 @@ function AddCatForm({ customerId, onAdded }: { customerId: string; onAdded: () =
         rows={2}
         className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs"
       />
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="flex-1 rounded-catcha-sm bg-paper py-2 text-xs font-bold text-brown-soft"
-        >
-          ยกเลิก
-        </button>
-        <button
-          type="submit"
-          disabled={saving || !name.trim()}
-          className="flex-1 rounded-catcha-sm bg-latte/30 py-2 text-xs font-extrabold text-catcha-chocolate disabled:opacity-50"
-        >
-          {saving ? "กำลังบันทึก…" : "บันทึก"}
-        </button>
-      </div>
+      {error && <p className="text-xs font-bold text-wait">{error}</p>}
+      <button
+        type="submit"
+        disabled={saving || !name.trim()}
+        className="w-full rounded-catcha-sm bg-gradient-to-r from-honey to-honey-deep py-2.5 text-sm font-extrabold text-catcha-chocolate disabled:opacity-50"
+      >
+        {saving ? "กำลังบันทึก…" : "💾 บันทึกน้องแมว"}
+      </button>
     </form>
   );
 }
@@ -547,8 +533,11 @@ export default function CustomersPage() {
           <h2 className="text-sm font-extrabold text-catcha-chocolate">
             🐱 น้องแมว ({c.cats.length}) — โน้ตแยกแต่ละตัว
           </h2>
+
+          <AddCatForm customerId={c.id} onAdded={() => open(c.id)} />
+
           {c.cats.length === 0 && (
-            <p className="text-xs text-brown-soft">ยังไม่มีน้องแมวในระบบ — เพิ่มด้านล่าง</p>
+            <p className="text-xs text-brown-soft">ยังไม่มีน้องแมว — กรอกด้านบนแล้วกดบันทึก</p>
           )}
           {c.cats.map((cat) => (
             <div key={cat.id} className="rounded-catcha border border-catcha-line bg-card p-4">
@@ -605,7 +594,6 @@ export default function CustomersPage() {
               </div>
             </div>
           ))}
-          <AddCatForm customerId={c.id} onAdded={() => open(c.id)} />
         </section>
 
         <MemberTopupSection

@@ -58,14 +58,21 @@ export async function PATCH(req: NextRequest) {
   }
 
   if (action === "add_cat") {
-    const c = await addCat(id, {
-      name: String(body.name || ""),
-      staffNote: body.staffNote ? String(body.staffNote) : undefined,
-    });
-    if (!c) {
-      return NextResponse.json({ error: "กรอกชื่อน้องแมว" }, { status: 400 });
+    try {
+      const c = await addCat(id, {
+        name: String(body.name || ""),
+        staffNote: body.staffNote ? String(body.staffNote) : undefined,
+      });
+      if (!c) {
+        return NextResponse.json({ error: "กรอกชื่อน้องแมว" }, { status: 400 });
+      }
+      return NextResponse.json({ ok: true, customer: c });
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "เพิ่มแมวไม่สำเร็จ" },
+        { status: 500 }
+      );
     }
-    return NextResponse.json({ ok: true, customer: c });
   }
 
   if (action === "topup_member") {

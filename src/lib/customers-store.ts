@@ -568,12 +568,13 @@ export async function addCat(
 
   const sb = getSupabase();
   if (sb) {
-    await sb.from("cats").insert({
+    const { error } = await sb.from("cats").insert({
       id: catId,
       customer_id: customerId,
       name,
       staff_note: cat.staffNote || null,
     });
+    if (error) throw new Error(error.message);
   } else {
     memCustomers.set(customerId, c);
   }

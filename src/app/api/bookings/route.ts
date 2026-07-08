@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createCalendarEvent } from "@/lib/calendar";
+import { createCalendarEvent, updateCalendarEventConfirmed } from "@/lib/calendar";
 import {
   addBooking,
   getBooking,
@@ -46,12 +46,13 @@ export async function POST(req: NextRequest) {
   });
 
   const cal = await createCalendarEvent({
-    summary: `🐱 ${body.catName} (${body.customerName})`,
+    summary: `${body.service === "room" ? "🏠" : "🛁"} ${body.catName} (${body.customerName})`,
     description: `${body.service === "room" ? "ห้องพัก" : "อาบน้ำ"} · ${body.notes || ""}`,
     start: body.date || body.checkin,
     end: body.checkout || body.date || body.checkin,
     time: body.time,
     allDay: body.service === "room" && !body.time,
+    service: body.service === "room" ? "room" : "groom",
     eventId: booking.id,
   });
 
@@ -85,6 +86,18 @@ export async function PATCH(req: NextRequest) {
 
   if (action === "confirm") {
     await updateBooking(id, { status: "confirmed", checkinTime });
+    if (b.calendarEventId) {
+      await updateCalendarEventConfirmed(b.calendarEventId, {
+        summary: `${b.service === "room" ? "🏠" : "🛁"} ${b.catName} (${b.customerName})`,
+        description: `${b.service === "room" ? "ห้องพัก" : "อาบน้ำ"} · ${b.notes || ""}`,
+        start: b.date || b.checkin || "",
+        end: b.checkout || b.date || b.checkin || "",
+        time: b.time,
+        allDay: b.service === "room" && !b.time,
+        service: b.service === "room" ? "room" : "groom",
+        checkinTime,
+      });
+    }
     await sendTelegram(
       formatBookingTelegram("✅ ลูกค้ายืนยันแล้ว", {
         ลูกค้า: String(b.customerName),

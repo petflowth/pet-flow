@@ -1,14 +1,55 @@
 /**
- * Google Calendar + iPhone (.ics) — สร้างนัดในปฏิทินร่วม Catcha Hotel
+ * Google Calendar + iPhone (.ics) — ปฏิทินร่วม Catcha Hotel
  */
+
+import type { calendar_v3 } from "googleapis";
 
 export const CALENDAR_OWNER_EMAILS = [
   "chutchanok.than@gmail.com",
   "pitchapawong.pw@gmail.com",
 ];
 
+const TIMEZONE = "Asia/Bangkok";
+const GROOM_DURATION_MIN = 90;
+
 function pad(n: number) {
   return String(n).padStart(2, "0");
+}
+
+function addDaysYmd(ymd: string, days: number) {
+  const d = new Date(`${ymd}T12:00:00+07:00`);
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function toBangkokDateTime(ymd: string, time: string) {
+  const [h, m] = time.split(":").map(Number);
+  return `${ymd}T${pad(h)}:${pad(m)}:00+07:00`;
+}
+
+function formatBangkokDateTime(d: Date) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: TIMEZONE,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    })
+      .formatToParts(d)
+      .filter((p) => p.type !== "literal")
+      .map((p) => [p.type, p.value])
+  );
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}+07:00`;
+}
+
+function addMinutesToDateTime(iso: string, minutes: number) {
+  const d = new Date(iso);
+  d.setMinutes(d.getMinutes() + minutes);
+  return formatBangkokDateTime(d);
 }
 
 function toIcsUtc(isoDate: string, time?: string) {
@@ -44,7 +85,7 @@ export function buildIcsContent(event: {
     : `DTSTART:${toIcsUtc(event.start, event.time)}`;
   const endDate = event.end || event.start;
   const dtEnd = event.allDay
-    ? `DTEND;VALUE=DATE:${endDate.replace(/-/g, "")}`
+    ? `DTEND;VALUE=DATE:${addDaysYmd(endDate, 1).replace(/-/g, "")}`
     : `DTEND:${toIcsUtc(endDate, event.endTime || event.time)}`;
 
   const attendees = CALENDAR_OWNER_EMAILS.map(
@@ -81,7 +122,7 @@ export function buildGoogleCalendarUrl(event: {
 }) {
   const base = "https://calendar.google.com/calendar/render?action=TEMPLATE";
   const dates = event.allDay
-    ? `${event.start.replace(/-/g, "")}/${(event.end || event.start).replace(/-/g, "")}`
+    ? `${event.start.replace(/-/g, "")}/${addDaysYmd(event.end || event.start, 1).replace(/-/g, "")}`
     : `${toIcsUtc(event.start, event.time)}/${toIcsUtc(event.end || event.start, event.time)}`;
   const params = new URLSearchParams({
     text: event.summary,
@@ -92,7 +133,7 @@ export function buildGoogleCalendarUrl(event: {
   return `${base}&${params.toString()}`;
 }
 
-export async function createCalendarEvent(booking: {
+export type CalendarBookingInput = {
   summary: string;
   description: string;
   start: string;
@@ -100,12 +141,93 @@ export async function createCalendarEvent(booking: {
   time?: string;
   allDay?: boolean;
   eventId?: string;
-}) {
-  const calId = process.env.GOOGLE_CALENDAR_ID;
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const key = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  const uid = booking.eventId || `evt_${Date.now()}`;
+  service?: "room" | "groom";
+  bookingId?: string;
+};
 
+type CalendarResult = {
+  ok: boolean;
+  mock?: boolean;
+  reason?: string;
+  eventId: string;
+  ics: string;
+  googleUrl: string;
+  ownerEmails: string[];
+  calendarId?: string;
+  htmlLink?: string;
+};
+
+function calendarConfigured() {
+  return Boolean(
+    process.env.GOOGLE_CALENDAR_ID &&
+      process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
+      process.env.GOOGLE_PRIVATE_KEY
+  );
+}
+
+async function getCalendarApi() {
+  const { google } = await import("googleapis");
+  const key = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const auth = new google.auth.JWT({
+    email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+    key,
+    scopes: ["https://www.googleapis.com/auth/calendar"],
+  });
+  return google.calendar({ version: "v3", auth });
+}
+
+function buildGoogleEventResource(
+  booking: CalendarBookingInput,
+  opts?: { confirmed?: boolean }
+): calendar_v3.Schema$Event {
+  const confirmed = opts?.confirmed;
+  const summary = confirmed
+    ? `✅ ${booking.summary.replace(/^✅\s*/, "")}`
+    : booking.summary;
+
+  const description = [
+    booking.description,
+    booking.bookingId ? `— CatCha Booking ${booking.bookingId}` : "",
+    `สถานะ: ${confirmed ? "ยืนยันแล้ว" : "รอยืนยัน"}`,
+    `เจ้าของ: ${CALENDAR_OWNER_EMAILS.join(", ")}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const isRoom = booking.service === "room" || booking.allDay;
+  const colorId = confirmed ? "10" : isRoom ? "9" : "5";
+
+  if (isRoom) {
+    const checkin = booking.start;
+    const checkout = booking.end || booking.start;
+    return {
+      summary,
+      description,
+      location: "CatCha Hotel Bang Na",
+      colorId,
+      start: { date: checkin },
+      end: { date: addDaysYmd(checkout, 1) },
+    };
+  }
+
+  const startDt = toBangkokDateTime(booking.start, booking.time || "09:30");
+  const endDt = addMinutesToDateTime(startDt, GROOM_DURATION_MIN);
+
+  return {
+    summary,
+    description,
+    location: "CatCha Hotel Bang Na",
+    colorId,
+    start: { dateTime: startDt, timeZone: TIMEZONE },
+    end: { dateTime: endDt, timeZone: TIMEZONE },
+  };
+}
+
+function fallbackResult(
+  booking: CalendarBookingInput,
+  uid: string,
+  reason: string
+): CalendarResult {
   const ics = buildIcsContent({
     uid,
     summary: booking.summary,
@@ -116,35 +238,96 @@ export async function createCalendarEvent(booking: {
     allDay: booking.allDay,
   });
 
-  const googleUrl = buildGoogleCalendarUrl({
-    summary: booking.summary,
-    description: booking.description,
-    start: booking.start,
-    end: booking.end,
-    time: booking.time,
-    allDay: booking.allDay,
-  });
-
-  if (!calId || !email || !key) {
-    return {
-      ok: true,
-      mock: true,
-      reason: "calendar_not_configured",
-      eventId: uid,
-      ics,
-      googleUrl,
-      ownerEmails: CALENDAR_OWNER_EMAILS,
-    };
-  }
-
-  // googleapis integration when credentials are set
   return {
     ok: true,
+    mock: true,
+    reason,
     eventId: uid,
-    calendarId: calId,
-    summary: booking.summary,
     ics,
-    googleUrl,
+    googleUrl: buildGoogleCalendarUrl(booking),
     ownerEmails: CALENDAR_OWNER_EMAILS,
   };
+}
+
+export async function createCalendarEvent(
+  booking: CalendarBookingInput
+): Promise<CalendarResult> {
+  const uid = booking.eventId || `evt_${Date.now()}`;
+  const payload = { ...booking, bookingId: booking.eventId || booking.bookingId };
+
+  if (!calendarConfigured()) {
+    return fallbackResult(payload, uid, "calendar_not_configured");
+  }
+
+  try {
+    const calendar = await getCalendarApi();
+    const calId = process.env.GOOGLE_CALENDAR_ID!;
+    const resource = buildGoogleEventResource(payload);
+
+    const res = await calendar.events.insert({
+      calendarId: calId,
+      requestBody: resource,
+      sendUpdates: "none",
+    });
+
+    const googleEventId = res.data.id || uid;
+    const ics = buildIcsContent({
+      uid: googleEventId,
+      summary: booking.summary,
+      description: booking.description,
+      start: booking.start,
+      end: booking.end,
+      time: booking.time,
+      allDay: booking.allDay,
+    });
+
+    return {
+      ok: true,
+      eventId: googleEventId,
+      calendarId: calId,
+      htmlLink: res.data.htmlLink || undefined,
+      ics,
+      googleUrl: res.data.htmlLink || buildGoogleCalendarUrl(booking),
+      ownerEmails: CALENDAR_OWNER_EMAILS,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return fallbackResult(payload, uid, msg);
+  }
+}
+
+export async function updateCalendarEventConfirmed(
+  googleEventId: string,
+  booking: CalendarBookingInput & { checkinTime?: string }
+) {
+  if (!calendarConfigured() || !googleEventId) return { ok: false, reason: "not_configured" };
+
+  try {
+    const calendar = await getCalendarApi();
+    const calId = process.env.GOOGLE_CALENDAR_ID!;
+    const existing = await calendar.events.get({ calendarId: calId, eventId: googleEventId });
+    const base = buildGoogleEventResource(booking, { confirmed: true });
+
+    const description = [
+      existing.data.description || booking.description,
+      "สถานะ: ยืนยันแล้ว",
+      booking.checkinTime ? `เวลาเช็คอิน: ${booking.checkinTime}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    await calendar.events.patch({
+      calendarId: calId,
+      eventId: googleEventId,
+      requestBody: {
+        ...base,
+        description,
+      },
+      sendUpdates: "none",
+    });
+
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : String(e) };
+  }
 }

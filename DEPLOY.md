@@ -45,6 +45,12 @@ Deploy ต้องใช้ **บัญชี Vercel ของคุณ** (logi
 4. Redeploy — ดูรายละเอียดใน `webapp/SUPABASE.md`
 
 
+## ตั้ง Google Calendar
+
+ดูรายละเอียดใน **`webapp/GOOGLE_CALENDAR.md`**
+
+ใส่ env แล้ว redeploy — จองใหม่จะยิง event เข้าปฏิทิน **Catcha Hotel** อัตโนมัติ
+
 ## ตั้ง LINE LIFF
 1. LINE Developers → LIFF → Endpoint = `https://YOUR-URL.vercel.app/app`
 2. Rich Menu @catchahotel → ลิงก์ไป `/app`

@@ -5,6 +5,8 @@ export const BUSINESS = {
   phones: ["080-549-8969", "095-324-6989"],
   maps: "https://maps.app.goo.gl/u38pzVGa9LiEsLEK8",
   facebook: "catcha hotel",
+  reviewUrl: "https://g.page/r/CfUOdXCGI8AHEBM/review",
+  reviewButtonText: "⭐ รีวิวให้เราหน่อยนะคะ",
   location: {
     th: "บางนา เมกะ เทพารักษ์ สมุทรปราการ",
     en: "Bang Na, Mega Bangna, Samut Prakan",

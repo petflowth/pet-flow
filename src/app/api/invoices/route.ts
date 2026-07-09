@@ -9,6 +9,7 @@ import {
 } from "@/lib/invoices-store";
 import { getCustomer } from "@/lib/customers-store";
 import { getPaymentConfig } from "@/lib/payment-config";
+import { getSiteConfig } from "@/lib/config-store";
 import {
   pushLineMessage,
   buildPaymentFlex,
@@ -93,6 +94,7 @@ export async function PATCH(req: NextRequest) {
 
     const paid = result.invoice!;
     const customer = result.customer;
+    const biz = (await getSiteConfig()).business;
 
     if (paid.lineUserId) {
       await pushLineMessage(paid.lineUserId, [
@@ -108,7 +110,9 @@ export async function PATCH(req: NextRequest) {
               : paid.paymentMethod === "cash"
                 ? "เงินสด"
                 : "โอนเงิน",
-          mapsUrl: BUSINESS.maps,
+          mapsUrl: biz.maps || BUSINESS.maps,
+          reviewUrl: biz.reviewUrl,
+          reviewLabel: biz.reviewButtonText,
         }),
       ]);
 

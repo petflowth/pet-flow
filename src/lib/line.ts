@@ -487,6 +487,8 @@ export function buildReceiptFlex(data: {
   pointsEarned: number;
   paymentMethod: string;
   mapsUrl: string;
+  reviewUrl?: string;
+  reviewLabel?: string;
 }) {
   return {
     type: "flex",
@@ -547,8 +549,8 @@ export function buildReceiptFlex(data: {
             height: "sm",
             action: {
               type: "uri",
-              label: "⭐ รีวิวให้เราหน่อยนะคะ",
-              uri: data.mapsUrl,
+              label: data.reviewLabel || "⭐ รีวิวให้เราหน่อยนะคะ",
+              uri: data.reviewUrl || data.mapsUrl,
             },
           },
         ],

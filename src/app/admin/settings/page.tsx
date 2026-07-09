@@ -204,6 +204,16 @@ function ShopTab({
       />
       <Field label="Google Maps URL" value={form.maps} onChange={(v) => setForm({ ...form, maps: v })} />
       <Field label="Facebook" value={form.facebook} onChange={(v) => setForm({ ...form, facebook: v })} />
+      <Field
+        label="⭐ ลิงก์รีวิว (Google) — ส่งให้ลูกค้ารีวิว"
+        value={form.reviewUrl || ""}
+        onChange={(v) => setForm({ ...form, reviewUrl: v })}
+      />
+      <Field
+        label="คำในปุ่มรีวิว"
+        value={form.reviewButtonText || ""}
+        onChange={(v) => setForm({ ...form, reviewButtonText: v })}
+      />
       <Field label="ที่อยู่ (ไทย)" value={form.location.th} onChange={(v) => setForm({ ...form, location: { ...form.location, th: v } })} />
       <Field label="ที่อยู่ (EN)" value={form.location.en} onChange={(v) => setForm({ ...form, location: { ...form.location, en: v } })} />
       <Field

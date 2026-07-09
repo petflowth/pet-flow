@@ -37,6 +37,10 @@ export type SiteConfig = {
     phones: string[];
     maps: string;
     facebook: string;
+    /** ลิงก์ให้ลูกค้ารีวิว (แยกจากลิงก์แผนที่) */
+    reviewUrl: string;
+    /** คำในปุ่มรีวิว */
+    reviewButtonText: string;
     location: { th: string; en: string };
     pointsRate: number;
   };

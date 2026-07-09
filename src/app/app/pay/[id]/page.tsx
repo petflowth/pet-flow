@@ -95,12 +95,12 @@ export default function PayPage() {
         ) : null}
 
         <a
-          href={config.business.maps}
+          href={config.business.reviewUrl || config.business.maps}
           target="_blank"
           rel="noopener noreferrer"
           className="mt-4 block rounded-catcha-sm border border-catcha-line py-3 text-center text-xs font-bold text-brown-soft"
         >
-          ⭐ รีวิว CatCha Hotel บน Google Maps
+          {config.business.reviewButtonText || "⭐ รีวิว CatCha Hotel"}
         </a>
 
         <Link

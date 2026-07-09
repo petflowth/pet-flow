@@ -22,6 +22,7 @@ const REFERRAL_OPTIONS = [
   "Instagram",
   "TikTok",
   "Google / ค้นหา",
+  "Google Maps",
   "เพื่อนแนะนำ / ผ่านหน้าร้าน",
 ];
 

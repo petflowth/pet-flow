@@ -434,6 +434,22 @@ function CustomerSummaryCard({
     }
   };
 
+  const removeCustomer = async () => {
+    if (
+      !confirm(
+        `ลบลูกค้า "${customer.name}" และประวัติทั้งหมด (แมว/นัด/แต้ม)?\nลบแล้วกู้คืนไม่ได้`
+      )
+    )
+      return;
+    const res = await fetch("/api/customers", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: customer.id, action: "delete_customer" }),
+    });
+    if (res.ok) onSaved();
+    else setMsg("ลบไม่สำเร็จ");
+  };
+
   const sendFollowUp = async () => {
     if (!customer.lineUserId) {
       setMsg("❌ ลูกค้ายังไม่ได้ผูก LINE");
@@ -655,6 +671,14 @@ function CustomerSummaryCard({
       </label>
 
       {msg && <p className="mt-2 text-center text-[10px] font-bold text-ok">{msg}</p>}
+
+      <button
+        type="button"
+        onClick={removeCustomer}
+        className="mt-4 w-full rounded-catcha-sm border border-wait/40 bg-wait/10 py-2 text-[11px] font-bold text-wait"
+      >
+        🗑️ ลบลูกค้าคนนี้
+      </button>
     </section>
   );
 }

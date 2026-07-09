@@ -774,6 +774,18 @@ export async function deleteCat(customerId: string, catId: string) {
   return c;
 }
 
+export async function deleteCustomer(customerId: string) {
+  const sb = getSupabase();
+  if (sb) {
+    // cats/promo_claims/etc. ลบตาม (on delete cascade)
+    const { error } = await sb.from("customers").delete().eq("id", customerId);
+    if (error) throw new Error(error.message);
+  } else {
+    memCustomers.delete(customerId);
+  }
+  return { ok: true as const };
+}
+
 export async function addMemberCredit(customerId: string, amount: number) {
   return topupMemberCredit(customerId, { paidAmount: amount, bonusAmount: 0 });
 }

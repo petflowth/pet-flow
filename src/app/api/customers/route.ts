@@ -7,6 +7,7 @@ import {
   updateCat,
   addCat,
   deleteCat,
+  deleteCustomer,
   topupMemberCredit,
   upsertCustomerFromBooking,
   recalculateCustomerTier,
@@ -105,6 +106,18 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: "ไม่พบน้องแมว" }, { status: 404 });
       }
       return NextResponse.json({ ok: true, customer: c });
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "ลบไม่สำเร็จ" },
+        { status: 500 }
+      );
+    }
+  }
+
+  if (action === "delete_customer") {
+    try {
+      await deleteCustomer(id);
+      return NextResponse.json({ ok: true });
     } catch (e) {
       return NextResponse.json(
         { error: e instanceof Error ? e.message : "ลบไม่สำเร็จ" },

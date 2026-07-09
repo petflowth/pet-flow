@@ -290,6 +290,16 @@ export default function PromosAdminPage() {
     load();
   };
 
+  const remove = async (p: Promo) => {
+    if (!confirm(`ลบโปร "${p.title.th}"?\nลบแล้วกู้คืนไม่ได้`)) return;
+    await fetch("/api/promos", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: p.id }),
+    });
+    load();
+  };
+
   const toggleHome = async (p: Promo) => {
     const nextKind: PromoKind = p.kind === "customer" ? "display" : "customer";
     await fetch("/api/promos", {
@@ -754,6 +764,13 @@ export default function PromosAdminPage() {
                       }`}
                     >
                       {p.active ? "เปิด" : "ปิด"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => remove(p)}
+                      className="rounded-full bg-wait/10 px-3 py-1 text-[10px] font-bold text-wait"
+                    >
+                      🗑️ ลบ
                     </button>
                   </div>
                 </div>

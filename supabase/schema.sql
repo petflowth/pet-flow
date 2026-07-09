@@ -226,3 +226,39 @@ create table if not exists broadcast_images (
   created_at timestamptz not null default now()
 );
 create index if not exists broadcast_images_created_at_idx on broadcast_images(created_at);
+
+-- ─────────────────────────────────────────────────────────────
+-- เติมคอลัมน์ที่เพิ่มภายหลัง (idempotent) — ให้ DB เก่าที่สร้างก่อนหน้านี้
+-- ได้คอลัมน์ครบเมื่อรัน bootstrap อีกครั้ง (customers/cats/invoices/promos)
+-- ─────────────────────────────────────────────────────────────
+alter table customers add column if not exists email text;
+alter table customers add column if not exists birthday date;
+alter table customers add column if not exists line_display_name text;
+alter table customers add column if not exists marketing_consent boolean not null default true;
+alter table customers add column if not exists referral_source text;
+alter table customers add column if not exists tier text not null default 'new';
+alter table customers add column if not exists last_follow_up_at timestamptz;
+
+alter table cats add column if not exists gender text;
+alter table cats add column if not exists breed text;
+alter table cats add column if not exists age text;
+alter table cats add column if not exists age_value integer;
+alter table cats add column if not exists age_unit text;
+alter table cats add column if not exists age_as_of date;
+alter table cats add column if not exists birthday date;
+alter table cats add column if not exists medical text;
+
+alter table invoices add column if not exists deposit numeric not null default 0;
+
+alter table promos add column if not exists discount_amount integer;
+alter table promos add column if not exists kind text not null default 'display';
+alter table promos add column if not exists restriction text not null default 'none';
+alter table promos add column if not exists valid_month text;
+alter table promos add column if not exists tiers text[] not null default array['all']::text[];
+alter table promos add column if not exists coupon_code text;
+alter table promos add column if not exists reward_type text not null default 'discount';
+alter table promos add column if not exists points_bonus integer;
+alter table promos add column if not exists points_multiplier numeric;
+
+-- ให้ PostgREST โหลด schema ใหม่ (รู้จักคอลัมน์ที่เพิ่งเติม)
+notify pgrst, 'reload schema';

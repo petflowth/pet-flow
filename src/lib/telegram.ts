@@ -207,6 +207,24 @@ export async function sendTelegram(text: string) {
   return { ok: results.every((r) => r.ok) };
 }
 
+/** ส่งรูป + คำบรรยายให้เจ้าของทุกคน (เช่น รูปโปรไฟล์คนที่แอด LINE) */
+export async function sendTelegramPhoto(photoUrl: string, caption: string) {
+  const creds = await getTelegramCredentials();
+  if (!creds?.botToken || !creds.ownerChatIds.length) {
+    return { ok: false, reason: "not_configured" };
+  }
+  const results = await Promise.all(
+    creds.ownerChatIds.map((chatId) =>
+      telegramApi(creds.botToken, "sendPhoto", {
+        chat_id: chatId,
+        photo: photoUrl,
+        caption,
+      })
+    )
+  );
+  return { ok: results.every((r) => r.ok) };
+}
+
 export async function getTelegramWebhookInfo(token: string) {
   return telegramApi(token, "getWebhookInfo");
 }

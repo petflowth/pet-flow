@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getLineCredentials } from "@/lib/line-config";
 import { findCustomerByLine } from "@/lib/customers-store";
-import { sendTelegram } from "@/lib/telegram";
+import { sendTelegram, sendTelegramPhoto } from "@/lib/telegram";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,18 +55,28 @@ function describeMessage(m?: LineMessage) {
   }
 }
 
-async function lineDisplayName(userId: string, token: string) {
-  if (!token) return "";
+async function lineProfile(userId: string, token: string) {
+  if (!token) return { displayName: "", pictureUrl: "" };
   try {
     const res = await fetch(`https://api.line.me/v2/bot/profile/${userId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (!res.ok) return "";
-    const data = (await res.json()) as { displayName?: string };
-    return data.displayName || "";
+    if (!res.ok) return { displayName: "", pictureUrl: "" };
+    const data = (await res.json()) as {
+      displayName?: string;
+      pictureUrl?: string;
+    };
+    return {
+      displayName: data.displayName || "",
+      pictureUrl: data.pictureUrl || "",
+    };
   } catch {
-    return "";
+    return { displayName: "", pictureUrl: "" };
   }
+}
+
+async function lineDisplayName(userId: string, token: string) {
+  return (await lineProfile(userId, token)).displayName;
 }
 
 async function resolveSender(userId: string | undefined, token: string) {
@@ -122,8 +132,16 @@ export async function POST(req: NextRequest) {
             `💬 ลูกค้าตอบใน LINE\n\n👤 ${who}\n🗨️ ${text}\n\n👉 เปิดแอป LINE Official Account เพื่อตอบกลับ`
           );
         } else if (ev.type === "follow") {
-          const { label } = await resolveSender(ev.source?.userId, token);
-          await sendTelegram(`🎉 มีเพื่อนใหม่เพิ่มบัญชี LINE\n\n👤 ${label}`);
+          const userId = ev.source?.userId || "";
+          const { displayName, pictureUrl } = await lineProfile(userId, token);
+          const name = displayName || "ไม่ทราบชื่อ";
+          const caption = `👋 มีคนเพิ่มเพื่อนที่ LINE OA\nชื่อไลน์: ${name}`;
+          if (pictureUrl) {
+            const sent = await sendTelegramPhoto(pictureUrl, caption);
+            if (!sent.ok) await sendTelegram(caption);
+          } else {
+            await sendTelegram(caption);
+          }
         }
       } catch {
         // อย่าให้ event เดียวพัง — ต้องคืน 200 ให้ LINE เสมอ

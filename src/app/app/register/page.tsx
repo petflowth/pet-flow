@@ -10,6 +10,7 @@ type CatInput = {
   name: string;
   gender?: CatGender;
   breed: string;
+  breedOther: string;
   age: string;
   medical: string;
   note: string;
@@ -23,8 +24,27 @@ const REFERRAL_OPTIONS = [
   "เพื่อนแนะนำ / ผ่านหน้าร้าน",
 ];
 
+const OTHER_BREED = "อื่นๆ (Other)";
+const BREED_OPTIONS = [
+  "แมวไทย / แมวบ้าน (Domestic Shorthair)",
+  "บริติช ชอร์ตแฮร์ (British Shorthair)",
+  "แร็กดอลล์ (Ragdoll)",
+  "เปอร์เซีย (Persian)",
+  "สก็อตติช โฟลด์ (Scottish Fold)",
+  "สก็อตติช สเตรท (Scottish Straight)",
+  "เอ็กโซติก ชอร์ตแฮร์ (Exotic Shorthair)",
+  "อเมริกัน ชอร์ตแฮร์ (American Shorthair)",
+  "เมนคูน (Maine Coon)",
+  "บริติช ลองแฮร์ (British Longhair)",
+  "มันช์กิ้น (Munchkin)",
+  "เบงกอล (Bengal)",
+  "วิเชียรมาศ (Siamese)",
+  "สฟิงซ์ (Sphynx)",
+  "ไม่ทราบสายพันธุ์ (Unknown)",
+];
+
 function emptyCat(): CatInput {
-  return { name: "", breed: "", age: "", medical: "", note: "" };
+  return { name: "", breed: "", breedOther: "", age: "", medical: "", note: "" };
 }
 
 export default function RegisterPage() {
@@ -86,7 +106,9 @@ export default function RegisterPage() {
           .map((c) => ({
             name: c.name,
             gender: c.gender,
-            breed: c.breed || undefined,
+            breed:
+              (c.breed === OTHER_BREED ? c.breedOther.trim() : c.breed) ||
+              undefined,
             age: c.age || undefined,
             medical: c.medical || undefined,
             staffNote: c.note || undefined,
@@ -247,20 +269,37 @@ export default function RegisterPage() {
                   ))}
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={cat.breed}
+                  onChange={(e) => updateCat(idx, { breed: e.target.value })}
+                  className={`${subFieldClass} ${
+                    cat.breed ? "text-brown" : "text-brown-faint"
+                  }`}
+                >
+                  <option value="">เลือกสายพันธุ์…</option>
+                  {BREED_OPTIONS.map((b) => (
+                    <option key={b} value={b} className="text-brown">
+                      {b}
+                    </option>
+                  ))}
+                  <option value={OTHER_BREED} className="text-brown">
+                    {OTHER_BREED}
+                  </option>
+                </select>
+                {cat.breed === OTHER_BREED && (
                   <input
-                    value={cat.breed}
-                    onChange={(e) => updateCat(idx, { breed: e.target.value })}
-                    placeholder="พันธุ์"
+                    value={cat.breedOther}
+                    onChange={(e) => updateCat(idx, { breedOther: e.target.value })}
+                    placeholder="ระบุสายพันธุ์"
                     className={subFieldClass}
                   />
-                  <input
-                    value={cat.age}
-                    onChange={(e) => updateCat(idx, { age: e.target.value })}
-                    placeholder="อายุ (เช่น 2 ปี)"
-                    className={subFieldClass}
-                  />
-                </div>
+                )}
+                <input
+                  value={cat.age}
+                  onChange={(e) => updateCat(idx, { age: e.target.value })}
+                  placeholder="อายุ (เช่น 2 ปี)"
+                  className={subFieldClass}
+                />
 
                 <input
                   value={cat.medical}

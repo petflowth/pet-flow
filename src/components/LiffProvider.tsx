@@ -95,8 +95,11 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function initLiff() {
       async function applyAccount(base: CustomerProfile) {
-        const sync = await syncLineCustomer(base.lineUserId, base.displayName);
-        const data = await fetchAccount(base.lineUserId, base.displayName);
+        // ยิงพร้อมกัน (ไม่เกี่ยวกัน) — เปิดแอปเร็วขึ้น ไม่ต้องรอทีละอัน
+        const [sync, data] = await Promise.all([
+          syncLineCustomer(base.lineUserId, base.displayName),
+          fetchAccount(base.lineUserId, base.displayName),
+        ]);
         if (sync) {
           setCustomer(sync.customer);
           setNeedsRegistration(sync.needsRegistration);

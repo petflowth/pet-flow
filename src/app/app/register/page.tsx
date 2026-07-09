@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useLiff } from "@/components/LiffProvider";
-import { TIER_LABELS } from "@/lib/customer-tier";
 
 type CatGender = "male" | "female";
 type CatInput = {
@@ -147,16 +146,11 @@ export default function RegisterPage() {
       <div className="mb-5 rounded-catcha bg-sage/20 p-4 text-center">
         <p className="text-2xl">🐾</p>
         <h1 className="mt-2 text-lg font-extrabold text-catcha-chocolate">
-          ลงทะเบียนลูกค้า
+          สมัครสมาชิกเพื่อรับสิทธิพิเศษมากมาย
         </h1>
         <p className="mt-1 text-xs text-brown-soft">
           กรอกข้อมูลครั้งเดียว — ใช้ยืนยันนัด แต้มสะสม และโปรโมชั่น
         </p>
-        {customer?.tier && (
-          <p className="mt-2 text-[10px] font-bold text-ok">
-            ระดับปัจจุบัน: {TIER_LABELS[customer.tier]}
-          </p>
-        )}
       </div>
 
       <form onSubmit={submit} className="space-y-4">

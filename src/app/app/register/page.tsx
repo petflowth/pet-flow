@@ -304,7 +304,7 @@ export default function RegisterPage() {
                 <input
                   value={cat.note}
                   onChange={(e) => updateCat(idx, { note: e.target.value })}
-                  placeholder="หมายเหตุ (อาหารแพ้ / นิสัย)"
+                  placeholder="🐾 รายละเอียดเพิ่มเติม (ถ้ามี)"
                   className={`${subFieldClass} text-xs`}
                 />
 

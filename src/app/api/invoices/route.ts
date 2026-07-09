@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
       items: body.items,
       promoId: body.promoId,
       extraDiscount: body.extraDiscount,
+      deposit: body.deposit,
       bookingId: body.bookingId,
     });
     return NextResponse.json({ ok: true, invoice });

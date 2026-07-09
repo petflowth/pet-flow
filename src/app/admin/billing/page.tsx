@@ -33,6 +33,7 @@ type Invoice = {
   total: number;
   subtotal?: number;
   discount?: number;
+  deposit?: number;
   promoLabel?: string;
   status: string;
   customerName: string;
@@ -40,7 +41,7 @@ type Invoice = {
   items?: { label: string; amount: number }[];
 };
 
-type ItemKind = "grooming" | "room" | "service" | "custom";
+type ItemKind = "grooming" | "room" | "service" | "custom" | "freebie";
 type Item = {
   kind: ItemKind;
   program: string;
@@ -83,6 +84,9 @@ function computeLine(it: Item): { label: string; amount: number } {
       amount: (it.roomPrice || 0) * n,
     };
   }
+  if (it.kind === "freebie") {
+    return { label: `🎁 ${it.label || "ของแถม"} (ฟรี)`, amount: 0 };
+  }
   return { label: it.label, amount: it.amount || 0 };
 }
 
@@ -90,7 +94,15 @@ const KIND_OPTIONS: { id: ItemKind; label: string }[] = [
   { id: "grooming", label: "🛁 อาบน้ำ / กรูม" },
   { id: "room", label: "🏠 ห้องพัก" },
   { id: "service", label: "✨ บริการเสริม" },
+  { id: "freebie", label: "🎁 ของแถม (ฟรี)" },
   { id: "custom", label: "✏️ พิมพ์เอง" },
+];
+
+const FREEBIE_PRESETS = [
+  "กล้องวงจรปิด (CCTV)",
+  "น้ำพุแมว",
+  "รับ-ส่ง",
+  "ขนม/ทรีท",
 ];
 
 export default function BillingPage() {
@@ -106,8 +118,12 @@ export default function BillingPage() {
   const [promoId, setPromoId] = useState("");
   const [autoPromoLabel, setAutoPromoLabel] = useState("");
   const [discount, setDiscount] = useState("");
+  const [deposit, setDeposit] = useState("");
   const [items, setItems] = useState<Item[]>([newGrooming()]);
   const [creating, setCreating] = useState(false);
+  const [pay, setPay] = useState({ bankName: "", accountNumber: "", accountName: "" });
+  const [shopName, setShopName] = useState("CatCha Hotel");
+  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     const [c, p, i, cfg] = await Promise.all([
@@ -126,6 +142,8 @@ export default function BillingPage() {
         amount: r.price,
       }))
     );
+    if (config?.payment) setPay(config.payment);
+    if (config?.business?.name) setShopName(config.business.name);
   }, []);
 
   useEffect(() => {
@@ -150,6 +168,54 @@ export default function BillingPage() {
     : 0;
   const manualDiscount = Math.max(0, Number(discount) || 0);
   const total = Math.max(0, subtotal - promoDiscount - manualDiscount);
+  const depositAmount = Math.min(total, Math.max(0, Number(deposit) || 0));
+  const remaining = Math.max(0, total - depositAmount);
+
+  const buildSummary = (mode: "booking" | "deposit" | "full") => {
+    const catName = selected?.cats[0]?.name || "น้องแมว";
+    const L: string[] = [];
+    L.push(`🐾 ${shopName}`);
+    L.push(
+      mode === "deposit"
+        ? "สรุปการจอง + แจ้งมัดจำ"
+        : mode === "full"
+          ? "สรุปการจอง + แจ้งยอดชำระ"
+          : "สรุปการจอง"
+    );
+    L.push("");
+    if (selected) L.push(`ลูกค้า: ${selected.name} · 🐱 ${catName}`);
+    L.push("— รายการ —");
+    for (const l of lines) {
+      if (!l.label.trim()) continue;
+      L.push(`• ${l.label}${l.amount > 0 ? ` — ${l.amount.toLocaleString()} บาท` : ""}`);
+    }
+    if (promoDiscount + manualDiscount > 0)
+      L.push(`ส่วนลด: -${(promoDiscount + manualDiscount).toLocaleString()} บาท`);
+    L.push(`ยอดสุทธิ: ${total.toLocaleString()} บาท`);
+    if (mode === "deposit" && depositAmount > 0) {
+      L.push(`มัดจำที่ต้องโอน: ${depositAmount.toLocaleString()} บาท`);
+      L.push(`ยอดคงเหลือ (ชำระก่อนเข้าพัก): ${remaining.toLocaleString()} บาท`);
+    }
+    if (mode === "full") L.push(`ยอดที่ต้องโอน: ${total.toLocaleString()} บาท`);
+    if (mode !== "booking" && pay.accountNumber) {
+      L.push("");
+      L.push("— โอนเงิน —");
+      L.push(pay.bankName);
+      L.push(`เลขบัญชี: ${pay.accountNumber}`);
+      L.push(`ชื่อบัญชี: ${pay.accountName}`);
+    }
+    return L.join("\n");
+  };
+
+  const copySummary = async (mode: "booking" | "deposit" | "full") => {
+    try {
+      await navigator.clipboard.writeText(buildSummary(mode));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      alert("ก๊อปไม่สำเร็จ");
+    }
+  };
 
   const filtered =
     search.trim().length === 0
@@ -208,6 +274,8 @@ export default function BillingPage() {
       };
     } else if (kind === "service") {
       patch = { kind, label: SERVICE_PRESETS[0].label, amount: SERVICE_PRESETS[0].amount };
+    } else if (kind === "freebie") {
+      patch = { kind, label: FREEBIE_PRESETS[0], amount: 0 };
     } else {
       patch = { kind, label: "", amount: 0 };
     }
@@ -227,7 +295,8 @@ export default function BillingPage() {
     if (subtotal <= 0) return alert("ใส่รายการอย่างน้อย 1 อย่าง");
     setCreating(true);
     const cat = selected.cats[0]?.name || "น้องแมว";
-    const payloadItems = lines.filter((l) => l.label.trim() && l.amount > 0);
+    // เก็บของแถม (ฟรี) ด้วย — label มี แต่ยอด 0
+    const payloadItems = lines.filter((l) => l.label.trim());
     const res = await fetch("/api/invoices", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -240,6 +309,7 @@ export default function BillingPage() {
         items: payloadItems,
         promoId: promoId || undefined,
         extraDiscount: manualDiscount || undefined,
+        deposit: depositAmount || undefined,
       }),
     });
     const data = await res.json();
@@ -248,6 +318,7 @@ export default function BillingPage() {
       alert(`สร้างบิล ${data.invoice.id} — ${data.invoice.total} บาท`);
       setItems([newGrooming()]);
       setDiscount("");
+      setDeposit("");
       load();
     } else {
       alert("สร้างบิลไม่สำเร็จ");
@@ -493,6 +564,23 @@ export default function BillingPage() {
                     />
                   )}
 
+                  {item.kind === "freebie" && (
+                    <>
+                      <input
+                        value={item.label}
+                        onChange={(e) => updateItem(i, { label: e.target.value })}
+                        placeholder="ของแถม (เช่น กล้องวงจรปิด)"
+                        list={`freebies-${i}`}
+                        className={sub}
+                      />
+                      <datalist id={`freebies-${i}`}>
+                        {FREEBIE_PRESETS.map((f) => (
+                          <option key={f} value={f} />
+                        ))}
+                      </datalist>
+                    </>
+                  )}
+
                   <div className="flex items-center justify-between gap-2">
                     <span className="min-w-0 truncate text-[11px] text-brown-faint">
                       {line.label}
@@ -508,6 +596,10 @@ export default function BillingPage() {
                         }
                         className="w-24 shrink-0 rounded-lg border border-catcha-line bg-paper px-3 py-1.5 text-right text-sm font-bold"
                       />
+                    ) : item.kind === "freebie" ? (
+                      <span className="shrink-0 text-sm font-extrabold text-ok">
+                        ฟรี 🎁
+                      </span>
                     ) : (
                       <span className="shrink-0 text-sm font-extrabold text-latte-deep">
                         {line.amount.toLocaleString()} ฿
@@ -584,7 +676,49 @@ export default function BillingPage() {
             <span>ยอดสุทธิ</span>
             <span>{total.toLocaleString()} ฿</span>
           </div>
+          <div className="flex items-center justify-between gap-2 border-t border-catcha-line pt-1.5">
+            <span className="text-xs font-bold text-brown-soft">💰 มัดจำ (ถ้ามี)</span>
+            <input
+              type="number"
+              min="0"
+              inputMode="numeric"
+              value={deposit}
+              onChange={(e) => setDeposit(e.target.value)}
+              placeholder="0"
+              className="w-24 rounded-lg border border-catcha-line bg-paper px-3 py-1.5 text-right text-sm"
+            />
+          </div>
+          {depositAmount > 0 && (
+            <div className="flex justify-between font-extrabold text-wait">
+              <span>ยอดคงเหลือ (ก่อนเข้าพัก)</span>
+              <span>{remaining.toLocaleString()} ฿</span>
+            </div>
+          )}
         </div>
+
+        {/* ── ก๊อปสรุป (ส่ง/แปะให้ลูกค้า) ── */}
+        <div className="grid grid-cols-3 gap-2">
+          {(
+            [
+              ["booking", "📋 สรุปการจอง"],
+              ["deposit", "💰 แจ้งมัดจำ"],
+              ["full", "💳 แจ้งยอดเต็ม"],
+            ] as const
+          ).map(([mode, label]) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => copySummary(mode)}
+              disabled={!selected}
+              className="rounded-catcha-sm border border-catcha-line bg-card px-2 py-2 text-[10px] font-bold text-brown-soft disabled:opacity-40"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {copied && (
+          <p className="text-center text-[11px] font-bold text-ok">✅ ก๊อปข้อความแล้ว — เอาไปแปะแชทลูกค้าได้เลย</p>
+        )}
 
         <button
           type="button"
@@ -625,6 +759,12 @@ export default function BillingPage() {
               {inv.total.toLocaleString()} บาท ·{" "}
               {inv.status === "paid" ? "✅ ชำระแล้ว" : "⏳ รอชำระ"}
             </p>
+            {inv.status === "pending" && (inv.deposit ?? 0) > 0 && (
+              <p className="text-[11px] font-bold text-wait">
+                💰 มัดจำ {inv.deposit!.toLocaleString()} · คงเหลือ{" "}
+                {(inv.total - inv.deposit!).toLocaleString()} บาท
+              </p>
+            )}
             {inv.status === "pending" && (
               <div className="mt-2 flex flex-wrap gap-2">
                 <button

@@ -20,6 +20,8 @@ export type InvoiceRecord = {
   items: InvoiceItem[];
   subtotal: number;
   discount: number;
+  /** มัดจำที่รับแล้ว (ยอดคงเหลือ = total - deposit) */
+  deposit: number;
   promoId?: string;
   promoLabel?: string;
   total: number;
@@ -41,6 +43,7 @@ type InvoiceRow = {
   items: InvoiceItem[];
   subtotal: number;
   discount: number;
+  deposit: number | null;
   promo_id: string | null;
   promo_label: string | null;
   total: number;
@@ -65,6 +68,7 @@ function rowToInvoice(r: InvoiceRow): InvoiceRecord {
     items: r.items,
     subtotal: Number(r.subtotal),
     discount: Number(r.discount),
+    deposit: Number(r.deposit) || 0,
     promoId: r.promo_id || undefined,
     promoLabel: r.promo_label || undefined,
     total: Number(r.total),
@@ -88,6 +92,7 @@ function invoiceToRow(inv: InvoiceRecord) {
     items: inv.items,
     subtotal: inv.subtotal,
     discount: inv.discount,
+    deposit: inv.deposit || 0,
     promo_id: inv.promoId || null,
     promo_label: inv.promoLabel || null,
     total: inv.total,
@@ -133,6 +138,7 @@ export async function createInvoice(data: {
   items: InvoiceItem[];
   promoId?: string;
   extraDiscount?: number;
+  deposit?: number;
   bookingId?: string;
 }) {
   const subtotal = data.items.reduce((s, i) => s + i.amount, 0);
@@ -142,6 +148,8 @@ export async function createInvoice(data: {
   );
   const extra = Math.max(0, Math.round(data.extraDiscount || 0));
   const discount = Math.min(subtotal, promoDiscount + extra);
+  const total = subtotal - discount;
+  const deposit = Math.min(total, Math.max(0, Math.round(data.deposit || 0)));
   const invoice: InvoiceRecord = {
     id: `INV${Date.now()}`,
     customerId: data.customerId,
@@ -151,9 +159,10 @@ export async function createInvoice(data: {
     items: data.items,
     subtotal,
     discount,
+    deposit,
     promoId: data.promoId,
     promoLabel: label,
-    total: subtotal - discount,
+    total,
     status: "pending",
     bookingId: data.bookingId,
     createdAt: new Date().toISOString(),

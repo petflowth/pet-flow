@@ -105,13 +105,15 @@ export async function GET(req: NextRequest) {
   const tier = (req.nextUrl.searchParams.get("tier") || "all") as
     | CustomerTier
     | "all";
-  const { recipients, skippedNoLine } = await getBroadcastAudience(tier);
+  const { recipients, skippedNoLine, skippedNoConsent } =
+    await getBroadcastAudience(tier);
 
   return NextResponse.json({
     tier,
     count: recipients.length,
     withLine: recipients.length,
     skippedNoLine: skippedNoLine.length,
+    skippedNoConsent: skippedNoConsent.length,
     recipients: recipients.map((c) => ({
       id: c.id,
       name: c.name,

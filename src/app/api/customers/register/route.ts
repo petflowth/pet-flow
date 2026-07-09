@@ -1,15 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { registerCustomerFromLine } from "@/lib/customers-store";
 
-/** ลูกค้ากรอกฟอร์มลงทะเบียน (ชื่อ · เบอร์ · แมว) */
+type CatBody = {
+  name?: string;
+  gender?: string;
+  breed?: string;
+  age?: string;
+  medical?: string;
+  staffNote?: string;
+};
+
+/** ลูกค้ากรอกฟอร์มลงทะเบียน (ผู้ปกครอง + น้องแมว + ยินยอมรับข่าวสาร) */
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const lineUserId = String(body.lineUserId || "").trim();
   const name = String(body.name || "").trim();
   const phone = String(body.phone || "").trim();
+  const email = String(body.email || "").trim();
+  const birthday = String(body.birthday || "").trim();
+  const referralSource = String(body.referralSource || "").trim();
+  const marketingConsent = body.marketingConsent !== false;
   const cats = Array.isArray(body.cats)
-    ? body.cats.map((c: { name?: string; staffNote?: string }) => ({
+    ? body.cats.map((c: CatBody) => ({
         name: String(c.name || ""),
+        gender:
+          c.gender === "male" || c.gender === "female" ? c.gender : undefined,
+        breed: c.breed ? String(c.breed) : undefined,
+        age: c.age ? String(c.age) : undefined,
+        medical: c.medical ? String(c.medical) : undefined,
         staffNote: c.staffNote ? String(c.staffNote) : undefined,
       }))
     : [];
@@ -28,6 +46,10 @@ export async function POST(req: NextRequest) {
     lineUserId,
     name,
     phone,
+    email: email || undefined,
+    birthday: birthday || undefined,
+    referralSource: referralSource || undefined,
+    marketingConsent,
     cats,
   });
 

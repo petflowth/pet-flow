@@ -109,6 +109,7 @@ export default function PromosAdminPage() {
   const [broadcastRecipients, setBroadcastRecipients] = useState<BroadcastRecipient[]>([]);
   const [broadcastSkipped, setBroadcastSkipped] = useState<BroadcastSkipped[]>([]);
   const [broadcastSkippedTotal, setBroadcastSkippedTotal] = useState(0);
+  const [broadcastNoConsent, setBroadcastNoConsent] = useState(0);
   const [broadcastLoading, setBroadcastLoading] = useState(false);
   const [broadcasting, setBroadcasting] = useState(false);
   const [broadcastMsg, setBroadcastMsg] = useState("");
@@ -141,6 +142,7 @@ export default function PromosAdminPage() {
         setBroadcastRecipients(d.recipients || []);
         setBroadcastSkipped(d.skipped || []);
         setBroadcastSkippedTotal(d.skippedNoLine ?? 0);
+        setBroadcastNoConsent(d.skippedNoConsent ?? 0);
       })
       .finally(() => setBroadcastLoading(false));
   }, [broadcastTier]);
@@ -341,6 +343,11 @@ export default function PromosAdminPage() {
           <p className="mb-2 text-xs font-extrabold text-catcha-chocolate">
             👥 จะส่งหา ({broadcastCount ?? 0} คน)
           </p>
+          {broadcastNoConsent > 0 && (
+            <p className="mb-2 rounded-lg bg-honey/15 px-2 py-1.5 text-[10px] font-bold text-wait">
+              🔕 ไม่ส่งหา {broadcastNoConsent} คน (ไม่ยินยอมรับข่าวสาร)
+            </p>
+          )}
           {broadcastLoading ? (
             <p className="text-[10px] text-brown-soft">กำลังโหลดรายชื่อ…</p>
           ) : broadcastRecipients.length === 0 ? (

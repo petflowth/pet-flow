@@ -10,9 +10,15 @@ import { getSupabase } from "./supabase/server";
 
 export type { CustomerTier } from "./customer-tier";
 
+export type CatGender = "male" | "female";
+
 export type CatRecord = {
   id: string;
   name: string;
+  gender?: CatGender;
+  breed?: string;
+  age?: string;
+  medical?: string;
   photoDataUrl?: string;
   staffNote?: string;
 };
@@ -21,9 +27,15 @@ export type CustomerRecord = {
   id: string;
   name: string;
   phone?: string;
+  email?: string;
+  birthday?: string;
   lineUserId?: string;
   /** ชื่อจากโปรไฟล์ LINE — อัปเดตอัตโนมัติ ไม่ทับชื่อที่ร้านตั้ง */
   lineDisplayName?: string;
+  /** ยินยอมรับข่าวสาร/โปรโมชั่น — ถ้า false จะไม่ส่งโปรหา (แต่ยืนยันนัด/จ่ายเงินยังส่งได้) */
+  marketingConsent: boolean;
+  /** รู้จักร้านจากทางไหน */
+  referralSource?: string;
   cats: CatRecord[];
   isMember: boolean;
   memberCredit: number;
@@ -74,6 +86,10 @@ type CatRow = {
   id: string;
   customer_id: string;
   name: string;
+  gender: string | null;
+  breed: string | null;
+  age: string | null;
+  medical: string | null;
   photo_data_url: string | null;
   staff_note: string | null;
 };
@@ -82,8 +98,12 @@ type CustomerRow = {
   id: string;
   name: string;
   phone: string | null;
+  email: string | null;
+  birthday: string | null;
   line_user_id: string | null;
   line_display_name: string | null;
+  marketing_consent: boolean | null;
+  referral_source: string | null;
   is_member: boolean;
   member_credit: number;
   member_since: string | null;
@@ -127,6 +147,7 @@ function seedMem() {
     id: "C001",
     name: "คุณมาย",
     lineUserId: "dev-user",
+    marketingConsent: true,
     cats: [{ id: "CAT001", name: "น้องส้ม", staffNote: "อาบง่าย ไม่ดุ" }],
     isMember: false,
     memberCredit: 0,
@@ -143,8 +164,12 @@ function mapCustomer(row: CustomerRow): CustomerRecord {
     id: row.id,
     name: row.name,
     phone: row.phone ?? undefined,
+    email: row.email ?? undefined,
+    birthday: row.birthday ?? undefined,
     lineUserId: row.line_user_id ?? undefined,
     lineDisplayName: row.line_display_name ?? undefined,
+    marketingConsent: row.marketing_consent !== false,
+    referralSource: row.referral_source ?? undefined,
     isMember: row.is_member,
     memberCredit: Number(row.member_credit),
     memberSince: row.member_since ?? undefined,
@@ -155,6 +180,10 @@ function mapCustomer(row: CustomerRow): CustomerRecord {
     cats: (row.cats || []).map((c) => ({
       id: c.id,
       name: c.name,
+      gender: (c.gender as CatGender) ?? undefined,
+      breed: c.breed ?? undefined,
+      age: c.age ?? undefined,
+      medical: c.medical ?? undefined,
       photoDataUrl: c.photo_data_url ?? undefined,
       staffNote: c.staff_note ?? undefined,
     })),
@@ -292,6 +321,7 @@ export async function upsertCustomerFromLine(data: {
     name: displayName,
     lineUserId,
     lineDisplayName: displayName,
+    marketingConsent: true,
     cats: [],
     isMember: false,
     memberCredit: 0,
@@ -484,6 +514,7 @@ export async function upsertCustomerFromBooking(data: {
       name: data.customerName,
       phone: data.phone,
       lineUserId: data.lineUserId,
+      marketingConsent: true,
       cats: [{ id: catId, name: data.catName, staffNote: data.staffNote }],
       isMember: false,
       memberCredit: 0,
@@ -573,7 +604,11 @@ export async function updateCustomer(
       CustomerRecord,
       | "name"
       | "phone"
+      | "email"
+      | "birthday"
       | "lineUserId"
+      | "marketingConsent"
+      | "referralSource"
       | "isMember"
       | "memberCredit"
       | "memberSince"
@@ -598,8 +633,12 @@ export async function updateCustomer(
       .update({
         name: c.name,
         phone: c.phone || null,
+        email: c.email || null,
+        birthday: c.birthday || null,
         line_user_id: c.lineUserId || null,
         line_display_name: c.lineDisplayName || null,
+        marketing_consent: c.marketingConsent,
+        referral_source: c.referralSource || null,
         is_member: c.isMember,
         member_credit: c.memberCredit,
         member_since: c.memberSince || null,
@@ -645,7 +684,14 @@ export async function updateCat(
 
 export async function addCat(
   customerId: string,
-  data: { name: string; staffNote?: string }
+  data: {
+    name: string;
+    gender?: CatGender;
+    breed?: string;
+    age?: string;
+    medical?: string;
+    staffNote?: string;
+  }
 ) {
   const name = data.name.trim();
   if (!name) return null;
@@ -657,6 +703,10 @@ export async function addCat(
   const cat: CatRecord = {
     id: catId,
     name,
+    gender: data.gender,
+    breed: data.breed?.trim() || undefined,
+    age: data.age?.trim() || undefined,
+    medical: data.medical?.trim() || undefined,
     staffNote: data.staffNote?.trim() || undefined,
   };
 
@@ -669,6 +719,10 @@ export async function addCat(
       id: catId,
       customer_id: customerId,
       name,
+      gender: cat.gender || null,
+      breed: cat.breed || null,
+      age: cat.age || null,
+      medical: cat.medical || null,
       staff_note: cat.staffNote || null,
     });
     if (error) throw new Error(error.message);
@@ -933,9 +987,12 @@ export async function listCustomersByTier(tier: CustomerTier | "all") {
 export async function getBroadcastAudience(tier: CustomerTier | "all") {
   const all = await fetchAllCustomers();
   const inTier = tier === "all" ? all : all.filter((c) => c.tier === tier);
-  const recipients = inTier.filter((c) => Boolean(c.lineUserId));
+  const withLine = inTier.filter((c) => Boolean(c.lineUserId));
+  // ส่งโปร/ข่าวสารเฉพาะคนที่ยินยอม — ยืนยันนัด/จ่ายเงินใช้คนละช่องทาง ไม่ผ่านฟังก์ชันนี้
+  const recipients = withLine.filter((c) => c.marketingConsent !== false);
+  const skippedNoConsent = withLine.filter((c) => c.marketingConsent === false);
   const skippedNoLine = inTier.filter((c) => !c.lineUserId);
-  return { recipients, skippedNoLine };
+  return { recipients, skippedNoLine, skippedNoConsent };
 }
 
 /** ลูกค้ากรอกฟอร์มลงทะเบียนจาก LIFF */
@@ -943,13 +1000,31 @@ export async function registerCustomerFromLine(data: {
   lineUserId: string;
   name: string;
   phone: string;
-  cats: { name: string; staffNote?: string }[];
+  email?: string;
+  birthday?: string;
+  referralSource?: string;
+  marketingConsent?: boolean;
+  cats: {
+    name: string;
+    gender?: CatGender;
+    breed?: string;
+    age?: string;
+    medical?: string;
+    staffNote?: string;
+  }[];
 }) {
   const lineUserId = data.lineUserId.trim();
   const name = data.name.trim();
   const phone = data.phone.trim();
   const cats = data.cats
-    .map((c) => ({ name: c.name.trim(), staffNote: c.staffNote?.trim() }))
+    .map((c) => ({
+      name: c.name.trim(),
+      gender: c.gender,
+      breed: c.breed?.trim(),
+      age: c.age?.trim(),
+      medical: c.medical?.trim(),
+      staffNote: c.staffNote?.trim(),
+    }))
     .filter((c) => c.name);
 
   if (!lineUserId || !name || !phone || cats.length === 0) return null;
@@ -963,17 +1038,21 @@ export async function registerCustomerFromLine(data: {
   }
   if (!customer) return null;
 
-  await updateCustomer(customer.id, { name, phone });
+  await updateCustomer(customer.id, {
+    name,
+    phone,
+    email: data.email?.trim() || undefined,
+    birthday: data.birthday?.trim() || undefined,
+    referralSource: data.referralSource?.trim() || undefined,
+    marketingConsent: data.marketingConsent ?? true,
+  });
 
   for (const cat of cats) {
     const exists = customer.cats.some(
       (x) => x.name.toLowerCase() === cat.name.toLowerCase()
     );
     if (exists) continue;
-    await addCat(customer.id, {
-      name: cat.name,
-      staffNote: cat.staffNote,
-    });
+    await addCat(customer.id, cat);
   }
 
   const refreshed = await getCustomer(customer.id);

@@ -4,8 +4,12 @@ create table if not exists customers (
   id text primary key,
   name text not null,
   phone text,
+  email text,
+  birthday date,
   line_user_id text unique,
   line_display_name text,
+  marketing_consent boolean not null default true,
+  referral_source text,
   tier text not null default 'new' check (tier in ('new', 'regular', 'member', 'vip')),
   is_member boolean not null default false,
   member_credit numeric not null default 0,
@@ -19,6 +23,10 @@ create table if not exists cats (
   id text primary key,
   customer_id text not null references customers(id) on delete cascade,
   name text not null,
+  gender text,
+  breed text,
+  age text,
+  medical text,
   photo_data_url text,
   staff_note text
 );

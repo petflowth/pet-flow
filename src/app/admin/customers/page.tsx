@@ -495,6 +495,18 @@ function CustomerSummaryCard({
               ✅ ผูก LINE แล้ว
             </p>
           )}
+          <div className="mt-2 space-y-0.5 text-[10px] text-brown-soft">
+            {customer.email && <p>📧 {customer.email}</p>}
+            {customer.birthday && <p>🎂 วันเกิด {customer.birthday}</p>}
+            {customer.referralSource && (
+              <p>📣 รู้จักจาก: {customer.referralSource}</p>
+            )}
+            <p className={customer.marketingConsent ? "text-ok" : "font-bold text-wait"}>
+              {customer.marketingConsent
+                ? "🔔 ยินยอมรับข่าวสาร/โปร"
+                : "🔕 ไม่รับข่าวสาร/โปร"}
+            </p>
+          </div>
           <div className="mt-3">
             <p className="mb-1.5 text-[10px] font-bold text-brown-soft">กลุ่มลูกค้า (Tier)</p>
             <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${tierBadgeClass(customer.tier || "new")}`}>
@@ -900,6 +912,40 @@ export default function CustomersPage() {
                       className="mt-0.5 w-full rounded-catcha-sm border border-catcha-line bg-paper px-2 py-1.5 text-sm font-bold text-brown"
                     />
                   </label>
+                  {(cat.gender || cat.breed || cat.age || cat.medical) && (
+                    <div className="mt-2 space-y-1 rounded-catcha-sm bg-paper/60 px-2 py-1.5 text-[10px] text-brown-soft">
+                      {[
+                        cat.gender === "male"
+                          ? "♂ ผู้"
+                          : cat.gender === "female"
+                            ? "♀ เมีย"
+                            : "",
+                        cat.breed,
+                        cat.age,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") && (
+                        <p>
+                          {[
+                            cat.gender === "male"
+                              ? "♂ ผู้"
+                              : cat.gender === "female"
+                                ? "♀ เมีย"
+                                : "",
+                            cat.breed,
+                            cat.age,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                      )}
+                      {cat.medical && (
+                        <p className="font-bold text-wait">
+                          🩺 โรคประจำตัว: {cat.medical}
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <label className="mt-2 block text-[10px] font-bold text-brown-soft">
                     โน้ตนิสัย (เฉพาะตัวนี้)
                     <textarea

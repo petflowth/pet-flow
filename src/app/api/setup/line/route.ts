@@ -7,6 +7,8 @@ import {
   isLiffConfigured,
   parseLineChannelToken,
   testLineChannelToken,
+  setLineWebhookEndpoint,
+  getLineWebhookEndpoint,
 } from "@/lib/line-config";
 
 export const runtime = "nodejs";
@@ -74,6 +76,32 @@ export async function POST(req: NextRequest) {
         ok: true,
         message: `✅ บันทึก LIFF ID แล้ว\nทดสอบ: https://liff.line.me/${liffId}`,
         liffId,
+      });
+    }
+
+    if (action === "set_webhook") {
+      const creds = await getLineCredentials();
+      if (!creds?.channelToken) {
+        return NextResponse.json({
+          ok: false,
+          message: "ยังไม่ได้ตั้ง Channel Access Token — ใส่ Token ก่อน",
+        });
+      }
+      const appUrl = getAppUrlFromEnv() || "https://catcha-hotel-five.vercel.app";
+      const webhookUrl = `${appUrl}/api/line/webhook`;
+      const result = await setLineWebhookEndpoint(creds.channelToken, webhookUrl);
+      if (!result.ok) {
+        return NextResponse.json({
+          ok: false,
+          message: `ตั้ง Webhook ไม่สำเร็จ: ${result.message}`,
+        });
+      }
+      const status = await getLineWebhookEndpoint(creds.channelToken);
+      return NextResponse.json({
+        ok: true,
+        message: `✅ ตั้ง Webhook อัตโนมัติแล้ว!\n${webhookUrl}\nแจ้งคนแอด + ลูกค้าตอบแชท จะเข้า Telegram แล้ว`,
+        webhookUrl,
+        active: status?.active,
       });
     }
 

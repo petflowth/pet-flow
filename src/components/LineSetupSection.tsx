@@ -290,6 +290,19 @@ export function LineMessagingSetupSection({ adminCode }: { adminCode?: string })
     setSaving(false);
   };
 
+  const setWebhook = async () => {
+    setSaving(true);
+    setMsg("");
+    const res = await fetch("/api/setup/line", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ adminCode, action: "set_webhook" }),
+    });
+    const data = await res.json();
+    setMsg(data.message || data.error || "");
+    setSaving(false);
+  };
+
   if (loading) {
     return <p className="text-xs text-brown-soft">กำลังตรวจ LINE Messaging…</p>;
   }
@@ -316,6 +329,26 @@ export function LineMessagingSetupSection({ adminCode }: { adminCode?: string })
       ) : (
         <div className="rounded-catcha-sm bg-honey/20 px-3 py-2 text-xs font-bold text-wait">
           ⏳ ยังไม่ได้ตั้ง Token — กดส่งการ์ดจะขึ้น &quot;ส่งไม่สำเร็จ&quot;
+        </div>
+      )}
+
+      {status?.configured && (
+        <div className="rounded-catcha-sm border border-sage/40 bg-sage/5 p-3">
+          <p className="mb-2 text-xs font-bold text-catcha-chocolate">
+            🔔 แจ้งเตือนเข้า Telegram (คนแอด LINE + ลูกค้าตอบแชท)
+          </p>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={setWebhook}
+            className="w-full rounded-catcha-sm bg-[#06C755] py-2.5 text-xs font-extrabold text-white disabled:opacity-60"
+          >
+            {saving ? "กำลังตั้ง…" : "ตั้ง Webhook อัตโนมัติ (กดครั้งเดียว)"}
+          </button>
+          <p className="mt-1.5 text-[10px] text-brown-soft">
+            กดปุ่มนี้ = บอก LINE ให้ส่ง event มาที่ระบบ ไม่ต้องเข้า Developers
+            Console เอง
+          </p>
         </div>
       )}
 

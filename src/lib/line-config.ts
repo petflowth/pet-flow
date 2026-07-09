@@ -93,3 +93,37 @@ export function bookingConfirmUrl(bookingId: string, liffId?: string) {
   }
   return `${base}/app/bookings?id=${bookingId}`;
 }
+
+/** ดู Webhook URL ปัจจุบันของ LINE (Messaging API) */
+export async function getLineWebhookEndpoint(token: string) {
+  try {
+    const res = await fetch(
+      "https://api.line.me/v2/bot/channel/webhook/endpoint",
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!res.ok) return null;
+    return (await res.json()) as { endpoint?: string; active?: boolean };
+  } catch {
+    return null;
+  }
+}
+
+/** ตั้ง Webhook URL ของ LINE อัตโนมัติ (แทนการเข้า Developers Console) */
+export async function setLineWebhookEndpoint(token: string, url: string) {
+  const res = await fetch(
+    "https://api.line.me/v2/bot/channel/webhook/endpoint",
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ endpoint: url }),
+    }
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    return { ok: false as const, message: text || `HTTP ${res.status}` };
+  }
+  return { ok: true as const };
+}

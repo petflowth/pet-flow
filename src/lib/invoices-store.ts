@@ -132,10 +132,16 @@ export async function createInvoice(data: {
   catName: string;
   items: InvoiceItem[];
   promoId?: string;
+  extraDiscount?: number;
   bookingId?: string;
 }) {
   const subtotal = data.items.reduce((s, i) => s + i.amount, 0);
-  const { discount, label } = await calcPromoDiscount(data.promoId, subtotal);
+  const { discount: promoDiscount, label } = await calcPromoDiscount(
+    data.promoId,
+    subtotal
+  );
+  const extra = Math.max(0, Math.round(data.extraDiscount || 0));
+  const discount = Math.min(subtotal, promoDiscount + extra);
   const invoice: InvoiceRecord = {
     id: `INV${Date.now()}`,
     customerId: data.customerId,

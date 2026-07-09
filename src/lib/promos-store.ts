@@ -1,4 +1,9 @@
-import { customerSummary, findCustomerByLine, type CustomerRecord } from "./customers-store";
+import {
+  customerSummary,
+  findCustomerByLine,
+  getCustomer,
+  type CustomerRecord,
+} from "./customers-store";
 import { addPoints } from "./points-store";
 import { getSupabase } from "./supabase/server";
 
@@ -292,6 +297,68 @@ export function checkPromoEligibility(
   }
 
   return { eligible: true };
+}
+
+/**
+ * หาโปรส่วนลดที่ดีที่สุดที่ลูกค้าคนนี้ใช้ได้ (สำหรับหน้าคิดเงิน — ตัดอัตโนมัติ)
+ * คืน null ถ้าไม่มีโปรที่ใช้ได้
+ */
+export async function getBestPromoForCustomer(
+  customerId: string,
+  subtotal: number,
+  now = new Date()
+): Promise<{
+  id: string;
+  label: string;
+  discount: number;
+  discountPercent?: number;
+  discountAmount?: number;
+} | null> {
+  const customer = await getCustomer(customerId);
+  if (!customer) return null;
+
+  const summary = await customerSummary(customerId);
+  const visits = summary?.visits ?? 0;
+  const promos = await getActivePromos(now);
+
+  let best: {
+    id: string;
+    label: string;
+    discount: number;
+    discountPercent?: number;
+    discountAmount?: number;
+  } | null = null;
+
+  for (const promo of promos) {
+    if (!promo.discountPercent && !promo.discountAmount) continue;
+    const claim = await getClaimForCustomer(promo.id, customerId);
+    const { eligible } = checkPromoEligibility(
+      promo,
+      customer,
+      visits,
+      Boolean(claim),
+      now
+    );
+    if (!eligible) continue;
+
+    let discount = 0;
+    if (promo.discountPercent)
+      discount = Math.round((subtotal * promo.discountPercent) / 100);
+    if (promo.discountAmount) discount = Math.max(discount, promo.discountAmount);
+    discount = Math.min(discount, subtotal);
+
+    if (!best || discount > best.discount) {
+      best = {
+        id: promo.id,
+        label: promo.title.th,
+        discount,
+        discountPercent: promo.discountPercent,
+        discountAmount: promo.discountAmount,
+      };
+    }
+  }
+
+  return best;
 }
 
 export async function listPromoClaims(promoId?: string) {

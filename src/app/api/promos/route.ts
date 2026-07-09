@@ -7,6 +7,7 @@ import {
   updatePromo,
   deletePromo,
   listPromoClaims,
+  getBestPromoForCustomer,
   type PromoKind,
   type CustomerTier,
 } from "@/lib/promos-store";
@@ -24,6 +25,14 @@ export async function GET(req: NextRequest) {
 
   if (forCustomer && lineUserId) {
     return NextResponse.json({ promos: await getCustomerPromos(lineUserId) });
+  }
+
+  const autoFor = req.nextUrl.searchParams.get("autoFor");
+  if (autoFor) {
+    const subtotal = Number(req.nextUrl.searchParams.get("subtotal")) || 0;
+    return NextResponse.json({
+      promo: await getBestPromoForCustomer(autoFor, subtotal),
+    });
   }
 
   if (active) {

@@ -41,6 +41,19 @@ type Invoice = {
   items?: { label: string; amount: number }[];
 };
 
+type Booking = {
+  id: string;
+  customerId?: string;
+  customerName: string;
+  catName: string;
+  service: "room" | "groom";
+  room?: string;
+  checkin?: string;
+  checkout?: string;
+  date?: string;
+  status: string;
+};
+
 type ItemKind = "grooming" | "room" | "service" | "custom" | "freebie";
 type Item = {
   kind: ItemKind;
@@ -110,6 +123,9 @@ export default function BillingPage() {
   const [promos, setPromos] = useState<Promo[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [rooms, setRooms] = useState<ServicePreset[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookingId, setBookingId] = useState<string | undefined>(undefined);
+  const [showBookings, setShowBookings] = useState(false);
 
   const [customerId, setCustomerId] = useState("");
   const [search, setSearch] = useState("");
@@ -133,15 +149,17 @@ export default function BillingPage() {
   const [sending, setSending] = useState(false);
 
   const load = useCallback(async () => {
-    const [c, p, i, cfg] = await Promise.all([
+    const [c, p, i, cfg, b] = await Promise.all([
       fetch("/api/customers"),
       fetch("/api/promos?active=1"),
       fetch("/api/invoices"),
       fetch("/api/config"),
+      fetch("/api/bookings"),
     ]);
     setCustomers((await c.json()).customers || []);
     setPromos((await p.json()).promos || []);
     setInvoices((await i.json()).invoices || []);
+    setBookings(((await b.json()).bookings || []).filter((x: Booking) => x.status !== "cancelled"));
     const config = (await cfg.json()).config;
     setRooms(
       (config?.rooms || []).map((r: { name: string; price: number }) => ({
@@ -282,7 +300,41 @@ export default function BillingPage() {
     setSearch("");
     setPromoId("");
     setAutoPromoLabel("");
+    setBookingId(undefined);
     setShowList(true);
+  };
+
+  const nightsBetween = (ci?: string, co?: string) => {
+    if (!ci || !co) return 1;
+    const a = new Date(ci).getTime();
+    const b = new Date(co).getTime();
+    const n = Math.round((b - a) / 86400000);
+    return n > 0 ? n : 1;
+  };
+
+  const pickBooking = async (bk: Booking) => {
+    setBookingId(bk.id);
+    setShowBookings(false);
+    const cust = customers.find((c) => c.id === bk.customerId);
+    if (cust) await pickCustomer(cust);
+    else setSearch(bk.customerName);
+
+    if (bk.service === "room") {
+      const matched = rooms.find(
+        (r) => bk.room && r.label.includes(bk.room)
+      );
+      setItems([
+        {
+          ...newGrooming(),
+          kind: "room",
+          roomLabel: matched?.label || (bk.room ? `ห้อง ${bk.room}` : "ห้องพัก"),
+          roomPrice: matched?.amount || 0,
+          nights: nightsBetween(bk.checkin, bk.checkout),
+        },
+      ]);
+    } else {
+      setItems([newGrooming()]);
+    }
   };
 
   const updateItem = (idx: number, patch: Partial<Item>) =>
@@ -338,6 +390,7 @@ export default function BillingPage() {
         promoId: promoId || undefined,
         extraDiscount: manualDiscount || undefined,
         deposit: depositAmount || undefined,
+        bookingId: bookingId || undefined,
       }),
     });
     const data = await res.json();
@@ -347,6 +400,7 @@ export default function BillingPage() {
       setItems([newGrooming()]);
       setDiscount("");
       setDeposit("");
+      setBookingId(undefined);
       load();
     } else {
       alert("สร้างบิลไม่สำเร็จ");
@@ -390,6 +444,41 @@ export default function BillingPage() {
       <h1 className="mb-4 text-lg font-extrabold text-catcha-chocolate">💳 คิดเงิน</h1>
 
       <div className="mb-4 space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm">
+        {/* ── ดึงจากนัด ── */}
+        {bookings.length > 0 && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowBookings((v) => !v)}
+              className="w-full rounded-catcha-sm border border-dashed border-latte/60 bg-latte/10 py-2 text-xs font-extrabold text-latte-deep"
+            >
+              📅 ดึงจากนัด ({bookings.length}) {showBookings ? "▲" : "▼"}
+            </button>
+            {showBookings && (
+              <ul className="mt-2 max-h-52 space-y-1 overflow-y-auto">
+                {bookings.map((bk) => (
+                  <li key={bk.id}>
+                    <button
+                      type="button"
+                      onClick={() => pickBooking(bk)}
+                      className="block w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-left text-xs"
+                    >
+                      <span className="font-bold text-brown">
+                        {bk.service === "room" ? "🏠" : "🛁"} {bk.catName} · {bk.customerName}
+                      </span>
+                      <span className="block text-[10px] text-brown-faint">
+                        {bk.service === "room"
+                          ? `${bk.checkin || "?"} → ${bk.checkout || "?"}${bk.room ? ` · ${bk.room}` : ""}`
+                          : bk.date || ""}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
         {/* ── ค้นหาลูกค้า ── */}
         <div>
           <p className="mb-1 text-xs font-bold text-brown-soft">ลูกค้า</p>

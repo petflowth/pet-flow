@@ -237,19 +237,45 @@ function PaymentTab({
   onSave: (p: Partial<SiteConfig>) => void;
 }) {
   const [form, setForm] = useState(config.payment);
+  const [bill, setBill] = useState(config.billing);
   useEffect(() => setForm(config.payment), [config.payment]);
+  useEffect(() => setBill(config.billing), [config.billing]);
 
   return (
     <form
       className="space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm"
       onSubmit={(e) => {
         e.preventDefault();
-        onSave({ payment: form });
+        onSave({ payment: form, billing: bill });
       }}
     >
       <Field label="ธนาคาร" value={form.bankName} onChange={(v) => setForm({ ...form, bankName: v })} />
       <Field label="เลขบัญชี" value={form.accountNumber} onChange={(v) => setForm({ ...form, accountNumber: v })} />
       <Field label="ชื่อบัญชี" value={form.accountName} onChange={(v) => setForm({ ...form, accountName: v })} />
+
+      <p className="pt-2 text-xs font-extrabold text-catcha-chocolate">
+        📝 ข้อความสรุปให้ลูกค้า (หัวเรื่อง/ปิดท้าย)
+      </p>
+      <Field
+        label="หัวเรื่อง — สรุปการจอง"
+        value={bill?.summaryBookingTitle || ""}
+        onChange={(v) => setBill({ ...bill, summaryBookingTitle: v })}
+      />
+      <Field
+        label="หัวเรื่อง — แจ้งมัดจำ"
+        value={bill?.summaryDepositTitle || ""}
+        onChange={(v) => setBill({ ...bill, summaryDepositTitle: v })}
+      />
+      <Field
+        label="หัวเรื่อง — แจ้งยอดเต็ม"
+        value={bill?.summaryFullTitle || ""}
+        onChange={(v) => setBill({ ...bill, summaryFullTitle: v })}
+      />
+      <Field
+        label="ข้อความปิดท้าย (ทุกแบบ)"
+        value={bill?.summaryClosing || ""}
+        onChange={(v) => setBill({ ...bill, summaryClosing: v })}
+      />
       <SaveBtn saving={saving} />
     </form>
   );

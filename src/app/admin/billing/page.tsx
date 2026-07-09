@@ -123,7 +123,14 @@ export default function BillingPage() {
   const [creating, setCreating] = useState(false);
   const [pay, setPay] = useState({ bankName: "", accountNumber: "", accountName: "" });
   const [shopName, setShopName] = useState("CatCha Hotel");
+  const [billMsg, setBillMsg] = useState({
+    summaryBookingTitle: "สรุปการจอง",
+    summaryDepositTitle: "สรุปการจอง + แจ้งมัดจำ",
+    summaryFullTitle: "สรุปการจอง + แจ้งยอดชำระ",
+    summaryClosing: "",
+  });
   const [copied, setCopied] = useState(false);
+  const [sending, setSending] = useState(false);
 
   const load = useCallback(async () => {
     const [c, p, i, cfg] = await Promise.all([
@@ -144,6 +151,7 @@ export default function BillingPage() {
     );
     if (config?.payment) setPay(config.payment);
     if (config?.business?.name) setShopName(config.business.name);
+    if (config?.billing) setBillMsg(config.billing);
   }, []);
 
   useEffect(() => {
@@ -177,10 +185,10 @@ export default function BillingPage() {
     L.push(`🐾 ${shopName}`);
     L.push(
       mode === "deposit"
-        ? "สรุปการจอง + แจ้งมัดจำ"
+        ? billMsg.summaryDepositTitle
         : mode === "full"
-          ? "สรุปการจอง + แจ้งยอดชำระ"
-          : "สรุปการจอง"
+          ? billMsg.summaryFullTitle
+          : billMsg.summaryBookingTitle
     );
     L.push("");
     if (selected) L.push(`ลูกค้า: ${selected.name} · 🐱 ${catName}`);
@@ -204,7 +212,27 @@ export default function BillingPage() {
       L.push(`เลขบัญชี: ${pay.accountNumber}`);
       L.push(`ชื่อบัญชี: ${pay.accountName}`);
     }
+    if (billMsg.summaryClosing) {
+      L.push("");
+      L.push(billMsg.summaryClosing);
+    }
     return L.join("\n");
+  };
+
+  const sendSummaryLine = async (mode: "booking" | "deposit" | "full") => {
+    if (!selected) return;
+    if (!selected.lineUserId) return alert("ลูกค้ายังไม่ได้ผูก LINE — ส่งไม่ได้");
+    setSending(true);
+    const res = await fetch("/api/line/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        lineUserId: selected.lineUserId,
+        text: buildSummary(mode),
+      }),
+    });
+    setSending(false);
+    alert(res.ok ? "ส่งเข้า LINE ลูกค้าแล้ว 📨" : "ส่งไม่สำเร็จ");
   };
 
   const copySummary = async (mode: "booking" | "deposit" | "full") => {
@@ -696,8 +724,11 @@ export default function BillingPage() {
           )}
         </div>
 
-        {/* ── ก๊อปสรุป (ส่ง/แปะให้ลูกค้า) ── */}
-        <div className="grid grid-cols-3 gap-2">
+        {/* ── สรุป (ก๊อป / ส่ง LINE ให้ลูกค้า) ── */}
+        <div className="space-y-2 rounded-catcha-sm border border-catcha-line bg-card/80 p-2.5">
+          <p className="text-[10px] font-bold text-brown-soft">
+            สรุปให้ลูกค้า — ก๊อปไปแปะ หรือส่งเข้า LINE เลย
+          </p>
           {(
             [
               ["booking", "📋 สรุปการจอง"],
@@ -705,15 +736,27 @@ export default function BillingPage() {
               ["full", "💳 แจ้งยอดเต็ม"],
             ] as const
           ).map(([mode, label]) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => copySummary(mode)}
-              disabled={!selected}
-              className="rounded-catcha-sm border border-catcha-line bg-card px-2 py-2 text-[10px] font-bold text-brown-soft disabled:opacity-40"
-            >
-              {label}
-            </button>
+            <div key={mode} className="flex items-center gap-2">
+              <span className="min-w-0 flex-1 truncate text-[11px] font-bold text-brown">
+                {label}
+              </span>
+              <button
+                type="button"
+                onClick={() => copySummary(mode)}
+                disabled={!selected}
+                className="shrink-0 rounded-full bg-paper px-3 py-1.5 text-[10px] font-bold text-brown-soft disabled:opacity-40"
+              >
+                📋 ก๊อป
+              </button>
+              <button
+                type="button"
+                onClick={() => sendSummaryLine(mode)}
+                disabled={!selected || sending}
+                className="shrink-0 rounded-full bg-[#06C755]/15 px-3 py-1.5 text-[10px] font-bold text-[#06883c] disabled:opacity-40"
+              >
+                💬 ส่ง LINE
+              </button>
+            </div>
           ))}
         </div>
         {copied && (

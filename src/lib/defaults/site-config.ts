@@ -32,6 +32,12 @@ export function getDefaultSiteConfig(): SiteConfig {
         accountNumber: process.env.BANK_ACCOUNT_NUMBER || "XXX-X-XXXXX-X",
         accountName: process.env.BANK_ACCOUNT_NAME || "CatCha Hotel",
       },
+      billing: {
+        summaryBookingTitle: "สรุปการจอง",
+        summaryDepositTitle: "สรุปการจอง + แจ้งมัดจำ",
+        summaryFullTitle: "สรุปการจอง + แจ้งยอดชำระ",
+        summaryClosing: "โอนแล้วแจ้งสลิปได้เลยนะคะ 🧡",
+      },
       roomInventory: { ...ROOM_INVENTORY },
       rooms: ROOMS,
       groomSlots: [...GROOM_SLOTS],

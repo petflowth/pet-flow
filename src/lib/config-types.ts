@@ -49,6 +49,13 @@ export type SiteConfig = {
     accountNumber: string;
     accountName: string;
   };
+  /** ข้อความหัวเรื่อง/ปิดท้าย ของสรุปที่ก๊อป/ส่งให้ลูกค้า (แก้ได้ในตั้งค่า) */
+  billing: {
+    summaryBookingTitle: string;
+    summaryDepositTitle: string;
+    summaryFullTitle: string;
+    summaryClosing: string;
+  };
   roomInventory: {
     total: number;
     miniMeow: number;

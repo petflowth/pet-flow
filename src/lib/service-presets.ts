@@ -6,11 +6,10 @@
 export type ServicePreset = { label: string; amount: number };
 
 export const SERVICE_PRESETS: ServicePreset[] = [
-  { label: "อาบน้ำ – เป่าขน", amount: 350 },
-  { label: "อาบน้ำ + ขจัดคราบมัน", amount: 450 },
-  { label: "ตัดขน / กรูมมิ่ง", amount: 600 },
   { label: "ตัดเล็บ", amount: 100 },
   { label: "แปรงฟัน", amount: 150 },
+  { label: "แก้สางขนพันแน่น", amount: 100 },
+  { label: "ขจัดคราบเหลืองฝังแน่น (เฉพาะจุด)", amount: 200 },
   { label: "หยดยาป้องกันปรสิต (NexGard Combo)", amount: 360 },
   { label: "รับ-ส่ง", amount: 100 },
 ];

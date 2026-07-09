@@ -2,6 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { SERVICE_PRESETS, type ServicePreset } from "@/lib/service-presets";
+import {
+  GROOM_PROGRAMS,
+  GROOM_SIZES,
+  groomPrice,
+  groomProgram,
+  groomSizeLabel,
+  type GroomSize,
+} from "@/lib/grooming-prices";
 
 type Customer = {
   id: string;
@@ -23,14 +31,67 @@ type Promo = {
 type Invoice = {
   id: string;
   total: number;
+  subtotal?: number;
+  discount?: number;
+  promoLabel?: string;
   status: string;
   customerName: string;
   catName: string;
+  items?: { label: string; amount: number }[];
 };
 
-type Item = { label: string; amount: number; custom: boolean };
+type ItemKind = "grooming" | "room" | "service" | "custom";
+type Item = {
+  kind: ItemKind;
+  program: string;
+  breed: string;
+  size: GroomSize;
+  roomLabel: string;
+  roomPrice: number;
+  nights: number;
+  label: string;
+  amount: number;
+};
 
-const CUSTOM = "__custom__";
+function newGrooming(): Item {
+  const prog = GROOM_PROGRAMS[0];
+  return {
+    kind: "grooming",
+    program: prog.id,
+    breed: prog.breeds[0].breed,
+    size: "m",
+    roomLabel: "",
+    roomPrice: 0,
+    nights: 1,
+    label: "",
+    amount: 0,
+  };
+}
+
+function computeLine(it: Item): { label: string; amount: number } {
+  if (it.kind === "grooming") {
+    const prog = groomProgram(it.program);
+    return {
+      label: `${prog?.name || "อาบน้ำ"} · ${it.breed} · ${groomSizeLabel(it.size)}`,
+      amount: groomPrice(it.program, it.breed, it.size),
+    };
+  }
+  if (it.kind === "room") {
+    const n = Math.max(1, it.nights || 1);
+    return {
+      label: `${it.roomLabel || "ห้องพัก"} × ${n} คืน`,
+      amount: (it.roomPrice || 0) * n,
+    };
+  }
+  return { label: it.label, amount: it.amount || 0 };
+}
+
+const KIND_OPTIONS: { id: ItemKind; label: string }[] = [
+  { id: "grooming", label: "🛁 อาบน้ำ / กรูม" },
+  { id: "room", label: "🏠 ห้องพัก" },
+  { id: "service", label: "✨ บริการเสริม" },
+  { id: "custom", label: "✏️ พิมพ์เอง" },
+];
 
 export default function BillingPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -45,9 +106,7 @@ export default function BillingPage() {
   const [promoId, setPromoId] = useState("");
   const [autoPromoLabel, setAutoPromoLabel] = useState("");
   const [discount, setDiscount] = useState("");
-  const [items, setItems] = useState<Item[]>([
-    { label: "อาบน้ำ – เป่าขน", amount: 350, custom: false },
-  ]);
+  const [items, setItems] = useState<Item[]>([newGrooming()]);
   const [creating, setCreating] = useState(false);
 
   const load = useCallback(async () => {
@@ -61,23 +120,22 @@ export default function BillingPage() {
     setPromos((await p.json()).promos || []);
     setInvoices((await i.json()).invoices || []);
     const config = (await cfg.json()).config;
-    const roomPresets: ServicePreset[] = (config?.rooms || []).map(
-      (r: { name: string; price: number }) => ({
-        label: `ห้อง ${r.name} (/คืน)`,
+    setRooms(
+      (config?.rooms || []).map((r: { name: string; price: number }) => ({
+        label: `ห้อง ${r.name}`,
         amount: r.price,
-      })
+      }))
     );
-    setRooms(roomPresets);
   }, []);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const presets = useMemo(() => [...rooms, ...SERVICE_PRESETS], [rooms]);
   const selected = customers.find((c) => c.id === customerId);
 
-  const subtotal = items.reduce((s, it) => s + (it.amount || 0), 0);
+  const lines = items.map(computeLine);
+  const subtotal = lines.reduce((s, l) => s + l.amount, 0);
   const selectedPromo = promos.find((p) => p.id === promoId);
   const promoDiscount = selectedPromo
     ? Math.min(
@@ -107,7 +165,6 @@ export default function BillingPage() {
           })
           .slice(0, 8);
 
-  // เลือกลูกค้า → ดึงโปรที่ใช้ได้ ตัดอัตโนมัติ
   const pickCustomer = async (c: Customer) => {
     setCustomerId(c.id);
     setSearch(c.name);
@@ -115,9 +172,7 @@ export default function BillingPage() {
     setPromoId("");
     setAutoPromoLabel("");
     try {
-      const res = await fetch(
-        `/api/promos?autoFor=${c.id}&subtotal=${subtotal}`
-      );
+      const res = await fetch(`/api/promos?autoFor=${c.id}&subtotal=${subtotal}`);
       const { promo } = await res.json();
       if (promo) {
         setPromoId(promo.id);
@@ -136,26 +191,33 @@ export default function BillingPage() {
     setShowList(true);
   };
 
-  const setPreset = (idx: number, value: string) => {
-    if (value === CUSTOM) {
-      setItems((prev) =>
-        prev.map((it, i) => (i === idx ? { ...it, custom: true, label: "" } : it))
-      );
-      return;
-    }
-    const preset = presets.find((p) => p.label === value);
-    if (!preset) return;
-    setItems((prev) =>
-      prev.map((it, i) =>
-        i === idx
-          ? { label: preset.label, amount: preset.amount, custom: false }
-          : it
-      )
-    );
-  };
-
   const updateItem = (idx: number, patch: Partial<Item>) =>
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
+
+  const changeKind = (idx: number, kind: ItemKind) => {
+    let patch: Partial<Item> = { kind };
+    if (kind === "grooming") {
+      const prog = GROOM_PROGRAMS[0];
+      patch = { kind, program: prog.id, breed: prog.breeds[0].breed, size: "m" };
+    } else if (kind === "room") {
+      patch = {
+        kind,
+        roomLabel: rooms[0]?.label || "",
+        roomPrice: rooms[0]?.amount || 0,
+        nights: 1,
+      };
+    } else if (kind === "service") {
+      patch = { kind, label: SERVICE_PRESETS[0].label, amount: SERVICE_PRESETS[0].amount };
+    } else {
+      patch = { kind, label: "", amount: 0 };
+    }
+    updateItem(idx, patch);
+  };
+
+  const changeProgram = (idx: number, program: string) => {
+    const prog = groomProgram(program);
+    updateItem(idx, { program, breed: prog?.breeds[0].breed || "" });
+  };
 
   const removeItem = (idx: number) =>
     setItems((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== idx)));
@@ -165,6 +227,7 @@ export default function BillingPage() {
     if (subtotal <= 0) return alert("ใส่รายการอย่างน้อย 1 อย่าง");
     setCreating(true);
     const cat = selected.cats[0]?.name || "น้องแมว";
+    const payloadItems = lines.filter((l) => l.label.trim() && l.amount > 0);
     const res = await fetch("/api/invoices", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -174,9 +237,7 @@ export default function BillingPage() {
         lineUserId: selected.lineUserId,
         customerName: selected.name,
         catName: cat,
-        items: items
-          .filter((it) => it.label.trim() && it.amount > 0)
-          .map((it) => ({ label: it.label, amount: it.amount })),
+        items: payloadItems,
         promoId: promoId || undefined,
         extraDiscount: manualDiscount || undefined,
       }),
@@ -185,7 +246,7 @@ export default function BillingPage() {
     setCreating(false);
     if (data.invoice) {
       alert(`สร้างบิล ${data.invoice.id} — ${data.invoice.total} บาท`);
-      setItems([{ label: "อาบน้ำ – เป่าขน", amount: 350, custom: false }]);
+      setItems([newGrooming()]);
       setDiscount("");
       load();
     } else {
@@ -221,6 +282,7 @@ export default function BillingPage() {
     }
   };
 
+  const sub = "w-full rounded-lg border border-catcha-line bg-paper px-3 py-2 text-sm";
   const field =
     "w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm";
 
@@ -261,9 +323,7 @@ export default function BillingPage() {
               {showList && (
                 <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-catcha-sm border border-catcha-line bg-card shadow-catcha">
                   {filtered.length === 0 ? (
-                    <li className="px-3 py-2 text-xs text-brown-soft">
-                      ไม่พบลูกค้า
-                    </li>
+                    <li className="px-3 py-2 text-xs text-brown-soft">ไม่พบลูกค้า</li>
                   ) : (
                     filtered.map((c) => (
                       <li key={c.id}>
@@ -291,67 +351,181 @@ export default function BillingPage() {
           )}
         </div>
 
-        {/* ── รายการบริการ ── */}
+        {/* ── รายการ ── */}
         <div>
           <p className="mb-1 text-xs font-bold text-brown-soft">รายการ</p>
           <div className="space-y-2">
-            {items.map((item, i) => (
-              <div key={i} className="flex gap-2">
-                {item.custom ? (
-                  <input
-                    value={item.label}
-                    onChange={(e) => updateItem(i, { label: e.target.value })}
-                    placeholder="พิมพ์ชื่อรายการ"
-                    className="min-w-0 flex-1 rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
-                  />
-                ) : (
-                  <select
-                    value={item.label}
-                    onChange={(e) => setPreset(i, e.target.value)}
-                    className="min-w-0 flex-1 rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
-                  >
-                    {presets.map((p) => (
-                      <option key={p.label} value={p.label}>
-                        {p.label}
-                      </option>
-                    ))}
-                    <option value={CUSTOM}>✏️ พิมพ์เอง…</option>
-                  </select>
-                )}
-                <input
-                  type="number"
-                  min="0"
-                  inputMode="numeric"
-                  value={item.amount}
-                  onChange={(e) =>
-                    updateItem(i, { amount: Number(e.target.value) || 0 })
-                  }
-                  className="w-24 shrink-0 rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
-                />
-                {items.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeItem(i)}
-                    className="shrink-0 px-1 text-brown-faint"
-                    aria-label="ลบรายการ"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            ))}
+            {items.map((item, i) => {
+              const line = computeLine(item);
+              const prog = groomProgram(item.program);
+              return (
+                <div
+                  key={i}
+                  className="space-y-2 rounded-catcha-sm border border-catcha-line bg-paper/40 p-2.5"
+                >
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={item.kind}
+                      onChange={(e) => changeKind(i, e.target.value as ItemKind)}
+                      className="min-w-0 flex-1 rounded-lg border border-catcha-line bg-card px-3 py-2 text-sm font-bold"
+                    >
+                      {KIND_OPTIONS.map((k) => (
+                        <option key={k.id} value={k.id}>
+                          {k.label}
+                        </option>
+                      ))}
+                    </select>
+                    {items.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeItem(i)}
+                        className="shrink-0 px-1 text-brown-faint"
+                        aria-label="ลบรายการ"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  {item.kind === "grooming" && (
+                    <>
+                      <select
+                        value={item.program}
+                        onChange={(e) => changeProgram(i, e.target.value)}
+                        className={sub}
+                      >
+                        {GROOM_PROGRAMS.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="grid grid-cols-2 gap-2">
+                        <select
+                          value={item.breed}
+                          onChange={(e) => updateItem(i, { breed: e.target.value })}
+                          className={sub}
+                        >
+                          {prog?.breeds.map((b) => (
+                            <option key={b.breed} value={b.breed}>
+                              {b.breed}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          value={item.size}
+                          onChange={(e) =>
+                            updateItem(i, { size: e.target.value as GroomSize })
+                          }
+                          className={sub}
+                        >
+                          {GROOM_SIZES.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
+
+                  {item.kind === "room" && (
+                    <div className="flex gap-2">
+                      <select
+                        value={item.roomLabel}
+                        onChange={(e) => {
+                          const r = rooms.find((x) => x.label === e.target.value);
+                          updateItem(i, {
+                            roomLabel: e.target.value,
+                            roomPrice: r?.amount || 0,
+                          });
+                        }}
+                        className={`${sub} min-w-0 flex-1`}
+                      >
+                        {rooms.map((r) => (
+                          <option key={r.label} value={r.label}>
+                            {r.label} ({r.amount}฿/คืน)
+                          </option>
+                        ))}
+                      </select>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <input
+                          type="number"
+                          min="1"
+                          inputMode="numeric"
+                          value={item.nights}
+                          onChange={(e) =>
+                            updateItem(i, { nights: Number(e.target.value) || 1 })
+                          }
+                          className="w-16 rounded-lg border border-catcha-line bg-paper px-2 py-2 text-center text-sm"
+                        />
+                        <span className="text-xs font-bold text-brown-soft">คืน</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {item.kind === "service" && (
+                    <select
+                      value={item.label}
+                      onChange={(e) => {
+                        const p = SERVICE_PRESETS.find((x) => x.label === e.target.value);
+                        updateItem(i, {
+                          label: e.target.value,
+                          amount: p?.amount ?? item.amount,
+                        });
+                      }}
+                      className={sub}
+                    >
+                      {SERVICE_PRESETS.map((p) => (
+                        <option key={p.label} value={p.label}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {item.kind === "custom" && (
+                    <input
+                      value={item.label}
+                      onChange={(e) => updateItem(i, { label: e.target.value })}
+                      placeholder="พิมพ์ชื่อรายการ"
+                      className={sub}
+                    />
+                  )}
+
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="min-w-0 truncate text-[11px] text-brown-faint">
+                      {line.label}
+                    </span>
+                    {item.kind === "service" || item.kind === "custom" ? (
+                      <input
+                        type="number"
+                        min="0"
+                        inputMode="numeric"
+                        value={item.amount}
+                        onChange={(e) =>
+                          updateItem(i, { amount: Number(e.target.value) || 0 })
+                        }
+                        className="w-24 shrink-0 rounded-lg border border-catcha-line bg-paper px-3 py-1.5 text-right text-sm font-bold"
+                      />
+                    ) : (
+                      <span className="shrink-0 text-sm font-extrabold text-latte-deep">
+                        {line.amount.toLocaleString()} ฿
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
+
           <button
             type="button"
-            onClick={() =>
-              setItems((prev) => [
-                ...prev,
-                { label: presets[0]?.label || "", amount: presets[0]?.amount || 0, custom: false },
-              ])
-            }
-            className="mt-2 text-xs font-bold text-latte-deep"
+            onClick={() => setItems((prev) => [...prev, newGrooming()])}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-catcha-sm border-2 border-dashed border-latte/60 bg-latte/10 py-2.5 text-sm font-extrabold text-latte-deep transition active:scale-[.98]"
           >
-            + เพิ่มรายการ
+            <span className="text-lg">➕</span> เพิ่มรายการ
+            <span className="text-lg">🧾</span>
           </button>
         </div>
 
@@ -429,7 +603,25 @@ export default function BillingPage() {
             <p className="font-bold text-brown">
               {inv.catName} · {inv.customerName}
             </p>
-            <p className="text-sm font-extrabold text-latte-deep">
+
+            {inv.items && inv.items.length > 0 && (
+              <div className="mt-2 space-y-0.5 rounded-catcha-sm bg-paper/50 px-3 py-2 text-xs text-brown-soft">
+                {inv.items.map((it, k) => (
+                  <div key={k} className="flex justify-between gap-2">
+                    <span className="min-w-0 truncate">{it.label}</span>
+                    <span className="shrink-0">{it.amount.toLocaleString()} ฿</span>
+                  </div>
+                ))}
+                {inv.discount ? (
+                  <div className="flex justify-between border-t border-catcha-line pt-0.5 text-wait">
+                    <span>ส่วนลด{inv.promoLabel ? ` (${inv.promoLabel})` : ""}</span>
+                    <span>-{inv.discount.toLocaleString()} ฿</span>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            <p className="mt-2 text-sm font-extrabold text-latte-deep">
               {inv.total.toLocaleString()} บาท ·{" "}
               {inv.status === "paid" ? "✅ ชำระแล้ว" : "⏳ รอชำระ"}
             </p>

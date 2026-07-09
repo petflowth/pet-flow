@@ -17,7 +17,11 @@ export type CatRecord = {
   name: string;
   gender?: CatGender;
   breed?: string;
-  age?: string;
+  /** อายุที่ระบุ ณ วันสมัคร (ใช้คู่กับ ageUnit + ageAsOf เพื่อคำนวณอายุปัจจุบัน) */
+  ageValue?: number;
+  ageUnit?: "year" | "month";
+  ageAsOf?: string;
+  birthday?: string;
   medical?: string;
   photoDataUrl?: string;
   staffNote?: string;
@@ -89,6 +93,10 @@ type CatRow = {
   gender: string | null;
   breed: string | null;
   age: string | null;
+  age_value: number | null;
+  age_unit: string | null;
+  age_as_of: string | null;
+  birthday: string | null;
   medical: string | null;
   photo_data_url: string | null;
   staff_note: string | null;
@@ -182,7 +190,10 @@ function mapCustomer(row: CustomerRow): CustomerRecord {
       name: c.name,
       gender: (c.gender as CatGender) ?? undefined,
       breed: c.breed ?? undefined,
-      age: c.age ?? undefined,
+      ageValue: c.age_value ?? undefined,
+      ageUnit: (c.age_unit as "year" | "month") ?? undefined,
+      ageAsOf: c.age_as_of ?? undefined,
+      birthday: c.birthday ?? undefined,
       medical: c.medical ?? undefined,
       photoDataUrl: c.photo_data_url ?? undefined,
       staffNote: c.staff_note ?? undefined,
@@ -688,7 +699,9 @@ export async function addCat(
     name: string;
     gender?: CatGender;
     breed?: string;
-    age?: string;
+    ageValue?: number;
+    ageUnit?: "year" | "month";
+    birthday?: string;
     medical?: string;
     staffNote?: string;
   }
@@ -699,13 +712,19 @@ export async function addCat(
   const c = await getCustomer(customerId);
   if (!c) return null;
 
+  const hasAge = data.ageValue != null && !isNaN(data.ageValue);
+  const today = new Date().toISOString().slice(0, 10);
+
   const catId = `CAT${Date.now()}`;
   const cat: CatRecord = {
     id: catId,
     name,
     gender: data.gender,
     breed: data.breed?.trim() || undefined,
-    age: data.age?.trim() || undefined,
+    ageValue: hasAge ? data.ageValue : undefined,
+    ageUnit: hasAge ? data.ageUnit || "year" : undefined,
+    ageAsOf: hasAge ? today : undefined,
+    birthday: data.birthday?.trim() || undefined,
     medical: data.medical?.trim() || undefined,
     staffNote: data.staffNote?.trim() || undefined,
   };
@@ -721,7 +740,10 @@ export async function addCat(
       name,
       gender: cat.gender || null,
       breed: cat.breed || null,
-      age: cat.age || null,
+      age_value: cat.ageValue ?? null,
+      age_unit: cat.ageUnit || null,
+      age_as_of: cat.ageAsOf || null,
+      birthday: cat.birthday || null,
       medical: cat.medical || null,
       staff_note: cat.staffNote || null,
     });
@@ -1008,7 +1030,9 @@ export async function registerCustomerFromLine(data: {
     name: string;
     gender?: CatGender;
     breed?: string;
-    age?: string;
+    ageValue?: number;
+    ageUnit?: "year" | "month";
+    birthday?: string;
     medical?: string;
     staffNote?: string;
   }[];
@@ -1021,7 +1045,9 @@ export async function registerCustomerFromLine(data: {
       name: c.name.trim(),
       gender: c.gender,
       breed: c.breed?.trim(),
-      age: c.age?.trim(),
+      ageValue: c.ageValue,
+      ageUnit: c.ageUnit,
+      birthday: c.birthday?.trim(),
       medical: c.medical?.trim(),
       staffNote: c.staffNote?.trim(),
     }))

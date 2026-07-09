@@ -10,7 +10,9 @@ type CatInput = {
   gender?: CatGender;
   breed: string;
   breedOther: string;
-  age: string;
+  ageValue: string;
+  ageUnit: "year" | "month";
+  birthday: string;
   medical: string;
   note: string;
 };
@@ -43,7 +45,16 @@ const BREED_OPTIONS = [
 ];
 
 function emptyCat(): CatInput {
-  return { name: "", breed: "", breedOther: "", age: "", medical: "", note: "" };
+  return {
+    name: "",
+    breed: "",
+    breedOther: "",
+    ageValue: "",
+    ageUnit: "year",
+    birthday: "",
+    medical: "",
+    note: "",
+  };
 }
 
 export default function RegisterPage() {
@@ -86,6 +97,12 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!profile?.lineUserId) return;
 
+    const named = cats.filter((c) => c.name.trim());
+    if (named.some((c) => !c.gender)) {
+      setError("เลือกเพศน้องแมวทุกตัวด้วยนะคะ 🐱");
+      return;
+    }
+
     setSaving(true);
     setError("");
 
@@ -108,7 +125,9 @@ export default function RegisterPage() {
             breed:
               (c.breed === OTHER_BREED ? c.breedOther.trim() : c.breed) ||
               undefined,
-            age: c.age || undefined,
+            ageValue: c.ageValue ? Number(c.ageValue) : undefined,
+            ageUnit: c.ageUnit,
+            birthday: c.birthday || undefined,
             medical: c.medical || undefined,
             staffNote: c.note || undefined,
           })),
@@ -145,8 +164,11 @@ export default function RegisterPage() {
     <div className="px-4 pb-6 pt-5">
       <div className="mb-5 rounded-catcha bg-sage/20 p-4 text-center">
         <p className="text-2xl">🐾</p>
-        <h1 className="mt-2 text-lg font-extrabold text-catcha-chocolate">
-          สมัครสมาชิกเพื่อรับสิทธิพิเศษมากมาย
+        <h1 className="mt-2 font-extrabold leading-tight text-catcha-chocolate">
+          <span className="block text-2xl">สมัครสมาชิก</span>
+          <span className="mt-0.5 block text-sm text-latte-deep">
+            เพื่อรับสิทธิพิเศษ
+          </span>
         </h1>
         <p className="mt-1 text-xs text-brown-soft">
           กรอกข้อมูลครั้งเดียว — ใช้ยืนยันนัด แต้มสะสม และโปรโมชั่น
@@ -159,7 +181,7 @@ export default function RegisterPage() {
           <span className="mb-1 block text-xs font-bold text-brown">
             ชื่อผู้ปกครอง{" "}
             <span className="font-normal text-brown-faint">
-              (ชื่อเล่นหรือชื่อจริงก็ได้)
+              (ชื่อเล่นหรือชื่อจริงก็ได้นะคะ)
             </span>
           </span>
           <input
@@ -185,11 +207,9 @@ export default function RegisterPage() {
 
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
-            <span className="mb-1 block text-xs font-bold text-brown">
-              อีเมล{" "}
-              <span className="font-normal text-brown-faint">(ไม่บังคับ)</span>
-            </span>
+            <span className="mb-1 block text-xs font-bold text-brown">อีเมล</span>
             <input
+              required
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -199,10 +219,10 @@ export default function RegisterPage() {
           </label>
           <label className="block">
             <span className="mb-1 block text-xs font-bold text-brown">
-              วันเกิด{" "}
-              <span className="font-normal text-brown-faint">(ไม่บังคับ)</span>
+              วันเกิดผู้ปกครอง
             </span>
             <input
+              required
               type="date"
               value={birthday}
               onChange={(e) => setBirthday(e.target.value)}
@@ -213,15 +233,8 @@ export default function RegisterPage() {
 
         {/* ── น้องแมว ── */}
         <div>
-          <div className="mb-2 flex items-center justify-between">
+          <div className="mb-2">
             <span className="text-xs font-bold text-brown">น้องแมว</span>
-            <button
-              type="button"
-              onClick={addCat}
-              className="text-xs font-bold text-latte-deep"
-            >
-              + เพิ่มแมว
-            </button>
           </div>
           <ul className="space-y-3">
             {cats.map((cat, idx) => (
@@ -264,6 +277,7 @@ export default function RegisterPage() {
                 </div>
 
                 <select
+                  required={idx === 0}
                   value={cat.breed}
                   onChange={(e) => updateCat(idx, { breed: e.target.value })}
                   className={`${subFieldClass} ${
@@ -282,18 +296,48 @@ export default function RegisterPage() {
                 </select>
                 {cat.breed === OTHER_BREED && (
                   <input
+                    required
                     value={cat.breedOther}
                     onChange={(e) => updateCat(idx, { breedOther: e.target.value })}
                     placeholder="ระบุสายพันธุ์"
                     className={subFieldClass}
                   />
                 )}
-                <input
-                  value={cat.age}
-                  onChange={(e) => updateCat(idx, { age: e.target.value })}
-                  placeholder="อายุ (เช่น 2 ปี)"
-                  className={subFieldClass}
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    value={cat.ageValue}
+                    onChange={(e) => updateCat(idx, { ageValue: e.target.value })}
+                    placeholder="อายุ"
+                    className={`${subFieldClass} flex-1`}
+                  />
+                  <select
+                    value={cat.ageUnit}
+                    onChange={(e) =>
+                      updateCat(idx, {
+                        ageUnit: e.target.value as "year" | "month",
+                      })
+                    }
+                    className={`${subFieldClass} w-24`}
+                  >
+                    <option value="year">ปี</option>
+                    <option value="month">เดือน</option>
+                  </select>
+                </div>
+                <label className="block text-[10px] font-bold text-brown-soft">
+                  วันเกิดน้องแมว{" "}
+                  <span className="font-normal text-brown-faint">
+                    (ถ้าทราบ · ไม่บังคับ)
+                  </span>
+                  <input
+                    type="date"
+                    value={cat.birthday}
+                    onChange={(e) => updateCat(idx, { birthday: e.target.value })}
+                    className={`${subFieldClass} mt-0.5`}
+                  />
+                </label>
 
                 <input
                   value={cat.medical}
@@ -320,6 +364,15 @@ export default function RegisterPage() {
               </li>
             ))}
           </ul>
+
+          <button
+            type="button"
+            onClick={addCat}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-catcha-sm border-2 border-dashed border-latte/60 bg-latte/10 py-3 text-sm font-extrabold text-latte-deep transition active:scale-[.98]"
+          >
+            <span className="text-lg">🐱</span> เพิ่มน้องแมวอีกตัว
+            <span className="text-lg">🐾</span>
+          </button>
         </div>
 
         {/* ── รู้จักเราจากทางไหน ── */}

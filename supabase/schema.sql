@@ -26,6 +26,10 @@ create table if not exists cats (
   gender text,
   breed text,
   age text,
+  age_value integer,
+  age_unit text,
+  age_as_of date,
+  birthday date,
   medical text,
   photo_data_url text,
   staff_note text

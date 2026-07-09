@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import type { CatRecord, CustomerRecord, MemberCreditUsageRecord, MemberTopupRecord } from "@/lib/customers-store";
 import type { CustomerTier } from "@/lib/customer-tier";
 import { TIER_LABELS, tierBadgeClass } from "@/lib/customer-tier";
+import { catCurrentAgeLabel } from "@/lib/cat-age";
 import { RegistrationQrSection } from "@/components/LineSetupSection";
 import { AddCustomerModal } from "@/components/AddCustomerModal";
 import { CustomerLinkSection } from "@/components/CustomerLinkSection";
@@ -912,40 +913,32 @@ export default function CustomersPage() {
                       className="mt-0.5 w-full rounded-catcha-sm border border-catcha-line bg-paper px-2 py-1.5 text-sm font-bold text-brown"
                     />
                   </label>
-                  {(cat.gender || cat.breed || cat.age || cat.medical) && (
-                    <div className="mt-2 space-y-1 rounded-catcha-sm bg-paper/60 px-2 py-1.5 text-[10px] text-brown-soft">
-                      {[
-                        cat.gender === "male"
-                          ? "♂ ผู้"
-                          : cat.gender === "female"
-                            ? "♀ เมีย"
-                            : "",
-                        cat.breed,
-                        cat.age,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ") && (
-                        <p>
-                          {[
-                            cat.gender === "male"
-                              ? "♂ ผู้"
-                              : cat.gender === "female"
-                                ? "♀ เมีย"
-                                : "",
-                            cat.breed,
-                            cat.age,
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </p>
-                      )}
-                      {cat.medical && (
-                        <p className="font-bold text-wait">
-                          🩺 โรคประจำตัว: {cat.medical}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                  {(() => {
+                    const ageLabel = catCurrentAgeLabel(cat);
+                    const meta = [
+                      cat.gender === "male"
+                        ? "♂ ผู้"
+                        : cat.gender === "female"
+                          ? "♀ เมีย"
+                          : "",
+                      cat.breed,
+                      ageLabel !== "—" ? `อายุ ${ageLabel}` : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" · ");
+                    if (!meta && !cat.birthday && !cat.medical) return null;
+                    return (
+                      <div className="mt-2 space-y-1 rounded-catcha-sm bg-paper/60 px-2 py-1.5 text-[10px] text-brown-soft">
+                        {meta && <p>{meta}</p>}
+                        {cat.birthday && <p>🎂 วันเกิด {cat.birthday}</p>}
+                        {cat.medical && (
+                          <p className="font-bold text-wait">
+                            🩺 โรคประจำตัว: {cat.medical}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
                   <label className="mt-2 block text-[10px] font-bold text-brown-soft">
                     โน้ตนิสัย (เฉพาะตัวนี้)
                     <textarea

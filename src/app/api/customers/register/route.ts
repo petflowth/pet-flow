@@ -5,7 +5,9 @@ type CatBody = {
   name?: string;
   gender?: string;
   breed?: string;
-  age?: string;
+  ageValue?: number | string;
+  ageUnit?: string;
+  birthday?: string;
   medical?: string;
   staffNote?: string;
 };
@@ -26,7 +28,12 @@ export async function POST(req: NextRequest) {
         gender:
           c.gender === "male" || c.gender === "female" ? c.gender : undefined,
         breed: c.breed ? String(c.breed) : undefined,
-        age: c.age ? String(c.age) : undefined,
+        ageValue:
+          c.ageValue != null && c.ageValue !== "" && !isNaN(Number(c.ageValue))
+            ? Number(c.ageValue)
+            : undefined,
+        ageUnit: c.ageUnit === "month" ? "month" : c.ageUnit === "year" ? "year" : undefined,
+        birthday: c.birthday ? String(c.birthday) : undefined,
         medical: c.medical ? String(c.medical) : undefined,
         staffNote: c.staffNote ? String(c.staffNote) : undefined,
       }))

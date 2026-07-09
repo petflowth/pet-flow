@@ -73,14 +73,9 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (!customer) return;
+    // เติมชื่อ/เบอร์เดิมให้ แต่เริ่มด้วยน้องแมวช่องเดียว — เพิ่มเองด้วยปุ่ม
     setName((prev) => prev || customer.name || "");
     setPhone((prev) => prev || customer.phone || "");
-    if (customer.cats.length > 0) {
-      setCats((prev) => {
-        if (prev.some((c) => c.name.trim())) return prev;
-        return customer.cats.map((c) => ({ ...emptyCat(), name: c.name }));
-      });
-    }
   }, [customer]);
 
   const addCat = () => setCats((prev) => [...prev, emptyCat()]);

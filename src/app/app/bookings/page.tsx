@@ -20,6 +20,7 @@ function BookingsContent() {
   const [loading, setLoading] = useState(true);
   const [pickId, setPickId] = useState<string | null>(null);
   const [checkin, setCheckin] = useState("14:00");
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const scrolledRef = useRef(false);
 
   const load = useCallback(async () => {
@@ -56,24 +57,32 @@ function BookingsContent() {
   }, [highlightId, loading, bookings]);
 
   const confirm = async (id: string) => {
+    if (confirmingId) return;
     const b = bookings.find((x) => x.id === id);
     if (!b) return;
 
-    const res = await fetch("/api/bookings", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id,
-        action: "confirm",
-        checkinTime: b.service === "room" ? checkin : undefined,
-      }),
-    });
+    setConfirmingId(id);
+    try {
+      const res = await fetch("/api/bookings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          action: "confirm",
+          checkinTime: b.service === "room" ? checkin : undefined,
+        }),
+      });
 
-    if (res.ok) {
-      await load();
-      setPickId(null);
-    } else {
-      alert(locale === "th" ? "ยืนยันไม่สำเร็จ" : "Could not confirm");
+      if (res.ok) {
+        await load();
+        setPickId(null);
+      } else {
+        alert(locale === "th" ? "ยืนยันไม่สำเร็จ" : "Could not confirm");
+      }
+    } catch {
+      alert(locale === "th" ? "เชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง" : "Connection failed, try again");
+    } finally {
+      setConfirmingId(null);
     }
   };
 
@@ -149,14 +158,22 @@ function BookingsContent() {
                   )}
                   <button
                     type="button"
+                    disabled={confirmingId === b.id}
                     onClick={() =>
                       b.service === "room" && pickId !== b.id
                         ? setPickId(b.id)
                         : confirm(b.id)
                     }
-                    className="w-full rounded-catcha-sm bg-gradient-to-r from-latte to-latte-deep py-3 text-sm font-extrabold text-white"
+                    className="flex w-full items-center justify-center gap-2 rounded-catcha-sm bg-gradient-to-r from-latte to-latte-deep py-3 text-sm font-extrabold text-white disabled:opacity-70"
                   >
-                    🐾 {m.confirm}
+                    {confirmingId === b.id ? (
+                      <>
+                        <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                        {locale === "th" ? "กำลังยืนยัน…" : "Confirming…"}
+                      </>
+                    ) : (
+                      <>🐾 {m.confirm}</>
+                    )}
                   </button>
                 </>
               )}

@@ -27,6 +27,26 @@ body {
   font-family: "Sukhumvit Set", -apple-system, "Leelawadee UI", "Noto Sans Thai", sans-serif;
 }
 
+/* ฟีดแบ็กตอนแตะทันที — ปุ่มยุบเล็กน้อย รู้สึกว่ากดติดเลย ไม่ต้องรอเน็ต
+   + ตัดไฮไลต์ฟ้าของ mobile ตอนแตะ */
+button,
+a[role="button"],
+[type="button"],
+[type="submit"] {
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.06s ease, opacity 0.12s ease;
+  touch-action: manipulation;
+}
+button:not(:disabled):active,
+a[role="button"]:active,
+[type="button"]:not(:disabled):active,
+[type="submit"]:not(:disabled):active {
+  transform: scale(0.97);
+}
+button:disabled {
+  cursor: not-allowed;
+}
+
 @layer utilities {
   .bg-catcha-gradient {
     background:

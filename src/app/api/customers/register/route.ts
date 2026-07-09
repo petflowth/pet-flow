@@ -49,16 +49,23 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const customer = await registerCustomerFromLine({
-    lineUserId,
-    name,
-    phone,
-    email: email || undefined,
-    birthday: birthday || undefined,
-    referralSource: referralSource || undefined,
-    marketingConsent,
-    cats,
-  });
+  let customer;
+  try {
+    customer = await registerCustomerFromLine({
+      lineUserId,
+      name,
+      phone,
+      email: email || undefined,
+      birthday: birthday || undefined,
+      referralSource: referralSource || undefined,
+      marketingConsent,
+      cats,
+    });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    console.error("register failed:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 
   if (!customer) {
     return NextResponse.json({ error: "ลงทะเบียนไม่สำเร็จ" }, { status: 500 });

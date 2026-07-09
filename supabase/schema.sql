@@ -139,6 +139,7 @@ create table if not exists invoices (
   items jsonb not null default '[]'::jsonb,
   subtotal numeric not null,
   discount numeric not null default 0,
+  deposit numeric not null default 0,
   promo_id text,
   promo_label text,
   total numeric not null,
@@ -217,3 +218,11 @@ create table if not exists site_config (
   data jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
 );
+
+create table if not exists broadcast_images (
+  id text primary key,
+  data text not null,
+  content_type text not null default 'image/jpeg',
+  created_at timestamptz not null default now()
+);
+create index if not exists broadcast_images_created_at_idx on broadcast_images(created_at);

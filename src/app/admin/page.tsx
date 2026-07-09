@@ -175,7 +175,7 @@ export default function AdminDashboard() {
 
       <section className="rounded-catcha bg-card p-4 shadow-catcha-sm">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="text-sm font-extrabold text-catcha-chocolate">
+          <h2 className="text-base font-extrabold text-catcha-chocolate">
             🗓️ ตารางนัดเดือน {m}/{y}
           </h2>
           {activeDate !== today && (
@@ -188,10 +188,12 @@ export default function AdminDashboard() {
             </button>
           )}
         </div>
-        <p className="mb-2 text-[10px] text-brown-soft">แตะวันที่เพื่อดูรายการนัด · กดจองคิวได้เลย</p>
-        <div className="grid grid-cols-7 gap-1 text-center text-[9px] font-bold text-brown-faint">
+        <p className="mb-2.5 text-xs text-brown-soft">แตะวันที่เพื่อดูรายการนัด · กดจองคิวได้เลย</p>
+        <div className="grid grid-cols-7 gap-1.5 text-center">
           {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((d) => (
-            <div key={d}>{d}</div>
+            <div key={d} className="pb-1 text-xs font-bold text-brown-faint">
+              {d}
+            </div>
           ))}
           {Array.from({ length: startPad }).map((_, i) => (
             <div key={`pad-${i}`} />
@@ -207,17 +209,21 @@ export default function AdminDashboard() {
                 key={key}
                 type="button"
                 onClick={() => pickDate(key)}
-                className={`rounded-lg py-1.5 transition ${
+                className={`flex min-h-[54px] flex-col items-center justify-center gap-1 rounded-xl py-2 transition ${
                   isSelected
-                    ? "bg-latte/40 font-extrabold text-catcha-chocolate ring-2 ring-latte-deep"
+                    ? "bg-latte/40 text-catcha-chocolate ring-2 ring-latte-deep"
                     : isToday
-                      ? "bg-honey/40 font-extrabold text-catcha-chocolate"
-                      : "bg-paper/50 hover:bg-paper"
-                } ${count ? "ring-1 ring-latte/40" : ""}`}
+                      ? "bg-honey/40 text-catcha-chocolate ring-1 ring-honey-deep"
+                      : "bg-paper/60 text-brown hover:bg-paper"
+                }`}
               >
-                {day}
-                {count > 0 && (
-                  <div className="text-[8px] text-latte-deep">{count}นัด</div>
+                <span className="text-base font-extrabold leading-none">{day}</span>
+                {count > 0 ? (
+                  <span className="rounded-full bg-latte-deep px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                    {count} นัด
+                  </span>
+                ) : (
+                  <span className="h-[15px]" />
                 )}
               </button>
             );

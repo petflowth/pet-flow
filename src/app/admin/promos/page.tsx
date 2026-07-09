@@ -485,6 +485,59 @@ export default function PromosAdminPage() {
           </div>
         </div>
 
+        <div className="rounded-catcha-sm border border-catcha-line bg-card/80 p-3">
+          <p className="mb-2 text-xs font-extrabold text-catcha-chocolate">
+            👀 ตัวอย่างที่ลูกค้าจะเห็นใน LINE
+          </p>
+          <div className="mx-auto max-w-[260px] overflow-hidden rounded-2xl border border-catcha-line bg-white">
+            {broadcastImage.startsWith("data:") || broadcastImage.startsWith("http") ? (
+              <Image
+                src={broadcastImage}
+                alt="preview"
+                width={260}
+                height={169}
+                className="h-[169px] w-full object-cover"
+                unoptimized
+              />
+            ) : (
+              <div className="px-4 py-5" style={{ backgroundColor: "#5A8F5A" }}>
+                <span className="text-sm font-bold text-white">✨ โปรโมชั่น CatCha</span>
+              </div>
+            )}
+            <div className="px-4 py-3">
+              <p className="text-base font-bold" style={{ color: "#5C4033" }}>
+                {broadcastTitle || "หัวข้อการ์ด…"}
+              </p>
+              <p
+                className="mt-1 whitespace-pre-line text-[13px] leading-relaxed"
+                style={{ color: "#4E3E32" }}
+              >
+                {broadcastBody || "ข้อความโปรโมชั่น…"}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 px-4 pb-4">
+              {(broadcastActions.length
+                ? broadcastActions.map(
+                    (id) => BROADCAST_ACTIONS.find((a) => a.id === id)?.label || id
+                  )
+                : ["ดูรายละเอียด"]
+              ).map((label, i) => (
+                <div
+                  key={`${label}-${i}`}
+                  className="rounded-lg py-2.5 text-center text-[13px] font-bold"
+                  style={
+                    i === 0
+                      ? { backgroundColor: "#4A7348", color: "#fff" }
+                      : { border: "1px solid #4A7348", color: "#4A7348" }
+                  }
+                >
+                  {label}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         <button
           type="button"
           disabled={broadcasting}

@@ -312,7 +312,7 @@ export default function RegisterPage() {
                     value={cat.ageValue}
                     onChange={(e) => updateCat(idx, { ageValue: e.target.value })}
                     placeholder="อายุ"
-                    className={`${subFieldClass} flex-1`}
+                    className="min-w-0 flex-1 rounded-lg border border-catcha-line bg-paper px-3 py-2 text-sm"
                   />
                   <select
                     value={cat.ageUnit}
@@ -321,7 +321,7 @@ export default function RegisterPage() {
                         ageUnit: e.target.value as "year" | "month",
                       })
                     }
-                    className={`${subFieldClass} w-24`}
+                    className="w-24 shrink-0 rounded-lg border border-catcha-line bg-paper px-3 py-2 text-sm"
                   >
                     <option value="year">ปี</option>
                     <option value="month">เดือน</option>

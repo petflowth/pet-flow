@@ -852,6 +852,26 @@ export default function CustomersPage() {
     await saveCat(catId, { staffNote, ...(photoDataUrl ? { photoDataUrl } : {}) });
   };
 
+  const saveCatPrivateNote = async (catId: string, note: string) => {
+    if (!selected) return;
+    const res = await fetch("/api/customers", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: selected.customer.id,
+        action: "update_cat_private_note",
+        catId,
+        note,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data?.needSql) {
+      alert(
+        "บันทึกโน้ตลับยังไม่ได้ ต้องรัน SQL เพิ่มคอลัมน์ใน Supabase ก่อน (ดู webapp/OVERNIGHT_SQL.md)"
+      );
+    }
+  };
+
 
   const onPhoto = (cat: CatRecord, file: File) => {
     const reader = new FileReader();
@@ -971,6 +991,16 @@ export default function CustomersPage() {
                       className="mt-0.5 w-full rounded-catcha-sm border border-catcha-line bg-paper px-2 py-1.5 text-xs"
                       rows={2}
                       onBlur={(e) => saveCatNote(cat.id, e.target.value, cat.photoDataUrl)}
+                    />
+                  </label>
+                  <label className="mt-2 block rounded-catcha-sm border border-wait/40 bg-wait/5 px-2 py-1.5 text-[10px] font-bold text-wait">
+                    🔒 โน้ตลับร้าน (ลูกค้าไม่เห็น)
+                    <textarea
+                      defaultValue={cat.staffPrivateNote}
+                      placeholder="เช่น กัด ข่วน ดุมาก ระวังตอนอาบน้ำ — เฉพาะพนักงาน"
+                      className="mt-0.5 w-full rounded-catcha-sm border border-wait/30 bg-card px-2 py-1.5 text-xs font-normal text-brown"
+                      rows={2}
+                      onBlur={(e) => saveCatPrivateNote(cat.id, e.target.value)}
                     />
                   </label>
                   <label className="mt-2 block text-[10px] font-bold text-latte-deep">

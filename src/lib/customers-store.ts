@@ -25,6 +25,8 @@ export type CatRecord = {
   medical?: string;
   photoDataUrl?: string;
   staffNote?: string;
+  /** โน้ตลับของร้าน — ซ่อนจากลูกค้า (ต้องรัน OVERNIGHT_SQL.md ก่อนถึงจะเซฟได้) */
+  staffPrivateNote?: string;
 };
 
 export type CustomerRecord = {
@@ -100,6 +102,7 @@ type CatRow = {
   medical: string | null;
   photo_data_url: string | null;
   staff_note: string | null;
+  staff_private_note?: string | null;
 };
 
 type CustomerRow = {
@@ -197,6 +200,7 @@ function mapCustomer(row: CustomerRow): CustomerRecord {
       medical: c.medical ?? undefined,
       photoDataUrl: c.photo_data_url ?? undefined,
       staffNote: c.staff_note ?? undefined,
+      staffPrivateNote: c.staff_private_note ?? undefined,
     })),
   };
 }
@@ -782,6 +786,41 @@ export async function deleteCustomer(customerId: string) {
     if (error) throw new Error(error.message);
   } else {
     memCustomers.delete(customerId);
+  }
+  return { ok: true as const };
+}
+
+/**
+ * บันทึกโน้ตลับของร้านต่อแมว (ซ่อนจากลูกค้า).
+ * ต้องรัน OVERNIGHT_SQL.md (staff_private_note) ก่อนถึงจะบันทึกลง DB ได้ —
+ * ถ้ายังไม่มีคอลัมน์ จะ return need_sql โดยไม่ทำให้หน้าแอดมินพัง.
+ */
+export async function updateCatPrivateNote(
+  customerId: string,
+  catId: string,
+  note: string
+) {
+  const c = await getCustomer(customerId);
+  if (!c) return { ok: false as const, error: "not_found" };
+  const cat = c.cats.find((x) => x.id === catId);
+  if (!cat) return { ok: false as const, error: "not_found" };
+  const trimmed = note.trim();
+  cat.staffPrivateNote = trimmed || undefined;
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb
+        .from("cats")
+        .update({ staff_private_note: trimmed || null })
+        .eq("id", catId);
+      if (error) {
+        return { ok: false as const, error: "need_sql", message: error.message };
+      }
+    } catch (e) {
+      return { ok: false as const, error: "need_sql", message: String(e) };
+    }
+  } else {
+    memCustomers.set(customerId, c);
   }
   return { ok: true as const };
 }

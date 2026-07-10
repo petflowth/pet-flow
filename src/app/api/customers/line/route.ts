@@ -4,6 +4,16 @@ import {
   upsertCustomerFromLine,
 } from "@/lib/customers-store";
 import { isProfileComplete } from "@/lib/customer-tier";
+import type { CatRecord } from "@/lib/customers-store";
+
+/** ตัด staffPrivateNote (โน้ตลับร้าน) ออกก่อนส่งให้ฝั่งลูกค้าเสมอ */
+function catsForCustomer(cats: CatRecord[]) {
+  return cats.map((cat) => {
+    const rest = { ...cat };
+    delete rest.staffPrivateNote;
+    return rest;
+  });
+}
 
 /** ลูกค้าเปิดแอปจาก LINE → สร้าง/ผูกบัญชีอัตโนมัติ */
 export async function POST(req: NextRequest) {
@@ -28,7 +38,7 @@ export async function POST(req: NextRequest) {
       phone: customer.phone,
       lineUserId: customer.lineUserId,
       lineDisplayName: customer.lineDisplayName,
-      cats: customer.cats,
+      cats: catsForCustomer(customer.cats),
       isMember: customer.isMember,
       memberCredit: customer.memberCredit,
       tier: customer.tier,
@@ -55,7 +65,7 @@ export async function GET(req: NextRequest) {
       id: customer.id,
       name: customer.name,
       phone: customer.phone,
-      cats: customer.cats,
+      cats: catsForCustomer(customer.cats),
       tier: customer.tier,
     },
   });

@@ -77,7 +77,11 @@ export async function POST(req: NextRequest) {
       id: customer.id,
       name: customer.name,
       phone: customer.phone,
-      cats: customer.cats,
+      cats: customer.cats.map((cat) => {
+        const rest = { ...cat };
+        delete rest.staffPrivateNote;
+        return rest;
+      }),
       tier: customer.tier,
     },
   });

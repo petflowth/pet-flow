@@ -738,6 +738,7 @@ function AdvancedTab({
 }) {
   return (
     <div className="space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm">
+      <MigrateSection />
       <ExportSheetsButton />
       <p className="text-[10px] text-brown-faint">
         ส่งออกแท็บ ลูกค้า + รายรับรายจ่าย ไป Google Sheet เดียว (ต้องตั้ง GOOGLE_SPREADSHEET_ID)
@@ -764,6 +765,82 @@ function AdvancedTab({
           {saving ? "…" : "📥 นำเข้า JSON"}
         </button>
       </div>
+    </div>
+  );
+}
+
+function MigrateSection() {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [bootSql, setBootSql] = useState("");
+
+  const run = async () => {
+    setBusy(true);
+    setMsg("");
+    setBootSql("");
+    try {
+      const res = await fetch("/api/admin/migrate", { method: "POST" });
+      const d = await res.json();
+      if (d.bootstrapNeeded) {
+        setBootSql(d.bootstrapSql || "");
+        setMsg(
+          "⚠️ ต้องตั้งค่าครั้งแรกก่อน (ครั้งเดียว) — ก๊อป SQL ด้านล่างไปวางใน Supabase → SQL Editor → Run แล้วกดปุ่มนี้อีกครั้ง"
+        );
+      } else if (d.ok) {
+        setMsg(
+          d.applied.length > 0
+            ? `✅ อัปเดตฐานข้อมูลเรียบร้อย (${d.applied.length} รายการ) — ทุกฟีเจอร์พร้อมใช้แล้ว`
+            : "✅ ฐานข้อมูลเป็นเวอร์ชันล่าสุดอยู่แล้ว"
+        );
+      } else {
+        setMsg(
+          "❌ บางรายการไม่สำเร็จ: " +
+            (d.errors || []).map((e: { name: string }) => e.name).join(", ")
+        );
+      }
+    } catch {
+      setMsg("❌ เชื่อมต่อไม่สำเร็จ");
+    }
+    setBusy(false);
+  };
+
+  return (
+    <div className="rounded-catcha-sm border border-honey/50 bg-honey/10 p-3">
+      <p className="text-xs font-extrabold text-catcha-chocolate">
+        🗄️ อัปเดตฐานข้อมูล (อัตโนมัติ)
+      </p>
+      <p className="mb-2 text-[10px] text-brown-soft">
+        เพิ่มคอลัมน์/ตารางที่ฟีเจอร์ใหม่ต้องใช้ให้เอง — ไม่ต้องไปพิมพ์ SQL ใน Supabase อีก
+        (ปลอดภัย กดซ้ำได้)
+      </p>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={run}
+        className="w-full rounded-catcha-sm bg-honey-deep/80 py-2 text-xs font-extrabold text-catcha-chocolate disabled:opacity-50"
+      >
+        {busy ? "กำลังอัปเดต…" : "🔄 อัปเดตฐานข้อมูลตอนนี้"}
+      </button>
+      {msg && (
+        <p className="mt-2 text-[11px] font-bold text-brown">{msg}</p>
+      )}
+      {bootSql && (
+        <div className="mt-2">
+          <textarea
+            readOnly
+            value={bootSql}
+            rows={10}
+            className="w-full rounded-catcha-sm border border-catcha-line bg-paper p-2 font-mono text-[9px]"
+          />
+          <button
+            type="button"
+            onClick={() => navigator.clipboard.writeText(bootSql)}
+            className="mt-1 w-full rounded-catcha-sm bg-paper py-1.5 text-[10px] font-bold text-brown-soft"
+          >
+            📋 คัดลอก SQL (วางใน Supabase ครั้งเดียว)
+          </button>
+        </div>
+      )}
     </div>
   );
 }

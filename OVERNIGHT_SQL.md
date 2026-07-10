@@ -1,24 +1,40 @@
-# SQL ที่ต้องรันครั้งเดียว (ฐานข้อมูลจริงของแอป)
+# ตั้งค่าฐานข้อมูล — รันครั้งเดียว (ครั้งสุดท้ายที่ต้องแตะ SQL)
 
-ฟีเจอร์บางอย่างที่ทำคืนนี้ต้องเพิ่มคอลัมน์ในฐานข้อมูล แต่ระบบเข้า DB จริงตรงๆ ไม่ได้
-(คนละบัญชี Supabase) โค้ดถูกเขียนให้ **ไม่พังถ้าคอลัมน์ยังไม่มี** — แต่ฟีเจอร์จะทำงานเต็มที่
-เมื่อรัน SQL ด้านล่างแล้ว
+ตั้งแต่นี้ไป **ไม่ต้องมานั่ง paste SQL ทุกครั้ง**ที่มีฟีเจอร์ใหม่แล้ว
+แอปจะเติมคอลัมน์/ตารางที่ต้องใช้ให้เองผ่านปุ่ม **"🔄 อัปเดตฐานข้อมูล"**
+(ตั้งค่า → ขั้นสูง) และรันอัตโนมัติทุกครั้งที่เปิดหลังบ้าน
 
-## วิธีรัน
-1. เข้า https://supabase.com/dashboard/project/nqperjfuuntbzskbrqql
-2. เมนูซ้าย → **SQL Editor** → **New query**
-3. วางทั้งบล็อกด้านล่าง → กด **Run** (ปลอดภัย idempotent รันซ้ำได้ ไม่ลบข้อมูล)
+แต่ต้อง **ตั้งค่าครั้งแรกครั้งเดียว** ให้แอปมีสิทธิ์แก้โครงสร้าง DB ก่อน:
+
+## วิธีตั้งค่าครั้งแรก
+1. เข้า https://supabase.com/dashboard/project/nqperjfuuntbzskbrqql → **SQL Editor** → **New query**
+2. วางบล็อกด้านล่าง → **Run** (สร้างตัวช่วย + ล็อกให้เรียกได้เฉพาะเซิร์ฟเวอร์)
+3. กลับมาที่แอป → ตั้งค่า → ขั้นสูง → กด **"🔄 อัปเดตฐานข้อมูลตอนนี้"** → เสร็จ!
 
 ```sql
--- #7 โน้ตลับของร้าน (ซ่อนจากลูกค้า) ต่อแมว
-alter table cats add column if not exists staff_private_note text;
+-- ตั้งค่าครั้งเดียว: ให้แอปอัปเดตฐานข้อมูลเองได้
+create or replace function public.exec_sql(sql text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  execute sql;
+end;
+$$;
 
--- #4 เวลาลูกค้ากดยอมรับข้อตกลงก่อนเข้าพัก (หน้า /app/consent)
-alter table bookings add column if not exists consent_accepted_at timestamptz;
+-- ล็อก: เรียกได้เฉพาะ service role (ฝั่งเซิร์ฟเวอร์เท่านั้น)
+revoke all on function public.exec_sql(text) from public;
+grant execute on function public.exec_sql(text) to service_role;
 
--- มัดจำล่วงหน้า (เครดิตมัดจำคงเหลือของลูกค้า หักออกจากบิลถัดไป)
-alter table customers add column if not exists deposit_credit numeric not null default 0;
-
--- ให้ PostgREST รู้จักคอลัมน์ใหม่
 notify pgrst, 'reload schema';
 ```
+
+## หลังจากนั้น
+- ปุ่ม "🔄 อัปเดตฐานข้อมูล" จะเติมคอลัมน์ที่ค้างให้เอง (deposit_credit,
+  staff_private_note, consent_accepted_at และของใหม่ในอนาคต)
+- ฟีเจอร์ใหม่ที่ต้องใช้คอลัมน์เพิ่ม → แค่เพิ่มใน `webapp/src/lib/migrations.ts`
+  แล้วมันจะรันเองตอนเปิดหลังบ้าน ไม่ต้องแตะ Supabase อีก
+
+> รายการ migration ทั้งหมดอยู่ใน `webapp/src/lib/migrations.ts` (ปลอดภัย idempotent)

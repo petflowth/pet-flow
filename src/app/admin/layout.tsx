@@ -23,7 +23,14 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     }
     const token = sessionStorage.getItem("catcha-admin");
     if (!token) router.replace("/admin/login");
-    else setOk(true);
+    else {
+      setOk(true);
+      // อัปเดตฐานข้อมูลอัตโนมัติครั้งเดียวต่อ session (idempotent, ไม่บล็อก UI)
+      if (!sessionStorage.getItem("catcha-migrated")) {
+        sessionStorage.setItem("catcha-migrated", "1");
+        fetch("/api/admin/migrate", { method: "POST" }).catch(() => {});
+      }
+    }
   }, [pathname, router]);
 
   if (!ok) return null;

@@ -8,6 +8,8 @@ export type StoredBooking = Booking & {
   notes?: string;
   createdAt: string;
   calendarEventId?: string;
+  /** เวลาลูกค้ากดยอมรับข้อตกลงก่อนเข้าพัก (ต้องรัน OVERNIGHT_SQL.md ก่อน) */
+  consentAcceptedAt?: string;
 };
 
 type BookingRow = {
@@ -26,6 +28,7 @@ type BookingRow = {
   checkin_time: string | null;
   calendar_event_id: string | null;
   created_at: string;
+  consent_accepted_at?: string | null;
 };
 
 const mem: StoredBooking[] = [
@@ -59,6 +62,7 @@ function rowToStored(r: BookingRow): StoredBooking {
     checkinTime: r.checkin_time || undefined,
     calendarEventId: r.calendar_event_id || undefined,
     createdAt: r.created_at,
+    consentAcceptedAt: r.consent_accepted_at || undefined,
   };
 }
 
@@ -101,6 +105,38 @@ export async function getBooking(id: string) {
     return data ? rowToStored(data as BookingRow) : undefined;
   }
   return mem.find((b) => b.id === id);
+}
+
+/**
+ * ลูกค้ากดยอมรับข้อตกลงก่อนเข้าพัก — บันทึกเวลาไว้ที่ booking.
+ * ต้องรัน OVERNIGHT_SQL.md (consent_accepted_at) ก่อนถึงจะบันทึกลง DB ได้;
+ * ถ้ายังไม่มีคอลัมน์ จะ return need_sql โดยไม่ทำให้ endpoint พัง.
+ */
+export async function acceptBookingConsent(id: string, lineUserId: string) {
+  const b = await getBooking(id);
+  if (!b) return { ok: false as const, error: "not_found" };
+  if (b.lineUserId && lineUserId && b.lineUserId !== lineUserId) {
+    return { ok: false as const, error: "forbidden" };
+  }
+  const now = new Date().toISOString();
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb
+        .from("bookings")
+        .update({ consent_accepted_at: now })
+        .eq("id", id);
+      if (error) {
+        return { ok: false as const, error: "need_sql", message: error.message };
+      }
+    } catch (e) {
+      return { ok: false as const, error: "need_sql", message: String(e) };
+    }
+  } else {
+    const idx = mem.findIndex((x) => x.id === id);
+    if (idx >= 0) mem[idx].consentAcceptedAt = now;
+  }
+  return { ok: true as const, acceptedAt: now };
 }
 
 export async function addBooking(

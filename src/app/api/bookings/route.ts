@@ -52,6 +52,7 @@ export async function GET(req: NextRequest) {
       checkin: b.checkin,
       checkout: b.checkout,
       notes: b.notes,
+      consentAcceptedAt: b.consentAcceptedAt,
       customerId: customer?.id,
     };
   });

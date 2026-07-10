@@ -13,6 +13,9 @@
 -- #7 โน้ตลับของร้าน (ซ่อนจากลูกค้า) ต่อแมว
 alter table cats add column if not exists staff_private_note text;
 
+-- #4 เวลาลูกค้ากดยอมรับข้อตกลงก่อนเข้าพัก (หน้า /app/consent)
+alter table bookings add column if not exists consent_accepted_at timestamptz;
+
 -- ให้ PostgREST รู้จักคอลัมน์ใหม่
 notify pgrst, 'reload schema';
 ```

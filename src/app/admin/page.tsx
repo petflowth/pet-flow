@@ -201,7 +201,9 @@ export default function AdminDashboard() {
           {Array.from({ length: daysInMonth }).map((_, i) => {
             const day = i + 1;
             const key = `${ym}-${String(day).padStart(2, "0")}`;
-            const count = calendar[key]?.length || 0;
+            const dayItems = calendar[key] || [];
+            const stays = dayItems.filter((b) => b.service === "room").length;
+            const appts = dayItems.length - stays;
             const isToday = key === today;
             const isSelected = key === activeDate;
             return (
@@ -209,22 +211,28 @@ export default function AdminDashboard() {
                 key={key}
                 type="button"
                 onClick={() => pickDate(key)}
-                className={`flex min-h-[54px] flex-col items-center justify-center gap-1 rounded-xl py-2 transition ${
+                className={`flex min-h-[54px] flex-col items-center justify-center gap-0.5 rounded-xl py-2 transition ${
                   isSelected
                     ? "bg-latte/40 text-catcha-chocolate ring-2 ring-latte-deep"
                     : isToday
                       ? "bg-honey/40 text-catcha-chocolate ring-1 ring-honey-deep"
-                      : "bg-paper/60 text-brown hover:bg-paper"
+                      : stays > 0
+                        ? "bg-sage/25 text-brown hover:bg-sage/35"
+                        : "bg-paper/60 text-brown hover:bg-paper"
                 }`}
               >
                 <span className="text-base font-extrabold leading-none">{day}</span>
-                {count > 0 ? (
-                  <span className="rounded-full bg-latte-deep px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
-                    {count} นัด
+                {stays > 0 && (
+                  <span className="rounded-full bg-ok px-1.5 py-0.5 text-[9px] font-bold leading-none text-white">
+                    🏠 พัก{stays > 1 ? ` ${stays}` : ""}
                   </span>
-                ) : (
-                  <span className="h-[15px]" />
                 )}
+                {appts > 0 && (
+                  <span className="rounded-full bg-latte-deep px-1.5 py-0.5 text-[9px] font-bold leading-none text-white">
+                    {appts} นัด
+                  </span>
+                )}
+                {stays === 0 && appts === 0 && <span className="h-[15px]" />}
               </button>
             );
           })}

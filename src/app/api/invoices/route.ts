@@ -15,6 +15,7 @@ import {
   pushLineMessage,
   buildPaymentFlex,
   buildBillSummaryFlex,
+  buildDepositRequestFlex,
   buildDepositThanksFlex,
   buildReceiptFlex,
   buildMemberBalanceFlex,
@@ -93,6 +94,36 @@ export async function POST(req: NextRequest) {
       bookingId: body.bookingId,
     });
     return NextResponse.json({ ok: true, invoice });
+  }
+
+  if (body.action === "send_deposit_request") {
+    const amount = Math.round(Number(body.amount) || 0);
+    if (amount <= 0) {
+      return NextResponse.json({ error: "bad_amount" }, { status: 400 });
+    }
+    const customer = await getCustomer(body.customerId);
+    if (!customer?.lineUserId) {
+      return NextResponse.json({ error: "no_line" }, { status: 400 });
+    }
+    const msgs = (await getSiteConfig()).messages;
+    const payment = await getPaymentConfig();
+    const catName = customer.cats[0]?.name || "น้องแมว";
+    await pushLineMessage(customer.lineUserId, [
+      buildDepositRequestFlex({
+        title: msgs.depositRequestTitle,
+        body: renderTemplate(msgs.depositRequestBody, {
+          name: customer.name,
+          cat: catName,
+          amount: amount.toLocaleString(),
+        }),
+        amount,
+        bankName: payment.bankName,
+        accountNumber: payment.accountNumber,
+        accountName: payment.accountName,
+        note: body.note ? String(body.note) : undefined,
+      }),
+    ]);
+    return NextResponse.json({ ok: true });
   }
 
   if (body.action === "receive_deposit_credit") {

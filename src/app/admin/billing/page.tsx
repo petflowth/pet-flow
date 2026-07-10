@@ -442,6 +442,30 @@ export default function BillingPage() {
     }
   };
 
+  const sendDepositRequest = async () => {
+    if (!selected) return alert("เลือกลูกค้าก่อน");
+    if (!selected.lineUserId) return alert("ลูกค้ายังไม่ผูก LINE — ส่งไม่ได้");
+    const amt = Math.round(Number(depAmount) || 0);
+    if (amt <= 0) return alert("ใส่จำนวนมัดจำที่จะเรียกเก็บ");
+    setDepSaving(true);
+    const res = await fetch("/api/invoices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "send_deposit_request",
+        customerId: selected.id,
+        amount: amt,
+        note: depNote || undefined,
+      }),
+    });
+    setDepSaving(false);
+    alert(
+      res.ok
+        ? `ส่งการ์ดเรียกเก็บมัดจำ ${amt.toLocaleString()} บาท ให้ลูกค้าแล้ว 📨`
+        : "ส่งไม่สำเร็จ"
+    );
+  };
+
   const receiveDepositCredit = async () => {
     if (!selected) return alert("เลือกลูกค้าก่อน");
     const amt = Math.round(Number(depAmount) || 0);
@@ -882,14 +906,59 @@ export default function BillingPage() {
                 className="min-w-0 flex-1 rounded-lg border border-catcha-line bg-paper px-3 py-2 text-sm"
               />
             </div>
-            <button
-              type="button"
-              disabled={depSaving}
-              onClick={receiveDepositCredit}
-              className="mt-2 w-full rounded-catcha-sm bg-honey-deep/80 py-2 text-xs font-extrabold text-catcha-chocolate disabled:opacity-50"
-            >
-              {depSaving ? "กำลังบันทึก…" : "💰 รับมัดจำ (บันทึกรายรับ + ส่งการ์ด)"}
-            </button>
+            {total > 0 && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] text-brown-faint">
+                  คิด % จากยอด {total.toLocaleString()}฿:
+                </span>
+                {[10, 20, 30, 50].map((pct) => {
+                  const amt = Math.round((total * pct) / 100);
+                  const active = Number(depAmount) === amt && amt > 0;
+                  return (
+                    <button
+                      key={pct}
+                      type="button"
+                      onClick={() => setDepAmount(String(amt))}
+                      className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                        active
+                          ? "bg-honey text-catcha-chocolate"
+                          : "bg-paper text-brown-soft"
+                      }`}
+                    >
+                      {pct}%
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => setDepAmount(String(total))}
+                  className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-bold text-brown-soft"
+                >
+                  เต็มยอด
+                </button>
+              </div>
+            )}
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={depSaving || !selected?.lineUserId}
+                onClick={sendDepositRequest}
+                className="rounded-catcha-sm bg-[#06C755]/15 py-2 text-[11px] font-extrabold text-[#06883c] disabled:opacity-40"
+              >
+                1️⃣ 📨 แจ้งให้โอนมัดจำ
+              </button>
+              <button
+                type="button"
+                disabled={depSaving}
+                onClick={receiveDepositCredit}
+                className="rounded-catcha-sm bg-honey-deep/80 py-2 text-[11px] font-extrabold text-catcha-chocolate disabled:opacity-50"
+              >
+                2️⃣ ✅ รับมัดจำแล้ว
+              </button>
+            </div>
+            <p className="mt-1 text-[10px] text-brown-faint">
+              ① ส่งการ์ดให้ลูกค้าโอน → ② พอโอนมาแล้วกดรับ (ลงบัญชี + ส่งใบขอบคุณ + เงื่อนไข)
+            </p>
           </div>
         )}
 
@@ -1033,34 +1102,22 @@ export default function BillingPage() {
                 >
                   📋 สรุปยอด
                 </button>
-                {inv.status === "pending" && (inv.deposit ?? 0) > 0 && (
-                  <>
-                    <button
-                      type="button"
-                      disabled={!inv.lineUserId || sending}
-                      onClick={() => sendInvoiceSummary(inv.id, "deposit")}
-                      className="rounded-full bg-[#06C755]/15 px-3 py-1.5 text-[11px] font-bold text-[#06883c] disabled:opacity-40"
-                    >
-                      💰 แจ้งมัดจำ
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!inv.lineUserId || sending}
-                      onClick={() => sendInvoiceSummary(inv.id, "remaining")}
-                      className="rounded-full bg-[#06C755]/15 px-3 py-1.5 text-[11px] font-bold text-[#06883c] disabled:opacity-40"
-                    >
-                      💳 ทวงยอดคงเหลือ
-                    </button>
-                  </>
-                )}
-                {inv.status === "pending" && (inv.deposit ?? 0) === 0 && (
+                {inv.status === "pending" && (
                   <button
                     type="button"
                     disabled={!inv.lineUserId || sending}
-                    onClick={() => sendInvoiceSummary(inv.id, "full")}
+                    onClick={() =>
+                      sendInvoiceSummary(
+                        inv.id,
+                        (inv.deposit ?? 0) > 0 ? "remaining" : "full"
+                      )
+                    }
                     className="rounded-full bg-[#06C755]/15 px-3 py-1.5 text-[11px] font-bold text-[#06883c] disabled:opacity-40"
                   >
-                    💳 แจ้งเก็บยอดเต็ม
+                    💳{" "}
+                    {(inv.deposit ?? 0) > 0
+                      ? "แจ้งเก็บส่วนที่เหลือ"
+                      : "แจ้งเก็บเงิน"}
                   </button>
                 )}
               </div>

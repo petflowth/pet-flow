@@ -735,6 +735,86 @@ export function buildBillSummaryFlex(data: {
   };
 }
 
+/** การ์ดเรียกเก็บมัดจำ — ชัดๆ ว่าต้องโอนเท่าไหร่ (ส่งก่อนลูกค้าโอน) */
+export function buildDepositRequestFlex(data: {
+  title: string;
+  body: string;
+  amount: number;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  note?: string;
+}) {
+  const body: Record<string, unknown>[] = [
+    { type: "text", text: data.title, weight: "bold", size: "lg", color: "#5C4033", wrap: true },
+    { type: "text", text: data.body, size: "sm", color: "#4E3E32", margin: "md", wrap: true },
+  ];
+  if (data.note) {
+    body.push({ type: "text", text: data.note, size: "xs", color: "#A2907E", margin: "sm", wrap: true });
+  }
+  body.push({
+    type: "box",
+    layout: "vertical",
+    margin: "lg",
+    paddingAll: "14px",
+    backgroundColor: "#FBF4E9",
+    cornerRadius: "12px",
+    spacing: "xs",
+    contents: [
+      { type: "text", text: "มัดจำที่ต้องโอน", size: "sm", color: "#A2907E", align: "center" },
+      {
+        type: "text",
+        text: `${data.amount.toLocaleString()} บาท`,
+        weight: "bold",
+        size: "3xl",
+        color: "#C4956A",
+        align: "center",
+      },
+    ],
+  });
+  body.push({
+    type: "box",
+    layout: "vertical",
+    margin: "lg",
+    spacing: "xs",
+    paddingAll: "12px",
+    backgroundColor: "#F4ECE0",
+    cornerRadius: "10px",
+    contents: [
+      { type: "text", text: data.bankName, weight: "bold", size: "md", color: "#5C4033" },
+      { type: "text", text: data.accountNumber, weight: "bold", size: "xl", color: "#4A7348", wrap: true },
+      { type: "text", text: `ชื่อบัญชี: ${data.accountName}`, size: "sm", color: "#A2907E", wrap: true },
+    ],
+  });
+
+  return {
+    type: "flex",
+    altText: `ขอรับมัดจำ ${data.amount.toLocaleString()} บาท`,
+    contents: {
+      type: "bubble",
+      size: "mega",
+      body: { type: "box", layout: "vertical", contents: body },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "button",
+            style: "primary",
+            color: "#4A7348",
+            height: "sm",
+            action: {
+              type: "clipboard",
+              label: "📋 คัดลอกเลขบัญชี",
+              clipboardText: data.accountNumber,
+            },
+          },
+        ],
+      },
+    },
+  };
+}
+
 /** การ์ดขอบคุณ + เงื่อนไข ตอนรับมัดจำล่วงหน้า (ข้อความแก้ได้ในตั้งค่า > ข้อความ) */
 export function buildDepositThanksFlex(data: {
   title: string;

@@ -36,6 +36,10 @@ export type MessagesConfig = {
   consentTitle: string;
   /** ข้อตกลงก่อนเข้าพัก — บรรทัดละ 1 ข้อ */
   consentTerms: string[];
+  /** การ์ดเรียกเก็บมัดจำ (ส่งก่อนลูกค้าโอน) — หัวเรื่อง */
+  depositRequestTitle: string;
+  /** การ์ดเรียกเก็บมัดจำ — ข้อความ ({name} {cat} {amount}) */
+  depositRequestBody: string;
   /** การ์ดขอบคุณตอนรับมัดจำ — หัวเรื่อง */
   depositThanksTitle: string;
   /** การ์ดขอบคุณตอนรับมัดจำ — ข้อความ ({name} {cat} {amount}) */

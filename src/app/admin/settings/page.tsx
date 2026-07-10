@@ -352,6 +352,23 @@ function MessagesTab({
 
       <hr className="border-catcha-line" />
       <p className="text-xs font-extrabold text-catcha-chocolate">
+        📨 การ์ดเรียกเก็บมัดจำ (ส่งก่อนลูกค้าโอน)
+      </p>
+      <Field
+        label="หัวเรื่อง"
+        value={msgs?.depositRequestTitle || ""}
+        onChange={(v) => setMsgs({ ...msgs, depositRequestTitle: v })}
+      />
+      <TextAreaField
+        label="ข้อความ"
+        hint="ใช้ได้: {name} {cat} {amount}"
+        value={msgs?.depositRequestBody || ""}
+        onChange={(v) => setMsgs({ ...msgs, depositRequestBody: v })}
+        rows={3}
+      />
+
+      <hr className="border-catcha-line" />
+      <p className="text-xs font-extrabold text-catcha-chocolate">
         🧡 การ์ดขอบคุณตอนรับมัดจำ
       </p>
       <Field

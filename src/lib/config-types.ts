@@ -32,6 +32,8 @@ export type MessagesConfig = {
   depositReminder: string;
   /** รายละเอียด 3 วันก่อนเข้าพัก — {shop} {cat} {checkin} {checkout} {room} */
   prestayReminder: string;
+  /** ข้อความชวนกดยอมรับข้อตกลงก่อนเข้าพัก (แนบลิงก์) — {shop} {cat} {url} */
+  consentInvite: string;
   /** หัวเรื่องหน้ายอมรับข้อตกลงก่อนเข้าพัก */
   consentTitle: string;
   /** ข้อตกลงก่อนเข้าพัก — บรรทัดละ 1 ข้อ */

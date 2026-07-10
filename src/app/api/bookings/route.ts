@@ -23,6 +23,14 @@ import {
   findCustomerForBooking,
   recalculateCustomerTier,
 } from "@/lib/customers-store";
+import { getSiteConfig } from "@/lib/config-store";
+import { listInvoices } from "@/lib/invoices-store";
+import {
+  buildDepositReminderText,
+  buildPrestayReminderText,
+  buildConsentInviteText,
+  getConsentUrl,
+} from "@/lib/booking-reminders";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +46,20 @@ function bookingCalendarPayload(b: StoredBooking) {
     eventId: b.id,
   };
 }
+
+/** หา LINE User ID ปลายทางของนัด (จากตัวนัด หรือจับคู่ลูกค้าในระบบ) */
+async function resolveRecipient(
+  b: StoredBooking,
+  lineUserId?: string
+): Promise<string> {
+  const direct = String(lineUserId || b.lineUserId || "").trim();
+  if (direct) return direct;
+  const matched = await findCustomerForBooking(b);
+  return matched?.lineUserId || "";
+}
+
+const NO_LINE_ERROR =
+  "ยังไม่มี LINE User ID — ให้ลูกค้าเปิดแอปจาก LINE หรือผูกในโปรไฟล์ลูกค้า";
 
 export async function GET(req: NextRequest) {
   const lineUserId = req.nextUrl.searchParams.get("lineUserId") || undefined;
@@ -181,6 +203,60 @@ export async function PATCH(req: NextRequest) {
       });
 
       await pushLineMessage(to, [flex]);
+      return NextResponse.json({ ok: true });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  }
+
+  // ── ส่งข้อความเตือน (กดเอง) — ใช้ข้อความชุดเดียวกับ cron อัตโนมัติ ──
+  if (
+    action === "send_prestay" ||
+    action === "send_consent" ||
+    action === "send_deposit_reminder"
+  ) {
+    const to = await resolveRecipient(b, lineUserId);
+    if (!to) {
+      return NextResponse.json({ error: NO_LINE_ERROR }, { status: 400 });
+    }
+    const cfg = await getSiteConfig();
+    let text: string | null = null;
+
+    if (action === "send_consent") {
+      const url = await getConsentUrl();
+      if (!url) {
+        return NextResponse.json(
+          { error: "ยังไม่ได้ตั้ง LIFF ID — ไป Admin → ติดตั้ง เพื่อตั้งค่าก่อน" },
+          { status: 400 }
+        );
+      }
+      text = buildConsentInviteText(b, cfg, url);
+    } else if (action === "send_prestay") {
+      text = buildPrestayReminderText(b, cfg, await getConsentUrl());
+    } else {
+      // send_deposit_reminder — หาใบแจ้งหนี้ที่มีมัดจำและยังค้างยอด
+      const invoices = await listInvoices();
+      const inv = invoices.find(
+        (i) => i.bookingId === b.id && i.status === "pending" && (i.deposit || 0) > 0
+      );
+      if (!inv) {
+        return NextResponse.json(
+          { error: "ยังไม่มีบิลที่มีมัดจำค้างยอดของนัดนี้ — สร้างบิล + รับมัดจำก่อน" },
+          { status: 400 }
+        );
+      }
+      text = buildDepositReminderText(b, inv, cfg);
+      if (!text) {
+        return NextResponse.json(
+          { error: "ไม่มียอดคงเหลือที่ต้องโอนแล้ว" },
+          { status: 400 }
+        );
+      }
+    }
+
+    try {
+      await pushLineMessage(to, [{ type: "text", text }]);
       return NextResponse.json({ ok: true });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);

@@ -5,9 +5,11 @@ import { getSiteConfig } from "@/lib/config-store";
 import { buildBookingConfirmFlex } from "@/lib/booking-line-card";
 import { pushLineMessage } from "@/lib/line";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
-import { renderTemplate } from "@/lib/messages";
-import { getLineCredentials } from "@/lib/line-config";
-import { buildConsentUrl } from "@/lib/liff-urls";
+import {
+  buildDepositReminderText,
+  buildPrestayReminderText,
+  getConsentUrl,
+} from "@/lib/booking-reminders";
 
 function addDays(dateStr: string, n: number) {
   const dt = new Date(`${dateStr}T12:00:00Z`);
@@ -55,10 +57,7 @@ export async function GET(req: NextRequest) {
   const in7 = addDays(todayStr, 7);
   const in3 = addDays(todayStr, 3);
   const cfg = await getSiteConfig();
-  const pay = cfg.payment;
-  const shopName = cfg.business.name;
-  const liffId = (await getLineCredentials())?.liffId;
-  const consentUrl = liffId ? buildConsentUrl(liffId) : "";
+  const consentUrl = await getConsentUrl();
   const allBookings = await listBookings();
   const allInvoices = await listInvoices();
 
@@ -74,18 +73,8 @@ export async function GET(req: NextRequest) {
         (i) => i.bookingId === b.id && i.status === "pending" && (i.deposit || 0) > 0
       );
       if (inv) {
-        const remaining = inv.total - (inv.deposit || 0);
-        if (remaining > 0) {
-          const text = renderTemplate(cfg.messages.depositReminder, {
-            shop: shopName,
-            cat: b.catName,
-            checkin: b.checkin || "",
-            deposit: (inv.deposit || 0).toLocaleString(),
-            remaining: remaining.toLocaleString(),
-            bank: pay.bankName,
-            accountNumber: pay.accountNumber,
-            accountName: pay.accountName,
-          });
+        const text = buildDepositReminderText(b, inv, cfg);
+        if (text) {
           try {
             await pushLineMessage(b.lineUserId, [{ type: "text", text }]);
             depositReminders++;
@@ -98,18 +87,7 @@ export async function GET(req: NextRequest) {
 
     // #4 — 3 วันก่อนเข้าพัก (วันแรกพอ): รายละเอียด + สิ่งที่ต้องเตรียม
     if (b.checkin === in3) {
-      let text = renderTemplate(cfg.messages.prestayReminder, {
-        shop: shopName,
-        cat: b.catName,
-        checkin: b.checkin || "",
-        checkout: b.checkout ? `→ ${b.checkout}` : "",
-        room: b.room ? `🏠 ห้อง: ${b.room}` : "",
-        consentUrl,
-      });
-      // แนบลิงก์กดยอมรับข้อตกลง (ถ้ายังไม่มีในข้อความ)
-      if (consentUrl && !text.includes(consentUrl)) {
-        text += `\n\n📋 กรุณาอ่านและกดยอมรับข้อตกลงก่อนเข้าพักที่นี่นะคะ 🧡\n${consentUrl}`;
-      }
+      const text = buildPrestayReminderText(b, cfg, consentUrl);
       try {
         await pushLineMessage(b.lineUserId, [{ type: "text", text }]);
         prestayReminders++;

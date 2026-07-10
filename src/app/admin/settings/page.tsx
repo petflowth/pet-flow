@@ -415,6 +415,13 @@ function MessagesTab({
         }
         rows={6}
       />
+      <TextAreaField
+        label="ข้อความชวนกดยอมรับเงื่อนไข (แนบลิงก์ตอนแจ้งเข้าพัก + ปุ่ม 📋 เงื่อนไข)"
+        hint="ใช้ได้: {shop} {cat} {url} — ต้องมี {url} เพื่อแนบลิงก์"
+        value={msgs?.consentInvite || ""}
+        onChange={(v) => setMsgs({ ...msgs, consentInvite: v })}
+        rows={3}
+      />
 
       <SaveBtn saving={saving} />
     </form>

@@ -45,7 +45,7 @@ function summaryFlexFromInvoice(
   return buildBillSummaryFlex({
     mode,
     title,
-    closing: billing.summaryClosing,
+    closing: "",
     customerName: inv.customerName,
     catName: inv.catName,
     items: inv.items,

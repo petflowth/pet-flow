@@ -96,7 +96,7 @@ export default function AdminDashboard() {
   };
 
   const cancelBooking = async (b: CalendarDay) => {
-    if (!confirm(`ยกเลิกนัด ${b.catName} · ${b.customerName}?`)) return;
+    if (!confirm(`ยกเลิก${b.service === "room" ? "การเข้าพัก" : "นัด"} ${b.catName} · ${b.customerName}?`)) return;
     const res = await fetch("/api/bookings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -246,10 +246,19 @@ export default function AdminDashboard() {
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 className="text-sm font-extrabold text-catcha-chocolate">
-              📋 นัดวันที่ {formatThaiDate(activeDate)}
+              📋 วันที่ {formatThaiDate(activeDate)}
             </h2>
             <p className="text-[10px] text-brown-soft">
-              {dayBookings.length} นัด{activeDate === today ? " (วันนี้)" : ""}
+              {(() => {
+                const stays = dayBookings.filter((b) => b.service === "room").length;
+                const appts = dayBookings.length - stays;
+                const parts = [
+                  stays > 0 ? `🏠 เข้าพัก ${stays}` : "",
+                  appts > 0 ? `🛁 นัด ${appts}` : "",
+                ].filter(Boolean);
+                return (parts.length ? parts.join(" · ") : "ไม่มีรายการ") +
+                  (activeDate === today ? " (วันนี้)" : "");
+              })()}
             </p>
           </div>
           <Link
@@ -262,7 +271,7 @@ export default function AdminDashboard() {
         <ul className="space-y-2">
           {dayBookings.length === 0 ? (
             <li className="rounded-catcha-sm border border-dashed border-catcha-line py-6 text-center">
-              <p className="text-xs text-brown-soft">ไม่มีนัดในวันนี้</p>
+              <p className="text-xs text-brown-soft">ไม่มีนัด/การเข้าพักในวันนี้</p>
               <Link
                 href={`/admin/bookings/new?date=${activeDate}`}
                 className="mt-2 inline-block text-xs font-bold text-latte-deep underline"

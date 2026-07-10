@@ -93,6 +93,7 @@ export default function PromosAdminPage() {
   const [promos, setPromos] = useState<Promo[]>([]);
   const [claims, setClaims] = useState<PromoClaim[]>([]);
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Promo | null>(null);
   const [imageUrl, setImageUrl] = useState("");
   const [showOnHome, setShowOnHome] = useState(false);
   const [restriction, setRestriction] = useState<PromoRestriction>("none");
@@ -226,12 +227,34 @@ export default function PromosAdminPage() {
 
   const closeModal = () => {
     setOpen(false);
+    setEditing(null);
     const s = resetFormState();
     setImageUrl(s.imageUrl);
     setShowOnHome(s.showOnHome);
     setRestriction(s.restriction);
     setTiers(s.tiers);
     setRewardType(s.rewardType);
+  };
+
+  const openNew = () => {
+    setEditing(null);
+    const s = resetFormState();
+    setImageUrl(s.imageUrl);
+    setShowOnHome(s.showOnHome);
+    setRestriction(s.restriction);
+    setTiers(s.tiers);
+    setRewardType(s.rewardType);
+    setOpen(true);
+  };
+
+  const openEdit = (p: Promo) => {
+    setEditing(p);
+    setImageUrl(p.imageUrl || "");
+    setShowOnHome(p.kind === "customer");
+    setRestriction(p.restriction);
+    setTiers(p.tiers?.length ? p.tiers : ["all"]);
+    setRewardType(p.rewardType);
+    setOpen(true);
   };
 
   const onImage = (file: File) => {
@@ -255,28 +278,36 @@ export default function PromosAdminPage() {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const kind: PromoKind = showOnHome ? "customer" : "display";
-    await fetch("/api/promos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: { th: String(fd.get("titleTh")), en: String(fd.get("titleEn") || fd.get("titleTh")) },
-        body: { th: String(fd.get("bodyTh")), en: String(fd.get("bodyEn") || fd.get("bodyTh")) },
-        discountPercent: Number(fd.get("discountPercent")) || undefined,
-        discountAmount: Number(fd.get("discountAmount")) || undefined,
-        imageUrl: imageUrl || undefined,
-        startDate: String(fd.get("startDate")),
-        until: String(fd.get("until")),
-        active: true,
-        kind,
-        restriction,
-        validMonth: restriction === "calendar_month" ? String(fd.get("validMonth") || "") : undefined,
-        tiers: tiers.length ? tiers : ["all"],
-        couponCode: String(fd.get("couponCode") || "") || undefined,
-        rewardType,
-        pointsBonus: Number(fd.get("pointsBonus")) || undefined,
-        pointsMultiplier: Number(fd.get("pointsMultiplier")) || undefined,
-      }),
-    });
+    const data = {
+      title: { th: String(fd.get("titleTh")), en: String(fd.get("titleEn") || fd.get("titleTh")) },
+      body: { th: String(fd.get("bodyTh")), en: String(fd.get("bodyEn") || fd.get("bodyTh")) },
+      discountPercent: Number(fd.get("discountPercent")) || undefined,
+      discountAmount: Number(fd.get("discountAmount")) || undefined,
+      imageUrl: imageUrl || undefined,
+      startDate: String(fd.get("startDate")),
+      until: String(fd.get("until")),
+      kind,
+      restriction,
+      validMonth: restriction === "calendar_month" ? String(fd.get("validMonth") || "") : undefined,
+      tiers: tiers.length ? tiers : ["all"],
+      couponCode: String(fd.get("couponCode") || "") || undefined,
+      rewardType,
+      pointsBonus: Number(fd.get("pointsBonus")) || undefined,
+      pointsMultiplier: Number(fd.get("pointsMultiplier")) || undefined,
+    };
+    if (editing) {
+      await fetch("/api/promos", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editing.id, patch: data }),
+      });
+    } else {
+      await fetch("/api/promos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, active: true }),
+      });
+    }
     closeModal();
     load();
   };
@@ -570,7 +601,7 @@ export default function PromosAdminPage() {
 
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={openNew}
         className="mb-5 w-full rounded-catcha-sm border border-dashed border-honey/60 bg-honey/15 py-3 text-sm font-extrabold text-catcha-chocolate"
       >
         ➕ เพิ่มโปรใหม่
@@ -579,8 +610,10 @@ export default function PromosAdminPage() {
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-catcha bg-card p-5 shadow-catcha">
-            <h2 className="mb-3 text-sm font-extrabold text-catcha-chocolate">➕ เพิ่มโปรใหม่</h2>
-            <form onSubmit={submit} className="space-y-3">
+            <h2 className="mb-3 text-sm font-extrabold text-catcha-chocolate">
+              {editing ? "✏️ แก้ไขโปร" : "➕ เพิ่มโปรใหม่"}
+            </h2>
+            <form key={editing?.id || "new"} onSubmit={submit} className="space-y-3">
               <label className="flex items-start gap-3 rounded-catcha-sm border border-honey/50 bg-honey/10 px-3 py-3 text-xs font-bold text-catcha-chocolate">
                 <input
                   type="checkbox"
@@ -620,24 +653,24 @@ export default function PromosAdminPage() {
                 </div>
               </div>
 
-              <input name="titleTh" required placeholder="หัวข้อ (ไทย)" className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
-              <textarea name="bodyTh" required placeholder="รายละเอียด" rows={2} className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+              <input name="titleTh" required defaultValue={editing?.title.th} placeholder="หัวข้อ (ไทย)" className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+              <textarea name="bodyTh" required defaultValue={editing?.body.th} placeholder="รายละเอียด" rows={2} className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
 
               {showDiscount && (
                 <div className="grid grid-cols-2 gap-2">
-                  <input name="discountPercent" type="number" placeholder="ส่วนลด %" className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
-                  <input name="discountAmount" type="number" placeholder="ส่วนลด บาท" className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+                  <input name="discountPercent" type="number" defaultValue={editing?.discountPercent ?? ""} placeholder="ส่วนลด %" className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+                  <input name="discountAmount" type="number" defaultValue={editing?.discountAmount ?? ""} placeholder="ส่วนลด บาท" className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
                 </div>
               )}
 
               {showPoints && (
                 <div className="grid grid-cols-2 gap-2">
-                  <input name="pointsBonus" type="number" placeholder="แต้มโบนัส (กดใช้แล้วได้ทันที)" className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
-                  <input name="pointsMultiplier" type="number" step="0.1" placeholder="ตัวคูณแต้ม เช่น 2" className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+                  <input name="pointsBonus" type="number" defaultValue={editing?.pointsBonus ?? ""} placeholder="แต้มโบนัส (กดใช้แล้วได้ทันที)" className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+                  <input name="pointsMultiplier" type="number" step="0.1" defaultValue={editing?.pointsMultiplier ?? ""} placeholder="ตัวคูณแต้ม เช่น 2" className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
                 </div>
               )}
 
-              <input name="couponCode" placeholder="รหัสโปร (ถ้ามี)" className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+              <input name="couponCode" defaultValue={editing?.couponCode ?? ""} placeholder="รหัสโปร (ถ้ามี)" className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
 
               <div>
                 <p className="mb-2 text-[10px] font-bold text-brown-soft">
@@ -683,12 +716,12 @@ export default function PromosAdminPage() {
                 </div>
               </div>
               {restriction === "calendar_month" && (
-                <input name="validMonth" type="month" required className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+                <input name="validMonth" type="month" required defaultValue={editing?.validMonth ?? ""} className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
               )}
 
               <div className="grid grid-cols-2 gap-2">
-                <input name="startDate" type="date" required className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
-                <input name="until" type="date" required className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+                <input name="startDate" type="date" required defaultValue={editing?.startDate ?? ""} className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+                <input name="until" type="date" required defaultValue={editing?.until ?? ""} className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
               </div>
 
               <label className="block text-[10px] font-bold text-latte-deep">
@@ -704,7 +737,7 @@ export default function PromosAdminPage() {
                   ยกเลิก
                 </button>
                 <button type="submit" className="flex-1 rounded-catcha-sm bg-gradient-to-r from-honey to-honey-deep py-2.5 text-xs font-extrabold text-catcha-chocolate">
-                  บันทึกโปร
+                  {editing ? "💾 บันทึกการแก้ไข" : "บันทึกโปร"}
                 </button>
               </div>
             </form>
@@ -764,6 +797,13 @@ export default function PromosAdminPage() {
                       }`}
                     >
                       {p.active ? "เปิด" : "ปิด"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openEdit(p)}
+                      className="rounded-full bg-honey/25 px-3 py-1 text-[10px] font-bold text-catcha-chocolate"
+                    >
+                      ✏️ แก้ไข
                     </button>
                     <button
                       type="button"

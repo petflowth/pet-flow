@@ -12,4 +12,6 @@ export const SERVICE_PRESETS: ServicePreset[] = [
   { label: "ขจัดคราบเหลืองฝังแน่น (เฉพาะจุด)", amount: 200 },
   { label: "หยดยาป้องกันปรสิต (NexGard Combo)", amount: 360 },
   { label: "รับ-ส่ง", amount: 100 },
+  { label: "น้ำพุแมว", amount: 80 },
+  { label: "กล้องวงจรปิด (ต่อครั้ง)", amount: 100 },
 ];

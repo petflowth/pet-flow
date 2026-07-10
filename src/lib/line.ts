@@ -479,6 +479,251 @@ export function buildPaymentFlex(data: {
   };
 }
 
+/** การ์ดสรุปให้ลูกค้า (สรุปการจอง / แจ้งมัดจำ / แจ้งยอดเต็ม) ส่งจากหน้าคิดเงิน */
+export function buildBillSummaryFlex(data: {
+  mode: "booking" | "deposit" | "full";
+  title: string;
+  closing?: string;
+  customerName: string;
+  catName: string;
+  items: { label: string; amount: number }[];
+  subtotal: number;
+  discount?: number;
+  total: number;
+  deposit?: number;
+  remaining?: number;
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
+}) {
+  const icon =
+    data.mode === "deposit" ? "💰" : data.mode === "full" ? "💳" : "📋";
+  const showBank =
+    (data.mode === "deposit" || data.mode === "full") && !!data.accountNumber;
+  const deposit = data.deposit || 0;
+  const remaining = data.remaining ?? Math.max(0, data.total - deposit);
+
+  const money = (n: number) => `${n.toLocaleString()} บาท`;
+
+  const body: Record<string, unknown>[] = [
+    {
+      type: "text",
+      text: `${icon} ${data.title}`,
+      weight: "bold",
+      size: "lg",
+      color: "#5C4033",
+      wrap: true,
+    },
+    {
+      type: "text",
+      text: `${data.catName} · ${data.customerName}`,
+      size: "sm",
+      color: "#A2907E",
+      margin: "sm",
+      wrap: true,
+    },
+    { type: "separator", margin: "lg" },
+    {
+      type: "box",
+      layout: "vertical",
+      margin: "lg",
+      spacing: "xs",
+      contents: data.items.map((i) => ({
+        type: "box",
+        layout: "horizontal",
+        contents: [
+          {
+            type: "text",
+            text: i.label,
+            size: "sm",
+            color: "#4E3E32",
+            flex: 4,
+            wrap: true,
+          },
+          {
+            type: "text",
+            text: money(i.amount),
+            size: "sm",
+            color: "#4E3E32",
+            align: "end",
+            flex: 3,
+          },
+        ],
+      })),
+    },
+  ];
+
+  if (data.discount && data.discount > 0) {
+    body.push({
+      type: "box",
+      layout: "horizontal",
+      margin: "md",
+      contents: [
+        { type: "text", text: "ส่วนลด", size: "sm", color: "#C08A2E", flex: 4 },
+        {
+          type: "text",
+          text: `-${money(data.discount)}`,
+          size: "sm",
+          color: "#C08A2E",
+          align: "end",
+          flex: 3,
+        },
+      ],
+    });
+  }
+
+  body.push({ type: "separator", margin: "lg" });
+  body.push({
+    type: "box",
+    layout: "horizontal",
+    margin: "lg",
+    contents: [
+      {
+        type: "text",
+        text: "ยอดสุทธิ",
+        weight: "bold",
+        size: "md",
+        color: "#5C4033",
+        flex: 3,
+      },
+      {
+        type: "text",
+        text: money(data.total),
+        weight: "bold",
+        size: "lg",
+        color: "#C4956A",
+        align: "end",
+        flex: 4,
+      },
+    ],
+  });
+
+  if (data.mode === "deposit" && deposit > 0) {
+    body.push({
+      type: "box",
+      layout: "vertical",
+      margin: "md",
+      spacing: "xs",
+      paddingAll: "10px",
+      backgroundColor: "#F4ECE0",
+      cornerRadius: "10px",
+      contents: [
+        {
+          type: "box",
+          layout: "horizontal",
+          contents: [
+            { type: "text", text: "มัดจำที่ต้องโอน", size: "sm", color: "#4E3E32", flex: 5 },
+            {
+              type: "text",
+              text: money(deposit),
+              size: "sm",
+              weight: "bold",
+              color: "#4A7348",
+              align: "end",
+              flex: 4,
+            },
+          ],
+        },
+        {
+          type: "box",
+          layout: "horizontal",
+          contents: [
+            { type: "text", text: "ยอดคงเหลือ (ก่อนเข้าพัก)", size: "sm", color: "#4E3E32", flex: 5 },
+            {
+              type: "text",
+              text: money(remaining),
+              size: "sm",
+              weight: "bold",
+              color: "#B4553B",
+              align: "end",
+              flex: 4,
+            },
+          ],
+        },
+      ],
+    });
+  }
+
+  if (showBank) {
+    body.push({
+      type: "box",
+      layout: "vertical",
+      margin: "lg",
+      spacing: "xs",
+      paddingAll: "12px",
+      backgroundColor: "#F4ECE0",
+      cornerRadius: "10px",
+      contents: [
+        {
+          type: "text",
+          text: data.bankName || "",
+          weight: "bold",
+          size: "md",
+          color: "#5C4033",
+        },
+        {
+          type: "text",
+          text: data.accountNumber || "",
+          weight: "bold",
+          size: "xl",
+          color: "#4A7348",
+          wrap: true,
+        },
+        {
+          type: "text",
+          text: `ชื่อบัญชี: ${data.accountName || ""}`,
+          size: "sm",
+          color: "#A2907E",
+          wrap: true,
+        },
+      ],
+    });
+  }
+
+  if (data.closing) {
+    body.push({
+      type: "text",
+      text: data.closing,
+      size: "xs",
+      color: "#A2907E",
+      margin: "lg",
+      wrap: true,
+    });
+  }
+
+  const bubble: Record<string, unknown> = {
+    type: "bubble",
+    size: "mega",
+    body: { type: "box", layout: "vertical", contents: body },
+  };
+
+  if (showBank) {
+    bubble.footer = {
+      type: "box",
+      layout: "vertical",
+      contents: [
+        {
+          type: "button",
+          style: "primary",
+          color: "#4A7348",
+          height: "sm",
+          action: {
+            type: "clipboard",
+            label: "📋 คัดลอกเลขบัญชี",
+            clipboardText: data.accountNumber || "",
+          },
+        },
+      ],
+    };
+  }
+
+  return {
+    type: "flex",
+    altText: `${data.title} — ${money(data.total)}`,
+    contents: bubble,
+  };
+}
+
 export function buildReceiptFlex(data: {
   invoiceId: string;
   customerName: string;

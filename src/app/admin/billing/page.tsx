@@ -237,6 +237,34 @@ export default function BillingPage() {
     return L.join("\n");
   };
 
+  const buildSummaryPayload = (mode: "booking" | "deposit" | "full") => {
+    const catName = selected?.cats[0]?.name || "น้องแมว";
+    const title =
+      mode === "deposit"
+        ? billMsg.summaryDepositTitle
+        : mode === "full"
+          ? billMsg.summaryFullTitle
+          : billMsg.summaryBookingTitle;
+    return {
+      mode,
+      title,
+      closing: billMsg.summaryClosing,
+      customerName: selected?.name || "",
+      catName,
+      items: lines
+        .filter((l) => l.label.trim())
+        .map((l) => ({ label: l.label, amount: l.amount })),
+      subtotal,
+      discount: promoDiscount + manualDiscount,
+      total,
+      deposit: mode === "deposit" ? depositAmount : 0,
+      remaining: mode === "deposit" ? remaining : 0,
+      bankName: pay.bankName,
+      accountNumber: pay.accountNumber,
+      accountName: pay.accountName,
+    };
+  };
+
   const sendSummaryLine = async (mode: "booking" | "deposit" | "full") => {
     if (!selected) return;
     if (!selected.lineUserId) return alert("ลูกค้ายังไม่ได้ผูก LINE — ส่งไม่ได้");
@@ -246,11 +274,12 @@ export default function BillingPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         lineUserId: selected.lineUserId,
+        summary: buildSummaryPayload(mode),
         text: buildSummary(mode),
       }),
     });
     setSending(false);
-    alert(res.ok ? "ส่งเข้า LINE ลูกค้าแล้ว 📨" : "ส่งไม่สำเร็จ");
+    alert(res.ok ? "ส่งการ์ดเข้า LINE ลูกค้าแล้ว 📨" : "ส่งไม่สำเร็จ");
   };
 
   const copySummary = async (mode: "booking" | "deposit" | "full") => {
@@ -805,11 +834,63 @@ export default function BillingPage() {
               className="w-24 rounded-lg border border-catcha-line bg-paper px-3 py-1.5 text-right text-sm"
             />
           </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {[10, 20, 30, 50].map((pct) => {
+              const amt = Math.round((total * pct) / 100);
+              const active = total > 0 && depositAmount === amt && amt > 0;
+              return (
+                <button
+                  key={pct}
+                  type="button"
+                  disabled={total <= 0}
+                  onClick={() => setDeposit(String(amt))}
+                  className={`rounded-full px-2.5 py-1 text-[10px] font-bold disabled:opacity-40 ${
+                    active
+                      ? "bg-honey text-catcha-chocolate"
+                      : "bg-paper text-brown-soft"
+                  }`}
+                >
+                  {pct}%
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              disabled={total <= 0}
+              onClick={() => setDeposit(String(total))}
+              className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-bold text-brown-soft disabled:opacity-40"
+            >
+              เต็มจำนวน
+            </button>
+            {deposit && (
+              <button
+                type="button"
+                onClick={() => setDeposit("")}
+                className="rounded-full px-2.5 py-1 text-[10px] font-bold text-wait"
+              >
+                ล้าง
+              </button>
+            )}
+          </div>
           {depositAmount > 0 && (
-            <div className="flex justify-between font-extrabold text-wait">
-              <span>ยอดคงเหลือ (ก่อนเข้าพัก)</span>
-              <span>{remaining.toLocaleString()} ฿</span>
-            </div>
+            <>
+              <div className="flex justify-between text-brown-soft">
+                <span>มัดจำที่รับ</span>
+                <span>
+                  {depositAmount.toLocaleString()} ฿
+                  {total > 0 && (
+                    <span className="text-[10px] text-brown-faint">
+                      {" "}
+                      ({Math.round((depositAmount / total) * 100)}%)
+                    </span>
+                  )}
+                </span>
+              </div>
+              <div className="flex justify-between font-extrabold text-wait">
+                <span>ยอดคงเหลือ (ก่อนเข้าพัก)</span>
+                <span>{remaining.toLocaleString()} ฿</span>
+              </div>
+            </>
           )}
         </div>
 

@@ -639,6 +639,91 @@ export default function BillingPage() {
           )}
         </div>
 
+        {/* ── รับมัดจำล่วงหน้า (โผล่ทันทีที่เลือกลูกค้า) ── */}
+        {selected && (
+          <div className="rounded-catcha-sm border border-honey/60 bg-honey/15 p-3">
+            <p className="text-sm font-extrabold text-catcha-chocolate">
+              💰 รับมัดจำล่วงหน้า
+            </p>
+            <p className="mb-2 text-[10px] text-brown-soft">
+              เก็บมัดจำก่อนได้เลย (เช่น จองคิวอาบน้ำ) — ระบบจะหักออกจากบิลวันมาจริงให้อัตโนมัติ
+              {availableCredit > 0 &&
+                ` · ตอนนี้มีอยู่ ${availableCredit.toLocaleString()} ฿`}
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                min="0"
+                inputMode="numeric"
+                placeholder="จำนวน"
+                value={depAmount}
+                onChange={(e) => setDepAmount(e.target.value)}
+                className="w-24 rounded-lg border border-catcha-line bg-paper px-3 py-2 text-right text-sm"
+              />
+              <input
+                type="text"
+                placeholder="หมายเหตุ (เช่น คิวอาบน้ำ 25 ก.ค.)"
+                value={depNote}
+                onChange={(e) => setDepNote(e.target.value)}
+                className="min-w-0 flex-1 rounded-lg border border-catcha-line bg-paper px-3 py-2 text-sm"
+              />
+            </div>
+            {total > 0 && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] text-brown-faint">
+                  คิด % จากยอด {total.toLocaleString()}฿:
+                </span>
+                {[10, 20, 30, 50].map((pct) => {
+                  const amt = Math.round((total * pct) / 100);
+                  const active = Number(depAmount) === amt && amt > 0;
+                  return (
+                    <button
+                      key={pct}
+                      type="button"
+                      onClick={() => setDepAmount(String(amt))}
+                      className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                        active
+                          ? "bg-honey text-catcha-chocolate"
+                          : "bg-paper text-brown-soft"
+                      }`}
+                    >
+                      {pct}%
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => setDepAmount(String(total))}
+                  className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-bold text-brown-soft"
+                >
+                  เต็มยอด
+                </button>
+              </div>
+            )}
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={depSaving || !selected?.lineUserId}
+                onClick={sendDepositRequest}
+                className="rounded-catcha-sm bg-[#06C755]/15 py-2 text-[11px] font-extrabold text-[#06883c] disabled:opacity-40"
+              >
+                1️⃣ 📨 แจ้งให้โอนมัดจำ
+              </button>
+              <button
+                type="button"
+                disabled={depSaving}
+                onClick={receiveDepositCredit}
+                className="rounded-catcha-sm bg-honey-deep/80 py-2 text-[11px] font-extrabold text-catcha-chocolate disabled:opacity-50"
+              >
+                2️⃣ ✅ รับมัดจำแล้ว
+              </button>
+            </div>
+            <p className="mt-1 text-[10px] text-brown-faint">
+              ① ส่งการ์ดให้ลูกค้าโอน → ② พอโอนมาแล้วกดรับ (ลงบัญชี + ส่งใบขอบคุณ + เงื่อนไข)
+            </p>
+          </div>
+        )}
+
         {/* ── รายการ ── */}
         <div>
           <p className="mb-1 text-xs font-bold text-brown-soft">รายการ</p>
@@ -875,91 +960,6 @@ export default function BillingPage() {
           <p className="rounded-catcha-sm bg-sage/15 px-3 py-1.5 text-[11px] font-bold text-ok">
             ⚡ ใช้โปร &quot;{autoPromoLabel}&quot; อัตโนมัติ (ลูกค้าคนนี้มีสิทธิ์)
           </p>
-        )}
-
-        {/* ── รับมัดจำล่วงหน้า (ไม่ต้องมีบิล) ── */}
-        {selected && (
-          <div className="rounded-catcha-sm border border-honey/50 bg-honey/10 p-3">
-            <p className="text-xs font-extrabold text-catcha-chocolate">
-              💰 รับมัดจำล่วงหน้า
-            </p>
-            <p className="mb-2 text-[10px] text-brown-soft">
-              เก็บมัดจำก่อนได้เลย (เช่น จองคิวอาบน้ำ) — ระบบจะหักออกจากบิลวันมาจริงให้อัตโนมัติ
-              {availableCredit > 0 &&
-                ` · ตอนนี้มีอยู่ ${availableCredit.toLocaleString()} ฿`}
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                min="0"
-                inputMode="numeric"
-                placeholder="จำนวน"
-                value={depAmount}
-                onChange={(e) => setDepAmount(e.target.value)}
-                className="w-24 rounded-lg border border-catcha-line bg-paper px-3 py-2 text-right text-sm"
-              />
-              <input
-                type="text"
-                placeholder="หมายเหตุ (เช่น คิวอาบน้ำ 25 ก.ค.)"
-                value={depNote}
-                onChange={(e) => setDepNote(e.target.value)}
-                className="min-w-0 flex-1 rounded-lg border border-catcha-line bg-paper px-3 py-2 text-sm"
-              />
-            </div>
-            {total > 0 && (
-              <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] text-brown-faint">
-                  คิด % จากยอด {total.toLocaleString()}฿:
-                </span>
-                {[10, 20, 30, 50].map((pct) => {
-                  const amt = Math.round((total * pct) / 100);
-                  const active = Number(depAmount) === amt && amt > 0;
-                  return (
-                    <button
-                      key={pct}
-                      type="button"
-                      onClick={() => setDepAmount(String(amt))}
-                      className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                        active
-                          ? "bg-honey text-catcha-chocolate"
-                          : "bg-paper text-brown-soft"
-                      }`}
-                    >
-                      {pct}%
-                    </button>
-                  );
-                })}
-                <button
-                  type="button"
-                  onClick={() => setDepAmount(String(total))}
-                  className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-bold text-brown-soft"
-                >
-                  เต็มยอด
-                </button>
-              </div>
-            )}
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                disabled={depSaving || !selected?.lineUserId}
-                onClick={sendDepositRequest}
-                className="rounded-catcha-sm bg-[#06C755]/15 py-2 text-[11px] font-extrabold text-[#06883c] disabled:opacity-40"
-              >
-                1️⃣ 📨 แจ้งให้โอนมัดจำ
-              </button>
-              <button
-                type="button"
-                disabled={depSaving}
-                onClick={receiveDepositCredit}
-                className="rounded-catcha-sm bg-honey-deep/80 py-2 text-[11px] font-extrabold text-catcha-chocolate disabled:opacity-50"
-              >
-                2️⃣ ✅ รับมัดจำแล้ว
-              </button>
-            </div>
-            <p className="mt-1 text-[10px] text-brown-faint">
-              ① ส่งการ์ดให้ลูกค้าโอน → ② พอโอนมาแล้วกดรับ (ลงบัญชี + ส่งใบขอบคุณ + เงื่อนไข)
-            </p>
-          </div>
         )}
 
         {/* ── สรุปยอด ── */}

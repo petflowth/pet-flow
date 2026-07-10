@@ -12,6 +12,7 @@ import {
   GROOM_SIZE_LABELS,
   GROOM_SPECIALS,
 } from "../grooming";
+import { DEFAULT_MESSAGES } from "../messages";
 import type { SiteConfig } from "../config-types";
 
 export function getDefaultSiteConfig(): SiteConfig {
@@ -26,6 +27,7 @@ export function getDefaultSiteConfig(): SiteConfig {
           "สวัสดีค่ะ {name} จาก CatCha Hotel 🐱\nคิดถึงน้อง{cats} นะคะ มาไม่ได้นาน {days} วันแล้ว มีโปรพิเศษรออยู่ที่แอปนะคะ 💛",
         tierPresets: ["VIP", "Gold", "Silver"],
       },
+      messages: { ...DEFAULT_MESSAGES },
       business: { ...BUSINESS },
       payment: {
         bankName: process.env.BANK_NAME || "กรุงไทย",

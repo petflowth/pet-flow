@@ -26,10 +26,23 @@ export type CrmConfig = {
   tierPresets: string[];
 };
 
+/** ข้อความ (plain text) ที่ส่งหาลูกค้า — แก้ได้ในหน้าตั้งค่า > ข้อความ */
+export type MessagesConfig = {
+  /** เตือนยอดคงเหลือ 7 วันก่อนเข้าพัก — {shop} {cat} {checkin} {deposit} {remaining} {bank} {accountNumber} {accountName} */
+  depositReminder: string;
+  /** รายละเอียด 3 วันก่อนเข้าพัก — {shop} {cat} {checkin} {checkout} {room} */
+  prestayReminder: string;
+  /** หัวเรื่องหน้ายอมรับข้อตกลงก่อนเข้าพัก */
+  consentTitle: string;
+  /** ข้อตกลงก่อนเข้าพัก — บรรทัดละ 1 ข้อ */
+  consentTerms: string[];
+};
+
 export type SiteConfig = {
   version: number;
   updatedAt: string;
   crm: CrmConfig;
+  messages: MessagesConfig;
   business: {
     name: string;
     tagline: { th: string; en: string };

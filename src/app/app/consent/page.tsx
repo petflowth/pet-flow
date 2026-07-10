@@ -6,13 +6,7 @@ import { useLiff } from "@/components/LiffProvider";
 import { useConfig } from "@/components/ConfigProvider";
 import type { Booking } from "@/lib/business";
 
-const DEFAULT_TERMS = [
-  "น้องแมวต้องหยดยา/ทำวัคซีนป้องกันเห็บหมัดและปรสิตก่อนเข้าพัก",
-  "แจ้งประวัติสุขภาพ โรคประจำตัว และนิสัยของน้องตามจริง",
-  "ทางโรงแรมดูแลอย่างเต็มที่ แต่ไม่รับผิดชอบต่อโรคประจำตัว/อาการที่ไม่ได้แจ้งล่วงหน้า",
-  "กรณีน้องมีเหตุฉุกเฉินด้านสุขภาพ ทางร้านจะติดต่อและพาพบสัตวแพทย์ตามความเหมาะสม",
-  "ค่าใช้จ่ายส่วนที่เหลือชำระให้ครบก่อน/วันเข้าพัก",
-];
+import { DEFAULT_MESSAGES } from "@/lib/messages";
 
 type StayBooking = Booking & {
   checkin?: string;
@@ -28,6 +22,12 @@ export default function ConsentPage() {
   const [accepted, setAccepted] = useState(false);
   const [checked, setChecked] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const terms =
+    config.messages?.consentTerms?.length
+      ? config.messages.consentTerms
+      : DEFAULT_MESSAGES.consentTerms;
+  const consentTitle = config.messages?.consentTitle || DEFAULT_MESSAGES.consentTitle;
 
   useEffect(() => {
     if (!profile?.lineUserId) return;
@@ -78,7 +78,7 @@ export default function ConsentPage() {
       </Link>
 
       <h1 className="text-lg font-extrabold text-catcha-chocolate">
-        📋 ข้อตกลงก่อนเข้าพัก
+        📋 {consentTitle}
       </h1>
       <p className="mt-1 text-xs text-brown-soft">
         {config.business.name} — กรุณาอ่านและกดยอมรับก่อนวันเข้าพักของน้อง
@@ -104,7 +104,7 @@ export default function ConsentPage() {
           )}
 
           <ul className="mt-4 space-y-2">
-            {DEFAULT_TERMS.map((term, i) => (
+            {terms.map((term, i) => (
               <li
                 key={i}
                 className="flex gap-2 rounded-catcha-sm bg-paper/70 px-3 py-2 text-xs text-brown"

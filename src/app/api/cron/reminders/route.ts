@@ -5,6 +5,7 @@ import { getSiteConfig } from "@/lib/config-store";
 import { buildBookingConfirmFlex } from "@/lib/booking-line-card";
 import { pushLineMessage } from "@/lib/line";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
+import { renderTemplate } from "@/lib/messages";
 
 function addDays(dateStr: string, n: number) {
   const dt = new Date(`${dateStr}T12:00:00Z`);
@@ -71,13 +72,16 @@ export async function GET(req: NextRequest) {
       if (inv) {
         const remaining = inv.total - (inv.deposit || 0);
         if (remaining > 0) {
-          const text =
-            `🏠 ${shopName}\n` +
-            `อีก 7 วันถึงวันเข้าพักของ${b.catName}แล้วนะคะ (${b.checkin})\n\n` +
-            `มัดจำที่ชำระแล้ว: ${(inv.deposit || 0).toLocaleString()} บาท\n` +
-            `ยอดคงเหลือที่ต้องโอนก่อนเข้าพัก: ${remaining.toLocaleString()} บาท\n\n` +
-            `${pay.bankName}\nเลขบัญชี: ${pay.accountNumber}\nชื่อบัญชี: ${pay.accountName}\n\n` +
-            `โอนแล้วแจ้งสลิปได้เลยนะคะ 🧡`;
+          const text = renderTemplate(cfg.messages.depositReminder, {
+            shop: shopName,
+            cat: b.catName,
+            checkin: b.checkin || "",
+            deposit: (inv.deposit || 0).toLocaleString(),
+            remaining: remaining.toLocaleString(),
+            bank: pay.bankName,
+            accountNumber: pay.accountNumber,
+            accountName: pay.accountName,
+          });
           try {
             await pushLineMessage(b.lineUserId, [{ type: "text", text }]);
             depositReminders++;
@@ -90,16 +94,13 @@ export async function GET(req: NextRequest) {
 
     // #4 — 3 วันก่อนเข้าพัก (วันแรกพอ): รายละเอียด + สิ่งที่ต้องเตรียม
     if (b.checkin === in3) {
-      const text =
-        `🏠 ${shopName}\n` +
-        `อีก 3 วันถึงวันเข้าพักของ${b.catName}แล้วค่ะ 🐱\n\n` +
-        `📅 เข้าพัก: ${b.checkin}${b.checkout ? ` → ${b.checkout}` : ""}` +
-        `${b.room ? `\n🏠 ห้อง: ${b.room}` : ""}\n\n` +
-        `📋 เตรียมตัวก่อนเข้าพัก:\n` +
-        `• หยดยาป้องกันเห็บหมัด/ปรสิตให้น้องก่อนมา\n` +
-        `• เตรียมอาหารที่น้องกินประจำ (ระบุมื้อ/ปริมาณ)\n` +
-        `• แจ้งประวัติการดูแล นิสัย และโรคประจำตัวของน้อง\n\n` +
-        `มีข้อสงสัยทักแชทได้เลยนะคะ 🧡`;
+      const text = renderTemplate(cfg.messages.prestayReminder, {
+        shop: shopName,
+        cat: b.catName,
+        checkin: b.checkin || "",
+        checkout: b.checkout ? `→ ${b.checkout}` : "",
+        room: b.room ? `🏠 ห้อง: ${b.room}` : "",
+      });
       try {
         await pushLineMessage(b.lineUserId, [{ type: "text", text }]);
         prestayReminders++;

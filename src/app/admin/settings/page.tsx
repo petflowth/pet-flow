@@ -8,11 +8,20 @@ import type { RoomType } from "@/lib/business";
 import { adminJson } from "@/lib/admin-fetch";
 import { ExportSheetsButton } from "@/components/ExportSheetsButton";
 
-type Tab = "shop" | "payment" | "rooms" | "grooming" | "points" | "crm" | "advanced";
+type Tab =
+  | "shop"
+  | "payment"
+  | "messages"
+  | "rooms"
+  | "grooming"
+  | "points"
+  | "crm"
+  | "advanced";
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "shop", label: "ร้าน", icon: "🏪" },
   { id: "payment", label: "บัญชี", icon: "🏦" },
+  { id: "messages", label: "ข้อความ", icon: "💬" },
   { id: "rooms", label: "ห้อง", icon: "🛏️" },
   { id: "grooming", label: "อาบน้ำ", icon: "🛁" },
   { id: "points", label: "แต้ม", icon: "🎁" },
@@ -147,6 +156,9 @@ export default function SettingsPage() {
       {tab === "payment" && (
         <PaymentTab config={config} saving={saving} onSave={save} />
       )}
+      {tab === "messages" && (
+        <MessagesTab config={config} saving={saving} onSave={save} />
+      )}
       {tab === "rooms" && (
         <RoomsTab config={config} saving={saving} onSave={save} />
       )}
@@ -237,24 +249,54 @@ function PaymentTab({
   onSave: (p: Partial<SiteConfig>) => void;
 }) {
   const [form, setForm] = useState(config.payment);
-  const [bill, setBill] = useState(config.billing);
   useEffect(() => setForm(config.payment), [config.payment]);
-  useEffect(() => setBill(config.billing), [config.billing]);
 
   return (
     <form
       className="space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm"
       onSubmit={(e) => {
         e.preventDefault();
-        onSave({ payment: form, billing: bill });
+        onSave({ payment: form });
       }}
     >
       <Field label="ธนาคาร" value={form.bankName} onChange={(v) => setForm({ ...form, bankName: v })} />
       <Field label="เลขบัญชี" value={form.accountNumber} onChange={(v) => setForm({ ...form, accountNumber: v })} />
       <Field label="ชื่อบัญชี" value={form.accountName} onChange={(v) => setForm({ ...form, accountName: v })} />
+      <p className="rounded-catcha-sm bg-paper px-3 py-2 text-[11px] text-brown-faint">
+        💬 ข้อความสรุป/แจ้งมัดจำ/เก็บเงิน และข้อความอื่นๆ ที่ส่งให้ลูกค้า
+        ย้ายไปแก้ที่แท็บ <b>💬 ข้อความ</b> แล้ว
+      </p>
+      <SaveBtn saving={saving} />
+    </form>
+  );
+}
 
-      <p className="pt-2 text-xs font-extrabold text-catcha-chocolate">
-        📝 ข้อความสรุปให้ลูกค้า (หัวเรื่อง/ปิดท้าย)
+function MessagesTab({
+  config,
+  saving,
+  onSave,
+}: {
+  config: SiteConfig;
+  saving: boolean;
+  onSave: (p: Partial<SiteConfig>) => void;
+}) {
+  const [bill, setBill] = useState(config.billing);
+  const [msgs, setMsgs] = useState(config.messages);
+  const [crm, setCrm] = useState(config.crm);
+  useEffect(() => setBill(config.billing), [config.billing]);
+  useEffect(() => setMsgs(config.messages), [config.messages]);
+  useEffect(() => setCrm(config.crm), [config.crm]);
+
+  return (
+    <form
+      className="space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSave({ billing: bill, messages: msgs, crm });
+      }}
+    >
+      <p className="text-xs font-extrabold text-catcha-chocolate">
+        🧾 สรุปยอด / แจ้งมัดจำ / เก็บเงิน (ตอนกดคิดเงิน)
       </p>
       <Field
         label="หัวเรื่อง — สรุปการจอง"
@@ -267,7 +309,7 @@ function PaymentTab({
         onChange={(v) => setBill({ ...bill, summaryDepositTitle: v })}
       />
       <Field
-        label="หัวเรื่อง — แจ้งยอดเต็ม"
+        label="หัวเรื่อง — แจ้งยอดเต็ม (เก็บเงิน)"
         value={bill?.summaryFullTitle || ""}
         onChange={(v) => setBill({ ...bill, summaryFullTitle: v })}
       />
@@ -276,6 +318,59 @@ function PaymentTab({
         value={bill?.summaryClosing || ""}
         onChange={(v) => setBill({ ...bill, summaryClosing: v })}
       />
+
+      <hr className="border-catcha-line" />
+      <p className="text-xs font-extrabold text-catcha-chocolate">
+        ⏰ เตือนอัตโนมัติก่อนเข้าพัก
+      </p>
+      <TextAreaField
+        label="เตือนยอดคงเหลือ (7 วันก่อนเข้าพัก)"
+        hint="ใช้ได้: {shop} {cat} {checkin} {deposit} {remaining} {bank} {accountNumber} {accountName}"
+        value={msgs?.depositReminder || ""}
+        onChange={(v) => setMsgs({ ...msgs, depositReminder: v })}
+        rows={7}
+      />
+      <TextAreaField
+        label="แจ้งรายละเอียด (3 วันก่อนเข้าพัก)"
+        hint="ใช้ได้: {shop} {cat} {checkin} {checkout} {room}"
+        value={msgs?.prestayReminder || ""}
+        onChange={(v) => setMsgs({ ...msgs, prestayReminder: v })}
+        rows={8}
+      />
+
+      <hr className="border-catcha-line" />
+      <p className="text-xs font-extrabold text-catcha-chocolate">
+        💛 ตามลูกค้าที่หายไป
+      </p>
+      <TextAreaField
+        label="ข้อความตามลูกค้า"
+        hint="ใช้ได้: {name} {cats} {days}"
+        value={crm?.followUpMessage || ""}
+        onChange={(v) => setCrm({ ...crm, followUpMessage: v })}
+        rows={3}
+      />
+
+      <hr className="border-catcha-line" />
+      <p className="text-xs font-extrabold text-catcha-chocolate">
+        📋 ข้อตกลงก่อนเข้าพัก (หน้า /app/consent)
+      </p>
+      <Field
+        label="หัวเรื่อง"
+        value={msgs?.consentTitle || ""}
+        onChange={(v) => setMsgs({ ...msgs, consentTitle: v })}
+      />
+      <TextAreaField
+        label="ข้อตกลง (1 บรรทัด = 1 ข้อ)"
+        value={(msgs?.consentTerms || []).join("\n")}
+        onChange={(v) =>
+          setMsgs({
+            ...msgs,
+            consentTerms: v.split("\n").map((s) => s.trim()).filter(Boolean),
+          })
+        }
+        rows={6}
+      />
+
       <SaveBtn saving={saving} />
     </form>
   );
@@ -707,6 +802,40 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
       />
+    </label>
+  );
+}
+
+function TextAreaField({
+  label,
+  value,
+  onChange,
+  hint,
+  rows = 4,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  hint?: string;
+  rows?: number;
+  placeholder?: string;
+}) {
+  return (
+    <label className="block text-xs font-bold text-brown-soft">
+      {label}
+      <textarea
+        value={value}
+        rows={rows}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm leading-relaxed"
+      />
+      {hint && (
+        <span className="mt-0.5 block font-normal text-[10px] text-brown-faint">
+          {hint}
+        </span>
+      )}
     </label>
   );
 }

@@ -13,6 +13,7 @@ import { useLiff } from "@/components/LiffProvider";
 import { Logo } from "@/components/Logo";
 import { LangSwitch } from "@/components/LangSwitch";
 import { CustomerExclusivePromos } from "@/components/CustomerExclusivePromos";
+import { MyCatsSection } from "@/components/MyCatsSection";
 
 export default function CustomerHome() {
   const { locale } = useLocale();
@@ -92,6 +93,9 @@ export default function CustomerHome() {
           </Link>
         </div>
       </section>
+
+      {/* แมวของฉัน — อัป/แก้รูปเองได้ */}
+      <MyCatsSection />
 
       {/* โปรพิเศษลูกค้า — กดใช้จากแอป */}
       <CustomerExclusivePromos compact />

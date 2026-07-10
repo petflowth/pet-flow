@@ -1,0 +1,53 @@
+import { NextRequest, NextResponse } from "next/server";
+import { findCustomerByLine, updateCat } from "@/lib/customers-store";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/** GET ?lineUserId= — แมวของลูกค้า (พร้อมรูป) สำหรับหน้าโปรไฟล์ในแอป */
+export async function GET(req: NextRequest) {
+  const lineUserId = req.nextUrl.searchParams.get("lineUserId") || "";
+  if (!lineUserId) return NextResponse.json({ cats: [] });
+  const customer = await findCustomerByLine(lineUserId);
+  if (!customer) return NextResponse.json({ cats: [] });
+  return NextResponse.json({
+    cats: customer.cats.map((c) => ({
+      id: c.id,
+      name: c.name,
+      photoDataUrl: c.photoDataUrl || null,
+      breed: c.breed || null,
+    })),
+  });
+}
+
+/** POST { lineUserId, catId, photoDataUrl } — ลูกค้าอัป/แก้รูปแมวตัวเอง */
+export async function POST(req: NextRequest) {
+  const body = await req.json().catch(() => ({}));
+  const lineUserId = String(body.lineUserId || "").trim();
+  const catId = String(body.catId || "").trim();
+  const photoDataUrl = String(body.photoDataUrl || "");
+
+  if (!lineUserId || !catId) {
+    return NextResponse.json({ error: "missing_params" }, { status: 400 });
+  }
+  if (!photoDataUrl.startsWith("data:image")) {
+    return NextResponse.json({ error: "bad_image" }, { status: 400 });
+  }
+
+  const customer = await findCustomerByLine(lineUserId);
+  if (!customer) {
+    return NextResponse.json({ error: "customer_not_found" }, { status: 404 });
+  }
+  // ยืนยันว่าเป็นแมวของลูกค้าคนนี้จริง
+  if (!customer.cats.some((c) => c.id === catId)) {
+    return NextResponse.json({ error: "not_your_cat" }, { status: 403 });
+  }
+
+  try {
+    await updateCat(customer.id, catId, { photoDataUrl });
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}

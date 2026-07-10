@@ -16,6 +16,9 @@ alter table cats add column if not exists staff_private_note text;
 -- #4 เวลาลูกค้ากดยอมรับข้อตกลงก่อนเข้าพัก (หน้า /app/consent)
 alter table bookings add column if not exists consent_accepted_at timestamptz;
 
+-- มัดจำล่วงหน้า (เครดิตมัดจำคงเหลือของลูกค้า หักออกจากบิลถัดไป)
+alter table customers add column if not exists deposit_credit numeric not null default 0;
+
 -- ให้ PostgREST รู้จักคอลัมน์ใหม่
 notify pgrst, 'reload schema';
 ```

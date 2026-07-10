@@ -3,10 +3,10 @@ import { BUSINESS } from "@/lib/business";
 import {
   createInvoice,
   getInvoice,
-  listInvoicesWithReceived,
+  listInvoices,
   markInvoicePaid,
   markInvoiceSent,
-  receiveInvoiceDeposit,
+  receiveDepositCredit,
 } from "@/lib/invoices-store";
 import { getCustomer } from "@/lib/customers-store";
 import { getPaymentConfig } from "@/lib/payment-config";
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  return NextResponse.json({ invoices: await listInvoicesWithReceived(customerId) });
+  return NextResponse.json({ invoices: await listInvoices(customerId) });
 }
 
 export async function POST(req: NextRequest) {
@@ -91,6 +91,47 @@ export async function POST(req: NextRequest) {
       bookingId: body.bookingId,
     });
     return NextResponse.json({ ok: true, invoice });
+  }
+
+  if (body.action === "receive_deposit_credit") {
+    const res = await receiveDepositCredit(
+      body.customerId,
+      Number(body.amount) || 0,
+      body.note ? String(body.note) : undefined,
+      body.paymentMethod === "cash" ? "cash" : "transfer"
+    );
+    if (!res.ok) {
+      return NextResponse.json({ error: res.error }, { status: 400 });
+    }
+    const customer = await getCustomer(body.customerId);
+    // แจ้ง Telegram เพื่อกระทบยอด + ส่งการ์ดยืนยันรับมัดจำให้ลูกค้า
+    await sendTelegram(
+      formatBookingTelegram("💰 รับมัดจำล่วงหน้า", {
+        ลูกค้า: customer?.name || body.customerId,
+        มัดจำ: `${res.amount} บาท`,
+        เครดิตมัดจำคงเหลือ: `${res.balance} บาท`,
+        ...(body.note ? { หมายเหตุ: String(body.note) } : {}),
+      })
+    );
+    if (customer?.lineUserId) {
+      const payment = await getPaymentConfig();
+      await pushLineMessage(customer.lineUserId, [
+        buildBillSummaryFlex({
+          mode: "booking",
+          title: "รับมัดจำแล้ว 🧡",
+          closing: "ทางร้านจะหักมัดจำนี้ออกจากยอดในวันใช้บริการนะคะ",
+          customerName: customer.name,
+          catName: customer.cats[0]?.name || "น้องแมว",
+          items: [{ label: `มัดจำล่วงหน้า${body.note ? ` (${body.note})` : ""}`, amount: res.amount }],
+          subtotal: res.amount,
+          total: res.amount,
+          bankName: payment.bankName,
+          accountNumber: payment.accountNumber,
+          accountName: payment.accountName,
+        }),
+      ]);
+    }
+    return NextResponse.json({ ok: true, balance: res.balance, needSql: res.needSql });
   }
 
   return NextResponse.json({ error: "unknown action" }, { status: 400 });
@@ -148,30 +189,6 @@ export async function PATCH(req: NextRequest) {
     ]);
     await markInvoiceSent(id);
     return NextResponse.json({ ok: true, kind: mode });
-  }
-
-  if (action === "receive_deposit") {
-    const result = await receiveInvoiceDeposit(id, body.paymentMethod || "transfer");
-    if (!result.ok) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
-    }
-    // แจ้ง Telegram เพื่อกระทบยอด + ส่งการ์ดยอดคงเหลือให้ลูกค้าเลย
-    await sendTelegram(
-      formatBookingTelegram("💰 รับมัดจำแล้ว", {
-        ลูกค้า: inv.customerName,
-        น้องแมว: inv.catName,
-        มัดจำ: `${result.deposit} บาท`,
-        คงเหลือ: `${result.remaining} บาท`,
-        บิล: inv.id,
-      })
-    );
-    if (inv.lineUserId && result.remaining > 0) {
-      const billing = (await getSiteConfig()).billing;
-      await pushLineMessage(inv.lineUserId, [
-        summaryFlexFromInvoice(inv, "remaining", billing, payment),
-      ]);
-    }
-    return NextResponse.json({ ok: true, deposit: result.deposit, remaining: result.remaining });
   }
 
   if (action === "mark_paid") {

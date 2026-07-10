@@ -45,6 +45,8 @@ export type CustomerRecord = {
   cats: CatRecord[];
   isMember: boolean;
   memberCredit: number;
+  /** มัดจำล่วงหน้าคงเหลือ — หักออกจากบิลถัดไปอัตโนมัติ (ต้องรัน OVERNIGHT_SQL.md) */
+  depositCredit: number;
   memberSince?: string;
   tier: CustomerTier;
   /** วันที่ส่งข้อความตามลูกค้าครั้งล่าสุด */
@@ -117,6 +119,7 @@ type CustomerRow = {
   referral_source: string | null;
   is_member: boolean;
   member_credit: number;
+  deposit_credit?: number | null;
   member_since: string | null;
   tier: string | null;
   last_follow_up_at: string | null;
@@ -162,6 +165,7 @@ function seedMem() {
     cats: [{ id: "CAT001", name: "น้องส้ม", staffNote: "อาบง่าย ไม่ดุ" }],
     isMember: false,
     memberCredit: 0,
+    depositCredit: 0,
     tier: "new",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -183,6 +187,7 @@ function mapCustomer(row: CustomerRow): CustomerRecord {
     referralSource: row.referral_source ?? undefined,
     isMember: row.is_member,
     memberCredit: Number(row.member_credit),
+    depositCredit: Number(row.deposit_credit) || 0,
     memberSince: row.member_since ?? undefined,
     tier: (row.tier as CustomerTier) || "new",
     lastFollowUpAt: row.last_follow_up_at ?? undefined,
@@ -340,6 +345,7 @@ export async function upsertCustomerFromLine(data: {
     cats: [],
     isMember: false,
     memberCredit: 0,
+    depositCredit: 0,
     tier: "new",
     createdAt: now,
     updatedAt: now,
@@ -533,6 +539,7 @@ export async function upsertCustomerFromBooking(data: {
       cats: [{ id: catId, name: data.catName, staffNote: data.staffNote }],
       isMember: false,
       memberCredit: 0,
+      depositCredit: 0,
       tier: "new",
       createdAt: now,
       updatedAt: now,
@@ -666,6 +673,36 @@ export async function updateCustomer(
     memCustomers.set(id, c);
   }
   return c;
+}
+
+/**
+ * ปรับยอดมัดจำล่วงหน้าของลูกค้า (+รับมัดจำ / −หักออกจากบิล).
+ * เขียนเฉพาะคอลัมน์ deposit_credit + ครอบ try/catch — ถ้ายังไม่รัน OVERNIGHT_SQL.md
+ * จะได้ need_sql โดยไม่ทำให้การบันทึกอื่นพัง.
+ */
+export async function adjustDepositCredit(customerId: string, delta: number) {
+  const c = await getCustomer(customerId);
+  if (!c) return { ok: false as const, error: "not_found" as const, balance: 0 };
+  const next = Math.max(0, Math.round((c.depositCredit || 0) + delta));
+  c.depositCredit = next;
+  c.updatedAt = new Date().toISOString();
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb
+        .from("customers")
+        .update({ deposit_credit: next })
+        .eq("id", customerId);
+      if (error) {
+        return { ok: false as const, error: "need_sql" as const, balance: next };
+      }
+    } catch {
+      return { ok: false as const, error: "need_sql" as const, balance: next };
+    }
+  } else {
+    memCustomers.set(customerId, c);
+  }
+  return { ok: true as const, balance: next };
 }
 
 export async function updateCat(

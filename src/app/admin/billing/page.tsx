@@ -19,6 +19,8 @@ type Customer = {
   cats: { name: string }[];
   isMember: boolean;
   memberCredit: number;
+  /** มัดจำล่วงหน้าคงเหลือ — หักบิลนี้อัตโนมัติ */
+  depositCredit?: number;
 };
 
 type Promo = {
@@ -39,8 +41,6 @@ type Invoice = {
   customerName: string;
   catName: string;
   lineUserId?: string;
-  /** รายรับที่บันทึกแล้วของบิลนี้ (เช่น มัดจำที่รับไปก่อน) */
-  received?: number;
   items?: { label: string; amount: number }[];
 };
 
@@ -137,7 +137,9 @@ export default function BillingPage() {
   const [promoId, setPromoId] = useState("");
   const [autoPromoLabel, setAutoPromoLabel] = useState("");
   const [discount, setDiscount] = useState("");
-  const [deposit, setDeposit] = useState("");
+  const [depAmount, setDepAmount] = useState("");
+  const [depNote, setDepNote] = useState("");
+  const [depSaving, setDepSaving] = useState(false);
   const [items, setItems] = useState<Item[]>([newGrooming()]);
   const [creating, setCreating] = useState(false);
   const [pay, setPay] = useState({ bankName: "", accountNumber: "", accountName: "" });
@@ -197,7 +199,9 @@ export default function BillingPage() {
     : 0;
   const manualDiscount = Math.max(0, Number(discount) || 0);
   const total = Math.max(0, subtotal - promoDiscount - manualDiscount);
-  const depositAmount = Math.min(total, Math.max(0, Number(deposit) || 0));
+  // มัดจำล่วงหน้าที่ลูกค้าวางไว้ → หักบิลนี้อัตโนมัติ
+  const availableCredit = selected?.depositCredit || 0;
+  const depositAmount = Math.min(total, availableCredit);
   const remaining = Math.max(0, total - depositAmount);
 
   const buildSummary = (mode: "booking" | "deposit" | "full") => {
@@ -431,11 +435,43 @@ export default function BillingPage() {
       alert(`สร้างบิล ${data.invoice.id} — ${data.invoice.total} บาท`);
       setItems([newGrooming()]);
       setDiscount("");
-      setDeposit("");
       setBookingId(undefined);
       load();
     } else {
       alert("สร้างบิลไม่สำเร็จ");
+    }
+  };
+
+  const receiveDepositCredit = async () => {
+    if (!selected) return alert("เลือกลูกค้าก่อน");
+    const amt = Math.round(Number(depAmount) || 0);
+    if (amt <= 0) return alert("ใส่จำนวนมัดจำ");
+    setDepSaving(true);
+    const res = await fetch("/api/invoices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "receive_deposit_credit",
+        customerId: selected.id,
+        amount: amt,
+        note: depNote || undefined,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setDepSaving(false);
+    if (res.ok) {
+      if (data.needSql) {
+        alert(
+          "บันทึกรายรับแล้ว แต่ยอดมัดจำยังไม่ผูกกับลูกค้า — ต้องรัน SQL เพิ่มคอลัมน์ (ดู webapp/OVERNIGHT_SQL.md)"
+        );
+      } else {
+        alert(`รับมัดจำแล้ว 💰 เครดิตมัดจำคงเหลือ ${data.balance?.toLocaleString?.() ?? amt} บาท`);
+      }
+      setDepAmount("");
+      setDepNote("");
+      load();
+    } else {
+      alert("บันทึกไม่สำเร็จ");
     }
   };
 
@@ -455,26 +491,6 @@ export default function BillingPage() {
         ? "ส่งการ์ดเข้า LINE ลูกค้าแล้ว 📨"
         : "ส่งไม่สำเร็จ — ตรวจว่าลูกค้าผูก LINE แล้ว"
     );
-  };
-
-  const receiveDeposit = async (id: string) => {
-    if (!confirm("บันทึกรับมัดจำก้อนนี้เป็นรายรับ? (บิลยังไม่ปิด)")) return;
-    const res = await fetch("/api/invoices", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, action: "receive_deposit", paymentMethod: "transfer" }),
-    });
-    if (res.ok) {
-      alert("บันทึกรับมัดจำแล้ว 💰 + ส่งการ์ดยอดคงเหลือให้ลูกค้า");
-      load();
-    } else {
-      const err = await res.json().catch(() => ({}));
-      alert(
-        err.error === "already_received"
-          ? "บิลนี้บันทึกรับเงินไปแล้ว"
-          : "บันทึกไม่สำเร็จ"
-      );
-    }
   };
 
   const markPaid = async (
@@ -837,6 +853,46 @@ export default function BillingPage() {
           </p>
         )}
 
+        {/* ── รับมัดจำล่วงหน้า (ไม่ต้องมีบิล) ── */}
+        {selected && (
+          <div className="rounded-catcha-sm border border-honey/50 bg-honey/10 p-3">
+            <p className="text-xs font-extrabold text-catcha-chocolate">
+              💰 รับมัดจำล่วงหน้า
+            </p>
+            <p className="mb-2 text-[10px] text-brown-soft">
+              เก็บมัดจำก่อนได้เลย (เช่น จองคิวอาบน้ำ) — ระบบจะหักออกจากบิลวันมาจริงให้อัตโนมัติ
+              {availableCredit > 0 &&
+                ` · ตอนนี้มีอยู่ ${availableCredit.toLocaleString()} ฿`}
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                min="0"
+                inputMode="numeric"
+                placeholder="จำนวน"
+                value={depAmount}
+                onChange={(e) => setDepAmount(e.target.value)}
+                className="w-24 rounded-lg border border-catcha-line bg-paper px-3 py-2 text-right text-sm"
+              />
+              <input
+                type="text"
+                placeholder="หมายเหตุ (เช่น คิวอาบน้ำ 25 ก.ค.)"
+                value={depNote}
+                onChange={(e) => setDepNote(e.target.value)}
+                className="min-w-0 flex-1 rounded-lg border border-catcha-line bg-paper px-3 py-2 text-sm"
+              />
+            </div>
+            <button
+              type="button"
+              disabled={depSaving}
+              onClick={receiveDepositCredit}
+              className="mt-2 w-full rounded-catcha-sm bg-honey-deep/80 py-2 text-xs font-extrabold text-catcha-chocolate disabled:opacity-50"
+            >
+              {depSaving ? "กำลังบันทึก…" : "💰 รับมัดจำ (บันทึกรายรับ + ส่งการ์ด)"}
+            </button>
+          </div>
+        )}
+
         {/* ── สรุปยอด ── */}
         <div className="space-y-1 rounded-catcha-sm bg-paper/60 px-3 py-2 text-sm">
           <div className="flex justify-between text-brown-soft">
@@ -853,75 +909,22 @@ export default function BillingPage() {
             <span>ยอดสุทธิ</span>
             <span>{total.toLocaleString()} ฿</span>
           </div>
-          <div className="flex items-center justify-between gap-2 border-t border-catcha-line pt-1.5">
-            <span className="text-xs font-bold text-brown-soft">💰 มัดจำ (ถ้ามี)</span>
-            <input
-              type="number"
-              min="0"
-              inputMode="numeric"
-              value={deposit}
-              onChange={(e) => setDeposit(e.target.value)}
-              placeholder="0"
-              className="w-24 rounded-lg border border-catcha-line bg-paper px-3 py-1.5 text-right text-sm"
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {[10, 20, 30, 50].map((pct) => {
-              const amt = Math.round((total * pct) / 100);
-              const active = total > 0 && depositAmount === amt && amt > 0;
-              return (
-                <button
-                  key={pct}
-                  type="button"
-                  disabled={total <= 0}
-                  onClick={() => setDeposit(String(amt))}
-                  className={`rounded-full px-2.5 py-1 text-[10px] font-bold disabled:opacity-40 ${
-                    active
-                      ? "bg-honey text-catcha-chocolate"
-                      : "bg-paper text-brown-soft"
-                  }`}
-                >
-                  {pct}%
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              disabled={total <= 0}
-              onClick={() => setDeposit(String(total))}
-              className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-bold text-brown-soft disabled:opacity-40"
-            >
-              เต็มจำนวน
-            </button>
-            {deposit && (
-              <button
-                type="button"
-                onClick={() => setDeposit("")}
-                className="rounded-full px-2.5 py-1 text-[10px] font-bold text-wait"
-              >
-                ล้าง
-              </button>
-            )}
-          </div>
           {depositAmount > 0 && (
             <>
-              <div className="flex justify-between text-brown-soft">
-                <span>มัดจำที่รับ</span>
-                <span>
-                  {depositAmount.toLocaleString()} ฿
-                  {total > 0 && (
-                    <span className="text-[10px] text-brown-faint">
-                      {" "}
-                      ({Math.round((depositAmount / total) * 100)}%)
-                    </span>
-                  )}
-                </span>
+              <div className="flex justify-between border-t border-catcha-line pt-1.5 text-ok">
+                <span>💰 หักมัดจำล่วงหน้า</span>
+                <span>-{depositAmount.toLocaleString()} ฿</span>
               </div>
-              <div className="flex justify-between font-extrabold text-wait">
-                <span>ยอดคงเหลือ (ก่อนเข้าพัก)</span>
+              <div className="flex justify-between text-base font-extrabold text-wait">
+                <span>ยอดเก็บวันนี้</span>
                 <span>{remaining.toLocaleString()} ฿</span>
               </div>
             </>
+          )}
+          {availableCredit > depositAmount && (
+            <p className="text-[10px] text-brown-faint">
+              (มัดจำล่วงหน้าคงเหลือหลังหักบิลนี้: {(availableCredit - depositAmount).toLocaleString()} ฿)
+            </p>
           )}
         </div>
 
@@ -1003,19 +1006,17 @@ export default function BillingPage() {
               {inv.total.toLocaleString()} บาท ·{" "}
               {inv.status === "paid" ? "✅ ชำระแล้ว" : "⏳ รอชำระ"}
             </p>
-            {inv.status === "pending" &&
-              (inv.deposit ?? 0) > 0 &&
-              ((inv.received ?? 0) > 0 ? (
-                <p className="text-[11px] font-bold text-ok">
-                  ✅ รับมัดจำแล้ว {(inv.received ?? 0).toLocaleString()} · รอเก็บยอดคงเหลือ{" "}
-                  {(inv.total - (inv.received ?? 0)).toLocaleString()} บาท
-                </p>
-              ) : (
-                <p className="text-[11px] font-bold text-wait">
-                  💰 มัดจำ {inv.deposit!.toLocaleString()} · คงเหลือ{" "}
-                  {(inv.total - inv.deposit!).toLocaleString()} บาท
-                </p>
-              ))}
+            {(inv.deposit ?? 0) > 0 && (
+              <p className="text-[11px] font-bold text-ok">
+                💰 หักมัดจำล่วงหน้าแล้ว {inv.deposit!.toLocaleString()}
+                {inv.status === "pending" && (
+                  <span className="text-wait">
+                    {" "}
+                    · เก็บเพิ่มอีก {(inv.total - inv.deposit!).toLocaleString()} บาท
+                  </span>
+                )}
+              </p>
+            )}
 
             {/* ส่งการ์ดให้ลูกค้า — กดส่งทีหลังจากบิลนี้ได้ */}
             <div className="mt-2 rounded-catcha-sm bg-paper/50 p-2">
@@ -1067,21 +1068,12 @@ export default function BillingPage() {
 
             {inv.status === "pending" && (
               <div className="mt-2 flex flex-wrap gap-2">
-                {(inv.deposit ?? 0) > 0 && (inv.received ?? 0) === 0 && (
-                  <button
-                    type="button"
-                    onClick={() => receiveDeposit(inv.id)}
-                    className="rounded-full bg-honey/40 px-3 py-1.5 text-xs font-bold text-catcha-chocolate"
-                  >
-                    💰 รับมัดจำแล้ว
-                  </button>
-                )}
                 <button
                   type="button"
                   onClick={() => markPaid(inv.id, "transfer")}
                   className="rounded-full bg-sage/20 px-3 py-1.5 text-xs font-bold text-ok"
                 >
-                  ✅ {(inv.received ?? 0) > 0 ? "รับยอดคงเหลือครบแล้ว" : "รับเงินครบแล้ว"}
+                  ✅ {(inv.deposit ?? 0) > 0 ? "รับเงินที่เหลือแล้ว" : "รับเงินแล้ว"}
                 </button>
                 {selected?.isMember && (
                   <button

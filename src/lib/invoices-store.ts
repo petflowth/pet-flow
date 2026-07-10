@@ -3,8 +3,9 @@ import {
   deductMemberCredit,
   addServiceRecord,
   getCustomer,
+  adjustDepositCredit,
 } from "./customers-store";
-import { addFinanceEntry, incomeForInvoice, listFinance } from "./finance-store";
+import { addFinanceEntry } from "./finance-store";
 import { calcPromoDiscount } from "./promos-store";
 import { addPoints } from "./points-store";
 import { getSupabase } from "./supabase/server";
@@ -130,16 +131,39 @@ export async function getInvoice(id: string) {
   return mem.find((i) => i.id === id);
 }
 
-/** บิล + ยอดรายรับที่บันทึกแล้วต่อบิล (received) — ให้หน้าคิดเงินรู้ว่ารับมัดจำไปหรือยัง */
-export async function listInvoicesWithReceived(customerId?: string) {
-  const [list, fin] = await Promise.all([listInvoices(customerId), listFinance()]);
-  const map = new Map<string, number>();
-  for (const r of fin) {
-    if (r.type === "income" && r.invoiceId) {
-      map.set(r.invoiceId, (map.get(r.invoiceId) || 0) + r.amount);
-    }
-  }
-  return list.map((i) => ({ ...i, received: map.get(i.id) || 0 }));
+/**
+ * รับ "มัดจำล่วงหน้า" ของลูกค้า (ยังไม่ต้องมีบิล เช่น มัดจำคิวอาบน้ำ).
+ * บันทึกเป็นรายรับทันที (cash basis) + เพิ่มเครดิตมัดจำให้ลูกค้า เพื่อหักบิลถัดไป.
+ */
+export async function receiveDepositCredit(
+  customerId: string,
+  amount: number,
+  note?: string,
+  method: "transfer" | "cash" = "transfer"
+) {
+  const amt = Math.max(0, Math.round(amount || 0));
+  if (amt <= 0) return { ok: false as const, error: "bad_amount", balance: 0 };
+  const c = await getCustomer(customerId);
+  if (!c) return { ok: false as const, error: "not_found", balance: 0 };
+
+  const now = new Date().toISOString();
+  await addFinanceEntry({
+    type: "income",
+    amount: amt,
+    category: "มัดจำ",
+    description: `${c.name} — รับมัดจำล่วงหน้า${note ? ` (${note})` : ""}`,
+    date: now.slice(0, 10),
+    customerId,
+  });
+
+  const res = await adjustDepositCredit(customerId, amt);
+  return {
+    ok: true as const,
+    balance: res.balance,
+    needSql: !res.ok && res.error === "need_sql",
+    method,
+    amount: amt,
+  };
 }
 
 export async function createInvoice(data: {
@@ -186,6 +210,12 @@ export async function createInvoice(data: {
   } else {
     mem.unshift(invoice);
   }
+
+  // มัดจำที่หักในบิลนี้ = ดึงจากเครดิตมัดจำล่วงหน้าของลูกค้า (บันทึกรายรับไปแล้วตอนรับมัดจำ)
+  if (deposit > 0) {
+    await adjustDepositCredit(data.customerId, -deposit);
+  }
+
   return invoice;
 }
 
@@ -201,44 +231,6 @@ export async function markInvoiceSent(id: string) {
   return inv;
 }
 
-/**
- * รับ "มัดจำ" ตามจริง — บันทึกเป็นรายรับก้อนแรก (ไม่ปิดบิล).
- * ยอดคงเหลือจะไปเก็บตอนกด "รับยอดคงเหลือครบแล้ว" (markInvoicePaid).
- * ใช้ยอดรายรับที่บันทึกแล้วของบิลเป็นตัวกันบันทึกซ้ำ — ไม่ต้องเพิ่มคอลัมน์ใน DB.
- */
-export async function receiveInvoiceDeposit(
-  id: string,
-  paymentMethod: "transfer" | "cash" = "transfer"
-) {
-  const inv = await getInvoice(id);
-  if (!inv || inv.status === "paid") return { ok: false as const, error: "invalid" };
-  const deposit = inv.deposit || 0;
-  if (deposit <= 0) return { ok: false as const, error: "no_deposit" };
-
-  const already = await incomeForInvoice(id);
-  if (already > 0) return { ok: false as const, error: "already_received" };
-
-  const now = new Date().toISOString();
-  await addFinanceEntry({
-    type: "income",
-    amount: deposit,
-    category: "มัดจำ",
-    description: `${inv.catName} · ${inv.customerName} — มัดจำ (บิล ${inv.id})`,
-    date: now.slice(0, 10),
-    customerId: inv.customerId,
-    invoiceId: inv.id,
-  });
-
-  const remaining = Math.max(0, inv.total - deposit);
-  return {
-    ok: true as const,
-    invoice: inv,
-    deposit,
-    remaining,
-    paymentMethod,
-  };
-}
-
 export async function markInvoicePaid(
   id: string,
   paymentMethod: "transfer" | "member_credit" | "cash" = "transfer"
@@ -246,8 +238,8 @@ export async function markInvoicePaid(
   const inv = await getInvoice(id);
   if (!inv || inv.status === "paid") return { ok: false as const, error: "invalid" };
 
-  // รายรับที่บันทึกแล้ว (เช่น มัดจำ) → รอบนี้เก็บแค่ "ยอดคงเหลือจริง"
-  const alreadyReceived = await incomeForInvoice(id);
+  // มัดจำถูกบันทึกเป็นรายรับ + หักเครดิตไปแล้วตอนรับมัดจำ → รอบนี้เก็บแค่ "ยอดที่เหลือจริง"
+  const alreadyReceived = inv.deposit || 0;
   const settleAmount = Math.max(0, inv.total - alreadyReceived);
 
   const customer = await getCustomer(inv.customerId);

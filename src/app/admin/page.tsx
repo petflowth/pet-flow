@@ -271,62 +271,66 @@ export default function AdminDashboard() {
             dayBookings.map((b) => (
               <li
                 key={b.id}
-                className="flex flex-wrap items-center gap-2 rounded-catcha-sm border border-catcha-line bg-paper/50 p-3"
+                className="rounded-catcha-sm border border-catcha-line bg-paper/50 p-3"
               >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-brown">
-                    {b.catName} · {b.customerName}
-                  </p>
-                  <p className="text-xs text-brown-soft">
-                    {b.service === "room" ? "🏠 ห้องพัก" : "🛁 อาบน้ำ"} · {bookingWhen(b)}
-                  </p>
-                  {b.customerId ? (
-                    <Link
-                      href={`/admin/customers?id=${b.customerId}`}
-                      className="mt-1 inline-block text-[10px] font-bold text-latte-deep underline"
-                    >
-                      👤 ดูข้อมูลลูกค้า
-                    </Link>
-                  ) : (
-                    <p className="mt-1 text-[10px] text-brown-faint">ยังไม่มีข้อมูลลูกค้าในระบบ</p>
-                  )}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-brown break-words">
+                      {b.catName} · {b.customerName}
+                    </p>
+                    <p className="text-xs text-brown-soft break-words">
+                      {b.service === "room" ? "🏠 ห้องพัก" : "🛁 อาบน้ำ"} · {bookingWhen(b)}
+                    </p>
+                    {b.customerId ? (
+                      <Link
+                        href={`/admin/customers?id=${b.customerId}`}
+                        className="mt-1 inline-block text-[10px] font-bold text-latte-deep underline"
+                      >
+                        👤 ดูข้อมูลลูกค้า
+                      </Link>
+                    ) : (
+                      <p className="mt-1 text-[10px] text-brown-faint">ยังไม่มีข้อมูลลูกค้าในระบบ</p>
+                    )}
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      b.status === "confirmed" ? "bg-sage/20 text-ok" : "bg-honey/25 text-wait"
+                    }`}
+                  >
+                    {b.status === "confirmed" ? "ยืนยัน" : "รอยืนยัน"}
+                  </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setEditing(b)}
-                  className="rounded-full bg-honey/25 px-2.5 py-1 text-[10px] font-bold text-catcha-chocolate"
-                >
-                  ✏️ แก้ไข
-                </button>
-                <button
-                  type="button"
-                  onClick={() => cancelBooking(b)}
-                  className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-bold text-wait"
-                >
-                  ❌ ยกเลิก
-                </button>
-                <a
-                  href={`/api/calendar/${b.id}`}
-                  className="rounded-full bg-paper px-2 py-1 text-[10px] font-bold text-brown-soft"
-                >
-                  📲 iCal
-                </a>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                    b.status === "confirmed" ? "bg-sage/20 text-ok" : "bg-honey/25 text-wait"
-                  }`}
-                >
-                  {b.status === "confirmed" ? "ยืนยัน" : "รอยืนยัน"}
-                </span>
-                {b.status === "pending" && (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => sendCard(b)}
-                    className="rounded-full bg-latte/30 px-3 py-1.5 text-xs font-bold"
+                    onClick={() => setEditing(b)}
+                    className="rounded-full bg-honey/25 px-2.5 py-1 text-[10px] font-bold text-catcha-chocolate"
                   >
-                    📨 ส่งการ์ด
+                    ✏️ แก้ไข
                   </button>
-                )}
+                  <button
+                    type="button"
+                    onClick={() => cancelBooking(b)}
+                    className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-bold text-wait"
+                  >
+                    ❌ ยกเลิก
+                  </button>
+                  <a
+                    href={`/api/calendar/${b.id}`}
+                    className="rounded-full bg-paper px-2 py-1 text-[10px] font-bold text-brown-soft"
+                  >
+                    📲 iCal
+                  </a>
+                  {b.status === "pending" && (
+                    <button
+                      type="button"
+                      onClick={() => sendCard(b)}
+                      className="rounded-full bg-latte/30 px-3 py-1.5 text-xs font-bold"
+                    >
+                      📨 ส่งการ์ด
+                    </button>
+                  )}
+                </div>
               </li>
             ))
           )}

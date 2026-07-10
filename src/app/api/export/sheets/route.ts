@@ -11,7 +11,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const result = await exportToGoogleSheets();
+  const columns = Array.isArray(body.columns)
+    ? body.columns.map(String)
+    : undefined;
+  const result = await exportToGoogleSheets(columns);
 
   if (!result.ok) {
     const messages: Record<string, string> = {

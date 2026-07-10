@@ -1,25 +1,48 @@
-import type { CustomerRecord } from "./customers-store";
+import type { CustomerRecord, CatRecord } from "./customers-store";
 import type { FinanceRecord } from "./finance-store";
 import { getGoogleCredentials, isGoogleConfigured } from "./google-config";
 import { getSheetsApi } from "./google-auth";
 import { listCustomers } from "./customers-store";
 import { listFinance } from "./finance-store";
+import { catCurrentAgeLabel } from "./cat-age";
 
 const CUSTOMERS_SHEET = "ลูกค้า";
 const FINANCE_SHEET = "รายรับรายจ่าย";
 
-const CUSTOMER_HEADERS = [
-  "ID",
-  "ชื่อลูกค้า",
-  "เบอร์โทร",
-  "LINE User ID",
-  "สมาชิก",
-  "เครดิตคงเหลือ",
-  "ชื่อแมว",
-  "โน้ตพนักงาน (แมว)",
-  "สมาชิกตั้งแต่",
-  "อัปเดตล่าสุด",
+type CustomerColumn = {
+  key: string;
+  label: string;
+  get: (c: CustomerRecord, cat?: CatRecord) => string;
+};
+
+/** คอลัมน์ที่เลือกส่งออกได้ (แก้/เพิ่มได้ที่นี่) */
+export const CUSTOMER_COLUMNS: CustomerColumn[] = [
+  { key: "id", label: "รหัสลูกค้า", get: (c) => c.id },
+  { key: "name", label: "ชื่อผู้ปกครอง", get: (c) => c.name },
+  { key: "phone", label: "เบอร์โทร", get: (c) => c.phone || "" },
+  { key: "email", label: "อีเมล", get: (c) => c.email || "" },
+  { key: "birthday", label: "วันเกิดผู้ปกครอง", get: (c) => c.birthday || "" },
+  { key: "referral", label: "รู้จักจาก", get: (c) => c.referralSource || "" },
+  { key: "consent", label: "ยินยอมรับข่าวสาร", get: (c) => (c.marketingConsent ? "ใช่" : "ไม่") },
+  { key: "line", label: "ผูก LINE", get: (c) => (c.lineUserId ? "ผูกแล้ว" : "") },
+  { key: "member", label: "สมาชิก", get: (c) => (c.isMember ? "ใช่" : "ไม่") },
+  { key: "credit", label: "เครดิตคงเหลือ", get: (c) => String(c.memberCredit) },
+  { key: "tier", label: "กลุ่มลูกค้า", get: (c) => c.tier || "" },
+  { key: "catName", label: "ชื่อแมว", get: (_c, cat) => cat?.name || "" },
+  {
+    key: "catGender",
+    label: "เพศแมว",
+    get: (_c, cat) =>
+      cat?.gender === "male" ? "ผู้" : cat?.gender === "female" ? "เมีย" : "",
+  },
+  { key: "catBreed", label: "พันธุ์", get: (_c, cat) => cat?.breed || "" },
+  { key: "catAge", label: "อายุ", get: (_c, cat) => (cat ? catCurrentAgeLabel(cat) : "") },
+  { key: "catMedical", label: "โรคประจำตัว", get: (_c, cat) => cat?.medical || "" },
+  { key: "catNote", label: "โน้ตแมว", get: (_c, cat) => cat?.staffNote || "" },
+  { key: "updatedAt", label: "อัปเดตล่าสุด", get: (c) => c.updatedAt.slice(0, 10) },
 ];
+
+const DEFAULT_CUSTOMER_KEYS = CUSTOMER_COLUMNS.map((c) => c.key);
 
 const FINANCE_HEADERS = [
   "ID",
@@ -33,37 +56,18 @@ const FINANCE_HEADERS = [
   "บันทึกเมื่อ",
 ];
 
-function customerRows(customers: CustomerRecord[]): string[][] {
+function customerRows(
+  customers: CustomerRecord[],
+  cols: CustomerColumn[]
+): string[][] {
   const rows: string[][] = [];
   for (const c of customers) {
     if (!c.cats.length) {
-      rows.push([
-        c.id,
-        c.name,
-        c.phone || "",
-        c.lineUserId || "",
-        c.isMember ? "ใช่" : "ไม่",
-        String(c.memberCredit),
-        "",
-        "",
-        c.memberSince || "",
-        c.updatedAt.slice(0, 10),
-      ]);
+      rows.push(cols.map((col) => col.get(c, undefined)));
       continue;
     }
     for (const cat of c.cats) {
-      rows.push([
-        c.id,
-        c.name,
-        c.phone || "",
-        c.lineUserId || "",
-        c.isMember ? "ใช่" : "ไม่",
-        String(c.memberCredit),
-        cat.name,
-        cat.staffNote || "",
-        c.memberSince || "",
-        c.updatedAt.slice(0, 10),
-      ]);
+      rows.push(cols.map((col) => col.get(c, cat)));
     }
   }
   return rows;
@@ -133,7 +137,9 @@ export type SheetsExportResult = {
   finance: number;
 };
 
-export async function exportToGoogleSheets(): Promise<SheetsExportResult> {
+export async function exportToGoogleSheets(
+  customerKeys?: string[]
+): Promise<SheetsExportResult> {
   const creds = await getGoogleCredentials();
   if (!(await isGoogleConfigured()) || !creds) {
     return {
@@ -145,6 +151,11 @@ export async function exportToGoogleSheets(): Promise<SheetsExportResult> {
   }
   const spreadsheetId = creds.spreadsheetId;
 
+  const keys =
+    customerKeys && customerKeys.length ? customerKeys : DEFAULT_CUSTOMER_KEYS;
+  const cols = CUSTOMER_COLUMNS.filter((c) => keys.includes(c.key));
+  const customerHeaders = cols.map((c) => c.label);
+
   const [customers, finance] = await Promise.all([
     listCustomers(),
     listFinance(),
@@ -154,8 +165,8 @@ export async function exportToGoogleSheets(): Promise<SheetsExportResult> {
     await writeSheet(
       spreadsheetId,
       CUSTOMERS_SHEET,
-      CUSTOMER_HEADERS,
-      customerRows(customers)
+      customerHeaders,
+      customerRows(customers, cols)
     );
     await writeSheet(
       spreadsheetId,

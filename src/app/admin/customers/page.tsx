@@ -1073,40 +1073,72 @@ export default function CustomersPage() {
       {loading ? (
         <p className="text-center text-sm text-brown-soft">กำลังโหลด…</p>
       ) : (
-        <ul className="space-y-3">
-          {list.map((c) => (
-            <li key={c.id}>
-              <button
-                type="button"
-                onClick={() => open(c.id)}
-                className="w-full rounded-catcha border border-catcha-line bg-card p-4 text-left shadow-catcha-sm"
-              >
-                <div className="flex justify-between gap-2">
-                  <div>
-                    <p className="font-bold text-brown">
-                      {c.cats[0]?.name || "—"} · {c.name}
-                      <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[9px] ${tierBadgeClass(c.tier || "new")}`}>
+        <>
+          <p className="mb-2 text-[11px] font-bold text-brown-faint">
+            {list.length} ราย
+          </p>
+          <ul className="divide-y divide-catcha-line overflow-hidden rounded-catcha border border-catcha-line bg-card shadow-catcha-sm">
+            {list.map((c) => {
+              const photo = c.cats.find((x) => x.photoDataUrl)?.photoDataUrl;
+              return (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    onClick={() => open(c.id)}
+                    className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition active:bg-paper/60"
+                  >
+                    {photo ? (
+                      <Image
+                        src={photo}
+                        alt=""
+                        width={38}
+                        height={38}
+                        className="h-[38px] w-[38px] shrink-0 rounded-full object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-paper text-lg">
+                        {c.cats.length ? "🐱" : "👤"}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="flex items-center gap-1 truncate text-sm font-bold text-brown">
+                        <span className="truncate">
+                          {c.cats.map((x) => x.name).filter(Boolean).join(", ") || c.name}
+                        </span>
+                        {c.isMember && <span className="shrink-0">💎</span>}
+                      </p>
+                      <p className="truncate text-[11px] text-brown-soft">
+                        {c.name}
+                        {c.phone ? ` · ${c.phone}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-0.5">
+                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${tierBadgeClass(c.tier || "new")}`}>
                         {TIER_LABELS[c.tier || "new"]}
                       </span>
-                      {c.isMember && " 💎"}
                       {(c.upcomingAppointments ?? 0) > 0 && (
-                        <span className="ml-1 rounded-full bg-honey/30 px-2 py-0.5 text-[10px] font-bold text-catcha-chocolate">
-                          📅 {c.upcomingAppointments} นัด
+                        <span className="text-[10px] font-bold text-latte-deep">
+                          📅 {c.upcomingAppointments}
                         </span>
                       )}
-                    </p>
-                    <p className="mt-1 text-xs text-brown-soft">
-                      {c.cats.map((cat) => cat.staffNote).filter(Boolean).join(" · ") || "แตะดูประวัติ"}
-                    </p>
-                  </div>
-                  <span className="text-xs font-bold text-latte-deep">
-                    {c.memberCredit > 0 ? `${c.memberCredit} ฿` : "→"}
-                  </span>
-                </div>
-              </button>
-            </li>
-          ))}
-        </ul>
+                      {c.memberCredit > 0 && (
+                        <span className="text-[10px] font-bold text-ok">
+                          {c.memberCredit}฿
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+            {list.length === 0 && (
+              <li className="px-3 py-4 text-center text-xs text-brown-soft">
+                ไม่พบลูกค้า
+              </li>
+            )}
+          </ul>
+        </>
       )}
     </div>
   );

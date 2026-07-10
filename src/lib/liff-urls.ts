@@ -14,3 +14,7 @@ export function buildCustomerLinkUrl(liffId: string, customerId: string) {
 export function buildRegisterUrl(liffId: string) {
   return buildLiffUrl(liffId, { path: "register" });
 }
+
+export function buildConsentUrl(liffId: string) {
+  return buildLiffUrl(liffId, { path: "consent" });
+}

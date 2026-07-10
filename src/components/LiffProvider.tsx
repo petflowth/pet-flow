@@ -183,6 +183,10 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
       router.replace("/app/rooms");
       return;
     }
+    if (path === "consent") {
+      router.replace("/app/consent");
+      return;
+    }
     if (path === "register") {
       router.replace("/app/register");
       return;
@@ -204,7 +208,8 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
       pathname.startsWith("/app/pay") ||
       pathname.startsWith("/app/promos") ||
       pathname.startsWith("/app/grooming") ||
-      pathname.startsWith("/app/rooms");
+      pathname.startsWith("/app/rooms") ||
+      pathname.startsWith("/app/consent");
 
     if (needsRegistration && !skipRegister) {
       router.replace("/app/register");

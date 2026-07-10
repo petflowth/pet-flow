@@ -6,6 +6,8 @@ import { buildBookingConfirmFlex } from "@/lib/booking-line-card";
 import { pushLineMessage } from "@/lib/line";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import { renderTemplate } from "@/lib/messages";
+import { getLineCredentials } from "@/lib/line-config";
+import { buildConsentUrl } from "@/lib/liff-urls";
 
 function addDays(dateStr: string, n: number) {
   const dt = new Date(`${dateStr}T12:00:00Z`);
@@ -55,6 +57,8 @@ export async function GET(req: NextRequest) {
   const cfg = await getSiteConfig();
   const pay = cfg.payment;
   const shopName = cfg.business.name;
+  const liffId = (await getLineCredentials())?.liffId;
+  const consentUrl = liffId ? buildConsentUrl(liffId) : "";
   const allBookings = await listBookings();
   const allInvoices = await listInvoices();
 
@@ -94,13 +98,18 @@ export async function GET(req: NextRequest) {
 
     // #4 — 3 วันก่อนเข้าพัก (วันแรกพอ): รายละเอียด + สิ่งที่ต้องเตรียม
     if (b.checkin === in3) {
-      const text = renderTemplate(cfg.messages.prestayReminder, {
+      let text = renderTemplate(cfg.messages.prestayReminder, {
         shop: shopName,
         cat: b.catName,
         checkin: b.checkin || "",
         checkout: b.checkout ? `→ ${b.checkout}` : "",
         room: b.room ? `🏠 ห้อง: ${b.room}` : "",
+        consentUrl,
       });
+      // แนบลิงก์กดยอมรับข้อตกลง (ถ้ายังไม่มีในข้อความ)
+      if (consentUrl && !text.includes(consentUrl)) {
+        text += `\n\n📋 กรุณาอ่านและกดยอมรับข้อตกลงก่อนเข้าพักที่นี่นะคะ 🧡\n${consentUrl}`;
+      }
       try {
         await pushLineMessage(b.lineUserId, [{ type: "text", text }]);
         prestayReminders++;

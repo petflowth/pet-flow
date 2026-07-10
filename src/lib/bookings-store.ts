@@ -10,6 +10,8 @@ export type StoredBooking = Booking & {
   calendarEventId?: string;
   /** เวลาลูกค้ากดยอมรับข้อตกลงก่อนเข้าพัก (ต้องรัน OVERNIGHT_SQL.md ก่อน) */
   consentAcceptedAt?: string;
+  /** ข้อความ "แจ้งการดูแลเพิ่มเติม" ที่ลูกค้ากรอกตอนกดยอมรับข้อตกลง */
+  careNote?: string;
 };
 
 type BookingRow = {
@@ -29,6 +31,7 @@ type BookingRow = {
   calendar_event_id: string | null;
   created_at: string;
   consent_accepted_at?: string | null;
+  care_note?: string | null;
 };
 
 const mem: StoredBooking[] = [
@@ -63,6 +66,7 @@ function rowToStored(r: BookingRow): StoredBooking {
     calendarEventId: r.calendar_event_id || undefined,
     createdAt: r.created_at,
     consentAcceptedAt: r.consent_accepted_at || undefined,
+    careNote: r.care_note || undefined,
   };
 }
 
@@ -112,19 +116,24 @@ export async function getBooking(id: string) {
  * ต้องรัน OVERNIGHT_SQL.md (consent_accepted_at) ก่อนถึงจะบันทึกลง DB ได้;
  * ถ้ายังไม่มีคอลัมน์ จะ return need_sql โดยไม่ทำให้ endpoint พัง.
  */
-export async function acceptBookingConsent(id: string, lineUserId: string) {
+export async function acceptBookingConsent(
+  id: string,
+  lineUserId: string,
+  careNote?: string
+) {
   const b = await getBooking(id);
   if (!b) return { ok: false as const, error: "not_found" };
   if (b.lineUserId && lineUserId && b.lineUserId !== lineUserId) {
     return { ok: false as const, error: "forbidden" };
   }
   const now = new Date().toISOString();
+  const note = (careNote || "").trim();
   const sb = getSupabase();
   if (sb) {
     try {
       const { error } = await sb
         .from("bookings")
-        .update({ consent_accepted_at: now })
+        .update({ consent_accepted_at: now, care_note: note || null })
         .eq("id", id);
       if (error) {
         return { ok: false as const, error: "need_sql", message: error.message };
@@ -134,7 +143,10 @@ export async function acceptBookingConsent(id: string, lineUserId: string) {
     }
   } else {
     const idx = mem.findIndex((x) => x.id === id);
-    if (idx >= 0) mem[idx].consentAcceptedAt = now;
+    if (idx >= 0) {
+      mem[idx].consentAcceptedAt = now;
+      mem[idx].careNote = note || undefined;
+    }
   }
   return { ok: true as const, acceptedAt: now };
 }

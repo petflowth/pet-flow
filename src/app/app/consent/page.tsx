@@ -12,6 +12,7 @@ type StayBooking = Booking & {
   checkin?: string;
   room?: string;
   consentAcceptedAt?: string;
+  careNote?: string;
 };
 
 export default function ConsentPage() {
@@ -22,6 +23,7 @@ export default function ConsentPage() {
   const [accepted, setAccepted] = useState(false);
   const [checked, setChecked] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [careNote, setCareNote] = useState("");
 
   const terms =
     config.messages?.consentTerms?.length
@@ -42,6 +44,7 @@ export default function ConsentPage() {
           .sort((a, b) => (a.checkin || a.date).localeCompare(b.checkin || b.date))[0];
         setBooking(stay || null);
         if (stay?.consentAcceptedAt) setAccepted(true);
+        if (stay?.careNote) setCareNote(stay.careNote);
       })
       .catch(() => setBooking(null))
       .finally(() => setLoading(false));
@@ -57,6 +60,7 @@ export default function ConsentPage() {
         body: JSON.stringify({
           bookingId: booking.id,
           lineUserId: profile.lineUserId,
+          careNote: careNote.trim(),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -115,8 +119,25 @@ export default function ConsentPage() {
             ))}
           </ul>
 
+          <div className="mt-5">
+            <label className="text-xs font-bold text-catcha-chocolate">
+              📝 แจ้งการดูแลเพิ่มเติม (ไม่บังคับ)
+            </label>
+            <p className="mb-1.5 text-[11px] text-brown-faint">
+              เช่น อาหารที่กินประจำ/ปริมาณ · ยาที่ต้องให้ · นิสัย/สิ่งที่กลัว · โรคประจำตัว
+            </p>
+            <textarea
+              value={careNote}
+              onChange={(e) => setCareNote(e.target.value)}
+              disabled={accepted}
+              rows={4}
+              placeholder="พิมพ์รายละเอียดการดูแลน้องที่อยากให้ทางร้านทราบ…"
+              className="w-full rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs text-brown disabled:bg-paper/60"
+            />
+          </div>
+
           {accepted ? (
-            <div className="mt-5 rounded-catcha bg-sage/15 px-4 py-4 text-center">
+            <div className="mt-4 rounded-catcha bg-sage/15 px-4 py-4 text-center">
               <p className="text-sm font-extrabold text-catcha-chocolate">
                 ✅ รับทราบและยอมรับข้อตกลงแล้ว
               </p>
@@ -126,7 +147,7 @@ export default function ConsentPage() {
             </div>
           ) : (
             <>
-              <label className="mt-5 flex items-start gap-2 text-xs text-brown">
+              <label className="mt-4 flex items-start gap-2 text-xs text-brown">
                 <input
                   type="checkbox"
                   checked={checked}

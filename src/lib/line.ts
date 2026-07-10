@@ -238,6 +238,121 @@ export function buildAppointmentConfirmFlex(booking: {
   };
 }
 
+/** การ์ดเงื่อนไขก่อนเข้าพัก — มีปุ่มไปหน้ากดยอมรับ + แจ้งการดูแลเพิ่มเติม */
+export function buildConsentFlex(data: {
+  businessName: string;
+  title: string;
+  catName: string;
+  checkin?: string;
+  checkout?: string;
+  room?: string;
+  terms?: string[];
+  url: string;
+}) {
+  const dateText = data.checkin
+    ? `${data.checkin}${data.checkout ? ` → ${data.checkout}` : ""}${
+        data.room ? ` · ห้อง ${data.room}` : ""
+      }`
+    : "";
+  const terms = (data.terms || []).slice(0, 5);
+
+  const body: Record<string, unknown>[] = [
+    {
+      type: "text",
+      text: data.title,
+      weight: "bold",
+      size: "lg",
+      color: "#5C4033",
+      wrap: true,
+    },
+    {
+      type: "text",
+      text: `${data.businessName} · 🐱 ${data.catName}`,
+      size: "xs",
+      color: "#A2907E",
+      margin: "md",
+      wrap: true,
+    },
+  ];
+  if (dateText) {
+    body.push(flexDetailRow("🗓️", "เข้าพัก", dateText));
+  }
+  if (terms.length) {
+    body.push({ type: "separator", margin: "lg" });
+    body.push({
+      type: "box",
+      layout: "vertical",
+      margin: "lg",
+      spacing: "sm",
+      contents: terms.map((t, i) => ({
+        type: "box",
+        layout: "horizontal",
+        spacing: "sm",
+        contents: [
+          { type: "text", text: `${i + 1}.`, size: "xs", color: "#A2907E", flex: 0 },
+          { type: "text", text: t, size: "xs", color: "#4E3E32", wrap: true, flex: 1 },
+        ],
+      })),
+    });
+  }
+  body.push({
+    type: "text",
+    text: "กดปุ่มด้านล่างเพื่ออ่านฉบับเต็ม กดยอมรับ และแจ้งการดูแลเพิ่มเติมของน้องได้ค่ะ 🧡",
+    size: "xs",
+    color: "#A2907E",
+    margin: "lg",
+    wrap: true,
+  });
+
+  return {
+    type: "flex",
+    altText: `${data.title} — ${data.catName}`,
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: BRAND_GREEN,
+        paddingAll: "16px",
+        contents: [
+          {
+            type: "text",
+            text: "📋 เงื่อนไขก่อนเข้าพัก",
+            color: "#FFFFFF",
+            weight: "bold",
+            size: "sm",
+          },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        paddingAll: "16px",
+        contents: body,
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        paddingAll: "12px",
+        contents: [
+          {
+            type: "button",
+            style: "primary",
+            color: BRAND_GREEN_DARK,
+            height: "sm",
+            action: {
+              type: "uri",
+              label: "📋 ข้อตกลงก่อนเข้าพัก",
+              uri: data.url,
+            },
+          },
+        ],
+      },
+    },
+  };
+}
+
 /** @deprecated ใช้ buildAppointmentConfirmFlex แทน */
 export function buildReminderFlex(booking: {
   id: string;

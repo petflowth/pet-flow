@@ -17,7 +17,7 @@ type Stats = {
   financeMonth: { income: number; expense: number; net: number };
 };
 
-type CalendarDay = EditableBooking & { customerId?: string };
+type CalendarDay = EditableBooking & { customerId?: string; careNote?: string };
 
 function bookingWhen(b: CalendarDay) {
   if (b.service === "room" || b.checkin) {
@@ -284,6 +284,11 @@ export default function AdminDashboard() {
                     <p className="text-xs text-brown-soft break-words">
                       {b.service === "room" ? "🏠 ห้องพัก" : "🛁 อาบน้ำ"} · {bookingWhen(b)}
                     </p>
+                    {b.careNote && (
+                      <p className="mt-1 rounded-catcha-sm bg-sage/15 px-2 py-1 text-[11px] text-brown break-words">
+                        📝 การดูแลจากลูกค้า: {b.careNote}
+                      </p>
+                    )}
                     {b.customerId ? (
                       <Link
                         href={`/admin/customers?id=${b.customerId}`}

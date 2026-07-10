@@ -17,18 +17,18 @@ import {
 import { bookingMatchesCustomer } from "@/lib/booking-customer-match";
 import { listCustomers, resolveCustomerForBooking } from "@/lib/customers-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
-import { pushLineMessage } from "@/lib/line";
+import { pushLineMessage, buildConsentFlex } from "@/lib/line";
 import { buildBookingConfirmFlex } from "@/lib/booking-line-card";
 import {
   findCustomerForBooking,
   recalculateCustomerTier,
 } from "@/lib/customers-store";
 import { getSiteConfig } from "@/lib/config-store";
+import { DEFAULT_MESSAGES } from "@/lib/messages";
 import { listInvoices } from "@/lib/invoices-store";
 import {
   buildDepositReminderText,
   buildPrestayReminderText,
-  buildConsentInviteText,
   getConsentUrl,
 } from "@/lib/booking-reminders";
 
@@ -75,6 +75,7 @@ export async function GET(req: NextRequest) {
       checkout: b.checkout,
       notes: b.notes,
       consentAcceptedAt: b.consentAcceptedAt,
+      careNote: b.careNote,
       customerId: customer?.id,
     };
   });
@@ -221,8 +222,8 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: NO_LINE_ERROR }, { status: 400 });
     }
     const cfg = await getSiteConfig();
-    let text: string | null = null;
 
+    // เงื่อนไขก่อนเข้าพัก → ส่งเป็น "การ์ด" พร้อมปุ่มไปหน้ากดยอมรับ
     if (action === "send_consent") {
       const url = await getConsentUrl();
       if (!url) {
@@ -231,8 +232,29 @@ export async function PATCH(req: NextRequest) {
           { status: 400 }
         );
       }
-      text = buildConsentInviteText(b, cfg, url);
-    } else if (action === "send_prestay") {
+      const flex = buildConsentFlex({
+        businessName: cfg.business.name,
+        title: cfg.messages.consentTitle || DEFAULT_MESSAGES.consentTitle,
+        catName: String(b.catName),
+        checkin: b.checkin || b.date,
+        checkout: b.checkout,
+        room: b.room,
+        terms: cfg.messages.consentTerms?.length
+          ? cfg.messages.consentTerms
+          : DEFAULT_MESSAGES.consentTerms,
+        url,
+      });
+      try {
+        await pushLineMessage(to, [flex]);
+        return NextResponse.json({ ok: true });
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        return NextResponse.json({ error: message }, { status: 500 });
+      }
+    }
+
+    let text: string | null = null;
+    if (action === "send_prestay") {
       text = buildPrestayReminderText(b, cfg, await getConsentUrl());
     } else {
       // send_deposit_reminder — หาใบแจ้งหนี้ที่มีมัดจำและยังค้างยอด

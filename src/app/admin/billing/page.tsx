@@ -237,7 +237,7 @@ export default function BillingPage() {
       L.push(`เลขบัญชี: ${pay.accountNumber}`);
       L.push(`ชื่อบัญชี: ${pay.accountName}`);
     }
-    if (billMsg.summaryClosing) {
+    if (mode !== "booking" && billMsg.summaryClosing) {
       L.push("");
       L.push(billMsg.summaryClosing);
     }
@@ -255,7 +255,7 @@ export default function BillingPage() {
     return {
       mode,
       title,
-      closing: billMsg.summaryClosing,
+      closing: mode === "booking" ? "" : billMsg.summaryClosing,
       customerName: selected?.name || "",
       catName,
       items: lines

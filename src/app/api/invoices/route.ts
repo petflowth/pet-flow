@@ -13,9 +13,48 @@ import { getSiteConfig } from "@/lib/config-store";
 import {
   pushLineMessage,
   buildPaymentFlex,
+  buildBillSummaryFlex,
   buildReceiptFlex,
   buildMemberBalanceFlex,
 } from "@/lib/line";
+import type { InvoiceRecord } from "@/lib/invoices-store";
+import type { SiteConfig } from "@/lib/config-types";
+
+type SummaryMode = "booking" | "deposit" | "full" | "remaining";
+
+function summaryFlexFromInvoice(
+  inv: InvoiceRecord,
+  mode: SummaryMode,
+  billing: SiteConfig["billing"],
+  payment: { bankName: string; accountNumber: string; accountName: string }
+) {
+  const deposit = inv.deposit || 0;
+  const remaining = Math.max(0, inv.total - deposit);
+  const title =
+    mode === "deposit"
+      ? billing.summaryDepositTitle
+      : mode === "full"
+        ? billing.summaryFullTitle
+        : mode === "remaining"
+          ? "แจ้งยอดคงเหลือที่ต้องโอน"
+          : billing.summaryBookingTitle;
+  return buildBillSummaryFlex({
+    mode,
+    title,
+    closing: billing.summaryClosing,
+    customerName: inv.customerName,
+    catName: inv.catName,
+    items: inv.items,
+    subtotal: inv.subtotal,
+    discount: inv.discount,
+    total: inv.total,
+    deposit,
+    remaining,
+    bankName: payment.bankName,
+    accountNumber: payment.accountNumber,
+    accountName: payment.accountName,
+  });
+}
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 
 export async function GET(req: NextRequest) {
@@ -69,6 +108,16 @@ export async function PATCH(req: NextRequest) {
     if (!inv.lineUserId) {
       return NextResponse.json({ error: "no_line" }, { status: 400 });
     }
+    const deposit = inv.deposit || 0;
+    // ถ้ามีมัดจำแล้ว → ส่งการ์ด "ยอดคงเหลือ" (ยอดค้างจริง) ไม่ใช่ยอดเต็มซ้ำ
+    if (deposit > 0) {
+      const billing = (await getSiteConfig()).billing;
+      await pushLineMessage(inv.lineUserId, [
+        summaryFlexFromInvoice(inv, "remaining", billing, payment),
+      ]);
+      await markInvoiceSent(id);
+      return NextResponse.json({ ok: true, kind: "remaining" });
+    }
     const payUrl = `${base}/app/pay/${inv.id}`;
     await pushLineMessage(inv.lineUserId, [
       buildPaymentFlex({
@@ -85,6 +134,19 @@ export async function PATCH(req: NextRequest) {
     ]);
     await markInvoiceSent(id);
     return NextResponse.json({ ok: true, payUrl });
+  }
+
+  if (action === "send_summary") {
+    if (!inv.lineUserId) {
+      return NextResponse.json({ error: "no_line" }, { status: 400 });
+    }
+    const mode = (body.mode as SummaryMode) || "booking";
+    const billing = (await getSiteConfig()).billing;
+    await pushLineMessage(inv.lineUserId, [
+      summaryFlexFromInvoice(inv, mode, billing, payment),
+    ]);
+    await markInvoiceSent(id);
+    return NextResponse.json({ ok: true, kind: mode });
   }
 
   if (action === "mark_paid") {

@@ -481,7 +481,7 @@ export function buildPaymentFlex(data: {
 
 /** การ์ดสรุปให้ลูกค้า (สรุปการจอง / แจ้งมัดจำ / แจ้งยอดเต็ม) ส่งจากหน้าคิดเงิน */
 export function buildBillSummaryFlex(data: {
-  mode: "booking" | "deposit" | "full";
+  mode: "booking" | "deposit" | "full" | "remaining";
   title: string;
   closing?: string;
   customerName: string;
@@ -497,11 +497,19 @@ export function buildBillSummaryFlex(data: {
   accountName?: string;
 }) {
   const icon =
-    data.mode === "deposit" ? "💰" : data.mode === "full" ? "💳" : "📋";
+    data.mode === "deposit"
+      ? "💰"
+      : data.mode === "full" || data.mode === "remaining"
+        ? "💳"
+        : "📋";
   const showBank =
-    (data.mode === "deposit" || data.mode === "full") && !!data.accountNumber;
+    (data.mode === "deposit" ||
+      data.mode === "full" ||
+      data.mode === "remaining") &&
+    !!data.accountNumber;
   const deposit = data.deposit || 0;
   const remaining = data.remaining ?? Math.max(0, data.total - deposit);
+  const altAmount = data.mode === "remaining" ? remaining : data.total;
 
   const money = (n: number) => `${n.toLocaleString()} บาท`;
 
@@ -598,7 +606,10 @@ export function buildBillSummaryFlex(data: {
     ],
   });
 
-  if (data.mode === "deposit" && deposit > 0) {
+  if ((data.mode === "deposit" || data.mode === "remaining") && deposit >= 0) {
+    const isRemaining = data.mode === "remaining";
+    const paidLabel = isRemaining ? "มัดจำที่ชำระแล้ว" : "มัดจำที่ต้องโอน";
+    const dueLabel = isRemaining ? "ยอดที่ต้องโอนตอนนี้" : "ยอดคงเหลือ (ก่อนเข้าพัก)";
     body.push({
       type: "box",
       layout: "vertical",
@@ -612,7 +623,7 @@ export function buildBillSummaryFlex(data: {
           type: "box",
           layout: "horizontal",
           contents: [
-            { type: "text", text: "มัดจำที่ต้องโอน", size: "sm", color: "#4E3E32", flex: 5 },
+            { type: "text", text: paidLabel, size: "sm", color: "#4E3E32", flex: 5 },
             {
               type: "text",
               text: money(deposit),
@@ -628,11 +639,11 @@ export function buildBillSummaryFlex(data: {
           type: "box",
           layout: "horizontal",
           contents: [
-            { type: "text", text: "ยอดคงเหลือ (ก่อนเข้าพัก)", size: "sm", color: "#4E3E32", flex: 5 },
+            { type: "text", text: dueLabel, size: isRemaining ? "md" : "sm", color: "#4E3E32", flex: 5 },
             {
               type: "text",
               text: money(remaining),
-              size: "sm",
+              size: isRemaining ? "lg" : "sm",
               weight: "bold",
               color: "#B4553B",
               align: "end",
@@ -719,7 +730,7 @@ export function buildBillSummaryFlex(data: {
 
   return {
     type: "flex",
-    altText: `${data.title} — ${money(data.total)}`,
+    altText: `${data.title} — ${money(altAmount)}`,
     contents: bubble,
   };
 }

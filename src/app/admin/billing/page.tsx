@@ -38,6 +38,7 @@ type Invoice = {
   status: string;
   customerName: string;
   catName: string;
+  lineUserId?: string;
   items?: { label: string; amount: number }[];
 };
 
@@ -436,14 +437,22 @@ export default function BillingPage() {
     }
   };
 
-  const sendPayment = async (id: string) => {
+  const sendInvoiceSummary = async (
+    id: string,
+    mode: "booking" | "deposit" | "full" | "remaining"
+  ) => {
+    setSending(true);
     const res = await fetch("/api/invoices", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, action: "send_payment" }),
+      body: JSON.stringify({ id, action: "send_summary", mode }),
     });
-    if (res.ok) alert("ส่งลิงก์ชำระเงิน LINE แล้ว 📨");
-    else alert("ส่งไม่สำเร็จ — ตรวจ LINE User ID");
+    setSending(false);
+    alert(
+      res.ok
+        ? "ส่งการ์ดเข้า LINE ลูกค้าแล้ว 📨"
+        : "ส่งไม่สำเร็จ — ตรวจว่าลูกค้าผูก LINE แล้ว"
+    );
   };
 
   const markPaid = async (
@@ -978,21 +987,63 @@ export default function BillingPage() {
                 {(inv.total - inv.deposit!).toLocaleString()} บาท
               </p>
             )}
-            {inv.status === "pending" && (
-              <div className="mt-2 flex flex-wrap gap-2">
+
+            {/* ส่งการ์ดให้ลูกค้า — กดส่งทีหลังจากบิลนี้ได้ */}
+            <div className="mt-2 rounded-catcha-sm bg-paper/50 p-2">
+              <p className="mb-1.5 text-[10px] font-bold text-brown-soft">
+                💬 ส่งการ์ดเข้า LINE ลูกค้า
+                {!inv.lineUserId && " — ลูกค้ายังไม่ผูก LINE"}
+              </p>
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => sendPayment(inv.id)}
-                  className="rounded-full bg-latte/25 px-3 py-1.5 text-xs font-bold"
+                  disabled={!inv.lineUserId || sending}
+                  onClick={() => sendInvoiceSummary(inv.id, "booking")}
+                  className="rounded-full bg-[#06C755]/15 px-3 py-1.5 text-[11px] font-bold text-[#06883c] disabled:opacity-40"
                 >
-                  📨 ส่งลิงก์โอน
+                  📋 สรุปยอด
                 </button>
+                {inv.status === "pending" && (inv.deposit ?? 0) > 0 && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={!inv.lineUserId || sending}
+                      onClick={() => sendInvoiceSummary(inv.id, "deposit")}
+                      className="rounded-full bg-[#06C755]/15 px-3 py-1.5 text-[11px] font-bold text-[#06883c] disabled:opacity-40"
+                    >
+                      💰 แจ้งมัดจำ
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!inv.lineUserId || sending}
+                      onClick={() => sendInvoiceSummary(inv.id, "remaining")}
+                      className="rounded-full bg-[#06C755]/15 px-3 py-1.5 text-[11px] font-bold text-[#06883c] disabled:opacity-40"
+                    >
+                      💳 ทวงยอดคงเหลือ
+                    </button>
+                  </>
+                )}
+                {inv.status === "pending" && (inv.deposit ?? 0) === 0 && (
+                  <button
+                    type="button"
+                    disabled={!inv.lineUserId || sending}
+                    onClick={() => sendInvoiceSummary(inv.id, "full")}
+                    className="rounded-full bg-[#06C755]/15 px-3 py-1.5 text-[11px] font-bold text-[#06883c] disabled:opacity-40"
+                  >
+                    💳 แจ้งเก็บยอดเต็ม
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {inv.status === "pending" && (
+              <div className="mt-2 flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => markPaid(inv.id, "transfer")}
                   className="rounded-full bg-sage/20 px-3 py-1.5 text-xs font-bold text-ok"
                 >
-                  ✅ รับโอนแล้ว
+                  ✅ {(inv.deposit ?? 0) > 0 ? "รับยอดคงเหลือครบแล้ว" : "รับโอนแล้ว"}
                 </button>
                 {selected?.isMember && (
                   <button

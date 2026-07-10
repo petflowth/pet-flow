@@ -39,6 +39,8 @@ type Invoice = {
   customerName: string;
   catName: string;
   lineUserId?: string;
+  /** รายรับที่บันทึกแล้วของบิลนี้ (เช่น มัดจำที่รับไปก่อน) */
+  received?: number;
   items?: { label: string; amount: number }[];
 };
 
@@ -453,6 +455,26 @@ export default function BillingPage() {
         ? "ส่งการ์ดเข้า LINE ลูกค้าแล้ว 📨"
         : "ส่งไม่สำเร็จ — ตรวจว่าลูกค้าผูก LINE แล้ว"
     );
+  };
+
+  const receiveDeposit = async (id: string) => {
+    if (!confirm("บันทึกรับมัดจำก้อนนี้เป็นรายรับ? (บิลยังไม่ปิด)")) return;
+    const res = await fetch("/api/invoices", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, action: "receive_deposit", paymentMethod: "transfer" }),
+    });
+    if (res.ok) {
+      alert("บันทึกรับมัดจำแล้ว 💰 + ส่งการ์ดยอดคงเหลือให้ลูกค้า");
+      load();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(
+        err.error === "already_received"
+          ? "บิลนี้บันทึกรับเงินไปแล้ว"
+          : "บันทึกไม่สำเร็จ"
+      );
+    }
   };
 
   const markPaid = async (
@@ -981,12 +1003,19 @@ export default function BillingPage() {
               {inv.total.toLocaleString()} บาท ·{" "}
               {inv.status === "paid" ? "✅ ชำระแล้ว" : "⏳ รอชำระ"}
             </p>
-            {inv.status === "pending" && (inv.deposit ?? 0) > 0 && (
-              <p className="text-[11px] font-bold text-wait">
-                💰 มัดจำ {inv.deposit!.toLocaleString()} · คงเหลือ{" "}
-                {(inv.total - inv.deposit!).toLocaleString()} บาท
-              </p>
-            )}
+            {inv.status === "pending" &&
+              (inv.deposit ?? 0) > 0 &&
+              ((inv.received ?? 0) > 0 ? (
+                <p className="text-[11px] font-bold text-ok">
+                  ✅ รับมัดจำแล้ว {(inv.received ?? 0).toLocaleString()} · รอเก็บยอดคงเหลือ{" "}
+                  {(inv.total - (inv.received ?? 0)).toLocaleString()} บาท
+                </p>
+              ) : (
+                <p className="text-[11px] font-bold text-wait">
+                  💰 มัดจำ {inv.deposit!.toLocaleString()} · คงเหลือ{" "}
+                  {(inv.total - inv.deposit!).toLocaleString()} บาท
+                </p>
+              ))}
 
             {/* ส่งการ์ดให้ลูกค้า — กดส่งทีหลังจากบิลนี้ได้ */}
             <div className="mt-2 rounded-catcha-sm bg-paper/50 p-2">
@@ -1038,12 +1067,21 @@ export default function BillingPage() {
 
             {inv.status === "pending" && (
               <div className="mt-2 flex flex-wrap gap-2">
+                {(inv.deposit ?? 0) > 0 && (inv.received ?? 0) === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => receiveDeposit(inv.id)}
+                    className="rounded-full bg-honey/40 px-3 py-1.5 text-xs font-bold text-catcha-chocolate"
+                  >
+                    💰 รับมัดจำแล้ว
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => markPaid(inv.id, "transfer")}
                   className="rounded-full bg-sage/20 px-3 py-1.5 text-xs font-bold text-ok"
                 >
-                  ✅ {(inv.deposit ?? 0) > 0 ? "รับยอดคงเหลือครบแล้ว" : "รับโอนแล้ว"}
+                  ✅ {(inv.received ?? 0) > 0 ? "รับยอดคงเหลือครบแล้ว" : "รับเงินครบแล้ว"}
                 </button>
                 {selected?.isMember && (
                   <button

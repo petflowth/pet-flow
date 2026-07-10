@@ -4,7 +4,7 @@ import {
   addServiceRecord,
   getCustomer,
 } from "./customers-store";
-import { addFinanceEntry } from "./finance-store";
+import { addFinanceEntry, incomeForInvoice, listFinance } from "./finance-store";
 import { calcPromoDiscount } from "./promos-store";
 import { addPoints } from "./points-store";
 import { getSupabase } from "./supabase/server";
@@ -130,6 +130,18 @@ export async function getInvoice(id: string) {
   return mem.find((i) => i.id === id);
 }
 
+/** บิล + ยอดรายรับที่บันทึกแล้วต่อบิล (received) — ให้หน้าคิดเงินรู้ว่ารับมัดจำไปหรือยัง */
+export async function listInvoicesWithReceived(customerId?: string) {
+  const [list, fin] = await Promise.all([listInvoices(customerId), listFinance()]);
+  const map = new Map<string, number>();
+  for (const r of fin) {
+    if (r.type === "income" && r.invoiceId) {
+      map.set(r.invoiceId, (map.get(r.invoiceId) || 0) + r.amount);
+    }
+  }
+  return list.map((i) => ({ ...i, received: map.get(i.id) || 0 }));
+}
+
 export async function createInvoice(data: {
   customerId: string;
   lineUserId?: string;
@@ -189,6 +201,44 @@ export async function markInvoiceSent(id: string) {
   return inv;
 }
 
+/**
+ * รับ "มัดจำ" ตามจริง — บันทึกเป็นรายรับก้อนแรก (ไม่ปิดบิล).
+ * ยอดคงเหลือจะไปเก็บตอนกด "รับยอดคงเหลือครบแล้ว" (markInvoicePaid).
+ * ใช้ยอดรายรับที่บันทึกแล้วของบิลเป็นตัวกันบันทึกซ้ำ — ไม่ต้องเพิ่มคอลัมน์ใน DB.
+ */
+export async function receiveInvoiceDeposit(
+  id: string,
+  paymentMethod: "transfer" | "cash" = "transfer"
+) {
+  const inv = await getInvoice(id);
+  if (!inv || inv.status === "paid") return { ok: false as const, error: "invalid" };
+  const deposit = inv.deposit || 0;
+  if (deposit <= 0) return { ok: false as const, error: "no_deposit" };
+
+  const already = await incomeForInvoice(id);
+  if (already > 0) return { ok: false as const, error: "already_received" };
+
+  const now = new Date().toISOString();
+  await addFinanceEntry({
+    type: "income",
+    amount: deposit,
+    category: "มัดจำ",
+    description: `${inv.catName} · ${inv.customerName} — มัดจำ (บิล ${inv.id})`,
+    date: now.slice(0, 10),
+    customerId: inv.customerId,
+    invoiceId: inv.id,
+  });
+
+  const remaining = Math.max(0, inv.total - deposit);
+  return {
+    ok: true as const,
+    invoice: inv,
+    deposit,
+    remaining,
+    paymentMethod,
+  };
+}
+
 export async function markInvoicePaid(
   id: string,
   paymentMethod: "transfer" | "member_credit" | "cash" = "transfer"
@@ -196,12 +246,16 @@ export async function markInvoicePaid(
   const inv = await getInvoice(id);
   if (!inv || inv.status === "paid") return { ok: false as const, error: "invalid" };
 
+  // รายรับที่บันทึกแล้ว (เช่น มัดจำ) → รอบนี้เก็บแค่ "ยอดคงเหลือจริง"
+  const alreadyReceived = await incomeForInvoice(id);
+  const settleAmount = Math.max(0, inv.total - alreadyReceived);
+
   const customer = await getCustomer(inv.customerId);
   if (paymentMethod === "member_credit") {
-    if (!customer || customer.memberCredit < inv.total) {
+    if (!customer || customer.memberCredit < settleAmount) {
       return { ok: false as const, error: "insufficient_credit" };
     }
-    await deductMemberCredit(inv.customerId, inv.total);
+    if (settleAmount > 0) await deductMemberCredit(inv.customerId, settleAmount);
   }
 
   inv.status = "paid";
@@ -234,15 +288,21 @@ export async function markInvoicePaid(
 
   const serviceLabel = inv.items.map((i) => i.label).join(", ") || "บริการ";
 
-  await addFinanceEntry({
-    type: "income",
-    amount: inv.total,
-    category: paymentMethod === "member_credit" ? "member" : serviceLabel,
-    description: `${inv.catName} · ${inv.customerName} — ${serviceLabel}`,
-    date: inv.paidAt.slice(0, 10),
-    customerId: inv.customerId,
-    invoiceId: inv.id,
-  });
+  // บันทึกรายรับเฉพาะ "ยอดคงเหลือจริง" ที่เก็บรอบนี้ (มัดจำถูกบันทึกไปก่อนแล้ว)
+  if (settleAmount > 0) {
+    const isRemainder = alreadyReceived > 0;
+    await addFinanceEntry({
+      type: "income",
+      amount: settleAmount,
+      category: paymentMethod === "member_credit" ? "member" : serviceLabel,
+      description: `${inv.catName} · ${inv.customerName} — ${serviceLabel}${
+        isRemainder ? " (ยอดคงเหลือ)" : ""
+      }`,
+      date: inv.paidAt.slice(0, 10),
+      customerId: inv.customerId,
+      invoiceId: inv.id,
+    });
+  }
 
   await addServiceRecord({
     customerId: inv.customerId,
@@ -255,7 +315,13 @@ export async function markInvoicePaid(
   });
 
   const updatedCustomer = await getCustomer(inv.customerId);
-  return { ok: true as const, invoice: inv, customer: updatedCustomer };
+  return {
+    ok: true as const,
+    invoice: inv,
+    customer: updatedCustomer,
+    settleAmount,
+    alreadyReceived,
+  };
 }
 
 export async function salesSummary(from?: string, to?: string) {

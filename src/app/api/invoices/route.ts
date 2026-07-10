@@ -3,9 +3,10 @@ import { BUSINESS } from "@/lib/business";
 import {
   createInvoice,
   getInvoice,
-  listInvoices,
+  listInvoicesWithReceived,
   markInvoicePaid,
   markInvoiceSent,
+  receiveInvoiceDeposit,
 } from "@/lib/invoices-store";
 import { getCustomer } from "@/lib/customers-store";
 import { getPaymentConfig } from "@/lib/payment-config";
@@ -71,7 +72,7 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  return NextResponse.json({ invoices: await listInvoices(customerId) });
+  return NextResponse.json({ invoices: await listInvoicesWithReceived(customerId) });
 }
 
 export async function POST(req: NextRequest) {
@@ -149,6 +150,30 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ ok: true, kind: mode });
   }
 
+  if (action === "receive_deposit") {
+    const result = await receiveInvoiceDeposit(id, body.paymentMethod || "transfer");
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+    // แจ้ง Telegram เพื่อกระทบยอด + ส่งการ์ดยอดคงเหลือให้ลูกค้าเลย
+    await sendTelegram(
+      formatBookingTelegram("💰 รับมัดจำแล้ว", {
+        ลูกค้า: inv.customerName,
+        น้องแมว: inv.catName,
+        มัดจำ: `${result.deposit} บาท`,
+        คงเหลือ: `${result.remaining} บาท`,
+        บิล: inv.id,
+      })
+    );
+    if (inv.lineUserId && result.remaining > 0) {
+      const billing = (await getSiteConfig()).billing;
+      await pushLineMessage(inv.lineUserId, [
+        summaryFlexFromInvoice(inv, "remaining", billing, payment),
+      ]);
+    }
+    return NextResponse.json({ ok: true, deposit: result.deposit, remaining: result.remaining });
+  }
+
   if (action === "mark_paid") {
     const result = await markInvoicePaid(id, body.paymentMethod || "transfer");
     if (!result.ok) {
@@ -192,13 +217,23 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
+    const gotDeposit = (result.alreadyReceived || 0) > 0;
     await sendTelegram(
-      formatBookingTelegram("💰 รับชำระเงินแล้ว", {
-        ลูกค้า: paid.customerName,
-        น้องแมว: paid.catName,
-        ยอด: `${paid.total} บาท`,
-        แต้ม: String(paid.pointsEarned || 0),
-      })
+      formatBookingTelegram(
+        gotDeposit ? "💰 รับยอดคงเหลือแล้ว (ปิดบิล)" : "💰 รับชำระเงินแล้ว",
+        {
+          ลูกค้า: paid.customerName,
+          น้องแมว: paid.catName,
+          ...(gotDeposit
+            ? {
+                มัดจำที่รับไปแล้ว: `${result.alreadyReceived} บาท`,
+                ยอดคงเหลือรอบนี้: `${result.settleAmount} บาท`,
+                รวมทั้งบิล: `${paid.total} บาท`,
+              }
+            : { ยอด: `${paid.total} บาท` }),
+          แต้ม: String(paid.pointsEarned || 0),
+        }
+      )
     );
 
     return NextResponse.json({ ok: true, invoice: paid });

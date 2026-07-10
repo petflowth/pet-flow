@@ -59,6 +59,14 @@ export async function listFinance(from?: string, to?: string) {
   return list;
 }
 
+/** รวมรายรับที่บันทึกแล้วของบิลนี้ (เช่น มัดจำที่รับไปก่อน) — ใช้คิดยอดคงเหลือจริง */
+export async function incomeForInvoice(invoiceId: string): Promise<number> {
+  const all = await listFinance();
+  return all
+    .filter((r) => r.invoiceId === invoiceId && r.type === "income")
+    .reduce((s, r) => s + r.amount, 0);
+}
+
 export type FinanceRecordEnriched = FinanceRecord & {
   customerName?: string;
   catName?: string;

@@ -15,9 +15,11 @@ import {
   pushLineMessage,
   buildPaymentFlex,
   buildBillSummaryFlex,
+  buildDepositThanksFlex,
   buildReceiptFlex,
   buildMemberBalanceFlex,
 } from "@/lib/line";
+import { renderTemplate } from "@/lib/messages";
 import type { InvoiceRecord } from "@/lib/invoices-store";
 import type { SiteConfig } from "@/lib/config-types";
 
@@ -114,20 +116,19 @@ export async function POST(req: NextRequest) {
       })
     );
     if (customer?.lineUserId) {
-      const payment = await getPaymentConfig();
+      const msgs = (await getSiteConfig()).messages;
+      const catName = customer.cats[0]?.name || "น้องแมว";
       await pushLineMessage(customer.lineUserId, [
-        buildBillSummaryFlex({
-          mode: "booking",
-          title: "รับมัดจำแล้ว 🧡",
-          closing: "ทางร้านจะหักมัดจำนี้ออกจากยอดในวันใช้บริการนะคะ",
-          customerName: customer.name,
-          catName: customer.cats[0]?.name || "น้องแมว",
-          items: [{ label: `มัดจำล่วงหน้า${body.note ? ` (${body.note})` : ""}`, amount: res.amount }],
-          subtotal: res.amount,
-          total: res.amount,
-          bankName: payment.bankName,
-          accountNumber: payment.accountNumber,
-          accountName: payment.accountName,
+        buildDepositThanksFlex({
+          title: msgs.depositThanksTitle,
+          body: renderTemplate(msgs.depositThanksBody, {
+            name: customer.name,
+            cat: catName,
+            amount: res.amount.toLocaleString(),
+          }),
+          terms: msgs.depositTerms || [],
+          amount: res.amount,
+          note: body.note ? String(body.note) : undefined,
         }),
       ]);
     }

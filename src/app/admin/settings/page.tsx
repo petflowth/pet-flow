@@ -352,6 +352,34 @@ function MessagesTab({
 
       <hr className="border-catcha-line" />
       <p className="text-xs font-extrabold text-catcha-chocolate">
+        🧡 การ์ดขอบคุณตอนรับมัดจำ
+      </p>
+      <Field
+        label="หัวเรื่อง"
+        value={msgs?.depositThanksTitle || ""}
+        onChange={(v) => setMsgs({ ...msgs, depositThanksTitle: v })}
+      />
+      <TextAreaField
+        label="ข้อความขอบคุณ"
+        hint="ใช้ได้: {name} {cat} {amount}"
+        value={msgs?.depositThanksBody || ""}
+        onChange={(v) => setMsgs({ ...msgs, depositThanksBody: v })}
+        rows={4}
+      />
+      <TextAreaField
+        label="เงื่อนไขมัดจำ (1 บรรทัด = 1 ข้อ)"
+        value={(msgs?.depositTerms || []).join("\n")}
+        onChange={(v) =>
+          setMsgs({
+            ...msgs,
+            depositTerms: v.split("\n").map((s) => s.trim()).filter(Boolean),
+          })
+        }
+        rows={5}
+      />
+
+      <hr className="border-catcha-line" />
+      <p className="text-xs font-extrabold text-catcha-chocolate">
         📋 ข้อตกลงก่อนเข้าพัก (หน้า /app/consent)
       </p>
       <Field

@@ -735,6 +735,95 @@ export function buildBillSummaryFlex(data: {
   };
 }
 
+/** การ์ดขอบคุณ + เงื่อนไข ตอนรับมัดจำล่วงหน้า (ข้อความแก้ได้ในตั้งค่า > ข้อความ) */
+export function buildDepositThanksFlex(data: {
+  title: string;
+  body: string;
+  terms: string[];
+  amount: number;
+  note?: string;
+}) {
+  const boxContents: Record<string, unknown>[] = [
+    {
+      type: "box",
+      layout: "horizontal",
+      contents: [
+        { type: "text", text: "มัดจำที่รับ", size: "sm", color: "#4E3E32", flex: 3 },
+        {
+          type: "text",
+          text: `${data.amount.toLocaleString()} บาท`,
+          size: "md",
+          weight: "bold",
+          color: "#4A7348",
+          align: "end",
+          flex: 4,
+        },
+      ],
+    },
+  ];
+  if (data.note) {
+    boxContents.push({
+      type: "text",
+      text: data.note,
+      size: "xs",
+      color: "#A2907E",
+      margin: "sm",
+      wrap: true,
+    });
+  }
+
+  const contents: Record<string, unknown>[] = [
+    { type: "text", text: data.title, weight: "bold", size: "lg", color: "#5C4033", wrap: true },
+    { type: "text", text: data.body, size: "sm", color: "#4E3E32", margin: "md", wrap: true },
+    {
+      type: "box",
+      layout: "vertical",
+      margin: "lg",
+      paddingAll: "12px",
+      backgroundColor: "#F4ECE0",
+      cornerRadius: "10px",
+      contents: boxContents,
+    },
+  ];
+
+  if (data.terms.length > 0) {
+    contents.push({ type: "separator", margin: "lg" });
+    contents.push({
+      type: "text",
+      text: "🐾 เงื่อนไขมัดจำ",
+      weight: "bold",
+      size: "xs",
+      color: "#5C4033",
+      margin: "lg",
+    });
+    contents.push({
+      type: "box",
+      layout: "vertical",
+      margin: "sm",
+      spacing: "sm",
+      contents: data.terms.map((t) => ({
+        type: "box",
+        layout: "horizontal",
+        spacing: "sm",
+        contents: [
+          { type: "text", text: "•", size: "xs", color: "#C4956A", flex: 0 },
+          { type: "text", text: t, size: "xs", color: "#7A6A5A", wrap: true, flex: 1 },
+        ],
+      })),
+    });
+  }
+
+  return {
+    type: "flex",
+    altText: `${data.title} — ${data.amount.toLocaleString()} บาท`,
+    contents: {
+      type: "bubble",
+      size: "mega",
+      body: { type: "box", layout: "vertical", contents },
+    },
+  };
+}
+
 export function buildReceiptFlex(data: {
   invoiceId: string;
   customerName: string;

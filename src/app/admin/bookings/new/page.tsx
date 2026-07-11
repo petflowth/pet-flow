@@ -2,8 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import type { RoomType } from "@/lib/business";
 import type { CustomerRecord } from "@/lib/customers-store";
+import { CustomerSendButtons } from "@/components/CustomerSendButtons";
+import { toast } from "@/components/Toast";
 
 type CustomerListItem = CustomerRecord & { upcomingAppointments?: number };
 
@@ -122,6 +125,13 @@ export default function NewBookingPage() {
   const presetDate = searchParams.get("date") || "";
   const [service, setService] = useState<"groom" | "room">("groom");
   const [saved, setSaved] = useState(false);
+  const [lastBooking, setLastBooking] = useState<{
+    id: string;
+    customerId?: string;
+    lineUserId?: string;
+    service: "groom" | "room";
+    catName: string;
+  } | null>(null);
   const [rooms, setRooms] = useState<RoomType[]>([]);
   const [groomSlots, setGroomSlots] = useState<string[]>(["09:30", "12:30", "15:30"]);
   const [customerId, setCustomerId] = useState("");
@@ -160,7 +170,7 @@ export default function NewBookingPage() {
     const fd = new FormData(e.currentTarget);
     const cat = String(fd.get("cat") || catName).trim();
     if (!cat) {
-      alert("กรอกชื่อน้องแมวอย่างน้อย 1 ชื่อ");
+      toast("กรอกชื่อน้องแมวอย่างน้อย 1 ชื่อ", "error");
       return;
     }
 
@@ -191,7 +201,17 @@ export default function NewBookingPage() {
     });
 
     if (res.ok) {
+      const data = await res.json().catch(() => ({}));
       setSaved(true);
+      if (data.booking?.id) {
+        setLastBooking({
+          id: data.booking.id,
+          customerId: data.customerId,
+          lineUserId: lineUserId || undefined,
+          service,
+          catName: cat,
+        });
+      }
       setCustomerId("");
       setCustomerName("");
       setCatName("");
@@ -200,7 +220,7 @@ export default function NewBookingPage() {
       e.currentTarget.reset();
       setTimeout(() => setSaved(false), 2500);
     } else {
-      alert("บันทึกไม่สำเร็จ — ลองใหม่อีกครั้ง");
+      toast("บันทึกไม่สำเร็จ — ลองใหม่อีกครั้ง", "error");
     }
   };
 
@@ -209,6 +229,38 @@ export default function NewBookingPage() {
       <h1 className="mb-1 text-lg font-extrabold text-catcha-chocolate">
         ➕ บันทึกจองให้ลูกค้า
       </h1>
+
+      {/* จองเสร็จแล้ว → ทำต่อได้เลยจากตรงนี้ */}
+      {lastBooking && (
+        <div className="mb-4 rounded-catcha border border-sage/50 bg-sage/10 p-4">
+          <p className="text-sm font-extrabold text-ok">
+            ✅ จอง{lastBooking.catName}แล้ว — ทำต่อได้เลย
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Link
+              href={`/admin/billing?bookingId=${lastBooking.id}`}
+              className="rounded-catcha-sm bg-honey/45 px-3 py-2 text-xs font-extrabold text-catcha-chocolate"
+            >
+              🧾 ออกบิลเลย
+            </Link>
+            <button
+              type="button"
+              onClick={() => setLastBooking(null)}
+              className="rounded-catcha-sm bg-paper px-3 py-2 text-xs font-bold text-brown-soft"
+            >
+              จองอีกคน
+            </button>
+          </div>
+          <div className="mt-2 border-t border-sage/30 pt-2">
+            <CustomerSendButtons
+              bookingId={lastBooking.id}
+              customerId={lastBooking.customerId}
+              lineUserId={lastBooking.lineUserId}
+              service={lastBooking.service}
+            />
+          </div>
+        </div>
+      )}
       {appointmentDate && (
         <p className="mb-4 text-xs font-bold text-latte-deep">
           📅 จองวันที่ {appointmentDate}

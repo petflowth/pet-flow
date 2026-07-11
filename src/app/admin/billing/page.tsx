@@ -456,6 +456,7 @@ export default function BillingPage() {
         customerId: selected.id,
         amount: amt,
         note: depNote || undefined,
+        pct: depPct ?? undefined,
         percentNote:
           depPct !== null
             ? `${depPct}% ของยอด ${(Number(depBase) || total).toLocaleString()} บาท`

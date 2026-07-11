@@ -361,10 +361,10 @@ function MessagesTab({
       />
       <TextAreaField
         label="ข้อความ"
-        hint="ใช้ได้: {name} {cat} {amount}"
+        hint="ใช้ได้: {name} {cat} {amount} · {pct} = ' 30% ของค่าบริการ' (เว้นว่างถ้าไม่ได้เลือก %)"
         value={msgs?.depositRequestBody || ""}
         onChange={(v) => setMsgs({ ...msgs, depositRequestBody: v })}
-        rows={3}
+        rows={4}
       />
 
       <hr className="border-catcha-line" />

@@ -108,6 +108,7 @@ export async function POST(req: NextRequest) {
     const msgs = (await getSiteConfig()).messages;
     const payment = await getPaymentConfig();
     const catName = customer.cats[0]?.name || "น้องแมว";
+    const pctNum = Number(body.pct) || 0;
     await pushLineMessage(customer.lineUserId, [
       buildDepositRequestFlex({
         title: msgs.depositRequestTitle,
@@ -115,6 +116,7 @@ export async function POST(req: NextRequest) {
           name: customer.name,
           cat: catName,
           amount: amount.toLocaleString(),
+          pct: pctNum > 0 ? ` ${pctNum}% ของค่าบริการ` : "",
         }),
         amount,
         bankName: payment.bankName,

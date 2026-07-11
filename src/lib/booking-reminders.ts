@@ -51,6 +51,21 @@ export function buildConsentInviteText(
   });
 }
 
+/** เนื้อความเตรียมตัวก่อนเข้าพัก (ไม่แนบลิงก์ — ใช้กับการ์ดที่มีปุ่มยอมรับเงื่อนไข) */
+export function buildPrestayBodyText(
+  b: Pick<StoredBooking, "catName" | "checkin" | "checkout" | "room" | "date">,
+  cfg: SiteConfig
+): string {
+  return renderTemplate(cfg.messages.prestayReminder, {
+    shop: cfg.business.name,
+    cat: b.catName,
+    checkin: b.checkin || b.date || "",
+    checkout: b.checkout ? `→ ${b.checkout}` : "",
+    room: b.room ? `🏠 ห้อง: ${b.room}` : "",
+    consentUrl: "",
+  });
+}
+
 /** ข้อความแจ้งรายละเอียดก่อนเข้าพัก (+ แนบลิงก์ยอมรับข้อตกลงถ้ามี) */
 export function buildPrestayReminderText(
   b: Pick<StoredBooking, "catName" | "checkin" | "checkout" | "room" | "date">,

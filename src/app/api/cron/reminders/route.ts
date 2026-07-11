@@ -3,11 +3,11 @@ import { bookingsTomorrow, listBookings } from "@/lib/bookings-store";
 import { listInvoices } from "@/lib/invoices-store";
 import { getSiteConfig } from "@/lib/config-store";
 import { buildBookingConfirmFlex } from "@/lib/booking-line-card";
-import { pushLineMessage } from "@/lib/line";
+import { pushLineMessage, buildPrestayFlex } from "@/lib/line";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import {
   buildDepositReminderText,
-  buildPrestayReminderText,
+  buildPrestayBodyText,
   getConsentUrl,
 } from "@/lib/booking-reminders";
 import { listCustomers } from "@/lib/customers-store";
@@ -87,11 +87,14 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // #4 — 3 วันก่อนเข้าพัก (วันแรกพอ): รายละเอียด + สิ่งที่ต้องเตรียม
+    // #4 — 3 วันก่อนเข้าพัก (วันแรกพอ): การ์ดเดียว = รายละเอียด + ปุ่มยอมรับเงื่อนไข
     if (b.checkin === in3) {
-      const text = buildPrestayReminderText(b, cfg, consentUrl);
+      const flex = buildPrestayFlex({
+        body: buildPrestayBodyText(b, cfg),
+        consentUrl: consentUrl || undefined,
+      });
       try {
-        await pushLineMessage(b.lineUserId, [{ type: "text", text }]);
+        await pushLineMessage(b.lineUserId, [flex]);
         prestayReminders++;
       } catch (e) {
         errors.push(`prestay ${b.id}: ${String(e)}`);

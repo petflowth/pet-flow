@@ -91,9 +91,13 @@ export function CustomerSendButtons({
     );
 
   const depositRequest = () => {
-    const raw = prompt("เรียกเก็บมัดจำเท่าไหร่? (บาท)");
-    if (raw == null) return;
-    const amount = Math.round(Number(raw) || 0);
+    // ถ้าบิลมีมัดจำอยู่แล้ว → ใช้ยอดนั้นเลย ไม่ต้องถามซ้ำ
+    let amount = depForBill > 0 ? depForBill : 0;
+    if (amount <= 0) {
+      const raw = prompt("เรียกเก็บมัดจำเท่าไหร่? (บาท)");
+      if (raw == null) return;
+      amount = Math.round(Number(raw) || 0);
+    }
     if (amount <= 0) {
       toast("ใส่จำนวนมัดจำ", "error");
       return;
@@ -137,18 +141,11 @@ export function CustomerSendButtons({
         />
       )}
       {bookingId && service === "room" && (
-        <>
-          <Btn
-            k="send_prestay"
-            label="🏠 แจ้งเข้าพัก"
-            onClick={() => bookingSend("send_prestay", "ส่งรายละเอียดเข้าพักแล้ว 🏠")}
-          />
-          <Btn
-            k="send_consent"
-            label="📋 เงื่อนไข"
-            onClick={() => bookingSend("send_consent", "ส่งลิงก์ยอมรับเงื่อนไขแล้ว 📋")}
-          />
-        </>
+        <Btn
+          k="send_prestay"
+          label="🏠 แจ้งเข้าพัก + เงื่อนไข"
+          onClick={() => bookingSend("send_prestay", "ส่งการ์ดแจ้งเข้าพัก + เงื่อนไขแล้ว 🏠")}
+        />
       )}
 
       {customerId && (

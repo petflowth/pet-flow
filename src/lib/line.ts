@@ -850,6 +850,55 @@ export function buildBillSummaryFlex(data: {
   };
 }
 
+/** การ์ดแจ้งเข้าพัก — รายละเอียด/สิ่งที่ต้องเตรียม + ปุ่มไปกดยอมรับเงื่อนไข */
+export function buildPrestayFlex(data: {
+  body: string;
+  consentUrl?: string;
+  consentLabel?: string;
+}) {
+  const bubble: Record<string, unknown> = {
+    type: "bubble",
+    size: "mega",
+    body: {
+      type: "box",
+      layout: "vertical",
+      contents: [
+        {
+          type: "text",
+          text: data.body,
+          size: "sm",
+          color: "#4E3E32",
+          wrap: true,
+        },
+      ],
+    },
+  };
+  if (data.consentUrl) {
+    bubble.footer = {
+      type: "box",
+      layout: "vertical",
+      contents: [
+        {
+          type: "button",
+          style: "primary",
+          color: "#4A7348",
+          height: "sm",
+          action: {
+            type: "uri",
+            label: data.consentLabel || "📋 อ่าน + กดยอมรับเงื่อนไข",
+            uri: data.consentUrl,
+          },
+        },
+      ],
+    };
+  }
+  return {
+    type: "flex",
+    altText: "รายละเอียดก่อนเข้าพัก 🏠",
+    contents: bubble,
+  };
+}
+
 /** การ์ดเรียกเก็บมัดจำ — ชัดๆ ว่าต้องโอนเท่าไหร่ (ส่งก่อนลูกค้าโอน) */
 export function buildDepositRequestFlex(data: {
   title: string;

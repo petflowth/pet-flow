@@ -17,7 +17,7 @@ import {
 import { bookingMatchesCustomer } from "@/lib/booking-customer-match";
 import { listCustomers, resolveCustomerForBooking } from "@/lib/customers-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
-import { pushLineMessage, buildConsentFlex } from "@/lib/line";
+import { pushLineMessage, buildConsentFlex, buildPrestayFlex } from "@/lib/line";
 import { buildBookingConfirmFlex } from "@/lib/booking-line-card";
 import {
   findCustomerForBooking,
@@ -28,7 +28,7 @@ import { DEFAULT_MESSAGES } from "@/lib/messages";
 import { listInvoices } from "@/lib/invoices-store";
 import {
   buildDepositReminderText,
-  buildPrestayReminderText,
+  buildPrestayBodyText,
   getConsentUrl,
 } from "@/lib/booking-reminders";
 
@@ -253,10 +253,22 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    let text: string | null = null;
+    // แจ้งเข้าพัก → การ์ดเดียว: รายละเอียดเตรียมตัว + ปุ่มไปกดยอมรับเงื่อนไข
     if (action === "send_prestay") {
-      text = buildPrestayReminderText(b, cfg, await getConsentUrl());
-    } else {
+      const body = buildPrestayBodyText(b, cfg);
+      const url = await getConsentUrl();
+      const flex = buildPrestayFlex({ body, consentUrl: url || undefined });
+      try {
+        await pushLineMessage(to, [flex]);
+        return NextResponse.json({ ok: true });
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        return NextResponse.json({ error: message }, { status: 500 });
+      }
+    }
+
+    let text: string | null = null;
+    {
       // send_deposit_reminder — หาใบแจ้งหนี้ที่มีมัดจำและยังค้างยอด
       const invoices = await listInvoices();
       const inv = invoices.find(

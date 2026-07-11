@@ -41,6 +41,8 @@ export function getDefaultSiteConfig(): SiteConfig {
         checkinReminderDays: 1,
         checkoutReminderEnabled: true,
         checkoutReminderDays: 1,
+        reviewRequestEnabled: true,
+        reviewRequestDaysAfter: 1,
         freeLitterMinNights: 3,
         birthdayEnabled: true,
       },

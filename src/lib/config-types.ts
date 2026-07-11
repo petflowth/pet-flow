@@ -46,6 +46,8 @@ export type MessagesConfig = {
   checkinReminder: string;
   /** เตือนเช็คเอาท์ ก่อนออก — {shop} {cat} {checkout} */
   checkoutReminder: string;
+  /** ขอรีวิวหลังเช็คเอาท์ — {shop} {cat} */
+  reviewRequest: string;
   /** ข้อความชวนกดยอมรับข้อตกลงก่อนเข้าพัก (แนบลิงก์) — {shop} {cat} {url} */
   consentInvite: string;
   /** หัวเรื่องหน้ายอมรับข้อตกลงก่อนเข้าพัก */
@@ -88,6 +90,10 @@ export type AutomationConfig = {
   checkoutReminderEnabled: boolean;
   /** กี่วันก่อนเช็คเอาท์ ที่จะเตือน */
   checkoutReminderDays: number;
+  /** ขอรีวิวอัตโนมัติ หลังลูกค้าเช็คเอาท์ (ห้องพัก) */
+  reviewRequestEnabled: boolean;
+  /** ส่งขอรีวิวหลังเช็คเอาท์ (วัน) */
+  reviewRequestDaysAfter: number;
   /** เข้าพักกี่คืนขึ้นไป ถึงแถมทรายฟรี (ถ้าน้อยกว่านี้ ให้ลูกค้าเตรียมทรายมาเอง) */
   freeLitterMinNights: number;
   /** อวยพรวันเกิดแมวอัตโนมัติ */

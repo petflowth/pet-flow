@@ -3,7 +3,12 @@ import { listBookings } from "@/lib/bookings-store";
 import { listInvoices } from "@/lib/invoices-store";
 import { getSiteConfig } from "@/lib/config-store";
 import { buildBookingConfirmFlex } from "@/lib/booking-line-card";
-import { pushLineMessage, buildPrestayFlex, buildTimePickerFlex } from "@/lib/line";
+import {
+  pushLineMessage,
+  buildPrestayFlex,
+  buildTimePickerFlex,
+  buildReviewRequestFlex,
+} from "@/lib/line";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import {
   buildDepositReminderText,
@@ -77,12 +82,14 @@ export async function GET(req: NextRequest) {
   const in3 = addDays(todayStr, auto?.prestayReminderDays ?? 3);
   const inCheckin = addDays(todayStr, auto?.checkinReminderDays ?? 1);
   const inCheckout = addDays(todayStr, auto?.checkoutReminderDays ?? 1);
+  const afterCheckoutReview = addDays(todayStr, -(auto?.reviewRequestDaysAfter ?? 1));
   const consentUrl = await getConsentUrl();
 
   let depositReminders = 0;
   let prestayReminders = 0;
   let checkinReminders = 0;
   let checkoutReminders = 0;
+  let reviewRequests = 0;
 
   for (const b of allBookings) {
     if (b.service !== "room" || !b.lineUserId || b.status === "cancelled") continue;
@@ -156,6 +163,32 @@ export async function GET(req: NextRequest) {
         errors.push(`checkout ${b.id}: ${String(e)}`);
       }
     }
+
+    // ⭐ ขอรีวิว หลังเช็คเอาท์ (แยกจากใบเสร็จ — ลูกค้าใช้บริการจริงแล้ว)
+    if (
+      auto?.reviewRequestEnabled !== false &&
+      b.checkout &&
+      b.checkout === afterCheckoutReview
+    ) {
+      const reviewUrl = cfg.business.reviewUrl || cfg.business.maps;
+      if (reviewUrl) {
+        const flex = buildReviewRequestFlex({
+          title: "⭐ ขอบคุณที่ใช้บริการค่ะ",
+          body: renderTemplate(cfg.messages.reviewRequest, {
+            shop: cfg.business.name,
+            cat: b.catName,
+          }),
+          reviewUrl,
+          reviewLabel: cfg.business.reviewButtonText,
+        });
+        try {
+          await pushLineMessage(b.lineUserId, [flex]);
+          reviewRequests++;
+        } catch (e) {
+          errors.push(`review ${b.id}: ${String(e)}`);
+        }
+      }
+    }
   }
 
   // ── 🎂 อวยพรวันเกิดแมว (เฉพาะลูกค้าที่ยินยอมรับข่าวสาร · เปิด/ปิดได้) ──
@@ -193,6 +226,7 @@ export async function GET(req: NextRequest) {
     prestayReminders > 0 ||
     checkinReminders > 0 ||
     checkoutReminders > 0 ||
+    reviewRequests > 0 ||
     birthdayGreetings > 0
   ) {
     await sendTelegram(
@@ -203,6 +237,7 @@ export async function GET(req: NextRequest) {
         แจ้งเข้าพัก: String(prestayReminders),
         เตือนเช็คอิน: String(checkinReminders),
         เตือนเช็คเอาท์: String(checkoutReminders),
+        ขอรีวิว: String(reviewRequests),
         อวยพรวันเกิดแมว: String(birthdayGreetings),
       })
     );
@@ -216,6 +251,7 @@ export async function GET(req: NextRequest) {
     prestayReminders,
     checkinReminders,
     checkoutReminders,
+    reviewRequests,
     birthdayGreetings,
     errors,
   });

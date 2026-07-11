@@ -262,6 +262,21 @@ export async function PATCH(req: NextRequest) {
     const customer = result.customer;
     const biz = (await getSiteConfig()).business;
 
+    // รีวิวเฉพาะเมื่อใช้บริการแล้ว — ห้องพักที่ยังไม่ถึงวันเช็คเอาท์ = จ่ายล่วงหน้า ยังไม่รีวิว
+    const todayStr = new Date().toISOString().slice(0, 10);
+    let showReview = true;
+    if (paid.bookingId) {
+      const linkedBooking = await getBooking(paid.bookingId);
+      if (
+        linkedBooking &&
+        (linkedBooking.service === "room" || linkedBooking.checkin) &&
+        linkedBooking.checkout &&
+        linkedBooking.checkout > todayStr
+      ) {
+        showReview = false;
+      }
+    }
+
     if (paid.lineUserId) {
       await pushLineMessage(paid.lineUserId, [
         buildReceiptFlex({
@@ -279,6 +294,7 @@ export async function PATCH(req: NextRequest) {
           mapsUrl: biz.maps || BUSINESS.maps,
           reviewUrl: biz.reviewUrl,
           reviewLabel: biz.reviewButtonText,
+          showReview,
         }),
       ]);
 

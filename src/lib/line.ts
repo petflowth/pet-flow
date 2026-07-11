@@ -1427,10 +1427,102 @@ export function buildReceiptFlex(data: {
   mapsUrl: string;
   reviewUrl?: string;
   reviewLabel?: string;
+  /** โชว์ปุ่มรีวิวไหม — ปิดตอนจ่ายล่วงหน้าก่อนใช้บริการ (ห้องพักยังไม่เช็คเอาท์) */
+  showReview?: boolean;
 }) {
+  const body: Record<string, unknown>[] = [
+    {
+      type: "text",
+      text: "🧾 ใบเสร็จ CatCha Hotel",
+      weight: "bold",
+      size: "lg",
+      color: "#5C4033",
+    },
+    {
+      type: "text",
+      text: `${data.catName} · ${data.customerName}`,
+      size: "sm",
+      color: "#A2907E",
+      margin: "md",
+    },
+    {
+      type: "text",
+      text: `เลขที่ ${data.invoiceId}`,
+      size: "xs",
+      color: "#A2907E",
+      margin: "sm",
+    },
+    {
+      type: "text",
+      text: `ชำระแล้ว ${data.total.toLocaleString()} บาท (${data.paymentMethod})`,
+      weight: "bold",
+      size: "md",
+      color: "#4E3E32",
+      margin: "lg",
+    },
+    {
+      type: "text",
+      text: `🎁 ได้รับ ${data.pointsEarned} แต้มสะสม`,
+      size: "sm",
+      color: "#C4956A",
+      margin: "md",
+    },
+  ];
+
+  if (data.showReview === false) {
+    body.push({
+      type: "text",
+      text: "ขอบคุณที่วางใจให้เราดูแลน้องนะคะ 🧡 แล้วเจอกันวันเข้าพักค่ะ",
+      size: "xs",
+      color: "#A2907E",
+      margin: "lg",
+      wrap: true,
+    });
+  }
+
+  const bubble: Record<string, unknown> = {
+    type: "bubble",
+    size: "mega",
+    body: { type: "box", layout: "vertical", contents: body },
+  };
+
+  if (data.showReview !== false) {
+    bubble.footer = {
+      type: "box",
+      layout: "vertical",
+      spacing: "sm",
+      contents: [
+        {
+          type: "button",
+          style: "link",
+          height: "sm",
+          action: {
+            type: "uri",
+            label: data.reviewLabel || "⭐ รีวิวให้เราหน่อยนะคะ",
+            uri: data.reviewUrl || data.mapsUrl,
+          },
+        },
+      ],
+    };
+  }
+
   return {
     type: "flex",
     altText: `ใบเสร็จ ${data.total} บาท — CatCha Hotel`,
+    contents: bubble,
+  };
+}
+
+/** การ์ดขอรีวิว — ส่งหลังลูกค้าใช้บริการจริง (เช่น วันถัดจากเช็คเอาท์) */
+export function buildReviewRequestFlex(data: {
+  title: string;
+  body: string;
+  reviewUrl: string;
+  reviewLabel?: string;
+}) {
+  return {
+    type: "flex",
+    altText: data.title,
     contents: {
       type: "bubble",
       size: "mega",
@@ -1440,55 +1532,35 @@ export function buildReceiptFlex(data: {
         contents: [
           {
             type: "text",
-            text: "🧾 ใบเสร็จ CatCha Hotel",
+            text: data.title,
             weight: "bold",
             size: "lg",
             color: "#5C4033",
+            wrap: true,
           },
           {
             type: "text",
-            text: `${data.catName} · ${data.customerName}`,
+            text: data.body,
             size: "sm",
-            color: "#A2907E",
-            margin: "md",
-          },
-          {
-            type: "text",
-            text: `เลขที่ ${data.invoiceId}`,
-            size: "xs",
-            color: "#A2907E",
-            margin: "sm",
-          },
-          {
-            type: "text",
-            text: `ชำระแล้ว ${data.total.toLocaleString()} บาท (${data.paymentMethod})`,
-            weight: "bold",
-            size: "md",
             color: "#4E3E32",
-            margin: "lg",
-          },
-          {
-            type: "text",
-            text: `🎁 ได้รับ ${data.pointsEarned} แต้มสะสม`,
-            size: "sm",
-            color: "#C4956A",
             margin: "md",
+            wrap: true,
           },
         ],
       },
       footer: {
         type: "box",
         layout: "vertical",
-        spacing: "sm",
         contents: [
           {
             type: "button",
-            style: "link",
+            style: "primary",
+            color: BRAND_GREEN_DARK,
             height: "sm",
             action: {
               type: "uri",
               label: data.reviewLabel || "⭐ รีวิวให้เราหน่อยนะคะ",
-              uri: data.reviewUrl || data.mapsUrl,
+              uri: data.reviewUrl,
             },
           },
         ],

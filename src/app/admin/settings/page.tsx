@@ -395,6 +395,13 @@ function MessagesTab({
         onChange={(v) => setMsgs({ ...msgs, checkoutReminder: v })}
         rows={6}
       />
+      <TextAreaField
+        label="⭐ ขอรีวิว (หลังเช็คเอาท์)"
+        hint="ใช้ได้: {shop} {cat}"
+        value={msgs?.reviewRequest || ""}
+        onChange={(v) => setMsgs({ ...msgs, reviewRequest: v })}
+        rows={5}
+      />
 
       <hr className="border-catcha-line" />
       <p className="text-xs font-extrabold text-catcha-chocolate">
@@ -1053,6 +1060,8 @@ const AUTOMATION_DEFAULT = {
   checkinReminderDays: 1,
   checkoutReminderEnabled: true,
   checkoutReminderDays: 1,
+  reviewRequestEnabled: true,
+  reviewRequestDaysAfter: 1,
   freeLitterMinNights: 3,
   birthdayEnabled: true,
 };
@@ -1190,6 +1199,25 @@ function AutomationTab({
             onChange={(v) => set({ checkoutReminderDays: Math.max(0, Number(v) || 0) })}
           />
         )}
+      </div>
+
+      <div className="rounded-catcha-sm border border-catcha-line p-3">
+        <Toggle
+          label="⭐ ขอรีวิวอัตโนมัติ หลังเช็คเอาท์ (ห้องพัก)"
+          checked={form.reviewRequestEnabled}
+          onChange={(v) => set({ reviewRequestEnabled: v })}
+        />
+        {form.reviewRequestEnabled && (
+          <Field
+            label="ส่งหลังเช็คเอาท์ (วัน)"
+            type="number"
+            value={String(form.reviewRequestDaysAfter)}
+            onChange={(v) => set({ reviewRequestDaysAfter: Math.max(0, Number(v) || 0) })}
+          />
+        )}
+        <p className="mt-1 text-[10px] text-brown-soft">
+          แยกคำขอรีวิวออกจากใบเสร็จ — ลูกค้าที่จ่ายล่วงหน้าก่อนเข้าพักจะไม่ถูกขอรีวิวตอนจ่ายเงิน
+        </p>
       </div>
 
       <div className="rounded-catcha-sm border border-catcha-line p-3">

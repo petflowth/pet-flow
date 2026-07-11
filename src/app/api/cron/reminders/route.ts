@@ -27,10 +27,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const tomorrow = await bookingsTomorrow();
-  let sent = 0;
+  const cfg = await getSiteConfig();
+  const auto = cfg.automation;
   const errors: string[] = [];
+  let sent = 0;
 
+  // ── ยืนยันนัดพรุ่งนี้ (เปิด/ปิดได้) ──
+  const tomorrow = auto?.confirmTomorrowEnabled === false ? [] : await bookingsTomorrow();
   for (const b of tomorrow) {
     if (!b.lineUserId) continue;
 
@@ -54,11 +57,10 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // ── เตือนก่อนเข้าพัก (ห้องพัก) — ยอดคงเหลือ 7 วันก่อน + รายละเอียด 3 วันก่อน ──
+  // ── เตือนก่อนเข้าพัก (ห้องพัก) — จำนวนวันตั้งค่าได้ในหลังบ้าน ──
   const todayStr = new Date().toISOString().slice(0, 10);
-  const in7 = addDays(todayStr, 7);
-  const in3 = addDays(todayStr, 3);
-  const cfg = await getSiteConfig();
+  const in7 = addDays(todayStr, auto?.depositReminderDays ?? 7);
+  const in3 = addDays(todayStr, auto?.prestayReminderDays ?? 3);
   const consentUrl = await getConsentUrl();
   const allBookings = await listBookings();
   const allInvoices = await listInvoices();
@@ -69,8 +71,8 @@ export async function GET(req: NextRequest) {
   for (const b of allBookings) {
     if (b.service !== "room" || !b.lineUserId || b.status === "cancelled") continue;
 
-    // #1 — 7 วันก่อนเข้าพัก: แจ้งยอดคงเหลือ (ถ้ามีมัดจำ + ยังค้าง)
-    if (b.checkin === in7) {
+    // #1 — แจ้งยอดคงเหลือ N วันก่อนเข้าพัก (ถ้ามีมัดจำ + ยังค้าง)
+    if (auto?.depositReminderEnabled !== false && b.checkin === in7) {
       const inv = allInvoices.find(
         (i) => i.bookingId === b.id && i.status === "pending" && (i.deposit || 0) > 0
       );
@@ -87,8 +89,8 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // #4 — 3 วันก่อนเข้าพัก (วันแรกพอ): การ์ดเดียว = รายละเอียด + ปุ่มยอมรับเงื่อนไข
-    if (b.checkin === in3) {
+    // #4 — แจ้งรายละเอียด + เงื่อนไข N วันก่อนเข้าพัก (วันแรกพอ)
+    if (auto?.prestayReminderEnabled !== false && b.checkin === in3) {
       const flex = buildPrestayFlex({
         body: buildPrestayBodyText(b, cfg),
         consentUrl: consentUrl || undefined,
@@ -102,10 +104,13 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // ── 🎂 อวยพรวันเกิดแมว (เฉพาะลูกค้าที่ยินยอมรับข่าวสาร) ──
+  // ── 🎂 อวยพรวันเกิดแมว (เฉพาะลูกค้าที่ยินยอมรับข่าวสาร · เปิด/ปิดได้) ──
   let birthdayGreetings = 0;
   const mmdd = todayStr.slice(5); // "MM-DD"
   try {
+    if (auto?.birthdayEnabled === false) {
+      // ปิดอวยพรวันเกิด — ข้าม
+    } else {
     const allCustomers = await listCustomers();
     for (const c of allCustomers) {
       if (!c.lineUserId || c.marketingConsent === false) continue;
@@ -122,6 +127,7 @@ export async function GET(req: NextRequest) {
       } catch (e) {
         errors.push(`birthday ${c.id}: ${String(e)}`);
       }
+    }
     }
   } catch (e) {
     errors.push(`birthday-scan: ${String(e)}`);

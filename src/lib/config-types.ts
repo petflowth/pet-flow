@@ -52,11 +52,28 @@ export type MessagesConfig = {
   birthdayGreeting: string;
 };
 
+/** ตั้งค่าระบบส่งอัตโนมัติ — เปิด/ปิด + กี่วันก่อน (แก้ได้ในหน้าตั้งค่า > อัตโนมัติ) */
+export type AutomationConfig = {
+  /** ส่งการ์ดยืนยันนัด "พรุ่งนี้" อัตโนมัติ */
+  confirmTomorrowEnabled: boolean;
+  /** เตือนยอดคงเหลือก่อนเข้าพัก */
+  depositReminderEnabled: boolean;
+  /** กี่วันก่อนเข้าพัก ที่จะเตือนยอดคงเหลือ */
+  depositReminderDays: number;
+  /** แจ้งรายละเอียดเข้าพัก + เงื่อนไข ก่อนเข้าพัก */
+  prestayReminderEnabled: boolean;
+  /** กี่วันก่อนเข้าพัก ที่จะแจ้งรายละเอียด+เงื่อนไข */
+  prestayReminderDays: number;
+  /** อวยพรวันเกิดแมวอัตโนมัติ */
+  birthdayEnabled: boolean;
+};
+
 export type SiteConfig = {
   version: number;
   updatedAt: string;
   crm: CrmConfig;
   messages: MessagesConfig;
+  automation: AutomationConfig;
   business: {
     name: string;
     tagline: { th: string; en: string };

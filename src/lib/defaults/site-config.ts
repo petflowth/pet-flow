@@ -28,6 +28,14 @@ export function getDefaultSiteConfig(): SiteConfig {
         tierPresets: ["VIP", "Gold", "Silver"],
       },
       messages: { ...DEFAULT_MESSAGES },
+      automation: {
+        confirmTomorrowEnabled: true,
+        depositReminderEnabled: true,
+        depositReminderDays: 7,
+        prestayReminderEnabled: true,
+        prestayReminderDays: 3,
+        birthdayEnabled: true,
+      },
       business: { ...BUSINESS },
       payment: {
         bankName: process.env.BANK_NAME || "กรุงไทย",

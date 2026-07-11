@@ -12,6 +12,7 @@ type Tab =
   | "shop"
   | "payment"
   | "messages"
+  | "automation"
   | "rooms"
   | "grooming"
   | "points"
@@ -22,6 +23,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "shop", label: "ร้าน", icon: "🏪" },
   { id: "payment", label: "บัญชี", icon: "🏦" },
   { id: "messages", label: "ข้อความ", icon: "💬" },
+  { id: "automation", label: "อัตโนมัติ", icon: "⏰" },
   { id: "rooms", label: "ห้อง", icon: "🛏️" },
   { id: "grooming", label: "อาบน้ำ", icon: "🛁" },
   { id: "points", label: "แต้ม", icon: "🎁" },
@@ -158,6 +160,9 @@ export default function SettingsPage() {
       )}
       {tab === "messages" && (
         <MessagesTab config={config} saving={saving} onSave={save} />
+      )}
+      {tab === "automation" && (
+        <AutomationTab config={config} saving={saving} onSave={save} />
       )}
       {tab === "rooms" && (
         <RoomsTab config={config} saving={saving} onSave={save} />
@@ -981,6 +986,119 @@ function TextAreaField({
         </span>
       )}
     </label>
+  );
+}
+
+const AUTOMATION_DEFAULT = {
+  confirmTomorrowEnabled: true,
+  depositReminderEnabled: true,
+  depositReminderDays: 7,
+  prestayReminderEnabled: true,
+  prestayReminderDays: 3,
+  birthdayEnabled: true,
+};
+
+function Toggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-center justify-between gap-2 py-1 text-left"
+    >
+      <span className="text-xs font-bold text-brown">{label}</span>
+      <span
+        className={`flex h-6 w-11 shrink-0 items-center rounded-full px-0.5 transition ${
+          checked ? "bg-sage justify-end" : "bg-paper justify-start"
+        }`}
+      >
+        <span className="h-5 w-5 rounded-full bg-card shadow-catcha-sm" />
+      </span>
+    </button>
+  );
+}
+
+function AutomationTab({
+  config,
+  saving,
+  onSave,
+}: {
+  config: SiteConfig;
+  saving: boolean;
+  onSave: (p: Partial<SiteConfig>) => void;
+}) {
+  const [form, setForm] = useState({ ...AUTOMATION_DEFAULT, ...config.automation });
+  useEffect(
+    () => setForm({ ...AUTOMATION_DEFAULT, ...config.automation }),
+    [config.automation]
+  );
+  const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
+
+  return (
+    <form
+      className="space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSave({ automation: form });
+      }}
+    >
+      <p className="text-[11px] text-brown-soft">
+        ระบบส่งอัตโนมัติ เที่ยงวัน (เวลาไทย) ทุกวัน — เปิด/ปิด และตั้งจำนวนวันได้เอง
+      </p>
+
+      <Toggle
+        label="✅ ส่งการ์ดยืนยันนัด (นัดพรุ่งนี้)"
+        checked={form.confirmTomorrowEnabled}
+        onChange={(v) => set({ confirmTomorrowEnabled: v })}
+      />
+
+      <div className="rounded-catcha-sm border border-catcha-line p-3">
+        <Toggle
+          label="💰 เตือนยอดคงเหลือก่อนเข้าพัก"
+          checked={form.depositReminderEnabled}
+          onChange={(v) => set({ depositReminderEnabled: v })}
+        />
+        {form.depositReminderEnabled && (
+          <Field
+            label="ส่งก่อนเข้าพัก (วัน)"
+            type="number"
+            value={String(form.depositReminderDays)}
+            onChange={(v) => set({ depositReminderDays: Math.max(0, Number(v) || 0) })}
+          />
+        )}
+      </div>
+
+      <div className="rounded-catcha-sm border border-catcha-line p-3">
+        <Toggle
+          label="🏠 แจ้งเข้าพัก + เงื่อนไข ก่อนเข้าพัก"
+          checked={form.prestayReminderEnabled}
+          onChange={(v) => set({ prestayReminderEnabled: v })}
+        />
+        {form.prestayReminderEnabled && (
+          <Field
+            label="ส่งก่อนเข้าพัก (วัน)"
+            type="number"
+            value={String(form.prestayReminderDays)}
+            onChange={(v) => set({ prestayReminderDays: Math.max(0, Number(v) || 0) })}
+          />
+        )}
+      </div>
+
+      <Toggle
+        label="🎂 อวยพรวันเกิดแมวอัตโนมัติ"
+        checked={form.birthdayEnabled}
+        onChange={(v) => set({ birthdayEnabled: v })}
+      />
+
+      <SaveBtn saving={saving} />
+    </form>
   );
 }
 

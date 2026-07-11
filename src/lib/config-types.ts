@@ -30,8 +30,16 @@ export type CrmConfig = {
 export type MessagesConfig = {
   /** เตือนยอดคงเหลือ 7 วันก่อนเข้าพัก — {shop} {cat} {checkin} {deposit} {remaining} {bank} {accountNumber} {accountName} */
   depositReminder: string;
-  /** รายละเอียด 3 วันก่อนเข้าพัก — {shop} {cat} {checkin} {checkout} {room} */
+  /** รายละเอียด 3 วันก่อนเข้าพัก — {shop} {cat} {checkin} {checkout} {room} (เก่า/สำรอง) */
   prestayReminder: string;
+  /** การ์ดเข้าพัก — ประโยคทักทายเปิด — {shop} {cat} */
+  prestayIntro: string;
+  /** การ์ดเข้าพัก — ประโยคเกริ่นก่อนลิสต์ของที่ต้องเตรียม */
+  prestayPrepIntro: string;
+  /** การ์ดเข้าพัก — รายการของที่ต้องเตรียม (บรรทัดละ 1 ข้อ) */
+  prestayPrepItems: string[];
+  /** การ์ดเข้าพัก — ประโยคปิดชวนแจ้งการดูแลพิเศษ — {cat} */
+  prestayCareNote: string;
   /** เตือนเช็คอิน ก่อนเข้าพัก — {shop} {cat} {checkin} {room} */
   checkinReminder: string;
   /** เตือนเช็คเอาท์ ก่อนออก — {shop} {cat} {checkout} */

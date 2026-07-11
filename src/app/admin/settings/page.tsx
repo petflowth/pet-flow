@@ -340,12 +340,39 @@ function MessagesTab({
         onChange={(v) => setMsgs({ ...msgs, depositReminder: v })}
         rows={7}
       />
+      <p className="text-[11px] font-bold text-brown-soft">
+        การ์ดแจ้งเข้าพัก (จัดรูปแบบสวยงามอัตโนมัติ · ส่ง 3 วันก่อนเข้าพัก)
+      </p>
       <TextAreaField
-        label="แจ้งรายละเอียด (3 วันก่อนเข้าพัก)"
-        hint="ใช้ได้: {shop} {cat} {checkin} {checkout} {room} {litterNote}"
-        value={msgs?.prestayReminder || ""}
-        onChange={(v) => setMsgs({ ...msgs, prestayReminder: v })}
-        rows={8}
+        label="ทักทายเปิดการ์ด"
+        hint="ใช้ได้: {shop} {cat}"
+        value={msgs?.prestayIntro || ""}
+        onChange={(v) => setMsgs({ ...msgs, prestayIntro: v })}
+        rows={2}
+      />
+      <TextAreaField
+        label="เกริ่นก่อนลิสต์ของที่ต้องเตรียม"
+        value={msgs?.prestayPrepIntro || ""}
+        onChange={(v) => setMsgs({ ...msgs, prestayPrepIntro: v })}
+        rows={2}
+      />
+      <TextAreaField
+        label="ของที่ต้องเตรียม (1 บรรทัด = 1 ข้อ · ใส่อีโมจิหน้าได้)"
+        value={(msgs?.prestayPrepItems || []).join("\n")}
+        onChange={(v) =>
+          setMsgs({
+            ...msgs,
+            prestayPrepItems: v.split("\n").map((s) => s.trim()).filter(Boolean),
+          })
+        }
+        rows={4}
+      />
+      <TextAreaField
+        label="ข้อความปิดท้าย (ชวนแจ้งการดูแลพิเศษ)"
+        hint="ใช้ได้: {cat}"
+        value={msgs?.prestayCareNote || ""}
+        onChange={(v) => setMsgs({ ...msgs, prestayCareNote: v })}
+        rows={3}
       />
       <TextAreaField
         label="🧳 เตือนเช็คอิน (ก่อนวันเข้าพัก)"

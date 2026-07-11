@@ -13,12 +13,18 @@ const TH_MONTHS = [
   "ธ.ค.",
 ];
 
-/** ISO date (YYYY-MM-DD) → วันที่ 5 ก.ค. 2569 */
-export function formatThaiDate(iso: string): string {
+/** ISO date (YYYY-MM-DD) → 5 ก.ค. 2569 (ไม่มีคำว่า "วันที่") */
+export function formatThaiDateShort(iso: string): string {
   if (!iso) return "";
   const d = new Date(`${iso.slice(0, 10)}T12:00:00`);
   if (Number.isNaN(d.getTime())) return iso;
-  return `วันที่ ${d.getDate()} ${TH_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}`;
+  return `${d.getDate()} ${TH_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}`;
+}
+
+/** ISO date (YYYY-MM-DD) → วันที่ 5 ก.ค. 2569 */
+export function formatThaiDate(iso: string): string {
+  const short = formatThaiDateShort(iso);
+  return short ? `วันที่ ${short}` : "";
 }
 
 export function formatBookingWhen(booking: {

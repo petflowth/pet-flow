@@ -865,51 +865,252 @@ export function buildBillSummaryFlex(data: {
   };
 }
 
-/** การ์ดแจ้งเข้าพัก — รายละเอียด/สิ่งที่ต้องเตรียม + ปุ่มไปกดยอมรับเงื่อนไข */
+/** การ์ดแจ้งเข้าพัก — จัดรูปแบบสวยงาม อ่านง่าย + ปุ่มไปกดยอมรับเงื่อนไข */
 export function buildPrestayFlex(data: {
-  body: string;
+  businessName: string;
+  catName: string;
+  /** ช่วงวันเข้าพัก จัดรูปแล้ว เช่น "12 ก.ค. 2569 → 17 ก.ค. 2569" */
+  dateText: string;
+  room?: string;
+  intro: string;
+  prepIntro?: string;
+  prepItems: string[];
+  careNote?: string;
+  litterNote?: string;
   consentUrl?: string;
   consentLabel?: string;
 }) {
-  const bubble: Record<string, unknown> = {
-    type: "bubble",
-    size: "mega",
-    body: {
+  const body: Record<string, unknown>[] = [
+    // ชื่อน้อง + ร้าน
+    {
+      type: "text",
+      text: `🐱 ${data.catName}`,
+      weight: "bold",
+      size: "xl",
+      color: "#5C4033",
+      wrap: true,
+    },
+    {
+      type: "text",
+      text: data.businessName,
+      size: "xs",
+      color: "#A2907E",
+      margin: "xs",
+    },
+    // ทักทายเปิด
+    {
+      type: "text",
+      text: data.intro,
+      size: "sm",
+      color: "#4E3E32",
+      margin: "lg",
+      wrap: true,
+    },
+  ];
+
+  // กล่องไฮไลต์วันเข้าพัก + ห้อง
+  const dateBox: Record<string, unknown>[] = [];
+  if (data.dateText) {
+    dateBox.push({
+      type: "box",
+      layout: "horizontal",
+      contents: [
+        { type: "text", text: "📅", size: "sm", flex: 0 },
+        {
+          type: "box",
+          layout: "vertical",
+          flex: 5,
+          contents: [
+            { type: "text", text: "วันเข้าพัก", size: "xxs", color: "#9B8B7E" },
+            {
+              type: "text",
+              text: data.dateText,
+              size: "sm",
+              weight: "bold",
+              color: "#4A7348",
+              wrap: true,
+              margin: "xs",
+            },
+          ],
+        },
+      ],
+    });
+  }
+  if (data.room) {
+    dateBox.push({
+      type: "box",
+      layout: "horizontal",
+      margin: data.dateText ? "md" : "none",
+      contents: [
+        { type: "text", text: "🏠", size: "sm", flex: 0 },
+        {
+          type: "box",
+          layout: "vertical",
+          flex: 5,
+          contents: [
+            { type: "text", text: "ห้องพัก", size: "xxs", color: "#9B8B7E" },
+            {
+              type: "text",
+              text: data.room,
+              size: "sm",
+              weight: "bold",
+              color: "#4E3E32",
+              wrap: true,
+              margin: "xs",
+            },
+          ],
+        },
+      ],
+    });
+  }
+  if (dateBox.length) {
+    body.push({
       type: "box",
       layout: "vertical",
+      margin: "lg",
+      paddingAll: "14px",
+      backgroundColor: "#F4ECE0",
+      cornerRadius: "12px",
+      spacing: "sm",
+      contents: dateBox,
+    });
+  }
+
+  // หัวข้อ + เกริ่นของที่ต้องเตรียม
+  const prep = data.prepItems.filter(Boolean);
+  if (prep.length) {
+    body.push({ type: "separator", margin: "xl" });
+    body.push({
+      type: "text",
+      text: "🧳 สิ่งที่ต้องเตรียมมาด้วย",
+      weight: "bold",
+      size: "md",
+      color: "#5C4033",
+      margin: "lg",
+    });
+    if (data.prepIntro) {
+      body.push({
+        type: "text",
+        text: data.prepIntro,
+        size: "xs",
+        color: "#A2907E",
+        margin: "sm",
+        wrap: true,
+      });
+    }
+    body.push({
+      type: "box",
+      layout: "vertical",
+      margin: "md",
+      paddingAll: "12px",
+      backgroundColor: "#FBF7F0",
+      cornerRadius: "10px",
+      spacing: "md",
+      contents: prep.map((item) => ({
+        type: "text",
+        text: item,
+        size: "sm",
+        color: "#4E3E32",
+        wrap: true,
+      })),
+    });
+  }
+
+  // แจ้งเตรียมทราย (ถ้าเข้าพักไม่ถึงเกณฑ์แถมฟรี) — โทนส้มเตือน
+  if (data.litterNote) {
+    body.push({
+      type: "box",
+      layout: "horizontal",
+      margin: "md",
+      paddingAll: "12px",
+      backgroundColor: "#FBEEE0",
+      cornerRadius: "10px",
+      spacing: "sm",
+      contents: [
+        { type: "text", text: "🐈", size: "sm", flex: 0 },
+        {
+          type: "text",
+          text: data.litterNote.replace(/^🐈\s*/, ""),
+          size: "xs",
+          color: "#B4553B",
+          wrap: true,
+          flex: 1,
+        },
+      ],
+    });
+  }
+
+  // ปิดท้าย — ชวนแจ้งการดูแลพิเศษ (โทนอบอุ่น)
+  if (data.careNote) {
+    body.push({
+      type: "box",
+      layout: "vertical",
+      margin: "lg",
+      paddingAll: "12px",
+      backgroundColor: "#FBF0F1",
+      cornerRadius: "10px",
       contents: [
         {
           type: "text",
-          text: data.body,
-          size: "sm",
-          color: "#4E3E32",
+          text: data.careNote,
+          size: "xs",
+          color: "#7A6A5A",
           wrap: true,
         },
       ],
+    });
+  }
+
+  const bubble: Record<string, unknown> = {
+    type: "bubble",
+    size: "mega",
+    header: {
+      type: "box",
+      layout: "vertical",
+      backgroundColor: BRAND_GREEN,
+      paddingAll: "16px",
+      contents: [
+        {
+          type: "text",
+          text: "🏠 เตรียมตัวก่อนเข้าพัก",
+          color: "#FFFFFF",
+          weight: "bold",
+          size: "sm",
+        },
+      ],
+    },
+    body: {
+      type: "box",
+      layout: "vertical",
+      paddingAll: "16px",
+      contents: body,
     },
   };
+
   if (data.consentUrl) {
     bubble.footer = {
       type: "box",
       layout: "vertical",
+      paddingAll: "12px",
       contents: [
         {
           type: "button",
           style: "primary",
-          color: "#4A7348",
+          color: BRAND_GREEN_DARK,
           height: "sm",
           action: {
             type: "uri",
-            label: data.consentLabel || "📋 อ่าน + กดยอมรับเงื่อนไข",
+            label: data.consentLabel || "🧡 อ่านรายละเอียด & ยืนยันการเข้าพัก",
             uri: data.consentUrl,
           },
         },
       ],
     };
   }
+
   return {
     type: "flex",
-    altText: "รายละเอียดก่อนเข้าพัก 🏠",
+    altText: `เตรียมตัวก่อนเข้าพัก 🏠 ${data.catName}`,
     contents: bubble,
   };
 }

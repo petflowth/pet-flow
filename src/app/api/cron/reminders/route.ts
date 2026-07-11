@@ -7,7 +7,7 @@ import { pushLineMessage, buildPrestayFlex, buildTimePickerFlex } from "@/lib/li
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import {
   buildDepositReminderText,
-  buildPrestayBodyText,
+  buildPrestayFlexData,
   buildCheckinBodyText,
   buildCheckoutBodyText,
   getBookingTimeUrl,
@@ -108,7 +108,7 @@ export async function GET(req: NextRequest) {
     // #4 — แจ้งรายละเอียด + เงื่อนไข N วันก่อนเข้าพัก (วันแรกพอ)
     if (auto?.prestayReminderEnabled !== false && b.checkin === in3) {
       const flex = buildPrestayFlex({
-        body: buildPrestayBodyText(b, cfg),
+        ...buildPrestayFlexData(b, cfg),
         consentUrl: consentUrl || undefined,
       });
       try {

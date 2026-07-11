@@ -33,7 +33,7 @@ import { DEFAULT_MESSAGES } from "@/lib/messages";
 import { listInvoices } from "@/lib/invoices-store";
 import {
   buildDepositReminderText,
-  buildPrestayBodyText,
+  buildPrestayFlexData,
   buildCheckinBodyText,
   buildCheckoutBodyText,
   getBookingTimeUrl,
@@ -295,9 +295,11 @@ export async function PATCH(req: NextRequest) {
 
     // แจ้งเข้าพัก → การ์ดเดียว: รายละเอียดเตรียมตัว + ปุ่มไปกดยอมรับเงื่อนไข
     if (action === "send_prestay") {
-      const body = buildPrestayBodyText(b, cfg);
       const url = await getConsentUrl();
-      const flex = buildPrestayFlex({ body, consentUrl: url || undefined });
+      const flex = buildPrestayFlex({
+        ...buildPrestayFlexData(b, cfg),
+        consentUrl: url || undefined,
+      });
       try {
         await pushLineMessage(to, [flex]);
         return NextResponse.json({ ok: true });

@@ -1,6 +1,7 @@
 import { getLineCredentials } from "./line-config";
 import { buildConsentUrl, buildBookingTimeUrl } from "./liff-urls";
-import { renderTemplate } from "./messages";
+import { renderTemplate, DEFAULT_MESSAGES } from "./messages";
+import { formatThaiDateShort } from "./format-thai-date";
 import type { StoredBooking } from "./bookings-store";
 import type { InvoiceRecord } from "./invoices-store";
 import type { SiteConfig } from "./config-types";
@@ -135,6 +136,38 @@ export function buildPrestayBodyText(
     litterNote: litterNoteFor(b, cfg),
     consentUrl: "",
   });
+}
+
+/** ข้อมูลการ์ดแจ้งเข้าพัก (แบบจัดรูปแบบสวยงาม) — ป้อนให้ buildPrestayFlex */
+export function buildPrestayFlexData(
+  b: Pick<StoredBooking, "catName" | "checkin" | "checkout" | "room" | "date">,
+  cfg: SiteConfig
+) {
+  const inDate = b.checkin || b.date || "";
+  const dateText = inDate
+    ? `${formatThaiDateShort(inDate)}${
+        b.checkout ? ` → ${formatThaiDateShort(b.checkout)}` : ""
+      }`
+    : "";
+  const msg = cfg.messages;
+  return {
+    businessName: cfg.business.name,
+    catName: b.catName,
+    dateText,
+    room: b.room,
+    intro: renderTemplate(msg.prestayIntro ?? DEFAULT_MESSAGES.prestayIntro, {
+      shop: cfg.business.name,
+      cat: b.catName,
+    }),
+    prepIntro: msg.prestayPrepIntro ?? DEFAULT_MESSAGES.prestayPrepIntro,
+    prepItems: (msg.prestayPrepItems ?? DEFAULT_MESSAGES.prestayPrepItems).filter(
+      Boolean
+    ),
+    careNote: renderTemplate(msg.prestayCareNote ?? DEFAULT_MESSAGES.prestayCareNote, {
+      cat: b.catName,
+    }),
+    litterNote: litterNoteFor(b, cfg) || undefined,
+  };
 }
 
 /** ข้อความแจ้งรายละเอียดก่อนเข้าพัก (+ แนบลิงก์ยอมรับข้อตกลงถ้ามี) */

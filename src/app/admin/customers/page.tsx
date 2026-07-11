@@ -410,6 +410,40 @@ function CustomerSummaryCard({
   const [tier, setTier] = useState<CustomerTier>(customer.tier || "new");
   const [msg, setMsg] = useState("");
   const [followUpBusy, setFollowUpBusy] = useState(false);
+  const [addAmt, setAddAmt] = useState("");
+  const [addReason, setAddReason] = useState("");
+  const [addBusy, setAddBusy] = useState(false);
+
+  const addBonusPoints = async () => {
+    const n = Math.round(Number(addAmt) || 0);
+    if (!n || !customer.lineUserId) return;
+    const reason = addReason.trim() || "แต้มพิเศษจากร้าน";
+    setAddBusy(true);
+    try {
+      const res = await fetch("/api/points", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "admin_add",
+          lineUserId: customer.lineUserId,
+          amount: n,
+          reason,
+          displayName: customer.name,
+        }),
+      });
+      if (res.ok) {
+        setMsg(`✅ ${n > 0 ? "เพิ่ม" : "ปรับ"} ${n} แต้มแล้ว (${reason})`);
+        setAddAmt("");
+        setAddReason("");
+        onSaved();
+        setTimeout(() => setMsg(""), 2500);
+      } else {
+        setMsg("❌ เพิ่มแต้มไม่สำเร็จ");
+      }
+    } finally {
+      setAddBusy(false);
+    }
+  };
   const heroCat = customer.cats.find((cat) => cat.photoDataUrl) || customer.cats[0];
 
   useEffect(() => {
@@ -558,6 +592,40 @@ function CustomerSummaryCard({
           <p className="text-[10px] text-brown-faint">บาท</p>
         </div>
       </div>
+
+      {customer.lineUserId ? (
+        <div className="mb-4 rounded-catcha-sm border border-latte/40 bg-latte/10 p-3">
+          <p className="mb-1.5 text-xs font-extrabold text-catcha-chocolate">
+            🎁 เพิ่มแต้มพิเศษ (แต้มฟรี)
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <input
+              type="number"
+              value={addAmt}
+              onChange={(e) => setAddAmt(e.target.value)}
+              placeholder="กี่แต้ม"
+              className="w-20 rounded-catcha-sm border border-catcha-line bg-paper px-2 py-2 text-sm font-bold"
+            />
+            <input
+              value={addReason}
+              onChange={(e) => setAddReason(e.target.value)}
+              placeholder="เหตุผล เช่น รีวิวร้าน"
+              className="min-w-0 flex-1 rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+            />
+            <button
+              type="button"
+              disabled={addBusy || !addAmt}
+              onClick={addBonusPoints}
+              className="shrink-0 rounded-catcha-sm bg-latte-deep px-4 py-2 text-sm font-extrabold text-white disabled:opacity-40"
+            >
+              {addBusy ? "…" : "➕ เพิ่ม"}
+            </button>
+          </div>
+          <p className="mt-1 text-[10px] text-brown-faint">
+            บันทึกในประวัติแต้มของลูกค้า (มีเหตุผลกำกับ) + แจ้งเตือนร้าน และแจ้งลูกค้าทาง LINE
+          </p>
+        </div>
+      ) : null}
 
       <div className="space-y-3 rounded-catcha-sm border border-white/60 bg-card/70 p-3">
         <label className="block text-xs font-bold text-brown-soft">

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAccount, redeemReward } from "@/lib/points-store";
+import { getAccount, redeemReward, addPoints } from "@/lib/points-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
+import { pushLineMessage } from "@/lib/line";
 
 export async function GET(req: NextRequest) {
   const lineUserId = req.nextUrl.searchParams.get("lineUserId");
@@ -21,6 +22,42 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const { lineUserId, rewardId, displayName } = body;
+
+  // เพิ่ม/ปรับแต้มด้วยมือจากหลังบ้าน (เช่น รีวิวแล้วรับแต้มฟรี) — บันทึกเหตุผลในประวัติ
+  if (body.action === "admin_add") {
+    const uid = String(lineUserId || "").trim();
+    const amount = Math.round(Number(body.amount) || 0);
+    const reason = String(body.reason || "").trim() || "แต้มพิเศษจากร้าน";
+    if (!uid || amount === 0) {
+      return NextResponse.json({ error: "missing fields" }, { status: 400 });
+    }
+    const label = amount > 0 ? `🎁 ${reason}` : `ปรับแต้ม: ${reason}`;
+    const acc = await addPoints(uid, amount, label, label, displayName || "");
+    await sendTelegram(
+      formatBookingTelegram(
+        amount > 0 ? "🎁 เพิ่มแต้มให้ลูกค้า (มือ)" : "➖ ปรับลดแต้มลูกค้า (มือ)",
+        {
+          ลูกค้า: acc.displayName || uid,
+          แต้ม: `${amount > 0 ? "+" : ""}${amount}`,
+          เหตุผล: reason,
+          แต้มคงเหลือ: String(acc.points),
+        }
+      )
+    );
+    if (amount > 0) {
+      try {
+        await pushLineMessage(uid, [
+          {
+            type: "text",
+            text: `🎁 คุณได้รับ ${amount} แต้มฟรี!\nเหตุผล: ${reason}\nแต้มสะสมรวม ${acc.points} แต้ม ขอบคุณนะคะ 🧡`,
+          },
+        ]);
+      } catch {
+        /* ไม่มี LINE ก็ไม่เป็นไร — แต้มถูกบันทึกแล้ว */
+      }
+    }
+    return NextResponse.json({ ok: true, points: acc.points });
+  }
 
   if (!lineUserId || !rewardId) {
     return NextResponse.json({ error: "missing fields" }, { status: 400 });

@@ -9,6 +9,7 @@ import { TIER_LABELS, tierBadgeClass } from "@/lib/customer-tier";
 import { catCurrentAgeLabel } from "@/lib/cat-age";
 import { RegistrationQrSection } from "@/components/LineSetupSection";
 import { AddCustomerModal } from "@/components/AddCustomerModal";
+import { toast } from "@/components/Toast";
 import { CustomerLinkSection } from "@/components/CustomerLinkSection";
 import type { PointsHistoryEntry } from "@/lib/points-store";
 import type { Booking } from "@/lib/business";
@@ -806,6 +807,21 @@ export default function CustomersPage() {
     setSelected(data);
   }, []);
 
+  const deleteCustomerRow = async (c: CustomerListItem) => {
+    if (!confirm(`ลบลูกค้า ${c.name}?\n(ย้ายลงถังขยะ กู้คืนได้ที่เมนู 🗑️ ถังขยะ)`)) return;
+    const res = await fetch("/api/customers", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: c.id, action: "delete_customer" }),
+    });
+    if (res.ok) {
+      toast("ย้ายลูกค้าลงถังขยะแล้ว 🗑️", "success");
+      search(q);
+    } else {
+      toast("ลบไม่สำเร็จ", "error");
+    }
+  };
+
   // ค้นหาสด — พิมพ์แล้วกรองเลย (หน่วง 300ms) ไม่ต้องกดปุ่ม
   useEffect(() => {
     const t = setTimeout(() => search(q), 300);
@@ -1131,11 +1147,11 @@ export default function CustomersPage() {
             {list.map((c) => {
               const photo = c.cats.find((x) => x.photoDataUrl)?.photoDataUrl;
               return (
-                <li key={c.id}>
+                <li key={c.id} className="flex items-center">
                   <button
                     type="button"
                     onClick={() => open(c.id)}
-                    className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition active:bg-paper/60"
+                    className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5 text-left transition active:bg-paper/60"
                   >
                     {photo ? (
                       <Image
@@ -1178,6 +1194,14 @@ export default function CustomersPage() {
                         </span>
                       )}
                     </div>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="ลบลูกค้า"
+                    onClick={() => deleteCustomerRow(c)}
+                    className="shrink-0 px-3 py-2.5 text-sm text-brown-faint transition hover:text-wait active:text-wait"
+                  >
+                    🗑️
                   </button>
                 </li>
               );

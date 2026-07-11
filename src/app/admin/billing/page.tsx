@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SERVICE_PRESETS, type ServicePreset } from "@/lib/service-presets";
 import { CustomerSendButtons } from "@/components/CustomerSendButtons";
 import {
@@ -185,6 +185,21 @@ export default function BillingPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // ดึงนัดจาก URL อัตโนมัติ (มาจากปุ่ม "ออกบิล" ในตารางนัด) — ทำครั้งเดียว
+  const autoPicked = useRef(false);
+  useEffect(() => {
+    if (autoPicked.current || bookings.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const bId = params.get("bookingId");
+    if (!bId) return;
+    const bk = bookings.find((b) => b.id === bId);
+    if (bk) {
+      autoPicked.current = true;
+      pickBooking(bk);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookings]);
 
   const selected = customers.find((c) => c.id === customerId);
 

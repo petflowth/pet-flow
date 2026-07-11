@@ -265,6 +265,12 @@ export function BookingCalendar() {
                   >
                     📲 iCal
                   </a>
+                  <Link
+                    href={`/admin/billing?bookingId=${b.id}`}
+                    className="rounded-full bg-honey/45 px-2.5 py-1 text-[10px] font-extrabold text-catcha-chocolate"
+                  >
+                    🧾 ออกบิล
+                  </Link>
                 </div>
                 <div className="mt-2 border-t border-catcha-line pt-2">
                   <CustomerSendButtons

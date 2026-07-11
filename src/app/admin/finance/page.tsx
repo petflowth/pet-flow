@@ -17,9 +17,14 @@ type Record = {
   displayTitle: string;
 };
 
+const TODAY = () => new Date().toISOString().slice(0, 10);
+const EMPTY_FORM = { type: "income", amount: "", category: "", description: "", date: TODAY() };
+
 export default function FinancePage() {
   const [records, setRecords] = useState<Record[]>([]);
   const [summary, setSummary] = useState({ income: 0, expense: 0, net: 0 });
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/finance?summary=1");
@@ -34,27 +39,53 @@ export default function FinancePage() {
     load();
   }, [load]);
 
+  const resetForm = () => {
+    setForm({ ...EMPTY_FORM, date: TODAY() });
+    setEditingId(null);
+  };
+
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    await fetch("/api/finance", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: fd.get("type"),
-        amount: Number(fd.get("amount")),
-        category: fd.get("category"),
-        description: fd.get("description"),
-        date: fd.get("date") || new Date().toISOString().slice(0, 10),
-      }),
-    });
-    e.currentTarget.reset();
+    const payload = {
+      type: form.type,
+      amount: Number(form.amount),
+      category: form.category,
+      description: form.description,
+      date: form.date || TODAY(),
+    };
+    if (editingId) {
+      await fetch("/api/finance", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editingId, ...payload }),
+      });
+    } else {
+      await fetch("/api/finance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    }
+    resetForm();
     load();
+  };
+
+  const startEdit = (r: Record) => {
+    setEditingId(r.id);
+    setForm({
+      type: r.type,
+      amount: String(r.amount),
+      category: r.category || "",
+      description: r.description || "",
+      date: r.date,
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const del = async (id: string, title: string) => {
     if (!confirm(`ลบรายการ "${title}"?\nกู้คืนไม่ได้ (ยอดรวมจะปรับตามทันที)`)) return;
     await fetch(`/api/finance?id=${id}`, { method: "DELETE" });
+    if (editingId === id) resetForm();
     load();
   };
 
@@ -80,17 +111,55 @@ export default function FinancePage() {
       </div>
 
       <form onSubmit={submit} className="mb-5 space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm">
-        <select name="type" className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm">
+        {editingId && (
+          <p className="text-xs font-extrabold text-latte-deep">✏️ กำลังแก้ไขรายการ</p>
+        )}
+        <select
+          value={form.type}
+          onChange={(e) => setForm({ ...form, type: e.target.value })}
+          className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+        >
           <option value="income">รายรับ</option>
           <option value="expense">รายจ่าย</option>
         </select>
-        <input name="amount" type="number" required placeholder="จำนวนเงิน" className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
-        <input name="category" placeholder="หมวด เช่น อาหารแมว, ค่าเช่า" className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
-        <input name="description" placeholder="รายละเอียด" className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
-        <input name="date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+        <input
+          type="number"
+          required
+          placeholder="จำนวนเงิน"
+          value={form.amount}
+          onChange={(e) => setForm({ ...form, amount: e.target.value })}
+          className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+        />
+        <input
+          placeholder="หมวด เช่น อาหารแมว, ค่าเช่า"
+          value={form.category}
+          onChange={(e) => setForm({ ...form, category: e.target.value })}
+          className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+        />
+        <input
+          placeholder="รายละเอียด"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+        />
+        <input
+          type="date"
+          value={form.date}
+          onChange={(e) => setForm({ ...form, date: e.target.value })}
+          className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+        />
         <button type="submit" className="w-full rounded-catcha-sm bg-honey/40 py-3 text-sm font-extrabold text-catcha-chocolate">
-          บันทึก
+          {editingId ? "💾 บันทึกการแก้ไข" : "บันทึก"}
         </button>
+        {editingId && (
+          <button
+            type="button"
+            onClick={resetForm}
+            className="w-full rounded-catcha-sm bg-paper py-2 text-xs font-bold text-brown-soft"
+          >
+            ยกเลิกการแก้ไข
+          </button>
+        )}
       </form>
 
       <ul className="space-y-2">
@@ -112,13 +181,22 @@ export default function FinancePage() {
               <p className={`font-extrabold ${r.type === "income" ? "text-ok" : "text-wait"}`}>
                 {r.type === "income" ? "+" : "-"}{r.amount.toLocaleString()}
               </p>
-              <button
-                type="button"
-                onClick={() => del(r.id, r.displayTitle)}
-                className="text-[10px] font-bold text-wait/80 hover:text-wait"
-              >
-                🗑️ ลบ
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => startEdit(r)}
+                  className="text-[10px] font-bold text-latte-deep"
+                >
+                  ✏️ แก้ไข
+                </button>
+                <button
+                  type="button"
+                  onClick={() => del(r.id, r.displayTitle)}
+                  className="text-[10px] font-bold text-wait/80 hover:text-wait"
+                >
+                  🗑️ ลบ
+                </button>
+              </div>
             </div>
           </li>
         ))}

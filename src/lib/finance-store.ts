@@ -155,6 +155,27 @@ export async function addFinanceEntry(
   return rec;
 }
 
+/** แก้ไขรายการการเงินทีละอัน */
+export async function updateFinanceEntry(
+  id: string,
+  patch: Partial<Pick<FinanceRecord, "type" | "amount" | "category" | "description" | "date">>
+) {
+  const sb = getSupabase();
+  if (sb) {
+    const row: Record<string, unknown> = {};
+    if (patch.type !== undefined) row.type = patch.type;
+    if (patch.amount !== undefined) row.amount = patch.amount;
+    if (patch.category !== undefined) row.category = patch.category;
+    if (patch.description !== undefined) row.description = patch.description;
+    if (patch.date !== undefined) row.date = patch.date;
+    if (Object.keys(row).length) await sb.from("finance_records").update(row).eq("id", id);
+    return { ok: true as const };
+  }
+  const r = mem.find((x) => x.id === id);
+  if (r) Object.assign(r, patch);
+  return { ok: true as const };
+}
+
 /** ลบรายการการเงินทีละอัน (เอารายการทดสอบออก ก่อนใช้จริง) */
 export async function deleteFinanceEntry(id: string) {
   const sb = getSupabase();

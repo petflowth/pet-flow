@@ -3,6 +3,7 @@ import {
   listFinance,
   listFinanceEnriched,
   addFinanceEntry,
+  updateFinanceEntry,
   deleteFinanceEntry,
   financeSummary,
 } from "@/lib/finance-store";
@@ -31,6 +32,19 @@ export async function POST(req: NextRequest) {
     invoiceId: body.invoiceId,
   });
   return NextResponse.json({ ok: true, record: rec });
+}
+
+export async function PATCH(req: NextRequest) {
+  const body = await req.json();
+  if (!body.id) return NextResponse.json({ error: "id required" }, { status: 400 });
+  await updateFinanceEntry(body.id, {
+    type: body.type,
+    amount: body.amount != null ? Number(body.amount) : undefined,
+    category: body.category,
+    description: body.description,
+    date: body.date,
+  });
+  return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(req: NextRequest) {

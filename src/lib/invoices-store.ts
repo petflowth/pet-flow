@@ -37,6 +37,8 @@ export type InvoiceRecord = {
   bookingId?: string;
   sentAt?: string;
   createdAt: string;
+  /** เวลาที่กด "รับมัดจำแล้ว" (ต้องรัน migration ก่อน) */
+  depositReceivedAt?: string;
   /** ลบแบบกู้คืนได้ (soft delete) — ต้องรัน migration ก่อน */
   deletedAt?: string;
 };
@@ -61,6 +63,7 @@ type InvoiceRow = {
   booking_id: string | null;
   sent_at: string | null;
   created_at: string;
+  deposit_received_at?: string | null;
   deleted_at?: string | null;
 };
 
@@ -87,6 +90,7 @@ function rowToInvoice(r: InvoiceRow): InvoiceRecord {
     bookingId: r.booking_id || undefined,
     sentAt: r.sent_at || undefined,
     createdAt: r.created_at,
+    depositReceivedAt: r.deposit_received_at ?? undefined,
     deletedAt: r.deleted_at ?? undefined,
   };
 }
@@ -262,10 +266,25 @@ export async function receiveInvoiceDeposit(id: string) {
     invoiceId: inv.id,
   });
 
+  // บันทึกสถานะ "รับมัดจำแล้ว" ไว้ที่บิล (ถ้ายังไม่มีคอลัมน์ ก็ไม่พัง)
+  const receivedAt = new Date().toISOString();
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      await sb.from("invoices").update({ deposit_received_at: receivedAt }).eq("id", id);
+    } catch {
+      /* ยังไม่ได้รัน migration — ข้าม */
+    }
+  } else {
+    const m = mem.find((x) => x.id === id);
+    if (m) m.depositReceivedAt = receivedAt;
+  }
+
   return {
     ok: true as const,
     deposit,
     remaining: Math.max(0, inv.total - deposit),
+    receivedAt,
   };
 }
 

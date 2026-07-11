@@ -46,6 +46,7 @@ type Invoice = {
   lineUserId?: string;
   customerId?: string;
   bookingId?: string;
+  depositReceivedAt?: string;
   items?: { label: string; amount: number }[];
 };
 
@@ -1181,7 +1182,8 @@ export default function BillingPage() {
             </p>
             {(inv.deposit ?? 0) > 0 && (
               <p className="text-[11px] font-bold text-ok">
-                💰 มัดจำ {inv.deposit!.toLocaleString()}
+                {inv.depositReceivedAt ? "✅ รับมัดจำแล้ว " : "💰 มัดจำ (รอรับ) "}
+                {inv.deposit!.toLocaleString()}
                 {inv.status === "pending" && (
                   <span className="text-wait">
                     {" "}
@@ -1210,7 +1212,7 @@ export default function BillingPage() {
 
             {inv.status === "pending" && (
               <div className="mt-2 flex flex-wrap gap-2">
-                {(inv.deposit ?? 0) > 0 && (
+                {(inv.deposit ?? 0) > 0 && !inv.depositReceivedAt && (
                   <button
                     type="button"
                     disabled={invoiceBusy === `${inv.id}:receive_deposit`}

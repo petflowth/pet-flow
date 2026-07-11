@@ -5,7 +5,11 @@ import {
   getCustomer,
   adjustDepositCredit,
 } from "./customers-store";
-import { addFinanceEntry } from "./finance-store";
+import {
+  addFinanceEntry,
+  incomeForInvoice,
+  deleteFinanceByInvoice,
+} from "./finance-store";
 import { calcPromoDiscount } from "./promos-store";
 import { addPoints } from "./points-store";
 import { getSupabase } from "./supabase/server";
@@ -211,12 +215,94 @@ export async function createInvoice(data: {
     mem.unshift(invoice);
   }
 
-  // มัดจำที่หักในบิลนี้ = ดึงจากเครดิตมัดจำล่วงหน้าของลูกค้า (บันทึกรายรับไปแล้วตอนรับมัดจำ)
-  if (deposit > 0) {
-    await adjustDepositCredit(data.customerId, -deposit);
-  }
-
   return invoice;
+}
+
+/**
+ * รับ "มัดจำ" ของบิลนี้ → บันทึกเป็นรายรับก้อนแรก (ไม่ปิดบิล).
+ * ใช้ยอดรายรับที่ลงบัญชีแล้วของบิลเป็นตัวกันบันทึกซ้ำ (ledger-based).
+ */
+export async function receiveInvoiceDeposit(id: string) {
+  const inv = await getInvoice(id);
+  if (!inv || inv.status === "paid") return { ok: false as const, error: "invalid" };
+  const deposit = inv.deposit || 0;
+  if (deposit <= 0) return { ok: false as const, error: "no_deposit" };
+
+  const already = await incomeForInvoice(id);
+  const toRecord = Math.max(0, deposit - already);
+  if (toRecord <= 0) return { ok: false as const, error: "already_received" };
+
+  await addFinanceEntry({
+    type: "income",
+    amount: toRecord,
+    category: "มัดจำ",
+    description: `${inv.catName} · ${inv.customerName} — มัดจำ (บิล ${inv.id})`,
+    date: new Date().toISOString().slice(0, 10),
+    customerId: inv.customerId,
+    invoiceId: inv.id,
+  });
+
+  return {
+    ok: true as const,
+    deposit,
+    remaining: Math.max(0, inv.total - deposit),
+  };
+}
+
+/** แก้ไขบิล (รายการ/มัดจำ/ส่วนลด) — ได้เฉพาะบิลที่ยังไม่ปิด */
+export async function updateInvoice(
+  id: string,
+  patch: {
+    items?: InvoiceItem[];
+    deposit?: number;
+    extraDiscount?: number;
+    promoId?: string;
+  }
+) {
+  const inv = await getInvoice(id);
+  if (!inv) return { ok: false as const, error: "not_found" };
+  if (inv.status === "paid") return { ok: false as const, error: "already_paid" };
+
+  const items = patch.items ?? inv.items;
+  const subtotal = items.reduce((s, i) => s + i.amount, 0);
+  const promoId = patch.promoId !== undefined ? patch.promoId : inv.promoId;
+  const { discount: promoDiscount, label } = await calcPromoDiscount(promoId, subtotal);
+  const extra = Math.max(0, Math.round(patch.extraDiscount ?? 0));
+  const discount = Math.min(subtotal, promoDiscount + extra);
+  const total = subtotal - discount;
+  const deposit = Math.min(
+    total,
+    Math.max(0, Math.round(patch.deposit ?? inv.deposit ?? 0))
+  );
+
+  inv.items = items;
+  inv.subtotal = subtotal;
+  inv.discount = discount;
+  inv.total = total;
+  inv.deposit = deposit;
+  inv.promoId = promoId;
+  inv.promoLabel = label;
+
+  const sb = getSupabase();
+  if (sb) {
+    await sb.from("invoices").update(invoiceToRow(inv)).eq("id", id);
+  }
+  return { ok: true as const, invoice: inv };
+}
+
+/** ลบบิล + รายการบัญชีที่ผูกกับบิลนั้น (ไม่ให้ยอดค้าง) */
+export async function deleteInvoice(id: string) {
+  const inv = await getInvoice(id);
+  if (!inv) return { ok: false as const, error: "not_found" };
+  await deleteFinanceByInvoice(id);
+  const sb = getSupabase();
+  if (sb) {
+    await sb.from("invoices").delete().eq("id", id);
+  } else {
+    const i = mem.findIndex((x) => x.id === id);
+    if (i >= 0) mem.splice(i, 1);
+  }
+  return { ok: true as const };
 }
 
 export async function markInvoiceSent(id: string) {
@@ -238,8 +324,8 @@ export async function markInvoicePaid(
   const inv = await getInvoice(id);
   if (!inv || inv.status === "paid") return { ok: false as const, error: "invalid" };
 
-  // มัดจำถูกบันทึกเป็นรายรับ + หักเครดิตไปแล้วตอนรับมัดจำ → รอบนี้เก็บแค่ "ยอดที่เหลือจริง"
-  const alreadyReceived = inv.deposit || 0;
+  // ยอดที่ลงบัญชีไปแล้วของบิลนี้ (เช่น มัดจำที่กดรับไปก่อน) → รอบนี้เก็บแค่ "ที่เหลือจริง"
+  const alreadyReceived = await incomeForInvoice(id);
   const settleAmount = Math.max(0, inv.total - alreadyReceived);
 
   const customer = await getCustomer(inv.customerId);

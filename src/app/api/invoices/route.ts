@@ -7,6 +7,9 @@ import {
   markInvoicePaid,
   markInvoiceSent,
   receiveDepositCredit,
+  receiveInvoiceDeposit,
+  updateInvoice,
+  deleteInvoice,
 } from "@/lib/invoices-store";
 import { getCustomer } from "@/lib/customers-store";
 import { getPaymentConfig } from "@/lib/payment-config";
@@ -303,6 +306,60 @@ export async function PATCH(req: NextRequest) {
         memberCredit: customer.memberCredit,
       }),
     ]);
+    return NextResponse.json({ ok: true });
+  }
+
+  if (action === "receive_deposit") {
+    const res = await receiveInvoiceDeposit(id);
+    if (!res.ok) {
+      return NextResponse.json({ error: res.error }, { status: 400 });
+    }
+    await sendTelegram(
+      formatBookingTelegram("💰 รับมัดจำแล้ว", {
+        ลูกค้า: inv.customerName,
+        น้องแมว: inv.catName,
+        มัดจำ: `${res.deposit} บาท`,
+        คงเหลือ: `${res.remaining} บาท`,
+        บิล: inv.id,
+      })
+    );
+    // ส่งการ์ดขอบคุณ + เงื่อนไข ให้ลูกค้า
+    if (inv.lineUserId) {
+      const msgs = (await getSiteConfig()).messages;
+      await pushLineMessage(inv.lineUserId, [
+        buildDepositThanksFlex({
+          title: msgs.depositThanksTitle,
+          body: renderTemplate(msgs.depositThanksBody, {
+            name: inv.customerName,
+            cat: inv.catName,
+            amount: res.deposit.toLocaleString(),
+          }),
+          terms: msgs.depositTerms || [],
+          amount: res.deposit,
+        }),
+      ]);
+    }
+    return NextResponse.json({ ok: true, deposit: res.deposit, remaining: res.remaining });
+  }
+
+  if (action === "update") {
+    const res = await updateInvoice(id, {
+      items: body.items,
+      deposit: body.deposit,
+      extraDiscount: body.extraDiscount,
+      promoId: body.promoId,
+    });
+    if (!res.ok) {
+      return NextResponse.json({ error: res.error }, { status: 400 });
+    }
+    return NextResponse.json({ ok: true, invoice: res.invoice });
+  }
+
+  if (action === "delete") {
+    const res = await deleteInvoice(id);
+    if (!res.ok) {
+      return NextResponse.json({ error: res.error }, { status: 400 });
+    }
     return NextResponse.json({ ok: true });
   }
 

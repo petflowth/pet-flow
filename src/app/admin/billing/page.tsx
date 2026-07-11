@@ -125,7 +125,7 @@ export default function BillingPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [promos, setPromos] = useState<Promo[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [rooms, setRooms] = useState<ServicePreset[]>([]);
+  const [rooms, setRooms] = useState<(ServicePreset & { id: string })[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [bookingId, setBookingId] = useState<string | undefined>(undefined);
   const [showBookings, setShowBookings] = useState(false);
@@ -169,7 +169,8 @@ export default function BillingPage() {
     setBookings(((await b.json()).bookings || []).filter((x: Booking) => x.status !== "cancelled"));
     const config = (await cfg.json()).config;
     setRooms(
-      (config?.rooms || []).map((r: { name: string; price: number }) => ({
+      (config?.rooms || []).map((r: { id: string; name: string; price: number }) => ({
+        id: r.id,
         label: `ห้อง ${r.name}`,
         amount: r.price,
       }))
@@ -354,15 +355,16 @@ export default function BillingPage() {
     else setSearch(bk.customerName);
 
     if (bk.service === "room") {
-      const matched = rooms.find(
-        (r) => bk.room && r.label.includes(bk.room)
-      );
+      // นัดเก็บ room เป็น id → จับคู่กับ id ก่อน แล้วค่อย fallback เป็นชื่อ
+      const matched =
+        rooms.find((r) => bk.room && r.id === bk.room) ||
+        rooms.find((r) => bk.room && r.label.includes(bk.room));
       setItems([
         {
           ...newGrooming(),
           kind: "room",
-          roomLabel: matched?.label || (bk.room ? `ห้อง ${bk.room}` : "ห้องพัก"),
-          roomPrice: matched?.amount || 0,
+          roomLabel: matched?.label || rooms[0]?.label || (bk.room ? `ห้อง ${bk.room}` : "ห้องพัก"),
+          roomPrice: matched?.amount ?? rooms[0]?.amount ?? 0,
           nights: nightsBetween(bk.checkin, bk.checkout),
         },
       ]);

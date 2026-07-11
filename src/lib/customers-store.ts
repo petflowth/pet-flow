@@ -47,6 +47,8 @@ export type CustomerRecord = {
   memberCredit: number;
   /** มัดจำล่วงหน้าคงเหลือ — หักออกจากบิลถัดไปอัตโนมัติ (ต้องรัน OVERNIGHT_SQL.md) */
   depositCredit: number;
+  /** ลบแบบกู้คืนได้ (soft delete) */
+  deletedAt?: string;
   memberSince?: string;
   tier: CustomerTier;
   /** วันที่ส่งข้อความตามลูกค้าครั้งล่าสุด */
@@ -125,6 +127,7 @@ type CustomerRow = {
   last_follow_up_at: string | null;
   created_at: string;
   updated_at: string;
+  deleted_at?: string | null;
   cats?: CatRow[];
 };
 
@@ -188,6 +191,7 @@ function mapCustomer(row: CustomerRow): CustomerRecord {
     isMember: row.is_member,
     memberCredit: Number(row.member_credit),
     depositCredit: Number(row.deposit_credit) || 0,
+    deletedAt: row.deleted_at ?? undefined,
     memberSince: row.member_since ?? undefined,
     tier: (row.tier as CustomerTier) || "new",
     lastFollowUpAt: row.last_follow_up_at ?? undefined,
@@ -210,18 +214,29 @@ function mapCustomer(row: CustomerRow): CustomerRecord {
   };
 }
 
-async function fetchAllCustomers(): Promise<CustomerRecord[]> {
+async function fetchAllCustomers(
+  includeDeleted = false
+): Promise<CustomerRecord[]> {
   const sb = getSupabase();
+  let all: CustomerRecord[];
   if (sb) {
     const { data } = await sb
       .from("customers")
       .select("*, cats(*)")
       .order("updated_at", { ascending: false });
-    return ((data as CustomerRow[] | null) || []).map(mapCustomer);
+    all = ((data as CustomerRow[] | null) || []).map(mapCustomer);
+  } else {
+    all = [...memCustomers.values()].sort((a, b) =>
+      b.updatedAt.localeCompare(a.updatedAt)
+    );
   }
-  return [...memCustomers.values()].sort((a, b) =>
-    b.updatedAt.localeCompare(a.updatedAt)
-  );
+  return includeDeleted ? all : all.filter((c) => !c.deletedAt);
+}
+
+/** ลูกค้าที่ถูกลบ (ถังขยะ) — กู้คืนได้ */
+export async function listTrashedCustomers() {
+  const all = await fetchAllCustomers(true);
+  return all.filter((c) => c.deletedAt);
 }
 
 async function touchCustomer(id: string) {
@@ -815,14 +830,36 @@ export async function deleteCat(customerId: string, catId: string) {
   return c;
 }
 
+/** ลบลูกค้า (ย้ายลงถังขยะ กู้คืนได้) */
 export async function deleteCustomer(customerId: string) {
+  const now = new Date().toISOString();
   const sb = getSupabase();
   if (sb) {
-    // cats/promo_claims/etc. ลบตาม (on delete cascade)
-    const { error } = await sb.from("customers").delete().eq("id", customerId);
-    if (error) throw new Error(error.message);
+    try {
+      const { error } = await sb
+        .from("customers")
+        .update({ deleted_at: now })
+        .eq("id", customerId);
+      if (error) throw new Error(error.message);
+    } catch {
+      // ยังไม่ได้รัน migration deleted_at → ลบจริง (cascade)
+      await sb.from("customers").delete().eq("id", customerId);
+    }
   } else {
-    memCustomers.delete(customerId);
+    const c = memCustomers.get(customerId);
+    if (c) c.deletedAt = now;
+  }
+  return { ok: true as const };
+}
+
+/** กู้ลูกค้าจากถังขยะ */
+export async function restoreCustomer(customerId: string) {
+  const sb = getSupabase();
+  if (sb) {
+    await sb.from("customers").update({ deleted_at: null }).eq("id", customerId);
+  } else {
+    const c = memCustomers.get(customerId);
+    if (c) c.deletedAt = undefined;
   }
   return { ok: true as const };
 }

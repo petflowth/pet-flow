@@ -37,6 +37,8 @@ export type InvoiceRecord = {
   bookingId?: string;
   sentAt?: string;
   createdAt: string;
+  /** ลบแบบกู้คืนได้ (soft delete) — ต้องรัน migration ก่อน */
+  deletedAt?: string;
 };
 
 type InvoiceRow = {
@@ -59,6 +61,7 @@ type InvoiceRow = {
   booking_id: string | null;
   sent_at: string | null;
   created_at: string;
+  deleted_at?: string | null;
 };
 
 const mem: InvoiceRecord[] = [];
@@ -84,6 +87,7 @@ function rowToInvoice(r: InvoiceRow): InvoiceRecord {
     bookingId: r.booking_id || undefined,
     sentAt: r.sent_at || undefined,
     createdAt: r.created_at,
+    deletedAt: r.deleted_at ?? undefined,
   };
 }
 
@@ -123,7 +127,23 @@ export async function listInvoices(customerId?: string) {
     list = customerId ? mem.filter((i) => i.customerId === customerId) : [...mem];
     list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
-  return list;
+  return list.filter((i) => !i.deletedAt);
+}
+
+/** บิลที่ถูกลบ (อยู่ในถังขยะ) — กู้คืนได้ */
+export async function listTrashedInvoices() {
+  const sb = getSupabase();
+  let list: InvoiceRecord[];
+  if (sb) {
+    const { data } = await sb
+      .from("invoices")
+      .select("*")
+      .order("created_at", { ascending: false });
+    list = ((data as InvoiceRow[] | null) || []).map(rowToInvoice);
+  } else {
+    list = [...mem];
+  }
+  return list.filter((i) => i.deletedAt);
 }
 
 export async function getInvoice(id: string) {
@@ -291,16 +311,39 @@ export async function updateInvoice(
 }
 
 /** ลบบิล + รายการบัญชีที่ผูกกับบิลนั้น (ไม่ให้ยอดค้าง) */
+/** ลบบิล (ย้ายลงถังขยะ กู้คืนได้) + ลบรายการบัญชีที่ผูก (กู้คืนตอน restore) */
 export async function deleteInvoice(id: string) {
   const inv = await getInvoice(id);
   if (!inv) return { ok: false as const, error: "not_found" };
   await deleteFinanceByInvoice(id);
+  const now = new Date().toISOString();
   const sb = getSupabase();
   if (sb) {
-    await sb.from("invoices").delete().eq("id", id);
+    try {
+      const { error } = await sb
+        .from("invoices")
+        .update({ deleted_at: now })
+        .eq("id", id);
+      if (error) throw new Error(error.message);
+    } catch {
+      // ยังไม่ได้รัน migration deleted_at → ลบจริงไปเลย (กู้ไม่ได้)
+      await sb.from("invoices").delete().eq("id", id);
+    }
   } else {
     const i = mem.findIndex((x) => x.id === id);
-    if (i >= 0) mem.splice(i, 1);
+    if (i >= 0) mem[i].deletedAt = now;
+  }
+  return { ok: true as const };
+}
+
+/** กู้บิลจากถังขยะ */
+export async function restoreInvoice(id: string) {
+  const sb = getSupabase();
+  if (sb) {
+    await sb.from("invoices").update({ deleted_at: null }).eq("id", id);
+  } else {
+    const i = mem.findIndex((x) => x.id === id);
+    if (i >= 0) mem[i].deletedAt = undefined;
   }
   return { ok: true as const };
 }

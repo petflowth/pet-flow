@@ -9,6 +9,8 @@ import {
   addCat,
   deleteCat,
   deleteCustomer,
+  restoreCustomer,
+  listTrashedCustomers,
   topupMemberCredit,
   upsertCustomerFromBooking,
   recalculateCustomerTier,
@@ -30,6 +32,10 @@ export async function GET(req: NextRequest) {
     const days = Number(req.nextUrl.searchParams.get("days")) || undefined;
     const rows = await listInactiveCustomers(days);
     return NextResponse.json({ inactive: rows });
+  }
+
+  if (req.nextUrl.searchParams.get("trash") === "1") {
+    return NextResponse.json({ customers: await listTrashedCustomers() });
   }
 
   if (id) {
@@ -137,6 +143,11 @@ export async function PATCH(req: NextRequest) {
         { status: 500 }
       );
     }
+  }
+
+  if (action === "restore_customer") {
+    await restoreCustomer(id);
+    return NextResponse.json({ ok: true });
   }
 
   if (action === "topup_member") {

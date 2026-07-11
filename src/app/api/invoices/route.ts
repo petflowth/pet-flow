@@ -10,6 +10,8 @@ import {
   receiveInvoiceDeposit,
   updateInvoice,
   deleteInvoice,
+  restoreInvoice,
+  listTrashedInvoices,
 } from "@/lib/invoices-store";
 import { getCustomer } from "@/lib/customers-store";
 import { getPaymentConfig } from "@/lib/payment-config";
@@ -77,6 +79,10 @@ export async function GET(req: NextRequest) {
       payment: await getPaymentConfig(),
       mapsUrl: BUSINESS.maps,
     });
+  }
+
+  if (req.nextUrl.searchParams.get("trash") === "1") {
+    return NextResponse.json({ invoices: await listTrashedInvoices() });
   }
 
   // หาบิลล่าสุดที่ผูกกับนัดนี้ (ใช้จากปุ่มส่งการ์ดในการ์ดนัด)
@@ -368,6 +374,11 @@ export async function PATCH(req: NextRequest) {
     if (!res.ok) {
       return NextResponse.json({ error: res.error }, { status: 400 });
     }
+    return NextResponse.json({ ok: true });
+  }
+
+  if (action === "restore") {
+    await restoreInvoice(id);
     return NextResponse.json({ ok: true });
   }
 

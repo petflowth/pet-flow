@@ -58,6 +58,7 @@ type Booking = {
   checkin?: string;
   checkout?: string;
   date?: string;
+  time?: string;
   status: string;
 };
 
@@ -283,12 +284,19 @@ export default function BillingPage() {
         : mode === "full"
           ? billMsg.summaryFullTitle
           : billMsg.summaryBookingTitle;
+    const bk = bookings.find((b) => b.id === bookingId);
+    const scheduleText = bk
+      ? bk.service === "room" || bk.checkin
+        ? `🏠 เข้าพัก: ${bk.checkin || bk.date || ""}${bk.checkout ? ` → ${bk.checkout}` : ""}`
+        : `📅 นัดอาบน้ำ: ${bk.date || ""}${bk.time ? ` ${bk.time}` : ""}`.trim()
+      : undefined;
     return {
       mode,
       title,
       closing: "",
       customerName: selected?.name || "",
       catName,
+      scheduleText,
       items: lines
         .filter((l) => l.label.trim())
         .map((l) => ({ label: l.label, amount: l.amount })),

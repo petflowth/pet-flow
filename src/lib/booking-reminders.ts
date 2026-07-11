@@ -10,6 +10,20 @@ import type { SiteConfig } from "./config-types";
  * เพื่อให้แก้ข้อความที่เดียว (Settings) แล้วมีผลทุกที่
  */
 
+/** ข้อความวัน/เวลา ของนัด — อาบน้ำ = วันที่+เวลา · ห้องพัก = ช่วงเข้าพัก */
+export function bookingScheduleText(b: {
+  service?: string;
+  date?: string;
+  time?: string;
+  checkin?: string;
+  checkout?: string;
+}): string {
+  if (b.service === "room" || b.checkin) {
+    return `🏠 เข้าพัก: ${b.checkin || b.date || ""}${b.checkout ? ` → ${b.checkout}` : ""}`;
+  }
+  return `📅 นัดอาบน้ำ: ${b.date || ""}${b.time ? ` ${b.time}` : ""}`.trim();
+}
+
 /** ลิงก์หน้ายอมรับข้อตกลง (คืน "" ถ้ายังไม่ได้ตั้ง LIFF ID) */
 export async function getConsentUrl(): Promise<string> {
   const liffId = (await getLineCredentials())?.liffId;

@@ -26,6 +26,8 @@ import {
   buildMemberBalanceFlex,
 } from "@/lib/line";
 import { renderTemplate } from "@/lib/messages";
+import { getBooking } from "@/lib/bookings-store";
+import { bookingScheduleText } from "@/lib/booking-reminders";
 import type { InvoiceRecord } from "@/lib/invoices-store";
 import type { SiteConfig } from "@/lib/config-types";
 
@@ -35,7 +37,8 @@ function summaryFlexFromInvoice(
   inv: InvoiceRecord,
   mode: SummaryMode,
   billing: SiteConfig["billing"],
-  payment: { bankName: string; accountNumber: string; accountName: string }
+  payment: { bankName: string; accountNumber: string; accountName: string },
+  scheduleText?: string
 ) {
   const deposit = inv.deposit || 0;
   const remaining = Math.max(0, inv.total - deposit);
@@ -53,6 +56,7 @@ function summaryFlexFromInvoice(
     closing: "",
     customerName: inv.customerName,
     catName: inv.catName,
+    scheduleText,
     items: inv.items,
     subtotal: inv.subtotal,
     discount: inv.discount,
@@ -199,6 +203,10 @@ export async function PATCH(req: NextRequest) {
   const base = process.env.NEXT_PUBLIC_APP_URL || "";
     const payment = await getPaymentConfig();
 
+  // วัน/เวลานัด (จากนัดที่ผูกกับบิล) — แสดงในการ์ดสรุป
+  const linkedBooking = inv.bookingId ? await getBooking(inv.bookingId) : null;
+  const scheduleText = linkedBooking ? bookingScheduleText(linkedBooking) : undefined;
+
   if (action === "send_payment") {
     if (!inv.lineUserId) {
       return NextResponse.json({ error: "no_line" }, { status: 400 });
@@ -208,7 +216,7 @@ export async function PATCH(req: NextRequest) {
     if (deposit > 0) {
       const billing = (await getSiteConfig()).billing;
       await pushLineMessage(inv.lineUserId, [
-        summaryFlexFromInvoice(inv, "remaining", billing, payment),
+        summaryFlexFromInvoice(inv, "remaining", billing, payment, scheduleText),
       ]);
       await markInvoiceSent(id);
       return NextResponse.json({ ok: true, kind: "remaining" });
@@ -238,7 +246,7 @@ export async function PATCH(req: NextRequest) {
     const mode = (body.mode as SummaryMode) || "booking";
     const billing = (await getSiteConfig()).billing;
     await pushLineMessage(inv.lineUserId, [
-      summaryFlexFromInvoice(inv, mode, billing, payment),
+      summaryFlexFromInvoice(inv, mode, billing, payment, scheduleText),
     ]);
     await markInvoiceSent(id);
     return NextResponse.json({ ok: true, kind: mode });

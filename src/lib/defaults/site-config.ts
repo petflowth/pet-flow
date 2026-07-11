@@ -74,7 +74,7 @@ export function getDefaultSiteConfig(): SiteConfig {
       },
       options: {
         servicePresets: SERVICE_PRESETS.map((s) => ({ ...s })),
-        freebies: ["กล้องวงจรปิด (CCTV)", "น้ำพุแมว", "รับ-ส่ง", "ขนม/ทรีท"],
+        freebies: ["กล้องวงจรปิด (CCTV)", "น้ำพุแมว", "ทรายแมว", "รับ-ส่ง", "ขนม/ทรีท"],
         catBreeds: [...BREED_OPTIONS],
         referralOptions: [
           "Facebook",

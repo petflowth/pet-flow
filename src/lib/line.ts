@@ -601,6 +601,8 @@ export function buildBillSummaryFlex(data: {
   closing?: string;
   customerName: string;
   catName: string;
+  /** วันที่/เวลานัด หรือช่วงเข้าพัก (แสดงใต้ชื่อ) */
+  scheduleText?: string;
   items: { label: string; amount: number }[];
   subtotal: number;
   discount?: number;
@@ -645,6 +647,19 @@ export function buildBillSummaryFlex(data: {
       margin: "sm",
       wrap: true,
     },
+    ...(data.scheduleText
+      ? [
+          {
+            type: "text",
+            text: data.scheduleText,
+            size: "sm",
+            weight: "bold",
+            color: "#5C4033",
+            margin: "sm",
+            wrap: true,
+          },
+        ]
+      : []),
     { type: "separator", margin: "lg" },
     {
       type: "box",

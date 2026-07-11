@@ -749,11 +749,41 @@ function CrmTab({
 }) {
   const [form, setForm] = useState(config.crm);
   const [presetsText, setPresetsText] = useState(config.crm.tierPresets.join(", "));
+  const [recalcBusy, setRecalcBusy] = useState(false);
+  const [recalcMsg, setRecalcMsg] = useState("");
 
   useEffect(() => {
     setForm(config.crm);
     setPresetsText(config.crm.tierPresets.join(", "));
   }, [config.crm]);
+
+  const rules = form.tierRules || {
+    regularMinVisits: 1,
+    vipMinVisits: 5,
+    vipMinSpend: 0,
+  };
+  const setRule = (patch: Partial<typeof rules>) =>
+    setForm({ ...form, tierRules: { ...rules, ...patch } });
+
+  const recalcAll = async () => {
+    setRecalcBusy(true);
+    setRecalcMsg("");
+    try {
+      const res = await fetch("/api/customers", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "recalc_all_tiers" }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setRecalcMsg(`✅ คำนวณใหม่ ${d.total} คน · เปลี่ยนระดับ ${d.updated} คน`);
+      } else {
+        setRecalcMsg("❌ คำนวณไม่สำเร็จ");
+      }
+    } finally {
+      setRecalcBusy(false);
+    }
+  };
 
   return (
     <form
@@ -802,10 +832,51 @@ function CrmTab({
         value={presetsText}
         onChange={setPresetsText}
       />
+
+      <hr className="border-catcha-line" />
+      <p className="text-xs font-extrabold text-catcha-chocolate">
+        ⭐ เงื่อนไขเลื่อนระดับลูกค้าอัตโนมัติ
+      </p>
+      <p className="text-[10px] text-brown-faint">
+        ระบบจะเลื่อนระดับให้เองเมื่อลูกค้ามาใช้บริการครบ หรือยอดสะสมถึงเกณฑ์
+        (Member = ลูกค้าที่เติมเครดิต)
+      </p>
+      <Field
+        label="ลูกค้าประจำ — มาใช้บริการ (ครั้ง) ขึ้นไป"
+        type="number"
+        value={String(rules.regularMinVisits)}
+        onChange={(v) => setRule({ regularMinVisits: Math.max(0, Number(v) || 0) })}
+      />
+      <Field
+        label="VIP — มาใช้บริการ (ครั้ง) ขึ้นไป"
+        type="number"
+        value={String(rules.vipMinVisits)}
+        onChange={(v) => setRule({ vipMinVisits: Math.max(0, Number(v) || 0) })}
+      />
+      <Field
+        label="VIP — หรือยอดสะสมรวม (บาท) ขึ้นไป · 0 = ปิด"
+        type="number"
+        value={String(rules.vipMinSpend)}
+        onChange={(v) => setRule({ vipMinSpend: Math.max(0, Number(v) || 0) })}
+      />
+
+      <SaveBtn saving={saving} />
+
+      <hr className="border-catcha-line" />
+      <button
+        type="button"
+        onClick={recalcAll}
+        disabled={recalcBusy}
+        className="w-full rounded-catcha-sm bg-latte/25 py-2.5 text-xs font-extrabold text-catcha-chocolate disabled:opacity-50"
+      >
+        {recalcBusy ? "กำลังคำนวณ…" : "🔄 คำนวณระดับลูกค้าใหม่ทั้งหมด (หลังแก้เงื่อนไข)"}
+      </button>
+      {recalcMsg && (
+        <p className="text-center text-[11px] font-bold text-ok">{recalcMsg}</p>
+      )}
       <p className="text-[10px] text-brown-faint">
         Cron อัตโนมัติ: GET /api/cron/inactive-followup (ตั้งใน Vercel Cron)
       </p>
-      <SaveBtn saving={saving} />
     </form>
   );
 }

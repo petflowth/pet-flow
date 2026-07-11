@@ -24,6 +24,18 @@ export type CrmConfig = {
   followUpMessage: string;
   /** tier ที่ตั้งเองได้ในโปรไฟล์ลูกค้า */
   tierPresets: string[];
+  /** เงื่อนไขอัปเกรดระดับลูกค้าอัตโนมัติ (ตั้งเองได้) */
+  tierRules: TierRulesConfig;
+};
+
+/** เงื่อนไขเลื่อนระดับลูกค้า — ถึงระดับเมื่อ "ครบครั้ง" หรือ "ยอดถึง" (อย่างใดอย่างหนึ่ง) */
+export type TierRulesConfig = {
+  /** มาใช้บริการกี่ครั้งขึ้นไป = ลูกค้าประจำ */
+  regularMinVisits: number;
+  /** มาใช้บริการกี่ครั้งขึ้นไป = VIP */
+  vipMinVisits: number;
+  /** ยอดสะสมรวมกี่บาทขึ้นไป = VIP (0 = ปิด ไม่ใช้เงื่อนไขยอด) */
+  vipMinSpend: number;
 };
 
 /** ข้อความ (plain text) ที่ส่งหาลูกค้า — แก้ได้ในหน้าตั้งค่า > ข้อความ */

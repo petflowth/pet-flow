@@ -28,6 +28,11 @@ export function getDefaultSiteConfig(): SiteConfig {
         followUpMessage:
           "สวัสดีค่ะ {name} จาก CatCha Hotel 🐱\nคิดถึงน้อง{cats} นะคะ มาไม่ได้นาน {days} วันแล้ว มีโปรพิเศษรออยู่ที่แอปนะคะ 💛",
         tierPresets: ["VIP", "Gold", "Silver"],
+        tierRules: {
+          regularMinVisits: 1,
+          vipMinVisits: 5,
+          vipMinSpend: 0,
+        },
       },
       messages: { ...DEFAULT_MESSAGES },
       automation: {

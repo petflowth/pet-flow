@@ -1,12 +1,14 @@
 import { bookingMatchesCustomer, datesForBooking, isUpcomingBooking } from "./booking-customer-match";
 import type { Booking } from "./business";
 import {
-  computeTierFromVisits,
+  computeTier,
+  DEFAULT_TIER_RULES,
   type CustomerTier,
 } from "./customer-tier";
 import { listBookings } from "./bookings-store";
 import { getAccount, getPointsHistory } from "./points-store";
 import { getSupabase } from "./supabase/server";
+import { getSiteConfig } from "./config-store";
 
 export type { CustomerTier } from "./customer-tier";
 
@@ -1115,14 +1117,43 @@ export async function countCustomerVisits(customerId: string) {
   );
 }
 
-/** อัปเกรดระดับลูกค้าตามจำนวนครั้งที่มาใช้บริการ */
+/** ยอดสะสมรวม (บิลที่ชำระแล้ว) — ใช้เป็นเงื่อนไขเลื่อนระดับ VIP */
+export async function customerTotalSpend(customerId: string) {
+  const { listInvoices } = await import("./invoices-store");
+  const invs = await listInvoices(customerId);
+  return invs
+    .filter((i) => i.status === "paid" && !i.deletedAt)
+    .reduce((s, i) => s + (i.total || 0), 0);
+}
+
+/** อัปเกรดระดับลูกค้าตามเงื่อนไขที่ตั้งไว้ (จำนวนครั้ง / ยอดสะสม) */
 export async function recalculateCustomerTier(customerId: string) {
   const c = await getCustomer(customerId);
   if (!c) return null;
   const visits = await countCustomerVisits(customerId);
-  const tier = computeTierFromVisits(visits, c.isMember);
+  const spend = await customerTotalSpend(customerId);
+  let rules = DEFAULT_TIER_RULES;
+  try {
+    const cfg = await getSiteConfig();
+    rules = cfg.crm?.tierRules || DEFAULT_TIER_RULES;
+  } catch {
+    /* ใช้ค่า default ถ้าโหลด config ไม่ได้ */
+  }
+  const tier = computeTier(visits, spend, c.isMember, rules);
   if (tier === c.tier) return c;
   return updateCustomer(customerId, { tier });
+}
+
+/** คำนวณระดับลูกค้าใหม่ทั้งหมด (ใช้ตอนเปลี่ยนเงื่อนไข tier) */
+export async function recalcAllTiers() {
+  const all = await listCustomers();
+  let updated = 0;
+  for (const c of all) {
+    const before = c.tier;
+    const res = await recalculateCustomerTier(c.id);
+    if (res && res.tier !== before) updated++;
+  }
+  return { total: all.length, updated };
 }
 
 export async function listCustomersByTier(

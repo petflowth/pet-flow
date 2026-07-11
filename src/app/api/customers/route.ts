@@ -14,6 +14,7 @@ import {
   topupMemberCredit,
   upsertCustomerFromBooking,
   recalculateCustomerTier,
+  recalcAllTiers,
 } from "@/lib/customers-store";
 import type { CustomerTier } from "@/lib/customer-tier";
 import {
@@ -75,6 +76,11 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const body = await req.json();
   const { id, action } = body;
+
+  if (action === "recalc_all_tiers") {
+    const res = await recalcAllTiers();
+    return NextResponse.json({ ok: true, ...res });
+  }
 
   if (action === "update_customer") {
     const c = await updateCustomer(id, body.patch);

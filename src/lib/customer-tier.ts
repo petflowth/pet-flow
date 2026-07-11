@@ -11,15 +11,42 @@ export const TIER_LABELS: Record<CustomerTier, string> = {
 
 export const TIER_ORDER: CustomerTier[] = ["new", "regular", "member", "vip"];
 
-/** กฎอัปเกรด: VIP ≥5 ครั้ง · Member = เติมเครดิต · ประจำ ≥1 ครั้ง */
+export type TierRules = {
+  regularMinVisits: number;
+  vipMinVisits: number;
+  vipMinSpend: number;
+};
+
+export const DEFAULT_TIER_RULES: TierRules = {
+  regularMinVisits: 1,
+  vipMinVisits: 5,
+  vipMinSpend: 0,
+};
+
+/**
+ * กฎอัปเกรดระดับลูกค้า (ตั้งเงื่อนไขเองได้)
+ * VIP = ครบจำนวนครั้ง หรือ ยอดถึง (อย่างใดอย่างหนึ่ง) · Member = เติมเครดิต · ประจำ = ครบจำนวนครั้ง
+ */
+export function computeTier(
+  visits: number,
+  totalSpend: number,
+  isMember: boolean,
+  rules: TierRules = DEFAULT_TIER_RULES
+): CustomerTier {
+  const vipByVisits = rules.vipMinVisits > 0 && visits >= rules.vipMinVisits;
+  const vipBySpend = rules.vipMinSpend > 0 && totalSpend >= rules.vipMinSpend;
+  if (vipByVisits || vipBySpend) return "vip";
+  if (isMember) return "member";
+  if (rules.regularMinVisits > 0 && visits >= rules.regularMinVisits) return "regular";
+  return "new";
+}
+
+/** @deprecated ใช้ computeTier แทน (เก็บไว้เผื่อ backward-compat) */
 export function computeTierFromVisits(
   visits: number,
   isMember: boolean
 ): CustomerTier {
-  if (visits >= 5) return "vip";
-  if (isMember) return "member";
-  if (visits >= 1) return "regular";
-  return "new";
+  return computeTier(visits, 0, isMember, DEFAULT_TIER_RULES);
 }
 
 export function isProfileComplete(c: Pick<CustomerRecord, "phone" | "cats">): boolean {

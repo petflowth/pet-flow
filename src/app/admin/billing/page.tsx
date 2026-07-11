@@ -167,11 +167,19 @@ export default function BillingPage() {
       fetch("/api/config"),
       fetch("/api/bookings"),
     ]);
-    setCustomers((await c.json()).customers || []);
-    setPromos((await p.json()).promos || []);
-    setInvoices((await i.json()).invoices || []);
-    setBookings(((await b.json()).bookings || []).filter((x: Booking) => x.status !== "cancelled"));
-    const config = (await cfg.json()).config;
+    // parse ทั้งหมดก่อน แล้วค่อย setState (rooms ก่อน bookings) — กัน auto-pick
+    // จาก URL รันก่อนห้องโหลดเสร็จ (ไม่งั้นราคาห้องออกมา 0)
+    const [cj, pj, ij, cfgj, bj] = await Promise.all([
+      c.json(),
+      p.json(),
+      i.json(),
+      cfg.json(),
+      b.json(),
+    ]);
+    const config = cfgj.config;
+    setCustomers(cj.customers || []);
+    setPromos(pj.promos || []);
+    setInvoices(ij.invoices || []);
     setRooms(
       (config?.rooms || []).map((r: { id: string; name: string; price: number }) => ({
         id: r.id,
@@ -182,6 +190,7 @@ export default function BillingPage() {
     if (config?.payment) setPay(config.payment);
     if (config?.business?.name) setShopName(config.business.name);
     if (config?.billing) setBillMsg(config.billing);
+    setBookings((bj.bookings || []).filter((x: Booking) => x.status !== "cancelled"));
   }, []);
 
   useEffect(() => {
@@ -196,12 +205,13 @@ export default function BillingPage() {
     const bId = params.get("bookingId");
     if (!bId) return;
     const bk = bookings.find((b) => b.id === bId);
-    if (bk) {
-      autoPicked.current = true;
-      pickBooking(bk);
-    }
+    if (!bk) return;
+    // นัดห้องพัก ต้องรอ rooms โหลดก่อน ไม่งั้น match ราคาไม่เจอ → ยอด 0
+    if (bk.service === "room" && rooms.length === 0) return;
+    autoPicked.current = true;
+    pickBooking(bk);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookings]);
+  }, [bookings, rooms]);
 
   const selected = customers.find((c) => c.id === customerId);
 

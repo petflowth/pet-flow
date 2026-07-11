@@ -65,6 +65,27 @@ export function buildConsentInviteText(
   });
 }
 
+/** ข้อความเตือน "เตรียมทรายมาเอง" ถ้าเข้าพักไม่ถึงเกณฑ์แถมทรายฟรี (คืน "" ถ้าถึงเกณฑ์) */
+export function litterNoteFor(
+  b: { checkin?: string; checkout?: string; date?: string },
+  cfg: SiteConfig
+): string {
+  const min = cfg.automation?.freeLitterMinNights ?? 3;
+  const nights =
+    b.checkin && b.checkout
+      ? Math.max(
+          1,
+          Math.round(
+            (new Date(`${b.checkout}T12:00:00`).getTime() -
+              new Date(`${b.checkin}T12:00:00`).getTime()) /
+              86400000
+          )
+        )
+      : 1;
+  if (nights >= min) return "";
+  return `🐈 รบกวนเตรียม "ทรายแมว" มาด้วยนะคะ (เข้าพักไม่ถึง ${min} คืน ยังไม่รวมทรายฟรีค่ะ)`;
+}
+
 /** เนื้อความเตรียมตัวก่อนเข้าพัก (ไม่แนบลิงก์ — ใช้กับการ์ดที่มีปุ่มยอมรับเงื่อนไข) */
 export function buildPrestayBodyText(
   b: Pick<StoredBooking, "catName" | "checkin" | "checkout" | "room" | "date">,
@@ -76,6 +97,7 @@ export function buildPrestayBodyText(
     checkin: b.checkin || b.date || "",
     checkout: b.checkout ? `→ ${b.checkout}` : "",
     room: b.room ? `🏠 ห้อง: ${b.room}` : "",
+    litterNote: litterNoteFor(b, cfg),
     consentUrl: "",
   });
 }

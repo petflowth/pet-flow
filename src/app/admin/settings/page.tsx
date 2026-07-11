@@ -342,14 +342,14 @@ function MessagesTab({
       />
       <TextAreaField
         label="แจ้งรายละเอียด (3 วันก่อนเข้าพัก)"
-        hint="ใช้ได้: {shop} {cat} {checkin} {checkout} {room}"
+        hint="ใช้ได้: {shop} {cat} {checkin} {checkout} {room} {litterNote}"
         value={msgs?.prestayReminder || ""}
         onChange={(v) => setMsgs({ ...msgs, prestayReminder: v })}
         rows={8}
       />
       <TextAreaField
         label="🧳 เตือนเช็คอิน (ก่อนวันเข้าพัก)"
-        hint="ใช้ได้: {shop} {cat} {checkin} {room}"
+        hint="ใช้ได้: {shop} {cat} {checkin} {room} {litterNote}"
         value={msgs?.checkinReminder || ""}
         onChange={(v) => setMsgs({ ...msgs, checkinReminder: v })}
         rows={8}
@@ -1019,6 +1019,7 @@ const AUTOMATION_DEFAULT = {
   checkinReminderDays: 1,
   checkoutReminderEnabled: true,
   checkoutReminderDays: 1,
+  freeLitterMinNights: 3,
   birthdayEnabled: true,
 };
 
@@ -1155,6 +1156,19 @@ function AutomationTab({
             onChange={(v) => set({ checkoutReminderDays: Math.max(0, Number(v) || 0) })}
           />
         )}
+      </div>
+
+      <div className="rounded-catcha-sm border border-catcha-line p-3">
+        <Field
+          label="🐈 แถมทรายฟรีเมื่อเข้าพัก (คืน) ขึ้นไป"
+          type="number"
+          value={String(form.freeLitterMinNights)}
+          onChange={(v) => set({ freeLitterMinNights: Math.max(1, Number(v) || 1) })}
+        />
+        <p className="mt-1 text-[10px] text-brown-soft">
+          ถ้าเข้าพักน้อยกว่านี้ การ์ดเตือนเตรียมตัวจะบอกให้ลูกค้าเตรียมทรายมาเอง
+          (ใส่ {"{litterNote}"} ในข้อความ)
+        </p>
       </div>
 
       <Toggle

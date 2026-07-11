@@ -78,6 +78,8 @@ export type AutomationConfig = {
   checkoutReminderEnabled: boolean;
   /** กี่วันก่อนเช็คเอาท์ ที่จะเตือน */
   checkoutReminderDays: number;
+  /** เข้าพักกี่คืนขึ้นไป ถึงแถมทรายฟรี (ถ้าน้อยกว่านี้ ให้ลูกค้าเตรียมทรายมาเอง) */
+  freeLitterMinNights: number;
   /** อวยพรวันเกิดแมวอัตโนมัติ */
   birthdayEnabled: boolean;
 };

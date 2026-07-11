@@ -8,6 +8,7 @@ import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import {
   buildDepositReminderText,
   buildPrestayBodyText,
+  litterNoteFor,
   getConsentUrl,
 } from "@/lib/booking-reminders";
 import { listCustomers } from "@/lib/customers-store";
@@ -123,6 +124,7 @@ export async function GET(req: NextRequest) {
         cat: b.catName,
         checkin: b.checkin || "",
         room: b.room ? `🏠 ห้อง: ${b.room}` : "",
+        litterNote: litterNoteFor(b, cfg),
       });
       try {
         await pushLineMessage(b.lineUserId, [{ type: "text", text }]);

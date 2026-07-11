@@ -177,7 +177,7 @@ export default function NewBookingPage() {
     }
 
     const noteBase = String(fd.get("notes") || "").trim();
-    const freebieLine = freebies.length
+    const freebieLine = service === "room" && freebies.length
       ? `🎁 ของแถมฟรี: ${freebies.join(", ")}`
       : "";
     const notes = [noteBase, freebieLine].filter(Boolean).join("\n") || undefined;
@@ -387,6 +387,7 @@ export default function NewBookingPage() {
           </>
         )}
 
+        {service === "room" && (
         <div className="rounded-catcha-sm border border-honey/40 bg-honey/10 p-3">
           <p className="text-xs font-extrabold text-catcha-chocolate">
             🎁 ของแถมฟรี (ถ้าตกลงกับลูกค้าไว้)
@@ -419,6 +420,7 @@ export default function NewBookingPage() {
             })}
           </div>
         </div>
+        )}
 
         <Field label="โน้ตนิสัยน้อง (ลูกค้าใหม่)" name="notes" textarea />
 

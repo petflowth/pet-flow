@@ -423,6 +423,21 @@ function MessagesTab({
         rows={3}
       />
 
+      <hr className="border-catcha-line" />
+      <p className="text-xs font-extrabold text-catcha-chocolate">
+        🎂 อวยพรวันเกิดแมวอัตโนมัติ
+      </p>
+      <p className="text-[10px] text-brown-soft">
+        ส่งอัตโนมัติเที่ยงวันที่ตรงกับวันเกิดน้อง (เฉพาะลูกค้าที่ยินยอมรับข่าวสาร)
+      </p>
+      <TextAreaField
+        label="ข้อความอวยพร"
+        hint="ใช้ได้: {shop} {name} {cat}"
+        value={msgs?.birthdayGreeting || ""}
+        onChange={(v) => setMsgs({ ...msgs, birthdayGreeting: v })}
+        rows={5}
+      />
+
       <SaveBtn saving={saving} />
     </form>
   );

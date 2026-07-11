@@ -10,6 +10,8 @@ import {
   buildPrestayReminderText,
   getConsentUrl,
 } from "@/lib/booking-reminders";
+import { listCustomers } from "@/lib/customers-store";
+import { renderTemplate } from "@/lib/messages";
 
 function addDays(dateStr: string, n: number) {
   const dt = new Date(`${dateStr}T12:00:00Z`);
@@ -97,13 +99,44 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  if (tomorrow.length > 0 || depositReminders > 0 || prestayReminders > 0) {
+  // ── 🎂 อวยพรวันเกิดแมว (เฉพาะลูกค้าที่ยินยอมรับข่าวสาร) ──
+  let birthdayGreetings = 0;
+  const mmdd = todayStr.slice(5); // "MM-DD"
+  try {
+    const allCustomers = await listCustomers();
+    for (const c of allCustomers) {
+      if (!c.lineUserId || c.marketingConsent === false) continue;
+      const bdayCat = c.cats.find((cat) => cat.birthday && cat.birthday.slice(5) === mmdd);
+      if (!bdayCat) continue;
+      const text = renderTemplate(cfg.messages.birthdayGreeting, {
+        shop: cfg.business.name,
+        name: c.name,
+        cat: bdayCat.name || "น้องแมว",
+      });
+      try {
+        await pushLineMessage(c.lineUserId, [{ type: "text", text }]);
+        birthdayGreetings++;
+      } catch (e) {
+        errors.push(`birthday ${c.id}: ${String(e)}`);
+      }
+    }
+  } catch (e) {
+    errors.push(`birthday-scan: ${String(e)}`);
+  }
+
+  if (
+    tomorrow.length > 0 ||
+    depositReminders > 0 ||
+    prestayReminders > 0 ||
+    birthdayGreetings > 0
+  ) {
     await sendTelegram(
       formatBookingTelegram("⏰ เตือนอัตโนมัติ 12:00", {
         นัดพรุ่งนี้: String(tomorrow.length),
         ส่งการ์ดสำเร็จ: String(sent),
         แจ้งยอดคงเหลือ7วัน: String(depositReminders),
         แจ้งเข้าพัก3วัน: String(prestayReminders),
+        อวยพรวันเกิดแมว: String(birthdayGreetings),
       })
     );
   }
@@ -114,6 +147,7 @@ export async function GET(req: NextRequest) {
     sent,
     depositReminders,
     prestayReminders,
+    birthdayGreetings,
     errors,
   });
 }

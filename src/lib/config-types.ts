@@ -48,6 +48,8 @@ export type MessagesConfig = {
   depositThanksBody: string;
   /** เงื่อนไขมัดจำในการ์ด — บรรทัดละ 1 ข้อ */
   depositTerms: string[];
+  /** อวยพรวันเกิดแมวอัตโนมัติ — {shop} {name} {cat} */
+  birthdayGreeting: string;
 };
 
 export type SiteConfig = {

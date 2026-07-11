@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useLiff } from "@/components/LiffProvider";
+import { formatThaiDateShort } from "@/lib/format-thai-date";
 
 const SLOTS = Array.from({ length: 11 }, (_, i) => `${String(9 + i).padStart(2, "0")}:00`);
 
@@ -28,6 +29,9 @@ function BookingTimeContent() {
   const [custom, setCustom] = useState("");
   const [saved, setSaved] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const isCheckin = type === "checkin";
 
   useEffect(() => {
     if (!id) {
@@ -65,8 +69,35 @@ function BookingTimeContent() {
     }
   };
 
-  const isCheckin = type === "checkin";
+  const finish = async () => {
+    try {
+      const liff = (await import("@line/liff")).default;
+      if (liff.isInClient()) liff.closeWindow();
+    } catch {
+      /* ไม่ได้เปิดใน LINE — โชว์หน้าจอเสร็จสิ้นแทน */
+    }
+    setDone(true);
+  };
+
   const dateLabel = isCheckin ? bk?.checkin : bk?.checkout;
+
+  if (done) {
+    return (
+      <div className="px-6 py-16 text-center">
+        <div className="text-5xl">🧡</div>
+        <h1 className="mt-4 text-lg font-extrabold text-catcha-chocolate">
+          บันทึกเวลาเรียบร้อยแล้ว!
+        </h1>
+        <p className="mt-2 text-sm leading-relaxed text-brown-soft">
+          {isCheckin
+            ? `เราจะเตรียมห้องรอต้อนรับ${bk?.catName || "น้อง"}ตอน ${saved} นะคะ 🐱`
+            : `เราจะเตรียม${bk?.catName || "น้อง"}ให้พร้อมก่อนกลับบ้านตอน ${saved} นะคะ 🐱`}
+          <br />
+          กลับไปที่แชท LINE ได้เลยค่ะ
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 pb-8 pt-5">
@@ -89,22 +120,32 @@ function BookingTimeContent() {
           <div className="mt-3 rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm">
             <p className="text-sm font-bold text-brown">🐱 {bk.catName}</p>
             <p className="text-xs text-brown-soft">
-              {isCheckin ? "วันเข้าพัก" : "วันรับน้อง"}: {dateLabel || "—"}
+              {isCheckin ? "วันเข้าพัก" : "วันรับน้อง"}:{" "}
+              {dateLabel ? formatThaiDateShort(dateLabel) : "—"}
             </p>
           </div>
 
           {saved && (
-            <div className="mt-4 rounded-catcha bg-sage/15 px-4 py-3 text-center">
-              <p className="text-sm font-extrabold text-catcha-chocolate">
+            <div className="mt-4 rounded-catcha bg-sage/15 px-4 py-4 text-center">
+              <p className="text-base font-extrabold text-catcha-chocolate">
                 ✅ เลือกเวลา {saved} แล้ว
               </p>
-              <p className="mt-0.5 text-xs text-brown-soft">
-                กดเวลาอื่นเพื่อเปลี่ยนได้ค่ะ 🧡
+              <p className="mt-1 text-xs text-brown-soft">
+                ถ้าถูกต้องแล้ว กดปุ่มด้านล่างเพื่อยืนยันและกลับไปที่แชทได้เลยค่ะ 🧡
               </p>
+              <button
+                type="button"
+                onClick={finish}
+                className="mt-3 w-full rounded-catcha-sm bg-latte-deep py-3 text-sm font-extrabold text-card active:scale-[0.98]"
+              >
+                เสร็จแล้ว — กลับไปที่แชท 🧡
+              </button>
             </div>
           )}
 
-          <p className="mt-4 mb-2 text-xs font-bold text-brown-soft">เลือกเวลา</p>
+          <p className="mt-5 mb-2 text-xs font-bold text-brown-soft">
+            {saved ? "เปลี่ยนเวลา (ถ้าต้องการ)" : "เลือกเวลา"}
+          </p>
           <div className="grid grid-cols-3 gap-2">
             {SLOTS.map((t) => (
               <button

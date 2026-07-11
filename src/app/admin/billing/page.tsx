@@ -145,6 +145,7 @@ export default function BillingPage() {
   const [billDepPct, setBillDepPct] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [invoiceBusy, setInvoiceBusy] = useState("");
+  const [billFilter, setBillFilter] = useState<"all" | "pending" | "paid">("all");
   const [items, setItems] = useState<Item[]>([newGrooming()]);
   const [creating, setCreating] = useState(false);
   const [pay, setPay] = useState({ bankName: "", accountNumber: "", accountName: "" });
@@ -1041,9 +1042,50 @@ export default function BillingPage() {
         )}
       </div>
 
-      <h2 className="mb-2 text-sm font-extrabold">บิลล่าสุด</h2>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-sm font-extrabold">บิล</h2>
+        {(() => {
+          const pending = invoices.filter((i) => i.status === "pending");
+          const due = pending.reduce((s, i) => s + (i.total - (i.deposit || 0)), 0);
+          return due > 0 ? (
+            <span className="rounded-full bg-wait/15 px-2.5 py-1 text-[11px] font-extrabold text-wait">
+              ยอดค้างรวม {due.toLocaleString()} ฿ ({pending.length} บิล)
+            </span>
+          ) : null;
+        })()}
+      </div>
+      <div className="mb-2 flex gap-1.5">
+        {(
+          [
+            ["all", "ทั้งหมด"],
+            ["pending", "รอชำระ"],
+            ["paid", "จ่ายแล้ว"],
+          ] as const
+        ).map(([f, label]) => {
+          const n =
+            f === "all"
+              ? invoices.length
+              : invoices.filter((i) => i.status === f).length;
+          return (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setBillFilter(f)}
+              className={`rounded-full px-3 py-1.5 text-xs font-bold ${
+                billFilter === f
+                  ? "bg-honey/45 text-catcha-chocolate"
+                  : "bg-paper text-brown-soft"
+              }`}
+            >
+              {label} {n}
+            </button>
+          );
+        })}
+      </div>
       <ul className="space-y-3">
-        {invoices.map((inv) => (
+        {invoices
+          .filter((inv) => billFilter === "all" || inv.status === billFilter)
+          .map((inv) => (
           <li key={inv.id} className="rounded-catcha border border-catcha-line bg-card p-4">
             <p className="font-bold text-brown">
               {inv.catName} · {inv.customerName}

@@ -1088,15 +1088,26 @@ export async function recalculateCustomerTier(customerId: string) {
   return updateCustomer(customerId, { tier });
 }
 
-export async function listCustomersByTier(tier: CustomerTier | "all") {
-  const { recipients } = await getBroadcastAudience(tier);
+export async function listCustomersByTier(
+  tier: CustomerTier | "all",
+  opts?: { breed?: string }
+) {
+  const { recipients } = await getBroadcastAudience(tier, opts);
   return recipients;
 }
 
 /** รายชื่อผู้รับ broadcast + คนที่ข้าม (ยังไม่ผูก LINE) */
-export async function getBroadcastAudience(tier: CustomerTier | "all") {
+export async function getBroadcastAudience(
+  tier: CustomerTier | "all",
+  opts?: { breed?: string }
+) {
   const all = await fetchAllCustomers();
-  const inTier = tier === "all" ? all : all.filter((c) => c.tier === tier);
+  let inTier = tier === "all" ? all : all.filter((c) => c.tier === tier);
+  if (opts?.breed) {
+    inTier = inTier.filter((c) =>
+      c.cats.some((cat) => (cat.breed || "").trim() === opts.breed)
+    );
+  }
   const withLine = inTier.filter((c) => Boolean(c.lineUserId));
   // ส่งโปร/ข่าวสารเฉพาะคนที่ยินยอม — ยืนยันนัด/จ่ายเงินใช้คนละช่องทาง ไม่ผ่านฟังก์ชันนี้
   const recipients = withLine.filter((c) => c.marketingConsent !== false);

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
+import { BREED_OPTIONS } from "@/lib/cat-breeds";
 import {
   promoRewardLabel,
   type CustomerTier,
@@ -100,6 +101,8 @@ export default function PromosAdminPage() {
   const [tiers, setTiers] = useState<CustomerTier[]>(["all"]);
   const [rewardType, setRewardType] = useState<PromoRewardType>("discount");
   const [broadcastTier, setBroadcastTier] = useState<StoreCustomerTier | "all">("all");
+  const [broadcastBreed, setBroadcastBreed] = useState("");
+  const [broadcastInactive, setBroadcastInactive] = useState(0);
   const [broadcastTitle, setBroadcastTitle] = useState("");
   const [broadcastBody, setBroadcastBody] = useState("");
   const [broadcastImage, setBroadcastImage] = useState("");
@@ -136,7 +139,10 @@ export default function PromosAdminPage() {
 
   useEffect(() => {
     setBroadcastLoading(true);
-    fetch(`/api/line/broadcast?tier=${broadcastTier}`)
+    const q = new URLSearchParams({ tier: broadcastTier });
+    if (broadcastBreed) q.set("breed", broadcastBreed);
+    if (broadcastInactive > 0) q.set("inactiveDays", String(broadcastInactive));
+    fetch(`/api/line/broadcast?${q}`)
       .then((r) => r.json())
       .then((d) => {
         setBroadcastCount(d.withLine ?? d.count ?? 0);
@@ -146,7 +152,7 @@ export default function PromosAdminPage() {
         setBroadcastNoConsent(d.skippedNoConsent ?? 0);
       })
       .finally(() => setBroadcastLoading(false));
-  }, [broadcastTier]);
+  }, [broadcastTier, broadcastBreed, broadcastInactive]);
 
   const sendBroadcast = async () => {
     if (!broadcastTitle.trim() || !broadcastBody.trim()) {
@@ -185,6 +191,8 @@ export default function PromosAdminPage() {
       body: JSON.stringify({
         adminCode,
         tier: broadcastTier,
+        breed: broadcastBreed || undefined,
+        inactiveDays: broadcastInactive || undefined,
         title: broadcastTitle,
         body: broadcastBody,
         imageData: broadcastImage.startsWith("data:") ? broadcastImage : undefined,
@@ -379,6 +387,44 @@ export default function PromosAdminPage() {
             </option>
           ))}
         </select>
+
+        {/* กรองเจาะกลุ่ม: พันธุ์ + หายไปนาน */}
+        <div className="grid grid-cols-2 gap-2">
+          <select
+            value={broadcastBreed}
+            onChange={(e) => setBroadcastBreed(e.target.value)}
+            className="min-w-0 rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs"
+          >
+            <option value="">🐱 ทุกพันธุ์</option>
+            {BREED_OPTIONS.map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
+          </select>
+          <select
+            value={broadcastInactive}
+            onChange={(e) => setBroadcastInactive(Number(e.target.value))}
+            className="min-w-0 rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs"
+          >
+            <option value={0}>⏱️ ไม่จำกัดเวลา</option>
+            <option value={30}>หายไป &gt; 30 วัน</option>
+            <option value={60}>หายไป &gt; 60 วัน</option>
+            <option value={90}>หายไป &gt; 90 วัน</option>
+          </select>
+        </div>
+        {(broadcastBreed || broadcastInactive > 0) && (
+          <button
+            type="button"
+            onClick={() => {
+              setBroadcastBreed("");
+              setBroadcastInactive(0);
+            }}
+            className="text-[10px] font-bold text-wait"
+          >
+            ✕ ล้างตัวกรอง
+          </button>
+        )}
 
         <div className="rounded-catcha-sm border border-catcha-line bg-card/80 p-3">
           <p className="mb-2 text-xs font-extrabold text-catcha-chocolate">

@@ -6,6 +6,7 @@ import {
   getBroadcastAudience,
   type CustomerTier,
 } from "@/lib/customers-store";
+import { listInactiveCustomers } from "@/lib/customer-crm";
 import {
   buildBroadcastButtons,
   type BroadcastActionId,
@@ -58,7 +59,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const customers = await listCustomersByTier(tier);
+  const breed = body.breed ? String(body.breed) : undefined;
+  const inactiveDays = Number(body.inactiveDays) || 0;
+  let customers = await listCustomersByTier(tier, { breed });
+  if (inactiveDays > 0) {
+    const inactive = await listInactiveCustomers(inactiveDays);
+    const inactiveIds = new Set(inactive.map((r) => r.customer.id));
+    customers = customers.filter((c) => inactiveIds.has(c.id));
+  }
   const lineIds = customers
     .map((c) => c.lineUserId)
     .filter((id): id is string => Boolean(id));
@@ -105,8 +113,16 @@ export async function GET(req: NextRequest) {
   const tier = (req.nextUrl.searchParams.get("tier") || "all") as
     | CustomerTier
     | "all";
-  const { recipients, skippedNoLine, skippedNoConsent } =
-    await getBroadcastAudience(tier);
+  const breed = req.nextUrl.searchParams.get("breed") || undefined;
+  const inactiveDays = Number(req.nextUrl.searchParams.get("inactiveDays")) || 0;
+  const audience = await getBroadcastAudience(tier, { breed });
+  let recipients = audience.recipients;
+  const { skippedNoLine, skippedNoConsent } = audience;
+  if (inactiveDays > 0) {
+    const inactive = await listInactiveCustomers(inactiveDays);
+    const inactiveIds = new Set(inactive.map((r) => r.customer.id));
+    recipients = recipients.filter((c) => inactiveIds.has(c.id));
+  }
 
   return NextResponse.json({
     tier,

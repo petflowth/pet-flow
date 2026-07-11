@@ -26,24 +26,7 @@ const REFERRAL_OPTIONS = [
   "เพื่อนแนะนำ / ผ่านหน้าร้าน",
 ];
 
-const OTHER_BREED = "อื่นๆ (Other)";
-const BREED_OPTIONS = [
-  "แมวไทย / แมวบ้าน (Domestic Shorthair)",
-  "บริติช ชอร์ตแฮร์ (British Shorthair)",
-  "แร็กดอลล์ (Ragdoll)",
-  "เปอร์เซีย (Persian)",
-  "สก็อตติช โฟลด์ (Scottish Fold)",
-  "สก็อตติช สเตรท (Scottish Straight)",
-  "เอ็กโซติก ชอร์ตแฮร์ (Exotic Shorthair)",
-  "อเมริกัน ชอร์ตแฮร์ (American Shorthair)",
-  "เมนคูน (Maine Coon)",
-  "บริติช ลองแฮร์ (British Longhair)",
-  "มันช์กิ้น (Munchkin)",
-  "เบงกอล (Bengal)",
-  "วิเชียรมาศ (Siamese)",
-  "สฟิงซ์ (Sphynx)",
-  "ไม่ทราบสายพันธุ์ (Unknown)",
-];
+import { BREED_OPTIONS, OTHER_BREED } from "@/lib/cat-breeds";
 
 function emptyCat(): CatInput {
   return {

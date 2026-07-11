@@ -138,6 +138,8 @@ export default function BillingPage() {
   const [autoPromoLabel, setAutoPromoLabel] = useState("");
   const [discount, setDiscount] = useState("");
   const [depAmount, setDepAmount] = useState("");
+  const [depBase, setDepBase] = useState("");
+  const [depPct, setDepPct] = useState<number | null>(null);
   const [depNote, setDepNote] = useState("");
   const [depSaving, setDepSaving] = useState(false);
   const [items, setItems] = useState<Item[]>([newGrooming()]);
@@ -452,6 +454,10 @@ export default function BillingPage() {
         customerId: selected.id,
         amount: amt,
         note: depNote || undefined,
+        percentNote:
+          depPct !== null
+            ? `${depPct}% ของยอด ${(Number(depBase) || total).toLocaleString()} บาท`
+            : undefined,
       }),
     });
     setDepSaving(false);
@@ -475,6 +481,10 @@ export default function BillingPage() {
         customerId: selected.id,
         amount: amt,
         note: depNote || undefined,
+        percentNote:
+          depPct !== null
+            ? `${depPct}% ของยอด ${(Number(depBase) || total).toLocaleString()} บาท`
+            : undefined,
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -488,6 +498,8 @@ export default function BillingPage() {
         alert(`รับมัดจำแล้ว 💰 เครดิตมัดจำคงเหลือ ${data.balance?.toLocaleString?.() ?? amt} บาท`);
       }
       setDepAmount("");
+      setDepBase("");
+      setDepPct(null);
       setDepNote("");
       load();
     } else {
@@ -646,15 +658,66 @@ export default function BillingPage() {
               {availableCredit > 0 &&
                 ` · ตอนนี้มีอยู่ ${availableCredit.toLocaleString()} ฿`}
             </p>
-            <div className="flex gap-2">
+            {/* ยอดเต็ม (ฐานคิด %) — ถ้ามีรายการในบิลแล้วใช้ยอดสุทธิให้อัตโนมัติ */}
+            <div className="flex items-center gap-2">
+              <span className="w-16 shrink-0 text-[11px] font-bold text-brown-soft">
+                ยอดเต็ม
+              </span>
               <input
                 type="number"
                 min="0"
                 inputMode="numeric"
-                placeholder="จำนวน"
+                placeholder={total > 0 ? String(total) : "เช่น 1000"}
+                value={depBase}
+                onChange={(e) => {
+                  setDepBase(e.target.value);
+                  setDepPct(null);
+                }}
+                className="min-w-0 flex-1 rounded-lg border border-catcha-line bg-paper px-3 py-2 text-right text-sm"
+              />
+              <span className="text-[11px] text-brown-faint">บาท</span>
+            </div>
+
+            {/* เลือก % — ไม่ต้องกรอกเอง */}
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] text-brown-faint">มัดจำ:</span>
+              {[10, 20, 30, 50, 100].map((pct) => {
+                const base = Number(depBase) || total;
+                const amt = Math.round((base * pct) / 100);
+                return (
+                  <button
+                    key={pct}
+                    type="button"
+                    disabled={base <= 0}
+                    onClick={() => {
+                      setDepAmount(String(amt));
+                      setDepPct(pct);
+                    }}
+                    className={`rounded-full px-2.5 py-1 text-[10px] font-bold disabled:opacity-40 ${
+                      depPct === pct
+                        ? "bg-honey text-catcha-chocolate"
+                        : "bg-paper text-brown-soft"
+                    }`}
+                  >
+                    {pct === 100 ? "เต็ม" : `${pct}%`}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* จำนวนเงินมัดจำ + หมายเหตุ */}
+            <div className="mt-2 flex gap-2">
+              <input
+                type="number"
+                min="0"
+                inputMode="numeric"
+                placeholder="มัดจำ (บาท)"
                 value={depAmount}
-                onChange={(e) => setDepAmount(e.target.value)}
-                className="w-24 rounded-lg border border-catcha-line bg-paper px-3 py-2 text-right text-sm"
+                onChange={(e) => {
+                  setDepAmount(e.target.value);
+                  setDepPct(null);
+                }}
+                className="w-28 rounded-lg border border-catcha-line bg-paper px-3 py-2 text-right text-sm"
               />
               <input
                 type="text"
@@ -664,37 +727,11 @@ export default function BillingPage() {
                 className="min-w-0 flex-1 rounded-lg border border-catcha-line bg-paper px-3 py-2 text-sm"
               />
             </div>
-            {total > 0 && (
-              <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] text-brown-faint">
-                  คิด % จากยอด {total.toLocaleString()}฿:
-                </span>
-                {[10, 20, 30, 50].map((pct) => {
-                  const amt = Math.round((total * pct) / 100);
-                  const active = Number(depAmount) === amt && amt > 0;
-                  return (
-                    <button
-                      key={pct}
-                      type="button"
-                      onClick={() => setDepAmount(String(amt))}
-                      className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                        active
-                          ? "bg-honey text-catcha-chocolate"
-                          : "bg-paper text-brown-soft"
-                      }`}
-                    >
-                      {pct}%
-                    </button>
-                  );
-                })}
-                <button
-                  type="button"
-                  onClick={() => setDepAmount(String(total))}
-                  className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-bold text-brown-soft"
-                >
-                  เต็มยอด
-                </button>
-              </div>
+            {depPct !== null && Number(depAmount) > 0 && (
+              <p className="mt-1 text-[11px] font-bold text-ok">
+                = มัดจำ {depPct}% ของยอด {(Number(depBase) || total).toLocaleString()} ={" "}
+                {Number(depAmount).toLocaleString()} บาท (จะแจ้งลูกค้าแบบนี้)
+              </p>
             )}
             <div className="mt-2 grid grid-cols-2 gap-2">
               <button

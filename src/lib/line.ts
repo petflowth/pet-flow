@@ -859,6 +859,7 @@ export function buildDepositRequestFlex(data: {
   accountNumber: string;
   accountName: string;
   note?: string;
+  percentNote?: string;
 }) {
   const body: Record<string, unknown>[] = [
     { type: "text", text: data.title, weight: "bold", size: "lg", color: "#5C4033", wrap: true },
@@ -885,6 +886,17 @@ export function buildDepositRequestFlex(data: {
         color: "#C4956A",
         align: "center",
       },
+      ...(data.percentNote
+        ? [
+            {
+              type: "text",
+              text: `(${data.percentNote})`,
+              size: "xs",
+              color: "#A2907E",
+              align: "center",
+            },
+          ]
+        : []),
     ],
   });
   body.push({
@@ -937,6 +949,7 @@ export function buildDepositThanksFlex(data: {
   terms: string[];
   amount: number;
   note?: string;
+  percentNote?: string;
 }) {
   const boxContents: Record<string, unknown>[] = [
     {
@@ -956,6 +969,16 @@ export function buildDepositThanksFlex(data: {
       ],
     },
   ];
+  if (data.percentNote) {
+    boxContents.push({
+      type: "text",
+      text: data.percentNote,
+      size: "xs",
+      color: "#A2907E",
+      margin: "xs",
+      align: "end",
+    });
+  }
   if (data.note) {
     boxContents.push({
       type: "text",

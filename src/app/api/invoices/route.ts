@@ -121,6 +121,7 @@ export async function POST(req: NextRequest) {
         accountNumber: payment.accountNumber,
         accountName: payment.accountName,
         note: body.note ? String(body.note) : undefined,
+        percentNote: body.percentNote ? String(body.percentNote) : undefined,
       }),
     ]);
     return NextResponse.json({ ok: true });
@@ -160,6 +161,7 @@ export async function POST(req: NextRequest) {
           terms: msgs.depositTerms || [],
           amount: res.amount,
           note: body.note ? String(body.note) : undefined,
+          percentNote: body.percentNote ? String(body.percentNote) : undefined,
         }),
       ]);
     }

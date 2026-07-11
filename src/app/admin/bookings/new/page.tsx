@@ -7,6 +7,8 @@ import type { CustomerRecord } from "@/lib/customers-store";
 
 type CustomerListItem = CustomerRecord & { upcomingAppointments?: number };
 
+const FREEBIE_OPTIONS = ["กล้องวงจรปิด (CCTV)", "น้ำพุแมว", "รับ-ส่ง", "ขนม/ทรีท"];
+
 function CustomerPicker({
   onSelect,
 }: {
@@ -126,6 +128,7 @@ export default function NewBookingPage() {
   const [customerName, setCustomerName] = useState("");
   const [catName, setCatName] = useState("");
   const [lineUserId, setLineUserId] = useState("");
+  const [freebies, setFreebies] = useState<string[]>([]);
   const [appointmentDate, setAppointmentDate] = useState(presetDate);
   const [checkoutDate, setCheckoutDate] = useState(() => {
     if (!presetDate) return "";
@@ -161,6 +164,12 @@ export default function NewBookingPage() {
       return;
     }
 
+    const noteBase = String(fd.get("notes") || "").trim();
+    const freebieLine = freebies.length
+      ? `🎁 ของแถมฟรี: ${freebies.join(", ")}`
+      : "";
+    const notes = [noteBase, freebieLine].filter(Boolean).join("\n") || undefined;
+
     const payload = {
       customerId: customerId || undefined,
       customerName: String(fd.get("customer") || customerName).trim() || undefined,
@@ -172,7 +181,7 @@ export default function NewBookingPage() {
       room: service === "room" ? String(fd.get("room") || "") : undefined,
       checkin: service === "room" ? String(fd.get("checkin") || "") : undefined,
       checkout: service === "room" ? String(fd.get("checkout") || "") : undefined,
-      notes: String(fd.get("notes") || "") || undefined,
+      notes,
     };
 
     const res = await fetch("/api/bookings", {
@@ -187,6 +196,7 @@ export default function NewBookingPage() {
       setCustomerName("");
       setCatName("");
       setLineUserId("");
+      setFreebies([]);
       e.currentTarget.reset();
       setTimeout(() => setSaved(false), 2500);
     } else {
@@ -322,6 +332,39 @@ export default function NewBookingPage() {
             />
           </>
         )}
+
+        <div className="rounded-catcha-sm border border-honey/40 bg-honey/10 p-3">
+          <p className="text-xs font-extrabold text-catcha-chocolate">
+            🎁 ของแถมฟรี (ถ้าตกลงกับลูกค้าไว้)
+          </p>
+          <p className="mb-2 text-[10px] text-brown-soft">
+            ติ๊กแล้วจะติดไปในใบจอง + การ์ดยืนยันให้ลูกค้าเห็นเลย
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {FREEBIE_OPTIONS.map((f) => {
+              const on = freebies.includes(f);
+              return (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() =>
+                    setFreebies((prev) =>
+                      prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]
+                    )
+                  }
+                  className={`rounded-full px-3 py-1.5 text-[11px] font-bold ${
+                    on
+                      ? "bg-honey text-catcha-chocolate"
+                      : "bg-paper text-brown-soft"
+                  }`}
+                >
+                  {on ? "✓ " : ""}
+                  {f}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         <Field label="โน้ตนิสัยน้อง (ลูกค้าใหม่)" name="notes" textarea />
 

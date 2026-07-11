@@ -789,6 +789,7 @@ export default function CustomersPage() {
   const [list, setList] = useState<CustomerListItem[]>([]);
   const [selected, setSelected] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showTools, setShowTools] = useState(false);
 
   const search = useCallback(async (query: string) => {
     setLoading(true);
@@ -805,9 +806,11 @@ export default function CustomersPage() {
     setSelected(data);
   }, []);
 
+  // ค้นหาสด — พิมพ์แล้วกรองเลย (หน่วง 300ms) ไม่ต้องกดปุ่ม
   useEffect(() => {
-    search("");
-  }, [search]);
+    const t = setTimeout(() => search(q), 300);
+    return () => clearTimeout(t);
+  }, [q, search]);
 
   useEffect(() => {
     const id = searchParams.get("id");
@@ -1083,22 +1086,39 @@ export default function CustomersPage() {
           open(id);
         }}
       />
-      <RegistrationQrSection compact />
-      <ExportSheetsButton className="mb-4 mt-4" />
-      <input
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && search(q)}
-        placeholder="ค้นหาชื่อลูกค้า / ชื่อแมว / เบอร์"
-        className="mb-4 w-full rounded-catcha-sm border border-catcha-line bg-card px-4 py-3 text-sm"
-      />
+
+      <div className="relative mb-3 mt-3">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="🔍 พิมพ์เพื่อค้นหา ชื่อลูกค้า / แมว / เบอร์"
+          className="w-full rounded-catcha-sm border border-catcha-line bg-card px-4 py-3 text-sm"
+        />
+        {q && (
+          <button
+            type="button"
+            onClick={() => setQ("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-brown-faint"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      {/* เครื่องมือ (QR ลงทะเบียน / Export) — ซ่อนไว้ให้หน้าโล่ง */}
       <button
         type="button"
-        onClick={() => search(q)}
-        className="mb-4 w-full rounded-catcha-sm bg-latte/25 py-2.5 text-sm font-bold text-catcha-chocolate"
+        onClick={() => setShowTools((v) => !v)}
+        className="mb-3 w-full rounded-catcha-sm bg-paper px-4 py-2 text-left text-[11px] font-bold text-brown-soft"
       >
-        🔍 ค้นหา
+        🛠️ เครื่องมือ (QR ลงทะเบียน · Export) {showTools ? "▲" : "▼"}
       </button>
+      {showTools && (
+        <div className="mb-4">
+          <RegistrationQrSection compact />
+          <ExportSheetsButton className="mt-3" />
+        </div>
+      )}
 
       {loading ? (
         <p className="text-center text-sm text-brown-soft">กำลังโหลด…</p>

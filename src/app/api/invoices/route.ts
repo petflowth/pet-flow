@@ -24,6 +24,7 @@ import {
   buildDepositThanksFlex,
   buildReceiptFlex,
   buildMemberBalanceFlex,
+  buildReviewRequestFlex,
 } from "@/lib/line";
 import { renderTemplate } from "@/lib/messages";
 import { getBooking } from "@/lib/bookings-store";
@@ -252,6 +253,30 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ ok: true, kind: mode });
   }
 
+  if (action === "send_review") {
+    if (!inv.lineUserId) {
+      return NextResponse.json({ error: "no_line" }, { status: 400 });
+    }
+    const cfg = await getSiteConfig();
+    const biz = cfg.business;
+    const reviewUrl = biz.reviewUrl || biz.maps;
+    if (!reviewUrl) {
+      return NextResponse.json({ error: "no_review_url" }, { status: 400 });
+    }
+    await pushLineMessage(inv.lineUserId, [
+      buildReviewRequestFlex({
+        title: "⭐ ขอบคุณที่ใช้บริการค่ะ",
+        body: renderTemplate(cfg.messages.reviewRequest, {
+          shop: biz.name,
+          cat: inv.catName,
+        }),
+        reviewUrl,
+        reviewLabel: biz.reviewButtonText,
+      }),
+    ]);
+    return NextResponse.json({ ok: true });
+  }
+
   if (action === "mark_paid") {
     const result = await markInvoicePaid(id, body.paymentMethod || "transfer");
     if (!result.ok) {
@@ -262,20 +287,26 @@ export async function PATCH(req: NextRequest) {
     const customer = result.customer;
     const biz = (await getSiteConfig()).business;
 
-    // รีวิวเฉพาะเมื่อใช้บริการแล้ว — ห้องพักที่ยังไม่ถึงวันเช็คเอาท์ = จ่ายล่วงหน้า ยังไม่รีวิว
+    // รีวิวเฉพาะเมื่อใช้บริการแล้ว — บิลที่มี "ห้องพัก" (แม้จะพ่วงอาบน้ำ) ให้ยึดแบบโรงแรม
+    // = รีวิวได้ต่อเมื่อเช็คเอาท์แล้ว · อาบน้ำล้วน = รีวิวได้เลย (บริการจบวันนั้น)
     const todayStr = new Date().toISOString().slice(0, 10);
-    let showReview = true;
+    const billHasRoom = (paid.items || []).some((it) => /คืน|ห้อง/.test(it.label));
+    let roomCheckout: string | undefined;
     if (paid.bookingId) {
       const linkedBooking = await getBooking(paid.bookingId);
       if (
         linkedBooking &&
         (linkedBooking.service === "room" || linkedBooking.checkin) &&
-        linkedBooking.checkout &&
-        linkedBooking.checkout > todayStr
+        linkedBooking.checkout
       ) {
-        showReview = false;
+        roomCheckout = linkedBooking.checkout;
       }
     }
+    const showReview = billHasRoom
+      ? roomCheckout
+        ? roomCheckout <= todayStr
+        : false
+      : true;
 
     if (paid.lineUserId) {
       await pushLineMessage(paid.lineUserId, [

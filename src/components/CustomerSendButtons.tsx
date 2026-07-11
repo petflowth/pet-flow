@@ -90,6 +90,18 @@ export function CustomerSendButtons({
       okMsg
     );
 
+  const sendReview = () =>
+    call(
+      "inv:review",
+      () =>
+        fetch("/api/invoices", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: invId, action: "send_review" }),
+        }),
+      "ส่งการ์ดขอรีวิวแล้ว ⭐"
+    );
+
   const depositRequest = () => {
     // ถ้าบิลมีมัดจำอยู่แล้ว → ใช้ยอดนั้นเลย ไม่ต้องถามซ้ำ
     let amount = depForBill > 0 ? depForBill : 0;
@@ -197,6 +209,7 @@ export function CustomerSendButtons({
           onClick={() => bookingSend("send_deposit_reminder", "ส่งแจ้งยอดคงเหลือแล้ว 💰")}
         />
       )}
+      {invId && <Btn k="inv:review" label="⭐ ขอรีวิว" onClick={sendReview} />}
     </div>
   );
 }

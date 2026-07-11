@@ -63,6 +63,13 @@ export default function CustomerHome() {
         <LangSwitch />
       </header>
 
+      <Link
+        href="/app/profile"
+        className="mb-4 flex items-center justify-center gap-1 rounded-catcha-sm bg-paper/70 px-3 py-2 text-xs font-bold text-brown-soft"
+      >
+        ✏️ แก้ไขข้อมูลของฉัน / น้องแมว
+      </Link>
+
       {!ready && (
         <p className="mb-4 rounded-catcha-sm bg-paper px-4 py-3 text-sm text-brown-soft">
           {t(locale).common.loading}

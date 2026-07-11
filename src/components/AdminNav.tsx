@@ -11,6 +11,7 @@ const TABS = [
   { href: "/admin/customers", label: "ลูกค้า", icon: "👤" },
   { href: "/admin/billing", label: "คิดเงิน", icon: "💳" },
   { href: "/admin/finance", label: "รายรับ-รายจ่าย", icon: "📒" },
+  { href: "/admin/insights", label: "สรุปข้อมูล", icon: "📊" },
   { href: "/admin/promos", label: "โปร", icon: "✨" },
   { href: "/admin/settings", label: "ตั้งค่า", icon: "⚙️" },
   { href: "/admin/setup", label: "ติดตั้ง", icon: "🚀" },

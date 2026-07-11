@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BookingEditModal, type EditableBooking } from "@/components/BookingEditModal";
 import { CustomerSendButtons } from "@/components/CustomerSendButtons";
 import { bookingOnDate } from "@/lib/booking-customer-match";
+import { toast } from "@/components/Toast";
 
 type CalendarDay = EditableBooking & { customerId?: string; careNote?: string };
 
@@ -73,9 +74,10 @@ export function BookingCalendar() {
       body: JSON.stringify({ id: b.id, action: "confirm", lineUserId: b.lineUserId }),
     });
     if (res.ok) {
+      toast("ยืนยันนัดแล้ว ✔️", "success");
       load();
     } else {
-      alert("ยืนยันไม่สำเร็จ");
+      toast("ยืนยันไม่สำเร็จ", "error");
     }
   };
 
@@ -87,10 +89,10 @@ export function BookingCalendar() {
       body: JSON.stringify({ id: b.id, action: "cancel" }),
     });
     if (res.ok) {
-      alert("ยกเลิกแล้ว");
+      toast("ยกเลิกแล้ว", "info");
       load();
     } else {
-      alert("ยกเลิกไม่สำเร็จ");
+      toast("ยกเลิกไม่สำเร็จ", "error");
     }
   };
 

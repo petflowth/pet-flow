@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SERVICE_PRESETS, type ServicePreset } from "@/lib/service-presets";
 import { CustomerSendButtons } from "@/components/CustomerSendButtons";
+import { toast } from "@/components/Toast";
 import {
   GROOM_PROGRAMS,
   GROOM_SIZES,
@@ -289,7 +290,7 @@ export default function BillingPage() {
 
   const sendSummaryLine = async (mode: "booking" | "deposit" | "full") => {
     if (!selected) return;
-    if (!selected.lineUserId) return alert("ลูกค้ายังไม่ได้ผูก LINE — ส่งไม่ได้");
+    if (!selected.lineUserId) return toast("ลูกค้ายังไม่ได้ผูก LINE — ส่งไม่ได้", "error");
     setSending(true);
     const res = await fetch("/api/line/send", {
       method: "POST",
@@ -301,7 +302,7 @@ export default function BillingPage() {
       }),
     });
     setSending(false);
-    alert(res.ok ? "ส่งการ์ดเข้า LINE ลูกค้าแล้ว 📨" : "ส่งไม่สำเร็จ");
+    toast(res.ok ? "ส่งการ์ดเข้า LINE ลูกค้าแล้ว 📨" : "ส่งไม่สำเร็จ", res.ok ? "success" : "error");
   };
 
   const copySummary = async (mode: "booking" | "deposit" | "full") => {
@@ -310,7 +311,7 @@ export default function BillingPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      alert("ก๊อปไม่สำเร็จ");
+      toast("ก๊อปไม่สำเร็จ", "error");
     }
   };
 
@@ -432,8 +433,8 @@ export default function BillingPage() {
   };
 
   const createBill = async () => {
-    if (!selected) return alert("เลือกลูกค้าก่อน");
-    if (subtotal <= 0) return alert("ใส่รายการอย่างน้อย 1 อย่าง");
+    if (!selected) return toast("เลือกลูกค้าก่อน", "error");
+    if (subtotal <= 0) return toast("ใส่รายการอย่างน้อย 1 อย่าง", "error");
     setCreating(true);
     const cat = selected.cats[0]?.name || "น้องแมว";
     // เก็บของแถม (ฟรี) ด้วย — label มี แต่ยอด 0
@@ -456,11 +457,11 @@ export default function BillingPage() {
       const data = await res.json().catch(() => ({}));
       setCreating(false);
       if (res.ok) {
-        alert("แก้ไขบิลแล้ว ✅");
+        toast("แก้ไขบิลแล้ว", "success");
         resetForm();
         load();
       } else {
-        alert(data.error === "already_paid" ? "บิลปิดแล้ว แก้ไขไม่ได้" : "แก้ไขไม่สำเร็จ");
+        toast(data.error === "already_paid" ? "บิลปิดแล้ว แก้ไขไม่ได้" : "แก้ไขไม่สำเร็จ", "error");
       }
       return;
     }
@@ -484,19 +485,20 @@ export default function BillingPage() {
     const data = await res.json();
     setCreating(false);
     if (data.invoice) {
-      alert(
-        `ออกบิล ${data.invoice.id} — ${data.invoice.total} บาท` +
-          (depositAmount > 0 ? ` (มัดจำ ${depositAmount} · คงเหลือ ${remaining})` : "")
+      toast(
+        `ออกบิลแล้ว ${data.invoice.total} บาท` +
+          (depositAmount > 0 ? ` · มัดจำ ${depositAmount} · คงเหลือ ${remaining}` : ""),
+        "success"
       );
       resetForm();
       load();
     } else {
-      alert("ออกบิลไม่สำเร็จ");
+      toast("ออกบิลไม่สำเร็จ", "error");
     }
   };
 
   const editInvoice = (inv: Invoice) => {
-    if (inv.status === "paid") return alert("บิลปิดแล้ว แก้ไขไม่ได้ (ลบได้อย่างเดียว)");
+    if (inv.status === "paid") return toast("บิลปิดแล้ว แก้ไขไม่ได้ (ลบได้อย่างเดียว)", "error");
     if (inv.customerId) setCustomerId(inv.customerId);
     // โหลดรายการเป็นแบบ "พิมพ์เอง" (แก้ยอด/ชื่อได้) — เก็บของแถมฟรีด้วย
     setItems(
@@ -530,11 +532,11 @@ export default function BillingPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        alert(okMsg);
+        toast(okMsg, "success");
         if (editingId === id) resetForm();
         load();
       } else {
-        alert(data.error === "already_received" ? "รับมัดจำบิลนี้ไปแล้ว" : "ไม่สำเร็จ");
+        toast(data.error === "already_received" ? "รับมัดจำบิลนี้ไปแล้ว" : "ไม่สำเร็จ", "error");
       }
     } finally {
       setInvoiceBusy("");
@@ -551,11 +553,11 @@ export default function BillingPage() {
       body: JSON.stringify({ id, action: "mark_paid", paymentMethod: method }),
     });
     if (res.ok) {
-      alert("รับชำระแล้ว — บันทึกรายรับ + ส่งใบเสร็จ + แต้ม 📨");
+      toast("รับชำระแล้ว — ลงบัญชี + ส่งใบเสร็จ + แต้ม 🧾", "success");
       load();
     } else {
       const err = await res.json();
-      alert(err.error === "insufficient_credit" ? "เครดิต Member ไม่พอ" : "ไม่สำเร็จ");
+      toast(err.error === "insufficient_credit" ? "เครดิต Member ไม่พอ" : "ไม่สำเร็จ", "error");
     }
   };
 

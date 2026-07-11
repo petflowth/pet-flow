@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "@/components/Toast";
 
 /**
  * ปุ่มส่งหาลูกค้าแบบรวมศูนย์ — ใช้ได้ทุกที่ (การ์ดในปฏิทิน · บิล · ฯลฯ)
@@ -55,10 +56,10 @@ export function CustomerSendButtons({
       const res = await run();
       const d = await res.json().catch(() => ({}));
       if (res.ok) {
-        alert(d.needSql ? `${okMsg}\n(หมายเหตุ: ยังไม่ได้รัน SQL มัดจำ)` : okMsg);
+        toast(okMsg, "success");
         onDone?.();
       } else {
-        alert(d.error ? `ส่งไม่สำเร็จ: ${d.error}` : "ส่งไม่สำเร็จ — ตรวจ LINE / ตั้งค่า");
+        toast(d.error ? `ส่งไม่สำเร็จ: ${d.error}` : "ส่งไม่สำเร็จ — ตรวจ LINE / ตั้งค่า", "error");
       }
     } finally {
       setBusy("");
@@ -94,7 +95,7 @@ export function CustomerSendButtons({
     if (raw == null) return;
     const amount = Math.round(Number(raw) || 0);
     if (amount <= 0) {
-      alert("ใส่จำนวนมัดจำ");
+      toast("ใส่จำนวนมัดจำ", "error");
       return;
     }
     void call(

@@ -47,6 +47,7 @@ type Invoice = {
   customerId?: string;
   bookingId?: string;
   depositReceivedAt?: string;
+  createdAt?: string;
   items?: { label: string; amount: number }[];
 };
 
@@ -183,6 +184,10 @@ export default function BillingPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [invoiceBusy, setInvoiceBusy] = useState("");
   const [billFilter, setBillFilter] = useState<"all" | "pending" | "paid">("all");
+  const [billSearch, setBillSearch] = useState("");
+  const [billSort, setBillSort] = useState<
+    "date-desc" | "date-asc" | "amount-desc" | "due-desc"
+  >("date-desc");
   const [items, setItems] = useState<Item[]>([newGrooming()]);
   const [creating, setCreating] = useState(false);
   const [pay, setPay] = useState({ bankName: "", accountNumber: "", accountName: "" });
@@ -1134,23 +1139,64 @@ export default function BillingPage() {
           );
         })}
       </div>
-      <ul className="space-y-3">
-        {invoices
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <input
+          value={billSearch}
+          onChange={(e) => setBillSearch(e.target.value)}
+          placeholder="🔍 ค้นหาชื่อน้อง / ลูกค้า / เลขบิล"
+          className="min-w-0 flex-1 rounded-catcha-sm border border-catcha-line bg-paper px-3 py-1.5 text-xs"
+        />
+        <select
+          value={billSort}
+          onChange={(e) => setBillSort(e.target.value as typeof billSort)}
+          className="rounded-catcha-sm border border-catcha-line bg-paper px-2 py-1.5 text-xs font-bold text-brown-soft"
+        >
+          <option value="date-desc">📅 วันล่าสุดก่อน</option>
+          <option value="date-asc">📅 วันเก่าก่อน</option>
+          <option value="amount-desc">💰 ยอดมากสุด</option>
+          <option value="due-desc">⏳ ค้างชำระมากสุด</option>
+        </select>
+      </div>
+      {(() => {
+        const linkedFor = (inv: Invoice) =>
+          bookings.find((b) => b.id === inv.bookingId) ||
+          bookings.find(
+            (b) =>
+              !!b.customerId &&
+              b.customerId === inv.customerId &&
+              b.catName === inv.catName &&
+              b.status !== "cancelled"
+          );
+        const serviceDate = (inv: Invoice) => {
+          const bk = linkedFor(inv);
+          return bk?.checkin || bk?.date || (inv.createdAt || "").slice(0, 10) || "";
+        };
+        const dueOf = (inv: Invoice) => inv.total - (inv.deposit || 0);
+        const q = billSearch.trim().toLowerCase();
+        let list = invoices
           .filter((inv) => billFilter === "all" || inv.status === billFilter)
-          .map((inv) => {
-            // ผูกนัดโดยตรง หรือถ้าไม่ได้ผูก → เดาจากนัดของลูกค้า/น้องตัวเดียวกัน
-            const linkedBk =
-              bookings.find((b) => b.id === inv.bookingId) ||
-              bookings.find(
-                (b) =>
-                  !!b.customerId &&
-                  b.customerId === inv.customerId &&
-                  b.catName === inv.catName &&
-                  b.status !== "cancelled"
-              );
-            const sched = scheduleLabelFor(linkedBk);
-            return (
-          <li key={inv.id} className="rounded-catcha border border-catcha-line bg-card p-4">
+          .filter(
+            (inv) =>
+              !q ||
+              [inv.catName, inv.customerName, inv.id].some((s) =>
+                (s || "").toLowerCase().includes(q)
+              )
+          );
+        list = [...list].sort((a, b) => {
+          if (billSort === "amount-desc") return b.total - a.total;
+          if (billSort === "due-desc") return dueOf(b) - dueOf(a);
+          const da = serviceDate(a);
+          const db = serviceDate(b);
+          if (billSort === "date-asc") return da < db ? -1 : da > db ? 1 : 0;
+          return da > db ? -1 : da < db ? 1 : 0;
+        });
+
+        const renderBill = (inv: Invoice) => {
+          // ผูกนัดโดยตรง หรือถ้าไม่ได้ผูก → เดาจากนัดของลูกค้า/น้องตัวเดียวกัน
+          const linkedBk = linkedFor(inv);
+          const sched = scheduleLabelFor(linkedBk);
+          return (
+          <div key={inv.id} className="rounded-catcha border border-catcha-line bg-card p-4">
             <p className="font-bold text-brown">
               {inv.catName} · {inv.customerName}
             </p>
@@ -1275,10 +1321,60 @@ export default function BillingPage() {
             >
               🗑️ ลบบิล
             </button>
-          </li>
+          </div>
+          );
+        };
+
+        if (billSort === "date-desc" || billSort === "date-asc") {
+          const groups: { date: string; bills: Invoice[] }[] = [];
+          for (const inv of list) {
+            const d = serviceDate(inv);
+            let g = groups.find((x) => x.date === d);
+            if (!g) {
+              g = { date: d, bills: [] };
+              groups.push(g);
+            }
+            g.bills.push(inv);
+          }
+          if (groups.length === 0) {
+            return (
+              <p className="py-6 text-center text-xs text-brown-soft">ไม่พบบิล</p>
             );
-          })}
-      </ul>
+          }
+          return (
+            <div className="space-y-4">
+              {groups.map((g) => {
+                const dayTotal = g.bills.reduce((s, i) => s + i.total, 0);
+                const dayDue = g.bills
+                  .filter((i) => i.status === "pending")
+                  .reduce((s, i) => s + dueOf(i), 0);
+                return (
+                  <div key={g.date || "no-date"}>
+                    <div className="mb-2 flex items-center justify-between border-b border-catcha-line pb-1">
+                      <span className="text-xs font-extrabold text-catcha-chocolate">
+                        📅 {g.date ? formatThaiDateShort(g.date) : "ไม่ระบุวัน"} ·{" "}
+                        {g.bills.length} บิล
+                      </span>
+                      <span className="text-[11px] font-bold text-brown-soft">
+                        {dayTotal.toLocaleString()} ฿
+                        {dayDue > 0 ? ` · ค้าง ${dayDue.toLocaleString()}` : ""}
+                      </span>
+                    </div>
+                    <div className="space-y-3">{g.bills.map(renderBill)}</div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        }
+
+        if (list.length === 0) {
+          return (
+            <p className="py-6 text-center text-xs text-brown-soft">ไม่พบบิล</p>
+          );
+        }
+        return <div className="space-y-3">{list.map(renderBill)}</div>;
+      })()}
     </div>
   );
 }

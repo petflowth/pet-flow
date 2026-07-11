@@ -914,6 +914,73 @@ export function buildPrestayFlex(data: {
   };
 }
 
+/** การ์ดให้ลูกค้าเลือกเวลามาส่ง/รับน้อง — ข้อความ + ปุ่มไปหน้าเลือกเวลาใน LIFF */
+export function buildTimePickerFlex(data: {
+  title: string;
+  body: string;
+  url?: string;
+  label?: string;
+}) {
+  const bubble: Record<string, unknown> = {
+    type: "bubble",
+    size: "mega",
+    header: {
+      type: "box",
+      layout: "vertical",
+      backgroundColor: BRAND_GREEN,
+      paddingAll: "16px",
+      contents: [
+        {
+          type: "text",
+          text: data.title,
+          color: "#FFFFFF",
+          weight: "bold",
+          size: "sm",
+        },
+      ],
+    },
+    body: {
+      type: "box",
+      layout: "vertical",
+      paddingAll: "16px",
+      contents: [
+        {
+          type: "text",
+          text: data.body,
+          size: "sm",
+          color: "#4E3E32",
+          wrap: true,
+        },
+      ],
+    },
+  };
+  if (data.url) {
+    bubble.footer = {
+      type: "box",
+      layout: "vertical",
+      paddingAll: "12px",
+      contents: [
+        {
+          type: "button",
+          style: "primary",
+          color: BRAND_GREEN_DARK,
+          height: "sm",
+          action: {
+            type: "uri",
+            label: data.label || "🕒 เลือกเวลา",
+            uri: data.url,
+          },
+        },
+      ],
+    };
+  }
+  return {
+    type: "flex",
+    altText: `${data.title} 🕒`,
+    contents: bubble,
+  };
+}
+
 /** การ์ดเรียกเก็บมัดจำ — ชัดๆ ว่าต้องโอนเท่าไหร่ (ส่งก่อนลูกค้าโอน) */
 export function buildDepositRequestFlex(data: {
   title: string;

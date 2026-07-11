@@ -3,12 +3,14 @@ import { listBookings } from "@/lib/bookings-store";
 import { listInvoices } from "@/lib/invoices-store";
 import { getSiteConfig } from "@/lib/config-store";
 import { buildBookingConfirmFlex } from "@/lib/booking-line-card";
-import { pushLineMessage, buildPrestayFlex } from "@/lib/line";
+import { pushLineMessage, buildPrestayFlex, buildTimePickerFlex } from "@/lib/line";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import {
   buildDepositReminderText,
   buildPrestayBodyText,
-  litterNoteFor,
+  buildCheckinBodyText,
+  buildCheckoutBodyText,
+  getBookingTimeUrl,
   getConsentUrl,
 } from "@/lib/booking-reminders";
 import { listCustomers } from "@/lib/customers-store";
@@ -117,36 +119,38 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // เตือนเช็คอิน N วันก่อนเข้าพัก
+    // เตือนเช็คอิน N วันก่อนเข้าพัก → การ์ดให้ลูกค้าเลือกเวลามาส่งน้อง
     if (auto?.checkinReminderEnabled !== false && b.checkin === inCheckin) {
-      const text = renderTemplate(cfg.messages.checkinReminder, {
-        shop: cfg.business.name,
-        cat: b.catName,
-        checkin: b.checkin || "",
-        room: b.room ? `🏠 ห้อง: ${b.room}` : "",
-        litterNote: litterNoteFor(b, cfg),
+      const url = await getBookingTimeUrl(b.id, "checkin");
+      const flex = buildTimePickerFlex({
+        title: "🕒 เลือกเวลาเข้าพัก",
+        body: buildCheckinBodyText(b, cfg),
+        url: url || undefined,
+        label: "🕒 เลือกเวลาส่งน้อง",
       });
       try {
-        await pushLineMessage(b.lineUserId, [{ type: "text", text }]);
+        await pushLineMessage(b.lineUserId, [flex]);
         checkinReminders++;
       } catch (e) {
         errors.push(`checkin ${b.id}: ${String(e)}`);
       }
     }
 
-    // เตือนเช็คเอาท์ N วันก่อนออก
+    // เตือนเช็คเอาท์ N วันก่อนออก → การ์ดให้ลูกค้าเลือกเวลามารับน้อง
     if (
       auto?.checkoutReminderEnabled !== false &&
       b.checkout &&
       b.checkout === inCheckout
     ) {
-      const text = renderTemplate(cfg.messages.checkoutReminder, {
-        shop: cfg.business.name,
-        cat: b.catName,
-        checkout: b.checkout || "",
+      const url = await getBookingTimeUrl(b.id, "checkout");
+      const flex = buildTimePickerFlex({
+        title: "🕒 เลือกเวลารับน้อง",
+        body: buildCheckoutBodyText(b, cfg),
+        url: url || undefined,
+        label: "🕒 เลือกเวลารับน้อง",
       });
       try {
-        await pushLineMessage(b.lineUserId, [{ type: "text", text }]);
+        await pushLineMessage(b.lineUserId, [flex]);
         checkoutReminders++;
       } catch (e) {
         errors.push(`checkout ${b.id}: ${String(e)}`);

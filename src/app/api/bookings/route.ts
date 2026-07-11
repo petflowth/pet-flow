@@ -17,7 +17,12 @@ import {
 import { bookingMatchesCustomer } from "@/lib/booking-customer-match";
 import { listCustomers, resolveCustomerForBooking } from "@/lib/customers-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
-import { pushLineMessage, buildConsentFlex, buildPrestayFlex } from "@/lib/line";
+import {
+  pushLineMessage,
+  buildConsentFlex,
+  buildPrestayFlex,
+  buildTimePickerFlex,
+} from "@/lib/line";
 import { buildBookingConfirmFlex } from "@/lib/booking-line-card";
 import {
   findCustomerForBooking,
@@ -29,6 +34,9 @@ import { listInvoices } from "@/lib/invoices-store";
 import {
   buildDepositReminderText,
   buildPrestayBodyText,
+  buildCheckinBodyText,
+  buildCheckoutBodyText,
+  getBookingTimeUrl,
   getConsentUrl,
 } from "@/lib/booking-reminders";
 
@@ -203,6 +211,38 @@ export async function PATCH(req: NextRequest) {
         notes: b.notes,
       });
 
+      await pushLineMessage(to, [flex]);
+      return NextResponse.json({ ok: true });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  }
+
+  // ── การ์ดให้ลูกค้าเลือกเวลาส่ง/รับน้อง (กดเอง) ──
+  if (action === "send_checkin_reminder" || action === "send_checkout_reminder") {
+    const to = await resolveRecipient(b, lineUserId);
+    if (!to) {
+      return NextResponse.json({ error: NO_LINE_ERROR }, { status: 400 });
+    }
+    const cfg = await getSiteConfig();
+    const type = action === "send_checkin_reminder" ? "checkin" : "checkout";
+    const url = await getBookingTimeUrl(b.id, type);
+    const flex =
+      type === "checkin"
+        ? buildTimePickerFlex({
+            title: "🕒 เลือกเวลาเข้าพัก",
+            body: buildCheckinBodyText(b, cfg),
+            url: url || undefined,
+            label: "🕒 เลือกเวลาส่งน้อง",
+          })
+        : buildTimePickerFlex({
+            title: "🕒 เลือกเวลารับน้อง",
+            body: buildCheckoutBodyText(b, cfg),
+            url: url || undefined,
+            label: "🕒 เลือกเวลารับน้อง",
+          });
+    try {
       await pushLineMessage(to, [flex]);
       return NextResponse.json({ ok: true });
     } catch (e) {

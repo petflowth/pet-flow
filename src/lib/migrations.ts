@@ -61,6 +61,14 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     name: "customers.deleted_at",
     sql: "alter table customers add column if not exists deleted_at timestamptz;",
   },
+  {
+    name: "bookings.arrival_time",
+    sql: "alter table bookings add column if not exists arrival_time text;",
+  },
+  {
+    name: "bookings.pickup_time",
+    sql: "alter table bookings add column if not exists pickup_time text;",
+  },
 ];
 
 export type MigrateResult = {

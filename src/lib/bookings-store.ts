@@ -12,6 +12,10 @@ export type StoredBooking = Booking & {
   consentAcceptedAt?: string;
   /** ข้อความ "แจ้งการดูแลเพิ่มเติม" ที่ลูกค้ากรอกตอนกดยอมรับข้อตกลง */
   careNote?: string;
+  /** เวลาที่ลูกค้าเลือกจะมาส่งน้อง (เช็คอิน) */
+  arrivalTime?: string;
+  /** เวลาที่ลูกค้าเลือกจะมารับน้อง (เช็คเอาท์) */
+  pickupTime?: string;
 };
 
 type BookingRow = {
@@ -32,6 +36,8 @@ type BookingRow = {
   created_at: string;
   consent_accepted_at?: string | null;
   care_note?: string | null;
+  arrival_time?: string | null;
+  pickup_time?: string | null;
 };
 
 const mem: StoredBooking[] = [
@@ -67,6 +73,8 @@ function rowToStored(r: BookingRow): StoredBooking {
     createdAt: r.created_at,
     consentAcceptedAt: r.consent_accepted_at || undefined,
     careNote: r.care_note || undefined,
+    arrivalTime: r.arrival_time || undefined,
+    pickupTime: r.pickup_time || undefined,
   };
 }
 
@@ -109,6 +117,40 @@ export async function getBooking(id: string) {
     return data ? rowToStored(data as BookingRow) : undefined;
   }
   return mem.find((b) => b.id === id);
+}
+
+/**
+ * ลูกค้าเลือกเวลาที่จะมาส่ง/รับน้อง — บันทึกไว้ที่ booking.
+ * เขียนเฉพาะคอลัมน์เดียว + ครอบ try/catch (ถ้ายังไม่รัน migration → need_sql).
+ */
+export async function setBookingTime(
+  id: string,
+  type: "checkin" | "checkout",
+  time: string,
+  lineUserId?: string
+) {
+  const b = await getBooking(id);
+  if (!b) return { ok: false as const, error: "not_found" };
+  if (b.lineUserId && lineUserId && b.lineUserId !== lineUserId) {
+    return { ok: false as const, error: "forbidden" };
+  }
+  const col = type === "checkin" ? "arrival_time" : "pickup_time";
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb.from("bookings").update({ [col]: time }).eq("id", id);
+      if (error) return { ok: false as const, error: "need_sql", booking: b };
+    } catch {
+      return { ok: false as const, error: "need_sql", booking: b };
+    }
+  } else {
+    const idx = mem.findIndex((x) => x.id === id);
+    if (idx >= 0) {
+      if (type === "checkin") mem[idx].arrivalTime = time;
+      else mem[idx].pickupTime = time;
+    }
+  }
+  return { ok: true as const, booking: b };
 }
 
 /**

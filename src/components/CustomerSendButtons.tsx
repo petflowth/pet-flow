@@ -147,6 +147,24 @@ export function CustomerSendButtons({
           onClick={() => bookingSend("send_prestay", "ส่งการ์ดแจ้งเข้าพัก + เงื่อนไขแล้ว 🏠")}
         />
       )}
+      {bookingId && service === "room" && (
+        <Btn
+          k="send_checkin_reminder"
+          label="🧳 เตือนเช็คอิน + เลือกเวลา"
+          onClick={() =>
+            bookingSend("send_checkin_reminder", "ส่งการ์ดเลือกเวลาเช็คอินแล้ว 🧳")
+          }
+        />
+      )}
+      {bookingId && service === "room" && (
+        <Btn
+          k="send_checkout_reminder"
+          label="🧳 เตือนเช็คเอาท์ + เลือกเวลา"
+          onClick={() =>
+            bookingSend("send_checkout_reminder", "ส่งการ์ดเลือกเวลาเช็คเอาท์แล้ว 🧳")
+          }
+        />
+      )}
 
       {customerId && (
         <Btn k="dep" label="💰 เรียกเก็บมัดจำ" onClick={depositRequest} />

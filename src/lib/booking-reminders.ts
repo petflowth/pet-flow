@@ -1,5 +1,5 @@
 import { getLineCredentials } from "./line-config";
-import { buildConsentUrl } from "./liff-urls";
+import { buildConsentUrl, buildBookingTimeUrl } from "./liff-urls";
 import { renderTemplate } from "./messages";
 import type { StoredBooking } from "./bookings-store";
 import type { InvoiceRecord } from "./invoices-store";
@@ -28,6 +28,41 @@ export function bookingScheduleText(b: {
 export async function getConsentUrl(): Promise<string> {
   const liffId = (await getLineCredentials())?.liffId;
   return liffId ? buildConsentUrl(liffId) : "";
+}
+
+/** ลิงก์หน้าเลือกเวลาส่ง/รับน้อง (คืน "" ถ้ายังไม่ได้ตั้ง LIFF ID) */
+export async function getBookingTimeUrl(
+  bookingId: string,
+  type: "checkin" | "checkout"
+): Promise<string> {
+  const liffId = (await getLineCredentials())?.liffId;
+  return liffId ? buildBookingTimeUrl(liffId, bookingId, type) : "";
+}
+
+/** เนื้อความการ์ดเลือกเวลาเข้าพัก (เช็คอิน) */
+export function buildCheckinBodyText(
+  b: Pick<StoredBooking, "catName" | "checkin" | "date" | "room">,
+  cfg: SiteConfig
+): string {
+  return renderTemplate(cfg.messages.checkinReminder, {
+    shop: cfg.business.name,
+    cat: b.catName,
+    checkin: b.checkin || b.date || "",
+    room: b.room ? `🏠 ห้อง: ${b.room}` : "",
+    litterNote: "",
+  });
+}
+
+/** เนื้อความการ์ดเลือกเวลารับน้อง (เช็คเอาท์) */
+export function buildCheckoutBodyText(
+  b: Pick<StoredBooking, "catName" | "checkout">,
+  cfg: SiteConfig
+): string {
+  return renderTemplate(cfg.messages.checkoutReminder, {
+    shop: cfg.business.name,
+    cat: b.catName,
+    checkout: b.checkout || "",
+  });
 }
 
 /** ข้อความเตือนยอดคงเหลือ/มัดจำ — คืน null ถ้าไม่มียอดต้องโอน */

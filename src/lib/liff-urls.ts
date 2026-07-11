@@ -18,3 +18,12 @@ export function buildRegisterUrl(liffId: string) {
 export function buildConsentUrl(liffId: string) {
   return buildLiffUrl(liffId, { path: "consent" });
 }
+
+/** ลิงก์หน้าเลือกเวลาส่ง/รับน้อง (เช็คอิน/เช็คเอาท์) */
+export function buildBookingTimeUrl(
+  liffId: string,
+  bookingId: string,
+  type: "checkin" | "checkout"
+) {
+  return buildLiffUrl(liffId, { path: "booking-time", id: bookingId, type });
+}

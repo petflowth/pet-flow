@@ -187,6 +187,14 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
       router.replace("/app/consent");
       return;
     }
+    if (path === "booking-time") {
+      const bkId = params.get("id");
+      const type = params.get("type") || "checkin";
+      router.replace(
+        `/app/booking-time?id=${bkId || ""}&type=${type}`
+      );
+      return;
+    }
     if (path === "register") {
       router.replace("/app/register");
       return;
@@ -209,7 +217,8 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
       pathname.startsWith("/app/promos") ||
       pathname.startsWith("/app/grooming") ||
       pathname.startsWith("/app/rooms") ||
-      pathname.startsWith("/app/consent");
+      pathname.startsWith("/app/consent") ||
+      pathname.startsWith("/app/booking-time");
 
     if (needsRegistration && !skipRegister) {
       router.replace("/app/register");

@@ -73,6 +73,10 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     name: "invoices.deposit_received_at",
     sql: "alter table invoices add column if not exists deposit_received_at timestamptz;",
   },
+  {
+    name: "bookings.groom_health_info",
+    sql: "alter table bookings add column if not exists groom_health_info text;",
+  },
 ];
 
 export type MigrateResult = {

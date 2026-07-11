@@ -1225,6 +1225,90 @@ export function buildTimePickerFlex(data: {
   };
 }
 
+/** การ์ดสอบถามประวัติน้องก่อนอาบน้ำ — ข้อความ + ปุ่มไปกรอกแบบฟอร์มใน LIFF */
+export function buildGroomInfoFlex(data: {
+  catName: string;
+  dateText?: string;
+  body: string;
+  url?: string;
+  label?: string;
+}) {
+  const contents: Record<string, unknown>[] = [
+    {
+      type: "text",
+      text: `🐱 ${data.catName}`,
+      weight: "bold",
+      size: "lg",
+      color: "#5C4033",
+      wrap: true,
+    },
+  ];
+  if (data.dateText) {
+    contents.push({
+      type: "text",
+      text: data.dateText,
+      size: "xs",
+      color: "#A2907E",
+      margin: "xs",
+      wrap: true,
+    });
+  }
+  contents.push({
+    type: "text",
+    text: data.body,
+    size: "sm",
+    color: "#4E3E32",
+    margin: "md",
+    wrap: true,
+  });
+
+  const bubble: Record<string, unknown> = {
+    type: "bubble",
+    size: "mega",
+    header: {
+      type: "box",
+      layout: "vertical",
+      backgroundColor: BRAND_GREEN,
+      paddingAll: "16px",
+      contents: [
+        {
+          type: "text",
+          text: "🩺 ประวัติน้องก่อนอาบน้ำ",
+          color: "#FFFFFF",
+          weight: "bold",
+          size: "sm",
+        },
+      ],
+    },
+    body: { type: "box", layout: "vertical", paddingAll: "16px", contents },
+  };
+  if (data.url) {
+    bubble.footer = {
+      type: "box",
+      layout: "vertical",
+      paddingAll: "12px",
+      contents: [
+        {
+          type: "button",
+          style: "primary",
+          color: BRAND_GREEN_DARK,
+          height: "sm",
+          action: {
+            type: "uri",
+            label: data.label || "🩺 แจ้งประวัติน้อง",
+            uri: data.url,
+          },
+        },
+      ],
+    };
+  }
+  return {
+    type: "flex",
+    altText: `ประวัติน้องก่อนอาบน้ำ 🩺 ${data.catName}`,
+    contents: bubble,
+  };
+}
+
 /** การ์ดเรียกเก็บมัดจำ — ชัดๆ ว่าต้องโอนเท่าไหร่ (ส่งก่อนลูกค้าโอน) */
 export function buildDepositRequestFlex(data: {
   title: string;

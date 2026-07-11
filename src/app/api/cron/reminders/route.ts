@@ -8,6 +8,7 @@ import {
   buildPrestayFlex,
   buildTimePickerFlex,
   buildReviewRequestFlex,
+  buildGroomInfoFlex,
 } from "@/lib/line";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import {
@@ -15,7 +16,9 @@ import {
   buildPrestayFlexData,
   buildCheckinBodyText,
   buildCheckoutBodyText,
+  buildGroomInfoBody,
   getBookingTimeUrl,
+  getGroomInfoUrl,
   getConsentUrl,
 } from "@/lib/booking-reminders";
 import { listCustomers } from "@/lib/customers-store";
@@ -39,6 +42,7 @@ export async function GET(req: NextRequest) {
   const auto = cfg.automation;
   const errors: string[] = [];
   let sent = 0;
+  let groomInfoCards = 0;
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const allBookings = await listBookings();
@@ -72,6 +76,20 @@ export async function GET(req: NextRequest) {
       });
       await pushLineMessage(b.lineUserId, [flex]);
       sent++;
+
+      // พ่วงการ์ดสอบถามประวัติน้อง สำหรับนัดอาบน้ำ (ส่งต่อจากยืนยันนัด)
+      if (auto?.groomInfoEnabled !== false && b.service === "groom") {
+        const url = await getGroomInfoUrl(b.id);
+        const groomFlex = buildGroomInfoFlex({
+          catName: b.catName,
+          dateText: b.date ? `📅 นัดอาบน้ำ: ${b.date}${b.time ? ` ${b.time}` : ""}` : undefined,
+          body: buildGroomInfoBody(b, cfg),
+          url: url || undefined,
+          label: "🩺 แจ้งประวัติน้อง",
+        });
+        await pushLineMessage(b.lineUserId, [groomFlex]);
+        groomInfoCards++;
+      }
     } catch (e) {
       errors.push(`${b.id}: ${String(e)}`);
     }
@@ -227,6 +245,7 @@ export async function GET(req: NextRequest) {
     checkinReminders > 0 ||
     checkoutReminders > 0 ||
     reviewRequests > 0 ||
+    groomInfoCards > 0 ||
     birthdayGreetings > 0
   ) {
     await sendTelegram(
@@ -238,6 +257,7 @@ export async function GET(req: NextRequest) {
         เตือนเช็คอิน: String(checkinReminders),
         เตือนเช็คเอาท์: String(checkoutReminders),
         ขอรีวิว: String(reviewRequests),
+        ประวัติก่อนอาบน้ำ: String(groomInfoCards),
         อวยพรวันเกิดแมว: String(birthdayGreetings),
       })
     );
@@ -252,6 +272,7 @@ export async function GET(req: NextRequest) {
     checkinReminders,
     checkoutReminders,
     reviewRequests,
+    groomInfoCards,
     birthdayGreetings,
     errors,
   });

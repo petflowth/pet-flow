@@ -22,6 +22,7 @@ import {
   buildConsentFlex,
   buildPrestayFlex,
   buildTimePickerFlex,
+  buildGroomInfoFlex,
 } from "@/lib/line";
 import { buildBookingConfirmFlex } from "@/lib/booking-line-card";
 import {
@@ -36,7 +37,9 @@ import {
   buildPrestayFlexData,
   buildCheckinBodyText,
   buildCheckoutBodyText,
+  buildGroomInfoBody,
   getBookingTimeUrl,
+  getGroomInfoUrl,
   getConsentUrl,
 } from "@/lib/booking-reminders";
 
@@ -211,6 +214,30 @@ export async function PATCH(req: NextRequest) {
         notes: b.notes,
       });
 
+      await pushLineMessage(to, [flex]);
+      return NextResponse.json({ ok: true });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  }
+
+  // ── การ์ดสอบถามประวัติน้องก่อนอาบน้ำ (กดเอง) ──
+  if (action === "send_groom_info") {
+    const to = await resolveRecipient(b, lineUserId);
+    if (!to) {
+      return NextResponse.json({ error: NO_LINE_ERROR }, { status: 400 });
+    }
+    const cfg = await getSiteConfig();
+    const url = await getGroomInfoUrl(b.id);
+    const flex = buildGroomInfoFlex({
+      catName: String(b.catName),
+      dateText: b.date ? `📅 นัดอาบน้ำ: ${b.date}${b.time ? ` ${b.time}` : ""}` : undefined,
+      body: buildGroomInfoBody(b, cfg),
+      url: url || undefined,
+      label: "🩺 แจ้งประวัติน้อง",
+    });
+    try {
       await pushLineMessage(to, [flex]);
       return NextResponse.json({ ok: true });
     } catch (e) {

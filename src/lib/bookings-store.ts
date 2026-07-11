@@ -16,6 +16,8 @@ export type StoredBooking = Booking & {
   arrivalTime?: string;
   /** เวลาที่ลูกค้าเลือกจะมารับน้อง (เช็คเอาท์) */
   pickupTime?: string;
+  /** ประวัติน้องก่อนอาบน้ำ (JSON string) ที่ลูกค้ากรอกมา */
+  groomHealthInfo?: string;
 };
 
 type BookingRow = {
@@ -38,6 +40,7 @@ type BookingRow = {
   care_note?: string | null;
   arrival_time?: string | null;
   pickup_time?: string | null;
+  groom_health_info?: string | null;
 };
 
 const mem: StoredBooking[] = [
@@ -75,6 +78,7 @@ function rowToStored(r: BookingRow): StoredBooking {
     careNote: r.care_note || undefined,
     arrivalTime: r.arrival_time || undefined,
     pickupTime: r.pickup_time || undefined,
+    groomHealthInfo: r.groom_health_info || undefined,
   };
 }
 
@@ -149,6 +153,37 @@ export async function setBookingTime(
       if (type === "checkin") mem[idx].arrivalTime = time;
       else mem[idx].pickupTime = time;
     }
+  }
+  return { ok: true as const, booking: b };
+}
+
+/**
+ * ลูกค้ากรอกประวัติน้องก่อนอาบน้ำ — บันทึก JSON ไว้ที่ booking (graceful, need_sql ถ้ายังไม่มีคอลัมน์)
+ */
+export async function setBookingGroomInfo(
+  id: string,
+  infoJson: string,
+  lineUserId?: string
+) {
+  const b = await getBooking(id);
+  if (!b) return { ok: false as const, error: "not_found" };
+  if (b.lineUserId && lineUserId && b.lineUserId !== lineUserId) {
+    return { ok: false as const, error: "forbidden" };
+  }
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb
+        .from("bookings")
+        .update({ groom_health_info: infoJson })
+        .eq("id", id);
+      if (error) return { ok: false as const, error: "need_sql", booking: b };
+    } catch {
+      return { ok: false as const, error: "need_sql", booking: b };
+    }
+  } else {
+    const idx = mem.findIndex((x) => x.id === id);
+    if (idx >= 0) mem[idx].groomHealthInfo = infoJson;
   }
   return { ok: true as const, booking: b };
 }

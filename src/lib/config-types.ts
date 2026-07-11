@@ -60,6 +60,8 @@ export type MessagesConfig = {
   checkoutReminder: string;
   /** ขอรีวิวหลังเช็คเอาท์ — {shop} {cat} */
   reviewRequest: string;
+  /** สอบถามประวัติน้องก่อนอาบน้ำ — {shop} {cat} */
+  groomInfoIntro: string;
   /** ข้อความชวนกดยอมรับข้อตกลงก่อนเข้าพัก (แนบลิงก์) — {shop} {cat} {url} */
   consentInvite: string;
   /** หัวเรื่องหน้ายอมรับข้อตกลงก่อนเข้าพัก */
@@ -106,6 +108,8 @@ export type AutomationConfig = {
   reviewRequestEnabled: boolean;
   /** ส่งขอรีวิวหลังเช็คเอาท์ (วัน) */
   reviewRequestDaysAfter: number;
+  /** ส่งการ์ดสอบถามประวัติน้องก่อนอาบน้ำ (พ่วงกับยืนยันนัด) */
+  groomInfoEnabled: boolean;
   /** เข้าพักกี่คืนขึ้นไป ถึงแถมทรายฟรี (ถ้าน้อยกว่านี้ ให้ลูกค้าเตรียมทรายมาเอง) */
   freeLitterMinNights: number;
   /** อวยพรวันเกิดแมวอัตโนมัติ */

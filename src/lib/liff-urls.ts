@@ -27,3 +27,8 @@ export function buildBookingTimeUrl(
 ) {
   return buildLiffUrl(liffId, { path: "booking-time", id: bookingId, type });
 }
+
+/** ลิงก์หน้ากรอกประวัติน้องก่อนอาบน้ำ */
+export function buildGroomInfoUrl(liffId: string, bookingId: string) {
+  return buildLiffUrl(liffId, { path: "groom-info", id: bookingId });
+}

@@ -402,6 +402,13 @@ function MessagesTab({
         onChange={(v) => setMsgs({ ...msgs, reviewRequest: v })}
         rows={5}
       />
+      <TextAreaField
+        label="🩺 สอบถามประวัติน้องก่อนอาบน้ำ"
+        hint="ใช้ได้: {shop} {cat}"
+        value={msgs?.groomInfoIntro || ""}
+        onChange={(v) => setMsgs({ ...msgs, groomInfoIntro: v })}
+        rows={5}
+      />
 
       <hr className="border-catcha-line" />
       <p className="text-xs font-extrabold text-catcha-chocolate">
@@ -1133,6 +1140,7 @@ const AUTOMATION_DEFAULT = {
   checkoutReminderDays: 1,
   reviewRequestEnabled: true,
   reviewRequestDaysAfter: 1,
+  groomInfoEnabled: true,
   freeLitterMinNights: 3,
   birthdayEnabled: true,
 };
@@ -1301,6 +1309,17 @@ function AutomationTab({
         <p className="mt-1 text-[10px] text-brown-soft">
           ถ้าเข้าพักน้อยกว่านี้ การ์ดเตือนเตรียมตัวจะบอกให้ลูกค้าเตรียมทรายมาเอง
           (ใส่ {"{litterNote}"} ในข้อความ)
+        </p>
+      </div>
+
+      <div className="rounded-catcha-sm border border-catcha-line p-3">
+        <Toggle
+          label="🩺 สอบถามประวัติน้องก่อนอาบน้ำ (พ่วงกับยืนยันนัด)"
+          checked={form.groomInfoEnabled}
+          onChange={(v) => set({ groomInfoEnabled: v })}
+        />
+        <p className="mt-1 text-[10px] text-brown-soft">
+          นัดอาบน้ำ: หลังส่งการ์ดยืนยันนัด จะส่งการ์ดให้ลูกค้ากรอกประวัติน้อง (โรค/นิสัย/แพ้) ต่อทันที
         </p>
       </div>
 

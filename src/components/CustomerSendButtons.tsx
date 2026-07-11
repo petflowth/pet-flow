@@ -159,6 +159,13 @@ export function CustomerSendButtons({
           onClick={() => bookingSend("send_prestay", "ส่งการ์ดแจ้งเข้าพัก + เงื่อนไขแล้ว 🏠")}
         />
       )}
+      {bookingId && service === "groom" && (
+        <Btn
+          k="send_groom_info"
+          label="🩺 สอบถามประวัติก่อนอาบน้ำ"
+          onClick={() => bookingSend("send_groom_info", "ส่งการ์ดสอบถามประวัติน้องแล้ว 🩺")}
+        />
+      )}
       {bookingId && service === "room" && (
         <Btn
           k="send_checkin_reminder"

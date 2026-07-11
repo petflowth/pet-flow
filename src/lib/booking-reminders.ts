@@ -1,5 +1,5 @@
 import { getLineCredentials } from "./line-config";
-import { buildConsentUrl, buildBookingTimeUrl } from "./liff-urls";
+import { buildConsentUrl, buildBookingTimeUrl, buildGroomInfoUrl } from "./liff-urls";
 import { renderTemplate, DEFAULT_MESSAGES } from "./messages";
 import { formatThaiDateShort } from "./format-thai-date";
 import type { StoredBooking } from "./bookings-store";
@@ -54,6 +54,23 @@ export function buildCheckinBodyText(
     checkin: b.checkin || b.date || "",
     room: b.room ? `🏠 ห้อง: ${b.room}` : "",
     litterNote: "",
+  });
+}
+
+/** ลิงก์หน้ากรอกประวัติน้องก่อนอาบน้ำ (คืน "" ถ้ายังไม่ได้ตั้ง LIFF ID) */
+export async function getGroomInfoUrl(bookingId: string): Promise<string> {
+  const liffId = (await getLineCredentials())?.liffId;
+  return liffId ? buildGroomInfoUrl(liffId, bookingId) : "";
+}
+
+/** เนื้อความการ์ดสอบถามประวัติน้องก่อนอาบน้ำ */
+export function buildGroomInfoBody(
+  b: Pick<StoredBooking, "catName">,
+  cfg: SiteConfig
+): string {
+  return renderTemplate(cfg.messages.groomInfoIntro ?? DEFAULT_MESSAGES.groomInfoIntro, {
+    shop: cfg.business.name,
+    cat: b.catName,
   });
 }
 

@@ -130,6 +130,8 @@ export default function BillingPage() {
   const [promos, setPromos] = useState<Promo[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [rooms, setRooms] = useState<(ServicePreset & { id: string })[]>([]);
+  const [servicePresets, setServicePresets] = useState<ServicePreset[]>(SERVICE_PRESETS);
+  const [freebiePresets, setFreebiePresets] = useState<string[]>(FREEBIE_PRESETS);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [bookingId, setBookingId] = useState<string | undefined>(undefined);
   const [showBookings, setShowBookings] = useState(false);
@@ -190,6 +192,8 @@ export default function BillingPage() {
     if (config?.payment) setPay(config.payment);
     if (config?.business?.name) setShopName(config.business.name);
     if (config?.billing) setBillMsg(config.billing);
+    if (config?.options?.servicePresets?.length) setServicePresets(config.options.servicePresets);
+    if (config?.options?.freebies?.length) setFreebiePresets(config.options.freebies);
     setBookings((bj.bookings || []).filter((x: Booking) => x.status !== "cancelled"));
   }, []);
 
@@ -417,9 +421,9 @@ export default function BillingPage() {
         nights: 1,
       };
     } else if (kind === "service") {
-      patch = { kind, label: SERVICE_PRESETS[0].label, amount: SERVICE_PRESETS[0].amount };
+      patch = { kind, label: servicePresets[0]?.label || "", amount: servicePresets[0]?.amount || 0 };
     } else if (kind === "freebie") {
-      patch = { kind, label: FREEBIE_PRESETS[0], amount: 0 };
+      patch = { kind, label: freebiePresets[0] || "", amount: 0 };
     } else {
       patch = { kind, label: "", amount: 0 };
     }
@@ -794,7 +798,7 @@ export default function BillingPage() {
                     <select
                       value={item.label}
                       onChange={(e) => {
-                        const p = SERVICE_PRESETS.find((x) => x.label === e.target.value);
+                        const p = servicePresets.find((x) => x.label === e.target.value);
                         updateItem(i, {
                           label: e.target.value,
                           amount: p?.amount ?? item.amount,
@@ -802,7 +806,7 @@ export default function BillingPage() {
                       }}
                       className={sub}
                     >
-                      {SERVICE_PRESETS.map((p) => (
+                      {servicePresets.map((p) => (
                         <option key={p.label} value={p.label}>
                           {p.label}
                         </option>
@@ -829,7 +833,7 @@ export default function BillingPage() {
                         className={sub}
                       />
                       <datalist id={`freebies-${i}`}>
-                        {FREEBIE_PRESETS.map((f) => (
+                        {freebiePresets.map((f) => (
                           <option key={f} value={f} />
                         ))}
                       </datalist>

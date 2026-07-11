@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useLiff } from "@/components/LiffProvider";
+import { useConfig } from "@/components/ConfigProvider";
 
 type CatGender = "male" | "female";
 type CatInput = {
@@ -44,6 +45,11 @@ function emptyCat(): CatInput {
 export default function RegisterPage() {
   const router = useRouter();
   const { profile, ready, customer, refreshCustomer, refreshAccount } = useLiff();
+  const { config } = useConfig();
+  const breeds = config.options?.catBreeds?.length ? config.options.catBreeds : BREED_OPTIONS;
+  const referrals = config.options?.referralOptions?.length
+    ? config.options.referralOptions
+    : REFERRAL_OPTIONS;
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -264,7 +270,7 @@ export default function RegisterPage() {
                   }`}
                 >
                   <option value="">เลือกสายพันธุ์…</option>
-                  {BREED_OPTIONS.map((b) => (
+                  {breeds.map((b) => (
                     <option key={b} value={b} className="text-brown">
                       {b}
                     </option>
@@ -361,7 +367,7 @@ export default function RegisterPage() {
             <span className="font-normal text-brown-faint">(ไม่บังคับ)</span>
           </span>
           <div className="flex flex-wrap gap-2">
-            {REFERRAL_OPTIONS.map((opt) => (
+            {referrals.map((opt) => (
               <button
                 key={opt}
                 type="button"

@@ -13,6 +13,7 @@ type Tab =
   | "payment"
   | "messages"
   | "automation"
+  | "lists"
   | "rooms"
   | "grooming"
   | "points"
@@ -24,6 +25,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "payment", label: "บัญชี", icon: "🏦" },
   { id: "messages", label: "ข้อความ", icon: "💬" },
   { id: "automation", label: "อัตโนมัติ", icon: "⏰" },
+  { id: "lists", label: "รายการ", icon: "📋" },
   { id: "rooms", label: "ห้อง", icon: "🛏️" },
   { id: "grooming", label: "อาบน้ำ", icon: "🛁" },
   { id: "points", label: "แต้ม", icon: "🎁" },
@@ -163,6 +165,9 @@ export default function SettingsPage() {
       )}
       {tab === "automation" && (
         <AutomationTab config={config} saving={saving} onSave={save} />
+      )}
+      {tab === "lists" && (
+        <ListsTab config={config} saving={saving} onSave={save} />
       )}
       {tab === "rooms" && (
         <RoomsTab config={config} saving={saving} onSave={save} />
@@ -1106,6 +1111,125 @@ function AutomationTab({
         label="🎂 อวยพรวันเกิดแมวอัตโนมัติ"
         checked={form.birthdayEnabled}
         onChange={(v) => set({ birthdayEnabled: v })}
+      />
+
+      <SaveBtn saving={saving} />
+    </form>
+  );
+}
+
+const OPTIONS_DEFAULT = {
+  servicePresets: [] as { label: string; amount: number }[],
+  freebies: [] as string[],
+  catBreeds: [] as string[],
+  referralOptions: [] as string[],
+};
+
+function ListsTab({
+  config,
+  saving,
+  onSave,
+}: {
+  config: SiteConfig;
+  saving: boolean;
+  onSave: (p: Partial<SiteConfig>) => void;
+}) {
+  const [form, setForm] = useState({ ...OPTIONS_DEFAULT, ...config.options });
+  useEffect(() => setForm({ ...OPTIONS_DEFAULT, ...config.options }), [config.options]);
+  const presets = form.servicePresets;
+
+  const setPreset = (i: number, patch: Partial<{ label: string; amount: number }>) =>
+    setForm((f) => ({
+      ...f,
+      servicePresets: f.servicePresets.map((p, k) => (k === i ? { ...p, ...patch } : p)),
+    }));
+
+  return (
+    <form
+      className="space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSave({
+          options: {
+            ...form,
+            servicePresets: form.servicePresets.filter((p) => p.label.trim()),
+          },
+        });
+      }}
+    >
+      <p className="text-xs font-extrabold text-catcha-chocolate">
+        ✨ บริการเสริม (หน้าคิดเงิน) — ชื่อ + ราคา
+      </p>
+      <div className="space-y-2">
+        {presets.map((p, i) => (
+          <div key={i} className="flex gap-2">
+            <input
+              value={p.label}
+              onChange={(e) => setPreset(i, { label: e.target.value })}
+              placeholder="ชื่อบริการ"
+              className="min-w-0 flex-1 rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+            />
+            <input
+              type="number"
+              value={String(p.amount)}
+              onChange={(e) => setPreset(i, { amount: Number(e.target.value) || 0 })}
+              className="w-20 rounded-catcha-sm border border-catcha-line bg-paper px-2 py-2 text-right text-sm"
+            />
+            <button
+              type="button"
+              onClick={() =>
+                setForm((f) => ({
+                  ...f,
+                  servicePresets: f.servicePresets.filter((_, k) => k !== i),
+                }))
+              }
+              className="shrink-0 px-2 text-wait"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() =>
+            setForm((f) => ({
+              ...f,
+              servicePresets: [...f.servicePresets, { label: "", amount: 0 }],
+            }))
+          }
+          className="w-full rounded-catcha-sm border border-dashed border-catcha-line py-2 text-xs font-bold text-latte-deep"
+        >
+          + เพิ่มบริการ
+        </button>
+      </div>
+
+      <hr className="border-catcha-line" />
+      <TextAreaField
+        label="🎁 ของแถม (ฟรี) — 1 บรรทัด = 1 อย่าง"
+        value={form.freebies.join("\n")}
+        onChange={(v) =>
+          setForm((f) => ({ ...f, freebies: v.split("\n").map((s) => s.trim()).filter(Boolean) }))
+        }
+        rows={4}
+      />
+      <TextAreaField
+        label="🐱 สายพันธุ์แมว (หน้าลงทะเบียน) — 1 บรรทัด = 1 พันธุ์"
+        value={form.catBreeds.join("\n")}
+        onChange={(v) =>
+          setForm((f) => ({ ...f, catBreeds: v.split("\n").map((s) => s.trim()).filter(Boolean) }))
+        }
+        rows={8}
+      />
+      <TextAreaField
+        label="📣 รู้จักร้านจากไหน (referral) — 1 บรรทัด = 1 ตัวเลือก"
+        value={form.referralOptions.join("\n")}
+        onChange={(v) =>
+          setForm((f) => ({
+            ...f,
+            referralOptions: v.split("\n").map((s) => s.trim()).filter(Boolean),
+          }))
+        }
+        rows={5}
       />
 
       <SaveBtn saving={saving} />

@@ -13,6 +13,8 @@ import {
   GROOM_SPECIALS,
 } from "../grooming";
 import { DEFAULT_MESSAGES } from "../messages";
+import { SERVICE_PRESETS } from "../service-presets";
+import { BREED_OPTIONS } from "../cat-breeds";
 import type { SiteConfig } from "../config-types";
 
 export function getDefaultSiteConfig(): SiteConfig {
@@ -69,6 +71,19 @@ export function getDefaultSiteConfig(): SiteConfig {
           en: [...GROOM_NOTES.en],
         },
         sizeLabels: JSON.parse(JSON.stringify(GROOM_SIZE_LABELS)),
+      },
+      options: {
+        servicePresets: SERVICE_PRESETS.map((s) => ({ ...s })),
+        freebies: ["กล้องวงจรปิด (CCTV)", "น้ำพุแมว", "รับ-ส่ง", "ขนม/ทรีท"],
+        catBreeds: [...BREED_OPTIONS],
+        referralOptions: [
+          "Facebook",
+          "Instagram",
+          "TikTok",
+          "Google / ค้นหา",
+          "Google Maps",
+          "เพื่อนแนะนำ / ผ่านหน้าร้าน",
+        ],
       },
     })
   ) as SiteConfig;

@@ -134,6 +134,7 @@ export default function NewBookingPage() {
   } | null>(null);
   const [rooms, setRooms] = useState<RoomType[]>([]);
   const [groomSlots, setGroomSlots] = useState<string[]>(["09:30", "12:30", "15:30"]);
+  const [freebies_, setFreebies_] = useState<string[]>(FREEBIE_OPTIONS);
   const [customerId, setCustomerId] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [catName, setCatName] = useState("");
@@ -162,6 +163,7 @@ export default function NewBookingPage() {
       .then((d) => {
         if (d.config?.rooms) setRooms(d.config.rooms);
         if (d.config?.groomSlots) setGroomSlots(d.config.groomSlots);
+        if (d.config?.options?.freebies?.length) setFreebies_(d.config.options.freebies);
       });
   }, []);
 
@@ -393,7 +395,7 @@ export default function NewBookingPage() {
             ติ๊กแล้วจะติดไปในใบจอง + การ์ดยืนยันให้ลูกค้าเห็นเลย
           </p>
           <div className="flex flex-wrap gap-2">
-            {FREEBIE_OPTIONS.map((f) => {
+            {freebies_.map((f) => {
               const on = freebies.includes(f);
               return (
                 <button

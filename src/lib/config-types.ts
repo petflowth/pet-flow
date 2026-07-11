@@ -113,4 +113,15 @@ export type SiteConfig = {
   transport: LocalizedLines;
   pointsRewards: PointsRewardConfig[];
   grooming: GroomingConfig;
+  /** ตัวเลือก/รายการที่แก้ได้ในหลังบ้าน (แทนที่การฝังในโค้ด) */
+  options: {
+    /** บริการเสริมในหน้าคิดเงิน (ชื่อ + ราคา) */
+    servicePresets: { label: string; amount: number }[];
+    /** ของแถม (ฟรี) — ชื่ออย่างเดียว */
+    freebies: string[];
+    /** สายพันธุ์แมว (หน้าลงทะเบียน + ตัวกรอง broadcast) */
+    catBreeds: string[];
+    /** รู้จักร้านจากไหน (referral) — หน้าลงทะเบียน */
+    referralOptions: string[];
+  };
 };

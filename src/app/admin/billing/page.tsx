@@ -1122,7 +1122,7 @@ export default function BillingPage() {
                 >
                   ✅ {(inv.deposit ?? 0) > 0 ? "รับเงินที่เหลือ (ปิดบิล)" : "รับเงินแล้ว"}
                 </button>
-                {selected?.isMember && (
+                {customers.find((c) => c.id === inv.customerId)?.isMember && (
                   <button
                     type="button"
                     onClick={() => markPaid(inv.id, "member_credit")}

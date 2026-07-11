@@ -66,6 +66,19 @@ export function BookingCalendar() {
     queueRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const confirmBooking = async (b: CalendarDay) => {
+    const res = await fetch("/api/bookings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: b.id, action: "confirm", lineUserId: b.lineUserId }),
+    });
+    if (res.ok) {
+      load();
+    } else {
+      alert("ยืนยันไม่สำเร็จ");
+    }
+  };
+
   const cancelBooking = async (b: CalendarDay) => {
     if (!confirm(`ยกเลิก${b.service === "room" ? "การเข้าพัก" : "นัด"} ${b.catName} · ${b.customerName}?`)) return;
     const res = await fetch("/api/bookings", {
@@ -245,6 +258,15 @@ export function BookingCalendar() {
                   </span>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {b.status !== "confirmed" && (
+                    <button
+                      type="button"
+                      onClick={() => confirmBooking(b)}
+                      className="rounded-full bg-sage/25 px-2.5 py-1 text-[10px] font-bold text-ok"
+                    >
+                      ✔️ ยืนยันนัด
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setEditing(b)}

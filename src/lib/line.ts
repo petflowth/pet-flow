@@ -630,6 +630,10 @@ export function buildBillSummaryFlex(data: {
 
   const money = (n: number) => `${n.toLocaleString()} บาท`;
 
+  // แยกของแถมฟรี (ยอด 0) ออกมาโชว์เป็นกล่อง "ของแถมฟรี" ต่างหาก
+  const freebieItems = data.items.filter((i) => i.amount === 0);
+  const paidItems = data.items.filter((i) => i.amount !== 0);
+
   const body: Record<string, unknown>[] = [
     {
       type: "text",
@@ -666,7 +670,7 @@ export function buildBillSummaryFlex(data: {
       layout: "vertical",
       margin: "lg",
       spacing: "xs",
-      contents: data.items.map((i) => ({
+      contents: paidItems.map((i) => ({
         type: "box",
         layout: "horizontal",
         contents: [
@@ -736,10 +740,52 @@ export function buildBillSummaryFlex(data: {
     ],
   });
 
-  if ((data.mode === "deposit" || data.mode === "remaining") && deposit >= 0) {
+  // 🎁 ของแถมฟรี — โชว์ให้ลูกค้าเห็นว่าแถมอะไรบ้าง
+  if (freebieItems.length) {
+    body.push({
+      type: "box",
+      layout: "vertical",
+      margin: "lg",
+      spacing: "xs",
+      paddingAll: "12px",
+      backgroundColor: "#FBF7F0",
+      cornerRadius: "10px",
+      contents: [
+        {
+          type: "text",
+          text: "🎁 ของแถมฟรี",
+          weight: "bold",
+          size: "xs",
+          color: "#5C4033",
+        },
+        ...freebieItems.map((i) => ({
+          type: "text",
+          text: `• ${i.label.replace(/^🎁\s*/, "").replace(/\s*\(ฟรี\)\s*$/, "")}`,
+          size: "xs",
+          color: "#7A6A5A",
+          wrap: true,
+        })),
+      ],
+    });
+  }
+
+  const showDeposit =
+    data.mode === "deposit" ||
+    data.mode === "remaining" ||
+    (data.mode === "booking" && deposit > 0);
+  if (showDeposit) {
     const isRemaining = data.mode === "remaining";
-    const paidLabel = isRemaining ? "มัดจำที่ชำระแล้ว" : "มัดจำที่ต้องโอน";
-    const dueLabel = isRemaining ? "ยอดที่ต้องโอนตอนนี้" : "ยอดคงเหลือ (ก่อนเข้าพัก)";
+    const isBooking = data.mode === "booking";
+    const paidLabel = isRemaining
+      ? "มัดจำที่ชำระแล้ว"
+      : isBooking
+        ? "มัดจำ"
+        : "มัดจำที่ต้องโอน";
+    const dueLabel = isRemaining
+      ? "ยอดที่ต้องโอนตอนนี้"
+      : isBooking
+        ? "ยอดคงเหลือ"
+        : "ยอดคงเหลือ (ก่อนเข้าพัก)";
     body.push({
       type: "box",
       layout: "vertical",

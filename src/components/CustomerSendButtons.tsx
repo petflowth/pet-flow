@@ -173,8 +173,8 @@ export function CustomerSendButtons({
       {invId && (
         <Btn
           k="inv:booking"
-          label="🧾 สรุปยอด"
-          onClick={() => invoiceSummary("booking", "ส่งสรุปยอดแล้ว 🧾")}
+          label="🧾 สรุปการจอง"
+          onClick={() => invoiceSummary("booking", "ส่งสรุปการจองแล้ว 🧾")}
         />
       )}
       {invId && (

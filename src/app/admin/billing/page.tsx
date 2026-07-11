@@ -1136,19 +1136,27 @@ export default function BillingPage() {
       <ul className="space-y-3">
         {invoices
           .filter((inv) => billFilter === "all" || inv.status === billFilter)
-          .map((inv) => (
+          .map((inv) => {
+            // ผูกนัดโดยตรง หรือถ้าไม่ได้ผูก → เดาจากนัดของลูกค้า/น้องตัวเดียวกัน
+            const linkedBk =
+              bookings.find((b) => b.id === inv.bookingId) ||
+              bookings.find(
+                (b) =>
+                  !!b.customerId &&
+                  b.customerId === inv.customerId &&
+                  b.catName === inv.catName &&
+                  b.status !== "cancelled"
+              );
+            const sched = scheduleLabelFor(linkedBk);
+            return (
           <li key={inv.id} className="rounded-catcha border border-catcha-line bg-card p-4">
             <p className="font-bold text-brown">
               {inv.catName} · {inv.customerName}
             </p>
 
-            {(() => {
-              const bk = bookings.find((b) => b.id === inv.bookingId);
-              const sched = scheduleLabelFor(bk);
-              return sched ? (
-                <p className="mt-1 text-xs font-bold text-latte-deep">{sched}</p>
-              ) : null;
-            })()}
+            {sched ? (
+              <p className="mt-1 text-xs font-bold text-latte-deep">{sched}</p>
+            ) : null}
 
             {inv.items && inv.items.length > 0 && (
               <div className="mt-2 space-y-0.5 rounded-catcha-sm bg-paper/50 px-3 py-2 text-xs text-brown-soft">
@@ -1187,7 +1195,7 @@ export default function BillingPage() {
             <div className="mt-2 rounded-catcha-sm bg-paper/50 p-2">
               <CustomerSendButtons
                 invoiceId={inv.id}
-                bookingId={inv.bookingId}
+                bookingId={inv.bookingId || linkedBk?.id}
                 customerId={inv.customerId}
                 lineUserId={inv.lineUserId}
                 service={
@@ -1266,7 +1274,8 @@ export default function BillingPage() {
               🗑️ ลบบิล
             </button>
           </li>
-        ))}
+            );
+          })}
       </ul>
     </div>
   );

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { adminJson } from "@/lib/admin-fetch";
 import { BookingEditModal, type EditableBooking } from "@/components/BookingEditModal";
+import { CustomerSendButtons } from "@/components/CustomerSendButtons";
 import { bookingOnDate } from "@/lib/booking-customer-match";
 
 type Stats = {
@@ -45,7 +46,6 @@ export default function AdminDashboard() {
   const [editing, setEditing] = useState<CalendarDay | null>(null);
   const [rooms, setRooms] = useState<{ id: string; name: string; size: string; price: number }[]>([]);
   const [groomSlots, setGroomSlots] = useState<string[]>(["09:30", "12:30", "15:30"]);
-  const [sendingKey, setSendingKey] = useState("");
   const queueRef = useRef<HTMLElement>(null);
 
   const load = useCallback(async () => {
@@ -107,27 +107,6 @@ export default function AdminDashboard() {
       load();
     } else {
       alert("ยกเลิกไม่สำเร็จ");
-    }
-  };
-
-  const sendAction = async (
-    b: CalendarDay,
-    action: string,
-    okMsg: string
-  ) => {
-    const key = `${b.id}:${action}`;
-    setSendingKey(key);
-    try {
-      const res = await fetch("/api/bookings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: b.id, action, lineUserId: b.lineUserId }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) alert(okMsg);
-      else alert(data.error || "ส่งไม่สำเร็จ — ไป Admin → ติดตั้ง → ตั้ง LINE Token");
-    } finally {
-      setSendingKey("");
     }
   };
 
@@ -339,54 +318,14 @@ export default function AdminDashboard() {
                     📲 iCal
                   </a>
                 </div>
-                <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-catcha-line pt-2">
-                  <span className="text-[10px] font-bold text-brown-faint">
-                    ส่ง LINE:
-                  </span>
-                  <SendBtn
-                    label="📨 แจ้งเตือนนัด"
-                    busy={sendingKey === `${b.id}:send_reminder`}
-                    onClick={() =>
-                      sendAction(b, "send_reminder", "ส่งการ์ดแจ้งเตือนนัดแล้ว 📨")
-                    }
+                <div className="mt-2 border-t border-catcha-line pt-2">
+                  <CustomerSendButtons
+                    bookingId={b.id}
+                    lineUserId={b.lineUserId}
+                    customerId={b.customerId}
+                    service={b.service}
+                    onDone={load}
                   />
-                  {b.service === "room" && (
-                    <>
-                      <SendBtn
-                        label="🏠 แจ้งเข้าพัก"
-                        busy={sendingKey === `${b.id}:send_prestay`}
-                        onClick={() =>
-                          sendAction(
-                            b,
-                            "send_prestay",
-                            "ส่งรายละเอียดก่อนเข้าพักแล้ว 🏠"
-                          )
-                        }
-                      />
-                      <SendBtn
-                        label="📋 เงื่อนไข"
-                        busy={sendingKey === `${b.id}:send_consent`}
-                        onClick={() =>
-                          sendAction(
-                            b,
-                            "send_consent",
-                            "ส่งลิงก์ยอมรับเงื่อนไขก่อนเข้าพักแล้ว 📋"
-                          )
-                        }
-                      />
-                      <SendBtn
-                        label="💰 ยอดคงเหลือ"
-                        busy={sendingKey === `${b.id}:send_deposit_reminder`}
-                        onClick={() =>
-                          sendAction(
-                            b,
-                            "send_deposit_reminder",
-                            "ส่งแจ้งยอดคงเหลือแล้ว 💰"
-                          )
-                        }
-                      />
-                    </>
-                  )}
                 </div>
               </li>
             ))
@@ -406,26 +345,6 @@ export default function AdminDashboard() {
   );
 }
 
-function SendBtn({
-  label,
-  busy,
-  onClick,
-}: {
-  label: string;
-  busy: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={busy}
-      className="rounded-full bg-[#06C755]/15 px-2.5 py-1 text-[10px] font-bold text-[#06883c] disabled:opacity-40"
-    >
-      {busy ? "กำลังส่ง…" : label}
-    </button>
-  );
-}
 
 function StatCard({
   emoji,

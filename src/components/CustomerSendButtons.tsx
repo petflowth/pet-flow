@@ -1,0 +1,164 @@
+"use client";
+
+import { useState } from "react";
+
+/**
+ * ปุ่มส่งหาลูกค้าแบบรวมศูนย์ — ใช้ได้ทุกที่ (การ์ดในปฏิทิน · บิล · ฯลฯ)
+ * ปุ่มไหนโผล่ขึ้นกับ context ที่มี (booking / invoice / customer)
+ * booking-based → /api/bookings · invoice/มัดจำ → /api/invoices
+ */
+export function CustomerSendButtons({
+  lineUserId,
+  customerId,
+  bookingId,
+  invoiceId,
+  service,
+  invoiceDeposit = 0,
+  onDone,
+}: {
+  lineUserId?: string;
+  customerId?: string;
+  bookingId?: string;
+  invoiceId?: string;
+  service?: "room" | "groom";
+  invoiceDeposit?: number;
+  onDone?: () => void;
+}) {
+  const [busy, setBusy] = useState("");
+  const noLine = !lineUserId;
+
+  const call = async (key: string, run: () => Promise<Response>, okMsg: string) => {
+    setBusy(key);
+    try {
+      const res = await run();
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        alert(d.needSql ? `${okMsg}\n(หมายเหตุ: ยังไม่ได้รัน SQL มัดจำ)` : okMsg);
+        onDone?.();
+      } else {
+        alert(d.error ? `ส่งไม่สำเร็จ: ${d.error}` : "ส่งไม่สำเร็จ — ตรวจ LINE / ตั้งค่า");
+      }
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const bookingSend = (action: string, okMsg: string) =>
+    call(
+      action,
+      () =>
+        fetch("/api/bookings", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: bookingId, action, lineUserId }),
+        }),
+      okMsg
+    );
+
+  const invoiceSummary = (mode: string, okMsg: string) =>
+    call(
+      "inv:" + mode,
+      () =>
+        fetch("/api/invoices", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: invoiceId, action: "send_summary", mode }),
+        }),
+      okMsg
+    );
+
+  const depositRequest = () => {
+    const raw = prompt("เรียกเก็บมัดจำเท่าไหร่? (บาท)");
+    if (raw == null) return;
+    const amount = Math.round(Number(raw) || 0);
+    if (amount <= 0) {
+      alert("ใส่จำนวนมัดจำ");
+      return;
+    }
+    void call(
+      "dep",
+      () =>
+        fetch("/api/invoices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "send_deposit_request", customerId, amount }),
+        }),
+      `ส่งการ์ดเรียกเก็บมัดจำ ${amount.toLocaleString()} บาทแล้ว 📨`
+    );
+  };
+
+  const Btn = ({ k, label, onClick }: { k: string; label: string; onClick: () => void }) => (
+    <button
+      type="button"
+      disabled={noLine || busy !== ""}
+      onClick={onClick}
+      className="rounded-full bg-[#06C755]/15 px-2.5 py-1 text-[10px] font-bold text-[#06883c] disabled:opacity-40"
+    >
+      {busy === k ? "กำลังส่ง…" : label}
+    </button>
+  );
+
+  const hasRemaining = invoiceDeposit > 0;
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-[10px] font-bold text-brown-faint">
+        ส่ง LINE:{noLine ? " (ยังไม่ผูก LINE)" : ""}
+      </span>
+
+      {bookingId && (
+        <Btn
+          k="send_reminder"
+          label="📨 แจ้งเตือนนัด"
+          onClick={() => bookingSend("send_reminder", "ส่งแจ้งเตือนนัดแล้ว 📨")}
+        />
+      )}
+      {bookingId && service === "room" && (
+        <>
+          <Btn
+            k="send_prestay"
+            label="🏠 แจ้งเข้าพัก"
+            onClick={() => bookingSend("send_prestay", "ส่งรายละเอียดเข้าพักแล้ว 🏠")}
+          />
+          <Btn
+            k="send_consent"
+            label="📋 เงื่อนไข"
+            onClick={() => bookingSend("send_consent", "ส่งลิงก์ยอมรับเงื่อนไขแล้ว 📋")}
+          />
+        </>
+      )}
+
+      {customerId && (
+        <Btn k="dep" label="💰 เรียกเก็บมัดจำ" onClick={depositRequest} />
+      )}
+
+      {invoiceId && (
+        <Btn
+          k="inv:booking"
+          label="🧾 สรุปยอด"
+          onClick={() => invoiceSummary("booking", "ส่งสรุปยอดแล้ว 🧾")}
+        />
+      )}
+      {invoiceId && (
+        <Btn
+          k={hasRemaining ? "inv:remaining" : "inv:full"}
+          label={hasRemaining ? "💳 เก็บส่วนที่เหลือ" : "💳 แจ้งเก็บเงิน"}
+          onClick={() =>
+            invoiceSummary(
+              hasRemaining ? "remaining" : "full",
+              hasRemaining ? "ส่งแจ้งเก็บส่วนที่เหลือแล้ว 💳" : "ส่งแจ้งเก็บเงินแล้ว 💳"
+            )
+          }
+        />
+      )}
+      {/* ยอดคงเหลือจากนัด — ใช้เมื่อยังไม่มีบิลผูก (บิลจะใช้ปุ่มด้านบนแทน) */}
+      {bookingId && !invoiceId && (
+        <Btn
+          k="send_deposit_reminder"
+          label="💰 ยอดคงเหลือ"
+          onClick={() => bookingSend("send_deposit_reminder", "ส่งแจ้งยอดคงเหลือแล้ว 💰")}
+        />
+      )}
+    </div>
+  );
+}

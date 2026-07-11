@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { SERVICE_PRESETS, type ServicePreset } from "@/lib/service-presets";
+import { CustomerSendButtons } from "@/components/CustomerSendButtons";
 import {
   GROOM_PROGRAMS,
   GROOM_SIZES,
@@ -41,6 +42,8 @@ type Invoice = {
   customerName: string;
   catName: string;
   lineUserId?: string;
+  customerId?: string;
+  bookingId?: string;
   items?: { label: string; amount: number }[];
 };
 
@@ -508,24 +511,6 @@ export default function BillingPage() {
     } else {
       alert("บันทึกไม่สำเร็จ");
     }
-  };
-
-  const sendInvoiceSummary = async (
-    id: string,
-    mode: "booking" | "deposit" | "full" | "remaining"
-  ) => {
-    setSending(true);
-    const res = await fetch("/api/invoices", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, action: "send_summary", mode }),
-    });
-    setSending(false);
-    alert(
-      res.ok
-        ? "ส่งการ์ดเข้า LINE ลูกค้าแล้ว 📨"
-        : "ส่งไม่สำเร็จ — ตรวจว่าลูกค้าผูก LINE แล้ว"
-    );
   };
 
   const markPaid = async (
@@ -1123,40 +1108,21 @@ export default function BillingPage() {
               </p>
             )}
 
-            {/* ส่งการ์ดให้ลูกค้า — กดส่งทีหลังจากบิลนี้ได้ */}
+            {/* ส่งการ์ดให้ลูกค้า — ชุดปุ่มรวม (เหมือนในปฏิทิน กดจากบิลนี้ได้) */}
             <div className="mt-2 rounded-catcha-sm bg-paper/50 p-2">
-              <p className="mb-1.5 text-[10px] font-bold text-brown-soft">
-                💬 ส่งการ์ดเข้า LINE ลูกค้า
-                {!inv.lineUserId && " — ลูกค้ายังไม่ผูก LINE"}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  disabled={!inv.lineUserId || sending}
-                  onClick={() => sendInvoiceSummary(inv.id, "booking")}
-                  className="rounded-full bg-[#06C755]/15 px-3 py-1.5 text-[11px] font-bold text-[#06883c] disabled:opacity-40"
-                >
-                  📋 สรุปยอด
-                </button>
-                {inv.status === "pending" && (
-                  <button
-                    type="button"
-                    disabled={!inv.lineUserId || sending}
-                    onClick={() =>
-                      sendInvoiceSummary(
-                        inv.id,
-                        (inv.deposit ?? 0) > 0 ? "remaining" : "full"
-                      )
-                    }
-                    className="rounded-full bg-[#06C755]/15 px-3 py-1.5 text-[11px] font-bold text-[#06883c] disabled:opacity-40"
-                  >
-                    💳{" "}
-                    {(inv.deposit ?? 0) > 0
-                      ? "แจ้งเก็บส่วนที่เหลือ"
-                      : "แจ้งเก็บเงิน"}
-                  </button>
-                )}
-              </div>
+              <CustomerSendButtons
+                invoiceId={inv.id}
+                bookingId={inv.bookingId}
+                customerId={inv.customerId}
+                lineUserId={inv.lineUserId}
+                service={
+                  inv.items?.some((it) => /คืน|ห้อง/.test(it.label))
+                    ? "room"
+                    : "groom"
+                }
+                invoiceDeposit={inv.deposit ?? 0}
+                onDone={load}
+              />
             </div>
 
             {inv.status === "pending" && (

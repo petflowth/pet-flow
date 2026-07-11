@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SERVICE_PRESETS, type ServicePreset } from "@/lib/service-presets";
 import { CustomerSendButtons } from "@/components/CustomerSendButtons";
 import { toast } from "@/components/Toast";
+import { formatThaiDateShort } from "@/lib/format-thai-date";
 import {
   GROOM_PROGRAMS,
   GROOM_SIZES,
@@ -109,6 +110,38 @@ function computeLine(it: Item): { label: string; amount: number } {
     return { label: `🎁 ${it.label || "ของแถม"} (ฟรี)`, amount: 0 };
   }
   return { label: it.label, amount: it.amount || 0 };
+}
+
+/** สรุปการจอง (วัน/เวลา) จากนัดที่ผูกกับบิล — โชว์ในบิล + การ์ดสรุปให้ลูกค้า */
+function scheduleLabelFor(bk?: {
+  service?: string;
+  checkin?: string;
+  checkout?: string;
+  date?: string;
+  time?: string;
+}): string {
+  if (!bk) return "";
+  const isRoom = bk.service === "room" || !!bk.checkin;
+  if (isRoom) {
+    const inD = formatThaiDateShort(bk.checkin || bk.date || "");
+    const outD = bk.checkout ? formatThaiDateShort(bk.checkout) : "";
+    let nights = 0;
+    if (bk.checkin && bk.checkout) {
+      nights = Math.max(
+        1,
+        Math.round(
+          (new Date(`${bk.checkout}T12:00:00`).getTime() -
+            new Date(`${bk.checkin}T12:00:00`).getTime()) /
+            86400000
+        )
+      );
+    }
+    if (!inD) return "";
+    return `🏠 เข้าพัก ${inD}${outD ? ` → ${outD}` : ""}${nights ? ` · ${nights} คืน` : ""}`;
+  }
+  const d = formatThaiDateShort(bk.date || "");
+  if (!d) return "";
+  return `🛁 นัดอาบน้ำ ${d}${bk.time ? ` · ${bk.time} น.` : ""}`;
 }
 
 const KIND_OPTIONS: { id: ItemKind; label: string }[] = [
@@ -285,11 +318,7 @@ export default function BillingPage() {
           ? billMsg.summaryFullTitle
           : billMsg.summaryBookingTitle;
     const bk = bookings.find((b) => b.id === bookingId);
-    const scheduleText = bk
-      ? bk.service === "room" || bk.checkin
-        ? `🏠 เข้าพัก: ${bk.checkin || bk.date || ""}${bk.checkout ? ` → ${bk.checkout}` : ""}`
-        : `📅 นัดอาบน้ำ: ${bk.date || ""}${bk.time ? ` ${bk.time}` : ""}`.trim()
-      : undefined;
+    const scheduleText = scheduleLabelFor(bk) || undefined;
     return {
       mode,
       title,
@@ -1112,6 +1141,14 @@ export default function BillingPage() {
             <p className="font-bold text-brown">
               {inv.catName} · {inv.customerName}
             </p>
+
+            {(() => {
+              const bk = bookings.find((b) => b.id === inv.bookingId);
+              const sched = scheduleLabelFor(bk);
+              return sched ? (
+                <p className="mt-1 text-xs font-bold text-latte-deep">{sched}</p>
+              ) : null;
+            })()}
 
             {inv.items && inv.items.length > 0 && (
               <div className="mt-2 space-y-0.5 rounded-catcha-sm bg-paper/50 px-3 py-2 text-xs text-brown-soft">

@@ -20,9 +20,12 @@ export function bookingScheduleText(b: {
   checkout?: string;
 }): string {
   if (b.service === "room" || b.checkin) {
-    return `🏠 เข้าพัก: ${b.checkin || b.date || ""}${b.checkout ? ` → ${b.checkout}` : ""}`;
+    const inD = formatThaiDateShort(b.checkin || b.date || "");
+    const outD = b.checkout ? formatThaiDateShort(b.checkout) : "";
+    return `🏠 เข้าพัก: ${inD}${outD ? ` → ${outD}` : ""}`;
   }
-  return `📅 นัดอาบน้ำ: ${b.date || ""}${b.time ? ` ${b.time}` : ""}`.trim();
+  const d = formatThaiDateShort(b.date || "");
+  return `📅 นัดอาบน้ำ: ${d}${b.time ? ` ${b.time} น.` : ""}`.trim();
 }
 
 /** ลิงก์หน้ายอมรับข้อตกลง (คืน "" ถ้ายังไม่ได้ตั้ง LIFF ID) */

@@ -15,8 +15,11 @@ type Stats = {
   financeMonth: { income: number; expense: number; net: number };
 };
 
+type Tasks = { unpaidCount: number; unpaidDue: number; pendingConsent: number };
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
+  const [tasks, setTasks] = useState<Tasks | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -29,6 +32,35 @@ export default function AdminDashboard() {
     } else {
       setStats(null);
       setError(res.ok ? "โหลดสถิติไม่สำเร็จ" : res.error);
+    }
+    // งานที่ต้องทำ — บิลค้าง + ลูกค้ายังไม่กดยอมรับเงื่อนไข
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const [invR, bkR] = await Promise.all([
+        fetch("/api/invoices").then((r) => r.json()),
+        fetch("/api/bookings").then((r) => r.json()),
+      ]);
+      const invs = (invR.invoices || []) as { status: string; total: number; deposit?: number }[];
+      const bks = (bkR.bookings || []) as {
+        service?: string;
+        checkin?: string;
+        consentAcceptedAt?: string;
+        status?: string;
+      }[];
+      const pending = invs.filter((i) => i.status === "pending");
+      setTasks({
+        unpaidCount: pending.length,
+        unpaidDue: pending.reduce((s, i) => s + (i.total - (i.deposit || 0)), 0),
+        pendingConsent: bks.filter(
+          (b) =>
+            b.service === "room" &&
+            b.status !== "cancelled" &&
+            (b.checkin || "") >= today &&
+            !b.consentAcceptedAt
+        ).length,
+      });
+    } catch {
+      setTasks(null);
     }
     setLoading(false);
   }, []);
@@ -64,6 +96,49 @@ export default function AdminDashboard() {
         <StatCard emoji="📅" label="นัดวันนี้" value={String(stats.todayAppointments)} sub={`ยืนยัน ${stats.todayConfirmed}`} />
         <StatCard emoji="📒" label="สุทธิวันนี้" value={`${stats.financeToday.net.toLocaleString()} ฿`} sub={`เดือน ${stats.financeMonth.net.toLocaleString()} ฿`} />
       </div>
+
+      {/* งานที่ต้องทำ */}
+      {(stats.queue > 0 ||
+        (tasks && (tasks.unpaidCount > 0 || tasks.pendingConsent > 0))) && (
+        <div className="rounded-catcha border border-honey/50 bg-honey/10 p-4">
+          <p className="mb-2 text-sm font-extrabold text-catcha-chocolate">
+            📌 งานที่ต้องทำ
+          </p>
+          <div className="space-y-1.5 text-sm">
+            {stats.queue > 0 && (
+              <Link
+                href="/admin/schedule"
+                className="flex items-center justify-between rounded-catcha-sm bg-card px-3 py-2"
+              >
+                <span className="font-bold text-brown">⏳ นัดรอยืนยัน</span>
+                <span className="font-extrabold text-wait">{stats.queue} นัด →</span>
+              </Link>
+            )}
+            {tasks && tasks.unpaidCount > 0 && (
+              <Link
+                href="/admin/billing"
+                className="flex items-center justify-between rounded-catcha-sm bg-card px-3 py-2"
+              >
+                <span className="font-bold text-brown">💳 บิลค้างชำระ</span>
+                <span className="font-extrabold text-wait">
+                  {tasks.unpaidDue.toLocaleString()} ฿ ({tasks.unpaidCount}) →
+                </span>
+              </Link>
+            )}
+            {tasks && tasks.pendingConsent > 0 && (
+              <Link
+                href="/admin/schedule"
+                className="flex items-center justify-between rounded-catcha-sm bg-card px-3 py-2"
+              >
+                <span className="font-bold text-brown">📋 ยังไม่กดยอมรับเงื่อนไข</span>
+                <span className="font-extrabold text-latte-deep">
+                  {tasks.pendingConsent} คน →
+                </span>
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* เปิดตารางนัด (แยกหน้า) */}
       <Link

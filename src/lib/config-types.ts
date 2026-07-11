@@ -40,6 +40,8 @@ export type MessagesConfig = {
   prestayPrepItems: string[];
   /** การ์ดเข้าพัก — ประโยคปิดชวนแจ้งการดูแลพิเศษ — {cat} */
   prestayCareNote: string;
+  /** การ์ดเข้าพัก — ข้อความเตือนให้เตรียมทราย (เข้าพักสั้นกว่าเกณฑ์แถมฟรี) — {min} */
+  prestayLitterNote: string;
   /** เตือนเช็คอิน ก่อนเข้าพัก — {shop} {cat} {checkin} {room} */
   checkinReminder: string;
   /** เตือนเช็คเอาท์ ก่อนออก — {shop} {cat} {checkout} */

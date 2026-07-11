@@ -375,6 +375,13 @@ function MessagesTab({
         rows={3}
       />
       <TextAreaField
+        label="🐈 ข้อความเตือนให้เตรียมทราย (เฉพาะเข้าพักสั้นกว่าเกณฑ์แถมฟรี)"
+        hint="ใช้ได้: {min} = จำนวนคืนขั้นต่ำที่แถมทรายฟรี (ตั้งในแท็บ ⏰ อัตโนมัติ)"
+        value={msgs?.prestayLitterNote || ""}
+        onChange={(v) => setMsgs({ ...msgs, prestayLitterNote: v })}
+        rows={3}
+      />
+      <TextAreaField
         label="🧳 เตือนเช็คอิน (ก่อนวันเข้าพัก)"
         hint="ใช้ได้: {shop} {cat} {checkin} {room} {litterNote}"
         value={msgs?.checkinReminder || ""}

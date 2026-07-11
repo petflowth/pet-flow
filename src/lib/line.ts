@@ -1066,21 +1066,18 @@ export function buildPrestayFlex(data: {
   if (data.litterNote) {
     body.push({
       type: "box",
-      layout: "horizontal",
+      layout: "vertical",
       margin: "md",
       paddingAll: "12px",
       backgroundColor: "#FBEEE0",
       cornerRadius: "10px",
-      spacing: "sm",
       contents: [
-        { type: "text", text: "🐈", size: "sm", flex: 0 },
         {
           type: "text",
-          text: data.litterNote.replace(/^🐈\s*/, ""),
+          text: data.litterNote,
           size: "xs",
           color: "#B4553B",
           wrap: true,
-          flex: 1,
         },
       ],
     });

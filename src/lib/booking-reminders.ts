@@ -122,7 +122,10 @@ export function litterNoteFor(
         )
       : 1;
   if (nights >= min) return "";
-  return `🐈 รบกวนเตรียม "ทรายแมว" มาด้วยนะคะ (เข้าพักไม่ถึง ${min} คืน ยังไม่รวมทรายฟรีค่ะ)`;
+  return renderTemplate(
+    cfg.messages?.prestayLitterNote ?? DEFAULT_MESSAGES.prestayLitterNote,
+    { min }
+  );
 }
 
 /** เนื้อความเตรียมตัวก่อนเข้าพัก (ไม่แนบลิงก์ — ใช้กับการ์ดที่มีปุ่มยอมรับเงื่อนไข) */

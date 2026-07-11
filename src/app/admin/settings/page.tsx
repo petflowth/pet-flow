@@ -347,6 +347,20 @@ function MessagesTab({
         onChange={(v) => setMsgs({ ...msgs, prestayReminder: v })}
         rows={8}
       />
+      <TextAreaField
+        label="🧳 เตือนเช็คอิน (ก่อนวันเข้าพัก)"
+        hint="ใช้ได้: {shop} {cat} {checkin} {room}"
+        value={msgs?.checkinReminder || ""}
+        onChange={(v) => setMsgs({ ...msgs, checkinReminder: v })}
+        rows={8}
+      />
+      <TextAreaField
+        label="🧳 เตือนเช็คเอาท์ (ก่อนวันออก)"
+        hint="ใช้ได้: {shop} {cat} {checkout}"
+        value={msgs?.checkoutReminder || ""}
+        onChange={(v) => setMsgs({ ...msgs, checkoutReminder: v })}
+        rows={6}
+      />
 
       <hr className="border-catcha-line" />
       <p className="text-xs font-extrabold text-catcha-chocolate">
@@ -1001,6 +1015,10 @@ const AUTOMATION_DEFAULT = {
   depositReminderDays: 7,
   prestayReminderEnabled: true,
   prestayReminderDays: 3,
+  checkinReminderEnabled: true,
+  checkinReminderDays: 1,
+  checkoutReminderEnabled: true,
+  checkoutReminderDays: 1,
   birthdayEnabled: true,
 };
 
@@ -1103,6 +1121,38 @@ function AutomationTab({
             type="number"
             value={String(form.prestayReminderDays)}
             onChange={(v) => set({ prestayReminderDays: Math.max(0, Number(v) || 0) })}
+          />
+        )}
+      </div>
+
+      <div className="rounded-catcha-sm border border-catcha-line p-3">
+        <Toggle
+          label="🧳 เตือนเช็คอิน ก่อนวันเข้าพัก"
+          checked={form.checkinReminderEnabled}
+          onChange={(v) => set({ checkinReminderEnabled: v })}
+        />
+        {form.checkinReminderEnabled && (
+          <Field
+            label="ส่งก่อนเข้าพัก (วัน)"
+            type="number"
+            value={String(form.checkinReminderDays)}
+            onChange={(v) => set({ checkinReminderDays: Math.max(0, Number(v) || 0) })}
+          />
+        )}
+      </div>
+
+      <div className="rounded-catcha-sm border border-catcha-line p-3">
+        <Toggle
+          label="🧳 เตือนเช็คเอาท์ ก่อนวันออก"
+          checked={form.checkoutReminderEnabled}
+          onChange={(v) => set({ checkoutReminderEnabled: v })}
+        />
+        {form.checkoutReminderEnabled && (
+          <Field
+            label="ส่งก่อนเช็คเอาท์ (วัน)"
+            type="number"
+            value={String(form.checkoutReminderDays)}
+            onChange={(v) => set({ checkoutReminderDays: Math.max(0, Number(v) || 0) })}
           />
         )}
       </div>

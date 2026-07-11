@@ -72,10 +72,14 @@ export async function GET(req: NextRequest) {
   // ── เตือนก่อนเข้าพัก (ห้องพัก) — จำนวนวันตั้งค่าได้ในหลังบ้าน ──
   const in7 = addDays(todayStr, auto?.depositReminderDays ?? 7);
   const in3 = addDays(todayStr, auto?.prestayReminderDays ?? 3);
+  const inCheckin = addDays(todayStr, auto?.checkinReminderDays ?? 1);
+  const inCheckout = addDays(todayStr, auto?.checkoutReminderDays ?? 1);
   const consentUrl = await getConsentUrl();
 
   let depositReminders = 0;
   let prestayReminders = 0;
+  let checkinReminders = 0;
+  let checkoutReminders = 0;
 
   for (const b of allBookings) {
     if (b.service !== "room" || !b.lineUserId || b.status === "cancelled") continue;
@@ -109,6 +113,41 @@ export async function GET(req: NextRequest) {
         prestayReminders++;
       } catch (e) {
         errors.push(`prestay ${b.id}: ${String(e)}`);
+      }
+    }
+
+    // เตือนเช็คอิน N วันก่อนเข้าพัก
+    if (auto?.checkinReminderEnabled !== false && b.checkin === inCheckin) {
+      const text = renderTemplate(cfg.messages.checkinReminder, {
+        shop: cfg.business.name,
+        cat: b.catName,
+        checkin: b.checkin || "",
+        room: b.room ? `🏠 ห้อง: ${b.room}` : "",
+      });
+      try {
+        await pushLineMessage(b.lineUserId, [{ type: "text", text }]);
+        checkinReminders++;
+      } catch (e) {
+        errors.push(`checkin ${b.id}: ${String(e)}`);
+      }
+    }
+
+    // เตือนเช็คเอาท์ N วันก่อนออก
+    if (
+      auto?.checkoutReminderEnabled !== false &&
+      b.checkout &&
+      b.checkout === inCheckout
+    ) {
+      const text = renderTemplate(cfg.messages.checkoutReminder, {
+        shop: cfg.business.name,
+        cat: b.catName,
+        checkout: b.checkout || "",
+      });
+      try {
+        await pushLineMessage(b.lineUserId, [{ type: "text", text }]);
+        checkoutReminders++;
+      } catch (e) {
+        errors.push(`checkout ${b.id}: ${String(e)}`);
       }
     }
   }
@@ -146,6 +185,8 @@ export async function GET(req: NextRequest) {
     confirmList.length > 0 ||
     depositReminders > 0 ||
     prestayReminders > 0 ||
+    checkinReminders > 0 ||
+    checkoutReminders > 0 ||
     birthdayGreetings > 0
   ) {
     await sendTelegram(
@@ -154,6 +195,8 @@ export async function GET(req: NextRequest) {
         ส่งการ์ดสำเร็จ: String(sent),
         แจ้งยอดคงเหลือ: String(depositReminders),
         แจ้งเข้าพัก: String(prestayReminders),
+        เตือนเช็คอิน: String(checkinReminders),
+        เตือนเช็คเอาท์: String(checkoutReminders),
         อวยพรวันเกิดแมว: String(birthdayGreetings),
       })
     );
@@ -165,6 +208,8 @@ export async function GET(req: NextRequest) {
     sent,
     depositReminders,
     prestayReminders,
+    checkinReminders,
+    checkoutReminders,
     birthdayGreetings,
     errors,
   });

@@ -32,6 +32,10 @@ export type MessagesConfig = {
   depositReminder: string;
   /** รายละเอียด 3 วันก่อนเข้าพัก — {shop} {cat} {checkin} {checkout} {room} */
   prestayReminder: string;
+  /** เตือนเช็คอิน ก่อนเข้าพัก — {shop} {cat} {checkin} {room} */
+  checkinReminder: string;
+  /** เตือนเช็คเอาท์ ก่อนออก — {shop} {cat} {checkout} */
+  checkoutReminder: string;
   /** ข้อความชวนกดยอมรับข้อตกลงก่อนเข้าพัก (แนบลิงก์) — {shop} {cat} {url} */
   consentInvite: string;
   /** หัวเรื่องหน้ายอมรับข้อตกลงก่อนเข้าพัก */
@@ -66,6 +70,14 @@ export type AutomationConfig = {
   prestayReminderEnabled: boolean;
   /** กี่วันก่อนเข้าพัก ที่จะแจ้งรายละเอียด+เงื่อนไข */
   prestayReminderDays: number;
+  /** เตือนเช็คอิน ก่อนวันเข้าพัก */
+  checkinReminderEnabled: boolean;
+  /** กี่วันก่อนเข้าพัก ที่จะเตือนเช็คอิน */
+  checkinReminderDays: number;
+  /** เตือนเช็คเอาท์ ก่อนวันออก */
+  checkoutReminderEnabled: boolean;
+  /** กี่วันก่อนเช็คเอาท์ ที่จะเตือน */
+  checkoutReminderDays: number;
   /** อวยพรวันเกิดแมวอัตโนมัติ */
   birthdayEnabled: boolean;
 };

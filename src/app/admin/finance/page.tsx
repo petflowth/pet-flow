@@ -52,6 +52,12 @@ export default function FinancePage() {
     load();
   };
 
+  const del = async (id: string, title: string) => {
+    if (!confirm(`ลบรายการ "${title}"?\nกู้คืนไม่ได้ (ยอดรวมจะปรับตามทันที)`)) return;
+    await fetch(`/api/finance?id=${id}`, { method: "DELETE" });
+    load();
+  };
+
   return (
     <div>
       <h1 className="mb-4 text-lg font-extrabold text-catcha-chocolate">📒 รายรับ-รายจ่าย</h1>
@@ -89,7 +95,7 @@ export default function FinancePage() {
 
       <ul className="space-y-2">
         {records.map((r) => (
-          <li key={r.id} className="flex justify-between gap-2 rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs">
+          <li key={r.id} className="flex items-start justify-between gap-2 rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs">
             <div className="min-w-0 flex-1">
               <p className="font-bold text-brown">{r.displayTitle}</p>
               <p className="text-brown-faint">{r.date} · {r.category}</p>
@@ -102,9 +108,18 @@ export default function FinancePage() {
                 </Link>
               )}
             </div>
-            <p className={`shrink-0 font-extrabold ${r.type === "income" ? "text-ok" : "text-wait"}`}>
-              {r.type === "income" ? "+" : "-"}{r.amount.toLocaleString()}
-            </p>
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              <p className={`font-extrabold ${r.type === "income" ? "text-ok" : "text-wait"}`}>
+                {r.type === "income" ? "+" : "-"}{r.amount.toLocaleString()}
+              </p>
+              <button
+                type="button"
+                onClick={() => del(r.id, r.displayTitle)}
+                className="text-[10px] font-bold text-wait/80 hover:text-wait"
+              >
+                🗑️ ลบ
+              </button>
+            </div>
           </li>
         ))}
       </ul>

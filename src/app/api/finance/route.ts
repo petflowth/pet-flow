@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listFinance, listFinanceEnriched, addFinanceEntry, financeSummary } from "@/lib/finance-store";
+import {
+  listFinance,
+  listFinanceEnriched,
+  addFinanceEntry,
+  deleteFinanceEntry,
+  financeSummary,
+} from "@/lib/finance-store";
 
 export async function GET(req: NextRequest) {
   const from = req.nextUrl.searchParams.get("from") || undefined;
@@ -25,4 +31,11 @@ export async function POST(req: NextRequest) {
     invoiceId: body.invoiceId,
   });
   return NextResponse.json({ ok: true, record: rec });
+}
+
+export async function DELETE(req: NextRequest) {
+  const id = req.nextUrl.searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
+  await deleteFinanceEntry(id);
+  return NextResponse.json({ ok: true });
 }

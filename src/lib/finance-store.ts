@@ -155,6 +155,18 @@ export async function addFinanceEntry(
   return rec;
 }
 
+/** ลบรายการการเงินทีละอัน (เอารายการทดสอบออก ก่อนใช้จริง) */
+export async function deleteFinanceEntry(id: string) {
+  const sb = getSupabase();
+  if (sb) {
+    await sb.from("finance_records").delete().eq("id", id);
+    return { ok: true as const };
+  }
+  const idx = mem.findIndex((r) => r.id === id);
+  if (idx >= 0) mem.splice(idx, 1);
+  return { ok: true as const };
+}
+
 /** ลบรายการรายรับ-รายจ่ายทั้งหมดของบิลนี้ (ใช้ตอนลบบิล เพื่อไม่ให้ยอดค้างในบัญชี) */
 export async function deleteFinanceByInvoice(invoiceId: string) {
   const sb = getSupabase();

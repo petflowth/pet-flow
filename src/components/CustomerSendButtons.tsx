@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 /**
  * ปุ่มส่งหาลูกค้าแบบรวมศูนย์ — ใช้ได้ทุกที่ (การ์ดในปฏิทิน · บิล · ฯลฯ)
@@ -26,6 +26,28 @@ export function CustomerSendButtons({
 }) {
   const [busy, setBusy] = useState("");
   const noLine = !lineUserId;
+
+  // ถ้ามาจากการ์ดนัด (มี bookingId แต่ไม่มี invoiceId) → ไปหาบิลที่ผูกกับนัดนั้นเอง
+  const [foundInvoiceId, setFoundInvoiceId] = useState<string | undefined>();
+  const [foundDeposit, setFoundDeposit] = useState(0);
+  useEffect(() => {
+    if (invoiceId || !bookingId) return;
+    let alive = true;
+    fetch(`/api/invoices?bookingId=${bookingId}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!alive || !d.invoice) return;
+        setFoundInvoiceId(d.invoice.id);
+        setFoundDeposit(d.invoice.deposit || 0);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [invoiceId, bookingId]);
+
+  const invId = invoiceId || foundInvoiceId;
+  const depForBill = invoiceId ? invoiceDeposit : foundDeposit;
 
   const call = async (key: string, run: () => Promise<Response>, okMsg: string) => {
     setBusy(key);
@@ -62,7 +84,7 @@ export function CustomerSendButtons({
         fetch("/api/invoices", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: invoiceId, action: "send_summary", mode }),
+          body: JSON.stringify({ id: invId, action: "send_summary", mode }),
         }),
       okMsg
     );
@@ -98,7 +120,7 @@ export function CustomerSendButtons({
     </button>
   );
 
-  const hasRemaining = invoiceDeposit > 0;
+  const hasRemaining = depForBill > 0;
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -132,14 +154,14 @@ export function CustomerSendButtons({
         <Btn k="dep" label="💰 เรียกเก็บมัดจำ" onClick={depositRequest} />
       )}
 
-      {invoiceId && (
+      {invId && (
         <Btn
           k="inv:booking"
           label="🧾 สรุปยอด"
           onClick={() => invoiceSummary("booking", "ส่งสรุปยอดแล้ว 🧾")}
         />
       )}
-      {invoiceId && (
+      {invId && (
         <Btn
           k={hasRemaining ? "inv:remaining" : "inv:full"}
           label={hasRemaining ? "💳 เก็บส่วนที่เหลือ" : "💳 แจ้งเก็บเงิน"}
@@ -151,8 +173,8 @@ export function CustomerSendButtons({
           }
         />
       )}
-      {/* ยอดคงเหลือจากนัด — ใช้เมื่อยังไม่มีบิลผูก (บิลจะใช้ปุ่มด้านบนแทน) */}
-      {bookingId && !invoiceId && (
+      {/* ยอดคงเหลือจากนัด — ใช้เมื่อยังไม่มีบิลผูก (มีบิลแล้วใช้ปุ่มด้านบนแทน) */}
+      {bookingId && !invId && (
         <Btn
           k="send_deposit_reminder"
           label="💰 ยอดคงเหลือ"

@@ -67,6 +67,7 @@ import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
   const customerId = req.nextUrl.searchParams.get("customerId") || undefined;
+  const bookingId = req.nextUrl.searchParams.get("bookingId") || undefined;
 
   if (id) {
     const inv = await getInvoice(id);
@@ -76,6 +77,13 @@ export async function GET(req: NextRequest) {
       payment: await getPaymentConfig(),
       mapsUrl: BUSINESS.maps,
     });
+  }
+
+  // หาบิลล่าสุดที่ผูกกับนัดนี้ (ใช้จากปุ่มส่งการ์ดในการ์ดนัด)
+  if (bookingId) {
+    const list = await listInvoices();
+    const inv = list.find((i) => i.bookingId === bookingId);
+    return NextResponse.json({ invoice: inv || null });
   }
 
   return NextResponse.json({ invoices: await listInvoices(customerId) });

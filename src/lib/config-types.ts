@@ -54,8 +54,10 @@ export type MessagesConfig = {
 
 /** ตั้งค่าระบบส่งอัตโนมัติ — เปิด/ปิด + กี่วันก่อน (แก้ได้ในหน้าตั้งค่า > อัตโนมัติ) */
 export type AutomationConfig = {
-  /** ส่งการ์ดยืนยันนัด "พรุ่งนี้" อัตโนมัติ */
+  /** ส่งการ์ดยืนยันนัดอัตโนมัติ */
   confirmTomorrowEnabled: boolean;
+  /** ส่งการ์ดยืนยันนัด ล่วงหน้ากี่วัน (1 = พรุ่งนี้) */
+  confirmDaysBefore: number;
   /** เตือนยอดคงเหลือก่อนเข้าพัก */
   depositReminderEnabled: boolean;
   /** กี่วันก่อนเข้าพัก ที่จะเตือนยอดคงเหลือ */

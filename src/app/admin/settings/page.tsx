@@ -991,6 +991,7 @@ function TextAreaField({
 
 const AUTOMATION_DEFAULT = {
   confirmTomorrowEnabled: true,
+  confirmDaysBefore: 1,
   depositReminderEnabled: true,
   depositReminderDays: 7,
   prestayReminderEnabled: true,
@@ -1053,11 +1054,21 @@ function AutomationTab({
         ระบบส่งอัตโนมัติ เที่ยงวัน (เวลาไทย) ทุกวัน — เปิด/ปิด และตั้งจำนวนวันได้เอง
       </p>
 
-      <Toggle
-        label="✅ ส่งการ์ดยืนยันนัด (นัดพรุ่งนี้)"
-        checked={form.confirmTomorrowEnabled}
-        onChange={(v) => set({ confirmTomorrowEnabled: v })}
-      />
+      <div className="rounded-catcha-sm border border-catcha-line p-3">
+        <Toggle
+          label="✅ ส่งการ์ดยืนยันนัดอัตโนมัติ"
+          checked={form.confirmTomorrowEnabled}
+          onChange={(v) => set({ confirmTomorrowEnabled: v })}
+        />
+        {form.confirmTomorrowEnabled && (
+          <Field
+            label="ส่งล่วงหน้า (วัน) — 1 = พรุ่งนี้"
+            type="number"
+            value={String(form.confirmDaysBefore)}
+            onChange={(v) => set({ confirmDaysBefore: Math.max(1, Number(v) || 1) })}
+          />
+        )}
+      </div>
 
       <div className="rounded-catcha-sm border border-catcha-line p-3">
         <Toggle

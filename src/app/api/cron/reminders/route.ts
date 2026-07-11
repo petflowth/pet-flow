@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { bookingsTomorrow, listBookings } from "@/lib/bookings-store";
+import { listBookings } from "@/lib/bookings-store";
 import { listInvoices } from "@/lib/invoices-store";
 import { getSiteConfig } from "@/lib/config-store";
 import { buildBookingConfirmFlex } from "@/lib/booking-line-card";
@@ -32,11 +32,23 @@ export async function GET(req: NextRequest) {
   const errors: string[] = [];
   let sent = 0;
 
-  // ── ยืนยันนัดพรุ่งนี้ (เปิด/ปิดได้) ──
-  const tomorrow = auto?.confirmTomorrowEnabled === false ? [] : await bookingsTomorrow();
-  for (const b of tomorrow) {
-    if (!b.lineUserId) continue;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const allBookings = await listBookings();
+  const allInvoices = await listInvoices();
 
+  // ── ยืนยันนัด ล่วงหน้า N วัน (ตั้งค่าได้ · เปิด/ปิดได้) ──
+  const confirmDate = addDays(todayStr, auto?.confirmDaysBefore ?? 1);
+  const confirmList =
+    auto?.confirmTomorrowEnabled === false
+      ? []
+      : allBookings.filter(
+          (b) =>
+            b.lineUserId &&
+            b.status !== "cancelled" &&
+            (b.checkin || b.date) === confirmDate
+        );
+  for (const b of confirmList) {
+    if (!b.lineUserId) continue;
     try {
       const flex = await buildBookingConfirmFlex({
         id: b.id,
@@ -58,12 +70,9 @@ export async function GET(req: NextRequest) {
   }
 
   // ── เตือนก่อนเข้าพัก (ห้องพัก) — จำนวนวันตั้งค่าได้ในหลังบ้าน ──
-  const todayStr = new Date().toISOString().slice(0, 10);
   const in7 = addDays(todayStr, auto?.depositReminderDays ?? 7);
   const in3 = addDays(todayStr, auto?.prestayReminderDays ?? 3);
   const consentUrl = await getConsentUrl();
-  const allBookings = await listBookings();
-  const allInvoices = await listInvoices();
 
   let depositReminders = 0;
   let prestayReminders = 0;
@@ -134,17 +143,17 @@ export async function GET(req: NextRequest) {
   }
 
   if (
-    tomorrow.length > 0 ||
+    confirmList.length > 0 ||
     depositReminders > 0 ||
     prestayReminders > 0 ||
     birthdayGreetings > 0
   ) {
     await sendTelegram(
       formatBookingTelegram("⏰ เตือนอัตโนมัติ 12:00", {
-        นัดพรุ่งนี้: String(tomorrow.length),
+        ยืนยันนัด: String(confirmList.length),
         ส่งการ์ดสำเร็จ: String(sent),
-        แจ้งยอดคงเหลือ7วัน: String(depositReminders),
-        แจ้งเข้าพัก3วัน: String(prestayReminders),
+        แจ้งยอดคงเหลือ: String(depositReminders),
+        แจ้งเข้าพัก: String(prestayReminders),
         อวยพรวันเกิดแมว: String(birthdayGreetings),
       })
     );
@@ -152,7 +161,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
-    due: tomorrow.length,
+    due: confirmList.length,
     sent,
     depositReminders,
     prestayReminders,

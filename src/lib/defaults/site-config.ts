@@ -30,6 +30,7 @@ export function getDefaultSiteConfig(): SiteConfig {
       messages: { ...DEFAULT_MESSAGES },
       automation: {
         confirmTomorrowEnabled: true,
+        confirmDaysBefore: 1,
         depositReminderEnabled: true,
         depositReminderDays: 7,
         prestayReminderEnabled: true,

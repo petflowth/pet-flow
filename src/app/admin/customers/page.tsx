@@ -593,39 +593,46 @@ function CustomerSummaryCard({
         </div>
       </div>
 
-      {customer.lineUserId ? (
-        <div className="mb-4 rounded-catcha-sm border border-latte/40 bg-latte/10 p-3">
-          <p className="mb-1.5 text-xs font-extrabold text-catcha-chocolate">
-            🎁 เพิ่มแต้มพิเศษ (แต้มฟรี)
+      <div className="mb-4 rounded-catcha-sm border border-latte/40 bg-latte/10 p-3">
+        <p className="mb-1.5 text-xs font-extrabold text-catcha-chocolate">
+          🎁 เพิ่มแต้มพิเศษ (แต้มฟรี)
+        </p>
+        {customer.lineUserId ? (
+          <>
+            <div className="flex flex-wrap gap-2">
+              <input
+                type="number"
+                value={addAmt}
+                onChange={(e) => setAddAmt(e.target.value)}
+                placeholder="กี่แต้ม"
+                className="w-20 rounded-catcha-sm border border-catcha-line bg-paper px-2 py-2 text-sm font-bold"
+              />
+              <input
+                value={addReason}
+                onChange={(e) => setAddReason(e.target.value)}
+                placeholder="เหตุผล เช่น รีวิวร้าน"
+                className="min-w-0 flex-1 rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+              />
+              <button
+                type="button"
+                disabled={addBusy || !addAmt}
+                onClick={addBonusPoints}
+                className="shrink-0 rounded-catcha-sm bg-latte-deep px-4 py-2 text-sm font-extrabold text-white disabled:opacity-40"
+              >
+                {addBusy ? "…" : "➕ เพิ่ม"}
+              </button>
+            </div>
+            <p className="mt-1 text-[10px] text-brown-faint">
+              บันทึกในประวัติแต้มของลูกค้า (มีเหตุผลกำกับ) + แจ้งเตือนร้าน และแจ้งลูกค้าทาง LINE
+            </p>
+          </>
+        ) : (
+          <p className="text-[11px] font-bold text-brown-soft">
+            ⚠️ ลูกค้ารายนี้ยังไม่ได้ผูก LINE — ต้องให้ลูกค้าเปิดแอปจาก LINE ก่อน
+            ถึงจะเพิ่มแต้มสะสมได้ค่ะ (แต้มผูกกับบัญชี LINE)
           </p>
-          <div className="flex flex-wrap gap-2">
-            <input
-              type="number"
-              value={addAmt}
-              onChange={(e) => setAddAmt(e.target.value)}
-              placeholder="กี่แต้ม"
-              className="w-20 rounded-catcha-sm border border-catcha-line bg-paper px-2 py-2 text-sm font-bold"
-            />
-            <input
-              value={addReason}
-              onChange={(e) => setAddReason(e.target.value)}
-              placeholder="เหตุผล เช่น รีวิวร้าน"
-              className="min-w-0 flex-1 rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
-            />
-            <button
-              type="button"
-              disabled={addBusy || !addAmt}
-              onClick={addBonusPoints}
-              className="shrink-0 rounded-catcha-sm bg-latte-deep px-4 py-2 text-sm font-extrabold text-white disabled:opacity-40"
-            >
-              {addBusy ? "…" : "➕ เพิ่ม"}
-            </button>
-          </div>
-          <p className="mt-1 text-[10px] text-brown-faint">
-            บันทึกในประวัติแต้มของลูกค้า (มีเหตุผลกำกับ) + แจ้งเตือนร้าน และแจ้งลูกค้าทาง LINE
-          </p>
-        </div>
-      ) : null}
+        )}
+      </div>
 
       <div className="space-y-3 rounded-catcha-sm border border-white/60 bg-card/70 p-3">
         <label className="block text-xs font-bold text-brown-soft">

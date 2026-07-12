@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 /**
  * เลือกวันเกิดแบบ dropdown 3 ช่อง (วัน / เดือน / ปี) — ง่ายกว่าปฏิทิน native
  * มาก โดยเฉพาะการเลือกปีย้อนหลัง
- * - แสดงปีเป็น พ.ศ. แต่ค่าที่ส่งออก (onChange) เป็น ISO "YYYY-MM-DD" (ค.ศ.)
- *   เพื่อให้ระบบคำนวณอายุ/บันทึกฐานข้อมูลใช้ต่อได้เหมือนเดิม
+ * - เก็บ state ภายในของแต่ละช่อง เพื่อให้เลือก "ทีละช่อง" ได้ (ค่าค้างไว้)
+ * - ส่งออก (onChange) เป็น ISO "YYYY-MM-DD" (ค.ศ.) เมื่อเลือกครบทั้ง 3 ช่อง
+ *   ถ้ายังไม่ครบจะส่ง "" (ให้ระบบคำนวณอายุ/บันทึกฐานข้อมูลใช้ต่อได้เหมือนเดิม)
  */
 
 const THAI_MONTHS = [
@@ -39,20 +42,33 @@ export function BirthdayPicker({
   required?: boolean;
   selectClass?: string;
 }) {
-  const [ys, ms, ds] = value ? value.split("-") : ["", "", ""];
-  const y = Number(ys) || 0;
-  const m = Number(ms) || 0;
-  const d = Number(ds) || 0;
+  const [d, setD] = useState(0);
+  const [m, setM] = useState(0);
+  const [y, setY] = useState(0);
+
+  // ซิงค์จากค่าภายนอกเฉพาะตอนที่เป็นวันเกิดครบถ้วน (เช่น เติมค่าเดิม/แก้ไข)
+  // ไม่รีเซ็ตเป็น 0 ตอน value ว่าง เพื่อไม่ลบสิ่งที่ผู้ใช้กำลังเลือกทีละช่อง
+  useEffect(() => {
+    if (!value) return;
+    const [ys, ms, ds] = value.split("-");
+    setY(Number(ys) || 0);
+    setM(Number(ms) || 0);
+    setD(Number(ds) || 0);
+  }, [value]);
 
   const curYear = new Date().getFullYear();
   const years = Array.from({ length: yearsBack + 1 }, (_, i) => curYear - i);
   const daysInMonth = y && m ? new Date(y, m, 0).getDate() : 31;
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
-  const emit = (ny: number, nm: number, nd: number) => {
-    if (ny && nm && nd) {
-      const maxDay = new Date(ny, nm, 0).getDate();
-      const day = Math.min(nd, maxDay);
+  const commit = (ny: number, nm: number, nd: number) => {
+    // ถ้าเปลี่ยนเดือน/ปีแล้ววันเกินจำนวนวันของเดือนนั้น → ปรับวันลงให้พอดี
+    const maxDay = ny && nm ? new Date(ny, nm, 0).getDate() : 31;
+    const day = nd > maxDay ? maxDay : nd;
+    setY(ny);
+    setM(nm);
+    setD(day);
+    if (ny && nm && day) {
       onChange(`${ny}-${pad(nm)}-${pad(day)}`);
     } else {
       onChange("");
@@ -68,7 +84,7 @@ export function BirthdayPicker({
       <select
         required={required}
         value={d || ""}
-        onChange={(e) => emit(y, m, Number(e.target.value))}
+        onChange={(e) => commit(y, m, Number(e.target.value))}
         className={cls}
         aria-label="วันเกิด — วันที่"
       >
@@ -82,7 +98,7 @@ export function BirthdayPicker({
       <select
         required={required}
         value={m || ""}
-        onChange={(e) => emit(y, Number(e.target.value), d)}
+        onChange={(e) => commit(y, Number(e.target.value), d)}
         className={`${cls} flex-[2]`}
         aria-label="วันเกิด — เดือน"
       >
@@ -96,7 +112,7 @@ export function BirthdayPicker({
       <select
         required={required}
         value={y || ""}
-        onChange={(e) => emit(Number(e.target.value), m, d)}
+        onChange={(e) => commit(Number(e.target.value), m, d)}
         className={cls}
         aria-label="วันเกิด — ปี พ.ศ."
       >

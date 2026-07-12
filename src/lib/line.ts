@@ -1597,6 +1597,109 @@ export function buildReceiptFlex(data: {
   };
 }
 
+/** การ์ดคูปองโปร — ลูกค้ากดรับเก็บเข้ากระเป๋าคูปอง */
+export function buildCouponOfferFlex(data: {
+  title: string;
+  amount: number;
+  body?: string;
+  url: string;
+  validDays?: number;
+}) {
+  return {
+    type: "flex",
+    altText: `🎟️ คูปองส่วนลด ${data.amount} บาท — ${data.title}`,
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: BRAND_GREEN,
+        paddingAll: "16px",
+        contents: [
+          {
+            type: "text",
+            text: "🎟️ คูปองส่วนลดพิเศษ",
+            color: "#FFFFFF",
+            weight: "bold",
+            size: "sm",
+          },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        paddingAll: "16px",
+        contents: [
+          {
+            type: "text",
+            text: data.title,
+            weight: "bold",
+            size: "lg",
+            color: "#5C4033",
+            wrap: true,
+          },
+          {
+            type: "box",
+            layout: "vertical",
+            margin: "lg",
+            paddingAll: "14px",
+            backgroundColor: "#FBF4E9",
+            cornerRadius: "12px",
+            contents: [
+              { type: "text", text: "ส่วนลด", size: "sm", color: "#A2907E", align: "center" },
+              {
+                type: "text",
+                text: `${data.amount.toLocaleString()} บาท`,
+                weight: "bold",
+                size: "3xl",
+                color: "#C4956A",
+                align: "center",
+              },
+            ],
+          },
+          ...(data.body
+            ? [
+                {
+                  type: "text" as const,
+                  text: data.body,
+                  size: "sm" as const,
+                  color: "#4E3E32",
+                  margin: "lg" as const,
+                  wrap: true,
+                },
+              ]
+            : []),
+          {
+            type: "text",
+            text: `กดรับแล้วเก็บไว้ในกระเป๋าคูปอง ใช้เป็นส่วนลดได้เลย${
+              data.validDays ? ` (ใช้ได้ ${data.validDays} วัน)` : ""
+            } 🧡`,
+            size: "xs",
+            color: "#A2907E",
+            margin: "lg",
+            wrap: true,
+          },
+        ],
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        paddingAll: "12px",
+        contents: [
+          {
+            type: "button",
+            style: "primary",
+            color: BRAND_GREEN_DARK,
+            height: "sm",
+            action: { type: "uri", label: "🎟️ กดรับคูปอง", uri: data.url },
+          },
+        ],
+      },
+    },
+  };
+}
+
 /** การ์ดขอรีวิว — ส่งหลังลูกค้าใช้บริการจริง (เช่น วันถัดจากเช็คเอาท์) */
 export function buildReviewRequestFlex(data: {
   title: string;

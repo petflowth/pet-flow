@@ -6,10 +6,21 @@ export type Coupon = {
   customerId?: string;
   amount: number;
   reason: string;
-  status: "active" | "used" | "expired";
+  status: "active" | "used" | "expired" | "cancelled";
   expiresAt?: string;
   usedAt?: string;
   usedInvoiceId?: string;
+  offerId?: string;
+  createdAt: string;
+};
+
+export type CouponOffer = {
+  id: string;
+  title: string;
+  amount: number;
+  reason: string;
+  validDays: number;
+  active: boolean;
   createdAt: string;
 };
 
@@ -23,10 +34,22 @@ type CouponRow = {
   expires_at: string | null;
   used_at: string | null;
   used_invoice_id: string | null;
+  offer_id?: string | null;
+  created_at: string;
+};
+
+type OfferRow = {
+  id: string;
+  title: string | null;
+  amount: number;
+  reason: string | null;
+  valid_days: number;
+  active: boolean;
   created_at: string;
 };
 
 const mem: Coupon[] = [];
+const memOffers: CouponOffer[] = [];
 
 function rowToCoupon(r: CouponRow): Coupon {
   return {
@@ -39,6 +62,19 @@ function rowToCoupon(r: CouponRow): Coupon {
     expiresAt: r.expires_at || undefined,
     usedAt: r.used_at || undefined,
     usedInvoiceId: r.used_invoice_id || undefined,
+    offerId: r.offer_id || undefined,
+    createdAt: r.created_at,
+  };
+}
+
+function rowToOffer(r: OfferRow): CouponOffer {
+  return {
+    id: r.id,
+    title: r.title || "",
+    amount: Number(r.amount) || 0,
+    reason: r.reason || "",
+    validDays: Number(r.valid_days) || 60,
+    active: r.active !== false,
     createdAt: r.created_at,
   };
 }
@@ -55,6 +91,7 @@ export async function issueCoupon(data: {
   amount: number;
   reason: string;
   expiresInDays?: number;
+  offerId?: string;
 }): Promise<Coupon> {
   const now = new Date();
   const expiresAt = data.expiresInDays
@@ -68,12 +105,13 @@ export async function issueCoupon(data: {
     reason: data.reason,
     status: "active",
     expiresAt,
+    offerId: data.offerId,
     createdAt: now.toISOString(),
   };
 
   const sb = getSupabase();
   if (sb) {
-    await sb.from("coupons").insert({
+    const base: Record<string, unknown> = {
       id: coupon.id,
       code: coupon.code,
       customer_id: coupon.customerId || null,
@@ -82,7 +120,14 @@ export async function issueCoupon(data: {
       status: coupon.status,
       expires_at: coupon.expiresAt || null,
       created_at: coupon.createdAt,
-    });
+    };
+    // ใส่ offer_id ถ้ามีคอลัมน์ — ถ้ายังไม่ migrate ก็ลองใหม่แบบไม่มี offer_id
+    const { error } = await sb
+      .from("coupons")
+      .insert((data.offerId ? { ...base, offer_id: data.offerId } : base) as never);
+    if (error && data.offerId) {
+      await sb.from("coupons").insert(base as never);
+    }
   } else {
     mem.unshift(coupon);
   }
@@ -167,4 +212,119 @@ export async function unredeemCoupon(id: string) {
       m.usedInvoiceId = undefined;
     }
   }
+}
+
+/** ยกเลิกคูปอง (หลังบ้าน) — set สถานะ cancelled */
+export async function cancelCoupon(id: string) {
+  const sb = getSupabase();
+  if (sb) {
+    await sb.from("coupons").update({ status: "cancelled" }).eq("id", id);
+  } else {
+    const m = mem.find((x) => x.id === id);
+    if (m) m.status = "cancelled";
+  }
+  return { ok: true as const };
+}
+
+/** คูปองทั้งหมด (หลังบ้าน) */
+export async function listAllCoupons(): Promise<Coupon[]> {
+  const sb = getSupabase();
+  let list: Coupon[];
+  if (sb) {
+    const { data } = await sb
+      .from("coupons")
+      .select("*")
+      .order("created_at", { ascending: false });
+    list = ((data as CouponRow[] | null) || []).map(rowToCoupon);
+  } else {
+    list = [...mem];
+  }
+  return list.map(withComputedStatus);
+}
+
+// ───────── แคมเปญคูปอง (Offer) — การ์ดกดรับ ─────────
+
+export async function createOffer(data: {
+  title: string;
+  amount: number;
+  reason?: string;
+  validDays?: number;
+}): Promise<CouponOffer> {
+  const offer: CouponOffer = {
+    id: `OFR${Date.now()}${Math.floor(Math.random() * 1000)}`,
+    title: data.title,
+    amount: Math.round(data.amount) || 0,
+    reason: data.reason || data.title,
+    validDays: Math.max(1, Number(data.validDays) || 60),
+    active: true,
+    createdAt: new Date().toISOString(),
+  };
+  const sb = getSupabase();
+  if (sb) {
+    await sb.from("coupon_offers").insert({
+      id: offer.id,
+      title: offer.title,
+      amount: offer.amount,
+      reason: offer.reason,
+      valid_days: offer.validDays,
+      active: true,
+      created_at: offer.createdAt,
+    });
+  } else {
+    memOffers.unshift(offer);
+  }
+  return offer;
+}
+
+export async function listOffers(): Promise<CouponOffer[]> {
+  const sb = getSupabase();
+  if (sb) {
+    const { data } = await sb
+      .from("coupon_offers")
+      .select("*")
+      .order("created_at", { ascending: false });
+    return ((data as OfferRow[] | null) || []).map(rowToOffer);
+  }
+  return [...memOffers];
+}
+
+export async function getOffer(id: string): Promise<CouponOffer | undefined> {
+  const sb = getSupabase();
+  if (sb) {
+    const { data } = await sb.from("coupon_offers").select("*").eq("id", id).maybeSingle();
+    return data ? rowToOffer(data as OfferRow) : undefined;
+  }
+  return memOffers.find((o) => o.id === id);
+}
+
+export async function setOfferActive(id: string, active: boolean) {
+  const sb = getSupabase();
+  if (sb) {
+    await sb.from("coupon_offers").update({ active }).eq("id", id);
+  } else {
+    const o = memOffers.find((x) => x.id === id);
+    if (o) o.active = active;
+  }
+  return { ok: true as const };
+}
+
+/** ลูกค้ากดรับคูปองจากแคมเปญ — ออกให้ครั้งเดียวต่อคน */
+export async function claimOffer(offerId: string, customerId: string) {
+  const offer = await getOffer(offerId);
+  if (!offer) return { ok: false as const, error: "offer_not_found" };
+  if (!offer.active) return { ok: false as const, error: "offer_closed" };
+
+  // เคยรับไปแล้วหรือยัง
+  const mine = await listCustomerCoupons(customerId);
+  const already = mine.find((c) => c.offerId === offerId);
+  if (already) return { ok: false as const, error: "already_claimed", coupon: already };
+
+  const coupon = await issueCoupon({
+    customerId,
+    amount: offer.amount,
+    reason: offer.title || offer.reason || "คูปองส่วนลด",
+    expiresInDays: offer.validDays,
+    offerId,
+  });
+  return { ok: true as const, coupon };
 }

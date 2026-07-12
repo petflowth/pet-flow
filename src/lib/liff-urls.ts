@@ -32,3 +32,8 @@ export function buildBookingTimeUrl(
 export function buildGroomInfoUrl(liffId: string, bookingId: string) {
   return buildLiffUrl(liffId, { path: "groom-info", id: bookingId });
 }
+
+/** ลิงก์หน้ากดรับคูปองจากแคมเปญ */
+export function buildClaimCouponUrl(liffId: string, offerId: string) {
+  return buildLiffUrl(liffId, { path: "claim-coupon", offer: offerId });
+}

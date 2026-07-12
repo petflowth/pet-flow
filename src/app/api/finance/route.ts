@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
   const rec = await addFinanceEntry({
     type: body.type,
     amount: Number(body.amount),
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
   if (!body.id) return NextResponse.json({ error: "id required" }, { status: 400 });
   await updateFinanceEntry(body.id, {
     type: body.type,

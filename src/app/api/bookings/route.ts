@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
   const customer = await resolveCustomerForBooking({
     customerName: body.customerName,
     catName: body.catName,
@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
   const { id, action, lineUserId, checkinTime } = body;
   const b = await getBooking(id);
   if (!b) return NextResponse.json({ error: "not found" }, { status: 404 });

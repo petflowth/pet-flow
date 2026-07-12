@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
 
   if (body.action === "create") {
     const invoice = await createInvoice({
@@ -196,7 +196,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
   const { id, action } = body;
   const inv = await getInvoice(id);
   if (!inv) return NextResponse.json({ error: "not found" }, { status: 404 });

@@ -14,7 +14,7 @@ type CatBody = {
 
 /** ลูกค้ากรอกฟอร์มลงทะเบียน (ผู้ปกครอง + น้องแมว + ยินยอมรับข่าวสาร) */
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
   const lineUserId = String(body.lineUserId || "").trim();
   const name = String(body.name || "").trim();
   const phone = String(body.phone || "").trim();

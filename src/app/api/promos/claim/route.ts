@@ -3,7 +3,7 @@ import { claimCustomerPromo } from "@/lib/promos-store";
 
 /** ลูกค้ากดใช้โปรจากหน้าแอป */
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
   const promoId = String(body.promoId || "").trim();
   const lineUserId = String(body.lineUserId || "").trim();
 

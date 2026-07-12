@@ -37,7 +37,7 @@ async function resolveLineImageUrl(body: {
 
 /** ส่งโปรโมชั่น / ข้อความไปยังกลุ่มลูกค้าตามระดับ */
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
   if (!checkAdmin(body)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }

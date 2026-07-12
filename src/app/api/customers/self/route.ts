@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 
 /** ลูกค้าแก้ไขข้อมูลตัวเอง — ชื่อ / เบอร์ / ชื่อน้องแมว (ยืนยันตัวจาก lineUserId ของ LIFF) */
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
   const lineUserId = String(body.lineUserId || "").trim();
   if (!lineUserId) {
     return NextResponse.json({ error: "lineUserId required" }, { status: 400 });

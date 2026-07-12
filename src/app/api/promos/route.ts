@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
   const promo = await addPromo({
     title: body.title,
     body: body.body,
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
   const promo = await updatePromo(body.id, body.patch || body);
   if (!promo) return NextResponse.json({ error: "not found" }, { status: 404 });
   return NextResponse.json({ ok: true, promo });

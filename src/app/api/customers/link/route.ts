@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 
 /** ลูกค้าเปิดลิงก์เชิญ → ผูก LINE กับบัญชีที่ร้านสร้างไว้ */
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
   const customerId = String(body.customerId || "").trim();
   const lineUserId = String(body.lineUserId || "").trim();
   const displayName = String(body.displayName || "").trim();

@@ -81,6 +81,23 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     name: "cats.groom_health_info",
     sql: "alter table cats add column if not exists groom_health_info text;",
   },
+  // ── ฟอร์มลงทะเบียนสมาชิก (ผู้ปกครอง + น้องแมว) ──
+  {
+    name: "customers.registration_details",
+    sql: "alter table customers add column if not exists email text, add column if not exists birthday date, add column if not exists marketing_consent boolean not null default true, add column if not exists referral_source text;",
+  },
+  {
+    name: "cats.registration_details",
+    sql: "alter table cats add column if not exists gender text, add column if not exists breed text, add column if not exists age text, add column if not exists medical text;",
+  },
+  {
+    name: "cats.birthday",
+    sql: "alter table cats add column if not exists birthday date;",
+  },
+  {
+    name: "cats.age_structured",
+    sql: "alter table cats add column if not exists age_value integer, add column if not exists age_unit text, add column if not exists age_as_of date;",
+  },
 ];
 
 export type MigrateResult = {

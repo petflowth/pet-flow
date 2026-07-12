@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useLiff } from "@/components/LiffProvider";
 import { useConfig } from "@/components/ConfigProvider";
+import { BirthdayPicker } from "@/components/BirthdayPicker";
 
 type CatGender = "male" | "female";
 type CatInput = {
@@ -62,8 +63,8 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (!customer) return;
-    // เติมชื่อ/เบอร์เดิมให้ แต่เริ่มด้วยน้องแมวช่องเดียว — เพิ่มเองด้วยปุ่ม
-    setName((prev) => prev || customer.name || "");
+    // ชื่อผู้ปกครอง: เว้นว่างให้กรอกเอง (ไม่ดึงชื่อ LINE มาใส่)
+    // เบอร์เดิมช่วยเติมให้ ถ้าเคยมีในระบบ
     setPhone((prev) => prev || customer.phone || "");
   }, [customer]);
 
@@ -206,12 +207,11 @@ export default function RegisterPage() {
             <span className="mb-1 block text-xs font-bold text-brown">
               วันเกิดผู้ปกครอง
             </span>
-            <input
+            <BirthdayPicker
               required
-              type="date"
               value={birthday}
-              onChange={(e) => setBirthday(e.target.value)}
-              className={fieldClass}
+              onChange={setBirthday}
+              yearsBack={90}
             />
           </label>
         </div>
@@ -311,18 +311,19 @@ export default function RegisterPage() {
                     <option value="month">เดือน</option>
                   </select>
                 </div>
-                <label className="block text-[10px] font-bold text-brown-soft">
+                <div className="text-[10px] font-bold text-brown-soft">
                   วันเกิดน้องแมว{" "}
                   <span className="font-normal text-brown-faint">
                     (ถ้าทราบ · ไม่บังคับ)
                   </span>
-                  <input
-                    type="date"
-                    value={cat.birthday}
-                    onChange={(e) => updateCat(idx, { birthday: e.target.value })}
-                    className={`${subFieldClass} mt-0.5`}
-                  />
-                </label>
+                  <div className="mt-0.5">
+                    <BirthdayPicker
+                      value={cat.birthday}
+                      onChange={(iso) => updateCat(idx, { birthday: iso })}
+                      yearsBack={25}
+                    />
+                  </div>
+                </div>
 
                 <input
                   value={cat.medical}

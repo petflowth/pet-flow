@@ -26,6 +26,9 @@ export default function CouponsPage() {
   const [referralUrl, setReferralUrl] = useState("");
   const [referralCode, setReferralCode] = useState("");
   const [copied, setCopied] = useState(false);
+  const [packages, setPackages] = useState<
+    { id: string; name: string; totalUses: number; usedUses: number }[]
+  >([]);
 
   useEffect(() => {
     if (!profile?.lineUserId) return;
@@ -38,6 +41,10 @@ export default function CouponsPage() {
         setReferralCode(d.referralCode || "");
       })
       .finally(() => setLoading(false));
+    fetch(`/api/packages?lineUserId=${profile.lineUserId}&active=1`)
+      .then((r) => r.json())
+      .then((d) => setPackages(d.packages || []))
+      .catch(() => {});
   }, [profile?.lineUserId]);
 
   const share = async () => {
@@ -81,6 +88,35 @@ export default function CouponsPage() {
           {copied ? "✅ คัดลอกลิงก์แล้ว — เอาไปส่งเพื่อนได้เลย!" : "📋 คัดลอกลิงก์ชวนเพื่อน"}
         </button>
       </div>
+
+      {/* ── คอร์ส/แพ็กเกจ ── */}
+      {packages.length > 0 && (
+        <div className="mt-5">
+          <p className="mb-2 text-xs font-bold text-brown-soft">🎫 คอร์สของฉัน</p>
+          <div className="space-y-2">
+            {packages.map((p) => {
+              const left = p.totalUses - p.usedUses;
+              return (
+                <div
+                  key={p.id}
+                  className="flex items-center gap-3 rounded-catcha border border-sage/40 bg-sage/10 p-3"
+                >
+                  <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-catcha-sm bg-sage text-card">
+                    <span className="text-lg font-extrabold leading-none">{left}</span>
+                    <span className="text-[8px]">เหลือ</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-brown">{p.name}</p>
+                    <p className="text-[10px] text-brown-faint">
+                      ใช้ไป {p.usedUses} จาก {p.totalUses} ครั้ง
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── คูปอง ── */}
       {!ready || loading ? (

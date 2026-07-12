@@ -29,6 +29,7 @@ import {
 } from "@/lib/line";
 import { renderTemplate } from "@/lib/messages";
 import { redeemCoupon } from "@/lib/coupons-store";
+import { consumePackage } from "@/lib/packages-store";
 import { getBooking } from "@/lib/bookings-store";
 import { bookingScheduleText } from "@/lib/booking-reminders";
 import type { InvoiceRecord } from "@/lib/invoices-store";
@@ -123,6 +124,14 @@ export async function POST(req: NextRequest) {
         await redeemCoupon(String(body.couponId), invoice.id);
       } catch {
         /* คูปองใช้ไม่ได้/ไม่เจอ — ไม่ทำให้บิลพัง */
+      }
+    }
+    // หักคอร์ส 1 ครั้ง (จ่ายไปแล้วตอนซื้อ — บิลนี้ไม่บันทึกรายรับเพิ่ม)
+    if (body.packageId) {
+      try {
+        await consumePackage(String(body.packageId));
+      } catch {
+        /* คอร์สหมด/ไม่เจอ — ไม่ทำให้บิลพัง */
       }
     }
     return NextResponse.json({ ok: true, invoice });

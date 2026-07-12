@@ -183,6 +183,10 @@ export default function BillingPage() {
   const [customerCoupons, setCustomerCoupons] = useState<
     { id: string; amount: number; reason: string; code: string }[]
   >([]);
+  const [packageId, setPackageId] = useState("");
+  const [customerPackages, setCustomerPackages] = useState<
+    { id: string; name: string; totalUses: number; usedUses: number }[]
+  >([]);
   const [billDeposit, setBillDeposit] = useState("");
   const [billDepPct, setBillDepPct] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -263,11 +267,13 @@ export default function BillingPage() {
 
   const selected = customers.find((c) => c.id === customerId);
 
-  // โหลดคูปองที่ใช้ได้ของลูกค้าที่เลือก
+  // โหลดคูปอง + คอร์สที่ใช้ได้ของลูกค้าที่เลือก
   useEffect(() => {
     setCouponId("");
+    setPackageId("");
     if (!customerId) {
       setCustomerCoupons([]);
+      setCustomerPackages([]);
       return;
     }
     let alive = true;
@@ -275,6 +281,12 @@ export default function BillingPage() {
       .then((r) => r.json())
       .then((d) => {
         if (alive) setCustomerCoupons(d.coupons || []);
+      })
+      .catch(() => {});
+    fetch(`/api/packages?customerId=${customerId}&active=1`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (alive) setCustomerPackages(d.packages || []);
       })
       .catch(() => {});
     return () => {
@@ -298,7 +310,14 @@ export default function BillingPage() {
     : 0;
   const manualDiscount = Math.max(0, Number(discount) || 0);
   const couponAmount = customerCoupons.find((c) => c.id === couponId)?.amount || 0;
-  const total = Math.max(0, subtotal - promoDiscount - manualDiscount - couponAmount);
+  // คอร์ส: หัก 1 ครั้ง → คลุมยอดที่เหลือทั้งบิลให้เป็น 0 (จ่ายไปแล้วตอนซื้อคอร์ส)
+  const packageCovers = packageId
+    ? Math.max(0, subtotal - promoDiscount - manualDiscount - couponAmount)
+    : 0;
+  const total = Math.max(
+    0,
+    subtotal - promoDiscount - manualDiscount - couponAmount - packageCovers
+  );
   // มัดจำของบิลนี้ (กรอกในฟอร์ม) → คงเหลือ = ยอดสุทธิ − มัดจำ
   const depositAmount = Math.min(total, Math.max(0, Number(billDeposit) || 0));
   const remaining = Math.max(0, total - depositAmount);
@@ -559,10 +578,11 @@ export default function BillingPage() {
         catName: cat,
         items: payloadItems,
         promoId: promoId || undefined,
-        extraDiscount: (manualDiscount + couponAmount) || undefined,
+        extraDiscount: (manualDiscount + couponAmount + packageCovers) || undefined,
         deposit: depositAmount || undefined,
         bookingId: bookingId || undefined,
         couponId: couponId || undefined,
+        packageId: packageId || undefined,
       }),
     });
     const data = await res.json();
@@ -998,6 +1018,29 @@ export default function BillingPage() {
                     }`}
                   >
                     {couponId === cp.id ? "✓ " : ""}฿{cp.amount} · {cp.reason}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {customerPackages.length > 0 && (
+            <div>
+              <span className="mb-1 block text-xs font-bold text-brown-soft">
+                🎫 คอร์สของลูกค้า (กดหัก 1 ครั้ง → บิลนี้ฟรี)
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {customerPackages.map((pk) => (
+                  <button
+                    key={pk.id}
+                    type="button"
+                    onClick={() => setPackageId((prev) => (prev === pk.id ? "" : pk.id))}
+                    className={`rounded-full px-3 py-1.5 text-xs font-bold ${
+                      packageId === pk.id ? "bg-sage text-card" : "bg-paper text-brown-soft"
+                    }`}
+                  >
+                    {packageId === pk.id ? "✓ " : ""}
+                    {pk.name} (เหลือ {pk.totalUses - pk.usedUses}/{pk.totalUses})
                   </button>
                 ))}
               </div>

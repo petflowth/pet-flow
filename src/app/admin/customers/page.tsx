@@ -445,6 +445,60 @@ function CustomerSummaryCard({
       setAddBusy(false);
     }
   };
+
+  // ── คอร์ส/แพ็กเกจ ──
+  const [packages, setPackages] = useState<
+    { id: string; name: string; totalUses: number; usedUses: number; status: string }[]
+  >([]);
+  const [pkgName, setPkgName] = useState("");
+  const [pkgUses, setPkgUses] = useState("");
+  const [pkgPrice, setPkgPrice] = useState("");
+  const [pkgBusy, setPkgBusy] = useState(false);
+
+  const loadPackages = useCallback(() => {
+    fetch(`/api/packages?customerId=${customer.id}`)
+      .then((r) => r.json())
+      .then((d) => setPackages(d.packages || []))
+      .catch(() => {});
+  }, [customer.id]);
+  useEffect(() => {
+    loadPackages();
+  }, [loadPackages]);
+
+  const sellPackage = async () => {
+    const uses = Math.round(Number(pkgUses) || 0);
+    const price = Math.round(Number(pkgPrice) || 0);
+    if (!pkgName.trim() || uses <= 0) return;
+    setPkgBusy(true);
+    try {
+      const res = await fetch("/api/packages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId: customer.id, name: pkgName.trim(), totalUses: uses, price }),
+      });
+      if (res.ok) {
+        setMsg(`✅ ขายคอร์ส "${pkgName.trim()}" แล้ว`);
+        setPkgName("");
+        setPkgUses("");
+        setPkgPrice("");
+        loadPackages();
+        setTimeout(() => setMsg(""), 2500);
+      }
+    } finally {
+      setPkgBusy(false);
+    }
+  };
+
+  const cancelPackage = async (id: string) => {
+    if (!confirm("ยกเลิกคอร์สนี้?")) return;
+    await fetch("/api/packages", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "cancel", packageId: id }),
+    });
+    loadPackages();
+  };
+
   const heroCat = customer.cats.find((cat) => cat.photoDataUrl) || customer.cats[0];
 
   useEffect(() => {
@@ -633,6 +687,77 @@ function CustomerSummaryCard({
             ถึงจะเพิ่มแต้มสะสมได้ค่ะ (แต้มผูกกับบัญชี LINE)
           </p>
         )}
+      </div>
+
+      {/* ── คอร์ส/แพ็กเกจ ── */}
+      <div className="mb-4 rounded-catcha-sm border border-sage/40 bg-sage/10 p-3">
+        <p className="mb-1.5 text-xs font-extrabold text-catcha-chocolate">
+          🎫 คอร์ส / แพ็กเกจ
+        </p>
+        {packages.filter((p) => p.status !== "cancelled").length > 0 && (
+          <ul className="mb-2 space-y-1">
+            {packages
+              .filter((p) => p.status !== "cancelled")
+              .map((p) => {
+                const left = p.totalUses - p.usedUses;
+                return (
+                  <li
+                    key={p.id}
+                    className="flex items-center justify-between gap-2 rounded-catcha-sm bg-card px-2.5 py-1.5 text-xs"
+                  >
+                    <span className="min-w-0 truncate font-bold text-brown">
+                      {p.name}{" "}
+                      <span className={left > 0 ? "text-ok" : "text-brown-faint"}>
+                        (เหลือ {left}/{p.totalUses})
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => cancelPackage(p.id)}
+                      className="shrink-0 text-[10px] font-bold text-wait"
+                    >
+                      ยกเลิก
+                    </button>
+                  </li>
+                );
+              })}
+          </ul>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <input
+            value={pkgName}
+            onChange={(e) => setPkgName(e.target.value)}
+            placeholder="ชื่อคอร์ส เช่น อาบน้ำ 10 ครั้ง"
+            className="min-w-0 flex-1 rounded-catcha-sm border border-catcha-line bg-paper px-2.5 py-2 text-sm"
+          />
+        </div>
+        <div className="mt-2 flex gap-2">
+          <input
+            type="number"
+            value={pkgUses}
+            onChange={(e) => setPkgUses(e.target.value)}
+            placeholder="กี่ครั้ง"
+            className="w-20 rounded-catcha-sm border border-catcha-line bg-paper px-2 py-2 text-sm"
+          />
+          <input
+            type="number"
+            value={pkgPrice}
+            onChange={(e) => setPkgPrice(e.target.value)}
+            placeholder="ราคา (บาท)"
+            className="min-w-0 flex-1 rounded-catcha-sm border border-catcha-line bg-paper px-2.5 py-2 text-sm"
+          />
+          <button
+            type="button"
+            disabled={pkgBusy || !pkgName.trim() || !pkgUses}
+            onClick={sellPackage}
+            className="shrink-0 rounded-catcha-sm bg-sage px-3 py-2 text-sm font-extrabold text-card disabled:opacity-40"
+          >
+            ขายคอร์ส
+          </button>
+        </div>
+        <p className="mt-1 text-[10px] text-brown-faint">
+          ขายแล้วลงรายรับทันที · เวลาลูกค้ามาใช้ กดหักที่หน้าคิดเงิน (บิลนั้นฟรี)
+        </p>
       </div>
 
       <div className="space-y-3 rounded-catcha-sm border border-white/60 bg-card/70 p-3">

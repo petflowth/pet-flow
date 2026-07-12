@@ -115,6 +115,10 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     name: "coupon_offers.table",
     sql: "create table if not exists coupon_offers (id text primary key, title text, amount numeric not null default 0, reason text, valid_days integer not null default 60, active boolean not null default true, created_at timestamptz not null default now());",
   },
+  {
+    name: "customer_packages.table",
+    sql: "create table if not exists customer_packages (id text primary key, customer_id text, name text, total_uses integer not null default 0, used_uses integer not null default 0, price numeric not null default 0, status text not null default 'active', created_at timestamptz not null default now());",
+  },
 ];
 
 export type MigrateResult = {

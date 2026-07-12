@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { registerCustomerFromLine } from "@/lib/customers-store";
+import {
+  registerCustomerFromLine,
+  findCustomerByReferralCode,
+  setReferredBy,
+} from "@/lib/customers-store";
+import { issueCoupon } from "@/lib/coupons-store";
+import { pushLineMessage } from "@/lib/line";
+import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 
 type CatBody = {
   name?: string;
@@ -71,8 +78,50 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "ลงทะเบียนไม่สำเร็จ" }, { status: 500 });
   }
 
+  // ── ชวนเพื่อน: ออกคูปอง 100฿ ให้ทั้งคนชวน + คนถูกชวน (ครั้งเดียว) ──
+  const refCode = String(body.referralCode || "").trim();
+  let referralBonus = 0;
+  if (refCode && !customer.referredBy) {
+    const referrer = await findCustomerByReferralCode(refCode);
+    if (referrer && referrer.id !== customer.id) {
+      try {
+        await setReferredBy(customer.id, referrer.id);
+        await issueCoupon({
+          customerId: customer.id,
+          amount: 100,
+          reason: "สมัครผ่านลิงก์เพื่อนแนะนำ 🎁",
+          expiresInDays: 60,
+        });
+        await issueCoupon({
+          customerId: referrer.id,
+          amount: 100,
+          reason: `ชวน ${customer.name} สมัครสำเร็จ 🎉`,
+          expiresInDays: 60,
+        });
+        referralBonus = 100;
+        if (referrer.lineUserId) {
+          await pushLineMessage(referrer.lineUserId, [
+            {
+              type: "text",
+              text: `🎉 เพื่อนที่คุณชวนสมัครเรียบร้อยแล้ว!\nคุณได้รับคูปองส่วนลด 100฿ เก็บไว้ในกระเป๋าคูปองแล้วนะคะ 🧡 (ใช้ได้ 60 วัน)`,
+            },
+          ]);
+        }
+        await sendTelegram(
+          formatBookingTelegram("🎁 ชวนเพื่อนสำเร็จ (ออกคูปอง 100฿ x2)", {
+            คนชวน: referrer.name,
+            คนถูกชวน: customer.name,
+          })
+        );
+      } catch (e) {
+        console.error("referral coupon failed:", e);
+      }
+    }
+  }
+
   return NextResponse.json({
     ok: true,
+    referralBonus,
     customer: {
       id: customer.id,
       name: customer.name,

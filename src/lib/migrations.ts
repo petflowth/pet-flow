@@ -98,6 +98,15 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     name: "cats.age_structured",
     sql: "alter table cats add column if not exists age_value integer, add column if not exists age_unit text, add column if not exists age_as_of date;",
   },
+  // ── ระบบคูปอง + ชวนเพื่อน ──
+  {
+    name: "customers.referral_code",
+    sql: "alter table customers add column if not exists referral_code text, add column if not exists referred_by text;",
+  },
+  {
+    name: "coupons.table",
+    sql: "create table if not exists coupons (id text primary key, code text, customer_id text, amount numeric not null default 0, reason text, status text not null default 'active', expires_at timestamptz, used_at timestamptz, used_invoice_id text, created_at timestamptz not null default now());",
+  },
 ];
 
 export type MigrateResult = {

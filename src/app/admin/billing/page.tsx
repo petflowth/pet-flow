@@ -179,6 +179,10 @@ export default function BillingPage() {
   const [promoId, setPromoId] = useState("");
   const [autoPromoLabel, setAutoPromoLabel] = useState("");
   const [discount, setDiscount] = useState("");
+  const [couponId, setCouponId] = useState("");
+  const [customerCoupons, setCustomerCoupons] = useState<
+    { id: string; amount: number; reason: string; code: string }[]
+  >([]);
   const [billDeposit, setBillDeposit] = useState("");
   const [billDepPct, setBillDepPct] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -259,6 +263,25 @@ export default function BillingPage() {
 
   const selected = customers.find((c) => c.id === customerId);
 
+  // โหลดคูปองที่ใช้ได้ของลูกค้าที่เลือก
+  useEffect(() => {
+    setCouponId("");
+    if (!customerId) {
+      setCustomerCoupons([]);
+      return;
+    }
+    let alive = true;
+    fetch(`/api/coupons?customerId=${customerId}&active=1`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (alive) setCustomerCoupons(d.coupons || []);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [customerId]);
+
   const lines = items.map(computeLine);
   const subtotal = lines.reduce((s, l) => s + l.amount, 0);
   const selectedPromo = promos.find((p) => p.id === promoId);
@@ -274,7 +297,8 @@ export default function BillingPage() {
       )
     : 0;
   const manualDiscount = Math.max(0, Number(discount) || 0);
-  const total = Math.max(0, subtotal - promoDiscount - manualDiscount);
+  const couponAmount = customerCoupons.find((c) => c.id === couponId)?.amount || 0;
+  const total = Math.max(0, subtotal - promoDiscount - manualDiscount - couponAmount);
   // มัดจำของบิลนี้ (กรอกในฟอร์ม) → คงเหลือ = ยอดสุทธิ − มัดจำ
   const depositAmount = Math.min(total, Math.max(0, Number(billDeposit) || 0));
   const remaining = Math.max(0, total - depositAmount);
@@ -535,9 +559,10 @@ export default function BillingPage() {
         catName: cat,
         items: payloadItems,
         promoId: promoId || undefined,
-        extraDiscount: manualDiscount || undefined,
+        extraDiscount: (manualDiscount + couponAmount) || undefined,
         deposit: depositAmount || undefined,
         bookingId: bookingId || undefined,
+        couponId: couponId || undefined,
       }),
     });
     const data = await res.json();
@@ -954,6 +979,30 @@ export default function BillingPage() {
               className={`mt-1 ${field}`}
             />
           </label>
+
+          {customerCoupons.length > 0 && (
+            <div>
+              <span className="mb-1 block text-xs font-bold text-brown-soft">
+                🎟️ คูปองของลูกค้า (กดใช้)
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {customerCoupons.map((cp) => (
+                  <button
+                    key={cp.id}
+                    type="button"
+                    onClick={() => setCouponId((prev) => (prev === cp.id ? "" : cp.id))}
+                    className={`rounded-full px-3 py-1.5 text-xs font-bold ${
+                      couponId === cp.id
+                        ? "bg-latte-deep text-card"
+                        : "bg-paper text-brown-soft"
+                    }`}
+                  >
+                    {couponId === cp.id ? "✓ " : ""}฿{cp.amount} · {cp.reason}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {autoPromoLabel && promoId && (

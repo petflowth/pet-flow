@@ -64,6 +64,18 @@ export default function CustomerHome() {
       </header>
 
       <Link
+        href="/app/coupons"
+        className="mb-3 flex items-center justify-between gap-2 rounded-catcha border border-honey/50 bg-gradient-to-r from-honey/25 to-latte/15 px-4 py-3 shadow-catcha-sm"
+      >
+        <span className="text-sm font-extrabold text-catcha-chocolate">
+          🎁 ชวนเพื่อน รับคูปอง 100฿
+        </span>
+        <span className="rounded-full bg-latte-deep px-2.5 py-1 text-[10px] font-bold text-card">
+          กระเป๋าคูปอง →
+        </span>
+      </Link>
+
+      <Link
         href="/app/profile"
         className="mb-4 flex items-center justify-center gap-1 rounded-catcha-sm bg-paper/70 px-3 py-2 text-xs font-bold text-brown-soft"
       >

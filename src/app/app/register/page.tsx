@@ -60,6 +60,12 @@ export default function RegisterPage() {
   const [cats, setCats] = useState<CatInput[]>([emptyCat()]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [referralCode, setReferralCode] = useState("");
+
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (ref) setReferralCode(ref);
+  }, []);
 
   useEffect(() => {
     if (!customer) return;
@@ -102,6 +108,7 @@ export default function RegisterPage() {
         email,
         birthday,
         referralSource: referral,
+        referralCode: referralCode || undefined,
         marketingConsent: consent,
         cats: cats
           .filter((c) => c.name.trim())
@@ -160,6 +167,12 @@ export default function RegisterPage() {
           กรอกข้อมูลครั้งเดียว — ใช้ยืนยันนัด แต้มสะสม และโปรโมชั่น
         </p>
       </div>
+
+      {referralCode && (
+        <div className="mb-4 rounded-catcha-sm border border-honey/50 bg-honey/15 px-4 py-3 text-center text-xs font-extrabold text-catcha-chocolate">
+          🎁 สมัครผ่านเพื่อนแนะนำ — รับคูปองส่วนลด <span className="text-latte-deep">100฿</span> ทันทีหลังสมัคร!
+        </div>
+      )}
 
       <form onSubmit={submit} className="space-y-4">
         {/* ── ข้อมูลผู้ปกครอง ── */}

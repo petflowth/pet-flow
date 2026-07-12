@@ -46,6 +46,10 @@ export type CustomerRecord = {
   marketingConsent: boolean;
   /** รู้จักร้านจากทางไหน */
   referralSource?: string;
+  /** รหัสชวนเพื่อนของลูกค้าคนนี้ (แชร์ให้เพื่อนสมัคร) */
+  referralCode?: string;
+  /** ถูกชวนมาโดยลูกค้ารหัสนี้ (กันออกคูปองซ้ำ) */
+  referredBy?: string;
   cats: CatRecord[];
   isMember: boolean;
   memberCredit: number;
@@ -124,6 +128,8 @@ type CustomerRow = {
   line_display_name: string | null;
   marketing_consent: boolean | null;
   referral_source: string | null;
+  referral_code?: string | null;
+  referred_by?: string | null;
   is_member: boolean;
   member_credit: number;
   deposit_credit?: number | null;
@@ -193,6 +199,8 @@ function mapCustomer(row: CustomerRow): CustomerRecord {
     lineDisplayName: row.line_display_name ?? undefined,
     marketingConsent: row.marketing_consent !== false,
     referralSource: row.referral_source ?? undefined,
+    referralCode: row.referral_code ?? undefined,
+    referredBy: row.referred_by ?? undefined,
     isMember: row.is_member,
     memberCredit: Number(row.member_credit),
     depositCredit: Number(row.deposit_credit) || 0,
@@ -304,6 +312,41 @@ export async function findCustomerByLine(lineUserId: string) {
     return row ? mapCustomer(row) : undefined;
   }
   return [...memCustomers.values()].find((c) => c.lineUserId === uid);
+}
+
+/** รหัสชวนเพื่อนของลูกค้า — คิดจาก id แบบเสถียร (ไม่ต้องเก็บ DB) */
+export function referralCodeFor(customerId: string): string {
+  const s = customerId || "";
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  }
+  return "CAT" + h.toString(36).toUpperCase().padStart(6, "0").slice(-6);
+}
+
+/** หาลูกค้าจากรหัสชวนเพื่อน (สแกนเทียบรหัสที่คิดจาก id) */
+export async function findCustomerByReferralCode(code: string) {
+  const target = (code || "").trim().toUpperCase();
+  if (!target) return undefined;
+  const all = await fetchAllCustomers();
+  return all.find((c) => referralCodeFor(c.id) === target);
+}
+
+/** บันทึกว่าลูกค้าถูกชวนมาโดยใคร (กันออกคูปองซ้ำ) — graceful */
+export async function setReferredBy(customerId: string, referrerId: string) {
+  const c = await getCustomer(customerId);
+  if (!c) return;
+  c.referredBy = referrerId;
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      await sb.from("customers").update({ referred_by: referrerId }).eq("id", customerId);
+    } catch {
+      /* ยังไม่ได้ migrate — ข้าม */
+    }
+  } else {
+    memCustomers.set(customerId, c);
+  }
 }
 
 export async function searchCustomers(query: string) {

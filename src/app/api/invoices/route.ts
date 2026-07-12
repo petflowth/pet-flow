@@ -27,6 +27,7 @@ import {
   buildReviewRequestFlex,
 } from "@/lib/line";
 import { renderTemplate } from "@/lib/messages";
+import { redeemCoupon } from "@/lib/coupons-store";
 import { getBooking } from "@/lib/bookings-store";
 import { bookingScheduleText } from "@/lib/booking-reminders";
 import type { InvoiceRecord } from "@/lib/invoices-store";
@@ -115,6 +116,14 @@ export async function POST(req: NextRequest) {
       deposit: body.deposit,
       bookingId: body.bookingId,
     });
+    // ใช้คูปอง — mark used + ผูกกับบิลนี้ (ส่วนลดรวมใน extraDiscount แล้ว)
+    if (body.couponId) {
+      try {
+        await redeemCoupon(String(body.couponId), invoice.id);
+      } catch {
+        /* คูปองใช้ไม่ได้/ไม่เจอ — ไม่ทำให้บิลพัง */
+      }
+    }
     return NextResponse.json({ ok: true, invoice });
   }
 

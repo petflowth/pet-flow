@@ -14,6 +14,21 @@ type Coupon = {
   expiresAt?: string;
 };
 
+type Stats = {
+  couponSummary: {
+    total: number;
+    active: number;
+    used: number;
+    expired: number;
+    cancelled: number;
+    valueUsed: number;
+    valueOutstanding: number;
+  };
+  perOffer: { id: string; title: string; amount: number; issued: number; used: number; valueUsed: number; rate: number }[];
+  referral: { issued: number; used: number; valueUsed: number };
+  perPromo: { id: string; title: string; active: boolean; claims: number; uses: number; discount: number }[];
+};
+
 const TIERS = ["all", "new", "regular", "member", "vip"] as const;
 
 export default function AdminCouponsPage() {
@@ -24,11 +39,16 @@ export default function AdminCouponsPage() {
   const [validDays, setValidDays] = useState("60");
   const [busy, setBusy] = useState("");
   const [tierByOffer, setTierByOffer] = useState<Record<string, string>>({});
+  const [stats, setStats] = useState<Stats | null>(null);
 
   const load = useCallback(async () => {
-    const d = await fetch("/api/coupons/offers").then((r) => r.json());
+    const [d, s] = await Promise.all([
+      fetch("/api/coupons/offers").then((r) => r.json()),
+      fetch("/api/coupons/stats").then((r) => r.json()),
+    ]);
     setOffers(d.offers || []);
     setCoupons(d.coupons || []);
+    setStats(s);
   }, []);
 
   useEffect(() => {
@@ -105,6 +125,109 @@ export default function AdminCouponsPage() {
   return (
     <div>
       <h1 className="mb-4 text-lg font-extrabold text-catcha-chocolate">🎟️ คูปอง & แคมเปญ</h1>
+
+      {/* ── สถิติ ── */}
+      {stats && (
+        <div className="mb-5 space-y-3">
+          <p className="text-xs font-extrabold text-catcha-chocolate">📊 สถิติคูปอง</p>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-catcha-sm bg-latte/15 p-2.5">
+              <p className="text-[10px] font-bold text-brown-soft">ออกไปทั้งหมด</p>
+              <p className="text-lg font-extrabold text-latte-deep">{stats.couponSummary.total}</p>
+            </div>
+            <div className="rounded-catcha-sm bg-sage/15 p-2.5">
+              <p className="text-[10px] font-bold text-brown-soft">ใช้แล้ว</p>
+              <p className="text-lg font-extrabold text-ok">{stats.couponSummary.used}</p>
+            </div>
+            <div className="rounded-catcha-sm bg-honey/20 p-2.5">
+              <p className="text-[10px] font-bold text-brown-soft">ยังไม่ใช้</p>
+              <p className="text-lg font-extrabold text-catcha-chocolate">{stats.couponSummary.active}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-center">
+            <div className="rounded-catcha-sm bg-sage/10 p-2.5">
+              <p className="text-[10px] font-bold text-brown-soft">💸 ส่วนลดที่ถูกใช้ไป</p>
+              <p className="text-base font-extrabold text-ok">
+                {stats.couponSummary.valueUsed.toLocaleString()} ฿
+              </p>
+            </div>
+            <div className="rounded-catcha-sm bg-wait/10 p-2.5">
+              <p className="text-[10px] font-bold text-brown-soft">⏳ คูปองค้าง (ภาระ)</p>
+              <p className="text-base font-extrabold text-wait">
+                {stats.couponSummary.valueOutstanding.toLocaleString()} ฿
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-catcha-sm border border-honey/40 bg-honey/10 p-3 text-xs">
+            <span className="font-extrabold text-catcha-chocolate">🎁 ชวนเพื่อน:</span>{" "}
+            ออกคูปอง {stats.referral.issued} ใบ · ใช้แล้ว {stats.referral.used} ใบ · ส่วนลด{" "}
+            {stats.referral.valueUsed.toLocaleString()} ฿
+          </div>
+
+          {stats.perOffer.length > 0 && (
+            <div className="overflow-x-auto rounded-catcha-sm border border-catcha-line">
+              <table className="w-full text-left text-[11px]">
+                <thead className="bg-paper text-brown-soft">
+                  <tr>
+                    <th className="px-2 py-1.5 font-bold">แคมเปญ</th>
+                    <th className="px-2 py-1.5 text-center font-bold">ออก</th>
+                    <th className="px-2 py-1.5 text-center font-bold">ใช้</th>
+                    <th className="px-2 py-1.5 text-center font-bold">อัตราใช้</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.perOffer.map((o) => (
+                    <tr key={o.id} className="border-t border-catcha-line">
+                      <td className="px-2 py-1.5 font-bold text-brown">
+                        {o.title} <span className="text-brown-faint">฿{o.amount}</span>
+                      </td>
+                      <td className="px-2 py-1.5 text-center">{o.issued}</td>
+                      <td className="px-2 py-1.5 text-center text-ok">{o.used}</td>
+                      <td className="px-2 py-1.5 text-center font-bold">{o.rate}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <p className="pt-1 text-xs font-extrabold text-catcha-chocolate">✨ สถิติโปรโมชั่น</p>
+          {stats.perPromo.length === 0 ? (
+            <p className="rounded-catcha-sm bg-paper px-3 py-2 text-center text-[11px] text-brown-soft">
+              ยังไม่มีโปรโมชั่น
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-catcha-sm border border-catcha-line">
+              <table className="w-full text-left text-[11px]">
+                <thead className="bg-paper text-brown-soft">
+                  <tr>
+                    <th className="px-2 py-1.5 font-bold">โปร</th>
+                    <th className="px-2 py-1.5 text-center font-bold">กดรับ</th>
+                    <th className="px-2 py-1.5 text-center font-bold">ใช้จริง</th>
+                    <th className="px-2 py-1.5 text-center font-bold">ส่วนลดรวม</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.perPromo.map((p) => (
+                    <tr key={p.id} className="border-t border-catcha-line">
+                      <td className="px-2 py-1.5 font-bold text-brown">
+                        {p.title}
+                        {!p.active && <span className="text-brown-faint"> (ปิด)</span>}
+                      </td>
+                      <td className="px-2 py-1.5 text-center">{p.claims}</td>
+                      <td className="px-2 py-1.5 text-center text-ok">{p.uses}</td>
+                      <td className="px-2 py-1.5 text-center font-bold">
+                        {p.discount.toLocaleString()} ฿
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* สร้างแคมเปญ */}
       <div className="mb-5 space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm">

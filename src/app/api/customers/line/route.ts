@@ -25,7 +25,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "lineUserId required" }, { status: 400 });
   }
 
-  const customer = await upsertCustomerFromLine({ lineUserId, displayName });
+  let customer;
+  try {
+    customer = await upsertCustomerFromLine({ lineUserId, displayName });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    console.error("customers/line sync failed:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
   if (!customer) {
     return NextResponse.json({ error: "sync failed" }, { status: 500 });
   }

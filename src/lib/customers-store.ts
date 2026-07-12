@@ -373,7 +373,7 @@ export async function upsertCustomerFromLine(data: {
   };
 
   if (sb) {
-    await sb.from("customers").insert({
+    const { error } = await sb.from("customers").insert({
       id,
       name: displayName,
       line_user_id: lineUserId,
@@ -384,6 +384,10 @@ export async function upsertCustomerFromLine(data: {
       created_at: now,
       updated_at: now,
     });
+    if (error) {
+      // เผยข้อผิดพลาดจริงแทนที่จะเงียบ (เดิมทำให้ลงทะเบียน "ไม่สำเร็จ" โดยไม่บอกสาเหตุ)
+      throw new Error(`สร้างบัญชีลูกค้าไม่สำเร็จ: ${error.message}`);
+    }
   } else {
     memCustomers.set(id, customer);
   }

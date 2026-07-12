@@ -3,24 +3,89 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useLiff } from "@/components/LiffProvider";
+import { useConfig } from "@/components/ConfigProvider";
+import { BREED_OPTIONS, OTHER_BREED } from "@/lib/cat-breeds";
+
+const REFERRAL_FALLBACK = [
+  "Facebook",
+  "Instagram",
+  "TikTok",
+  "Google / ค้นหา",
+  "Google Maps",
+  "เพื่อนแนะนำ / ผ่านหน้าร้าน",
+];
+
+type CatForm = {
+  id: string;
+  name: string;
+  gender: "" | "male" | "female";
+  breed: string;
+  breedOther: string;
+  ageValue: string;
+  ageUnit: "year" | "month";
+  birthday: string;
+  medical: string;
+  note: string;
+};
 
 export default function ProfilePage() {
-  const { ready, profile, customer, needsRegistration, refreshCustomer } = useLiff();
+  const { ready, profile } = useLiff();
+  const { config } = useConfig();
+  const breeds = config.options?.catBreeds?.length ? config.options.catBreeds : BREED_OPTIONS;
+  const referrals = config.options?.referralOptions?.length
+    ? config.options.referralOptions
+    : REFERRAL_FALLBACK;
 
+  const [loading, setLoading] = useState(true);
+  const [found, setFound] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [catNames, setCatNames] = useState<Record<string, string>>({});
+  const [email, setEmail] = useState("");
+  const [birthday, setBirthday] = useState("");
+  const [referral, setReferral] = useState("");
+  const [consent, setConsent] = useState(true);
+  const [cats, setCats] = useState<CatForm[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (!customer) return;
-    setName(customer.name || "");
-    setPhone(customer.phone || "");
-    setCatNames(
-      Object.fromEntries((customer.cats || []).map((c) => [c.id, c.name]))
-    );
-  }, [customer]);
+    if (!profile?.lineUserId) return;
+    fetch(`/api/customers/self?lineUserId=${profile.lineUserId}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.found) return;
+        setFound(true);
+        const c = d.customer;
+        setName(c.name || "");
+        setPhone(c.phone || "");
+        setEmail(c.email || "");
+        setBirthday(c.birthday || "");
+        setReferral(c.referralSource || "");
+        setConsent(c.marketingConsent !== false);
+        setCats(
+          (c.cats || []).map((x: Record<string, unknown>) => {
+            const breedVal = String(x.breed || "");
+            const known = breeds.includes(breedVal);
+            return {
+              id: String(x.id),
+              name: String(x.name || ""),
+              gender: (x.gender as CatForm["gender"]) || "",
+              breed: breedVal ? (known ? breedVal : OTHER_BREED) : "",
+              breedOther: breedVal && !known ? breedVal : "",
+              ageValue: x.ageValue != null ? String(x.ageValue) : "",
+              ageUnit: (x.ageUnit as "year" | "month") || "year",
+              birthday: String(x.birthday || ""),
+              medical: String(x.medical || ""),
+              note: String(x.note || ""),
+            };
+          })
+        );
+      })
+      .finally(() => setLoading(false));
+  }, [profile?.lineUserId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const updateCat = (idx: number, patch: Partial<CatForm>) =>
+    setCats((prev) => prev.map((c, i) => (i === idx ? { ...c, ...patch } : c)));
 
   const save = async () => {
     if (!profile?.lineUserId || !name.trim()) return;
@@ -34,18 +99,35 @@ export default function ProfilePage() {
           lineUserId: profile.lineUserId,
           name: name.trim(),
           phone: phone.trim(),
-          cats: Object.entries(catNames).map(([id, n]) => ({ id, name: n })),
+          email: email.trim(),
+          birthday,
+          referralSource: referral,
+          marketingConsent: consent,
+          cats: cats.map((c) => ({
+            id: c.id,
+            name: c.name,
+            gender: c.gender || undefined,
+            breed:
+              (c.breed === OTHER_BREED ? c.breedOther.trim() : c.breed) || undefined,
+            ageValue: c.ageValue,
+            ageUnit: c.ageUnit,
+            birthday: c.birthday || undefined,
+            medical: c.medical || undefined,
+            note: c.note || undefined,
+          })),
         }),
       });
       if (res.ok) {
         setSaved(true);
-        await refreshCustomer();
         setTimeout(() => setSaved(false), 2500);
       }
     } finally {
       setSaving(false);
     }
   };
+
+  const field = "w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm";
+  const sub = "w-full rounded-lg border border-catcha-line bg-paper px-3 py-2 text-sm";
 
   return (
     <div className="px-4 pb-10 pt-5">
@@ -56,9 +138,9 @@ export default function ProfilePage() {
         ✏️ แก้ไขข้อมูลของฉัน
       </h1>
 
-      {!ready ? (
+      {!ready || loading ? (
         <p className="mt-6 text-sm text-brown-soft">กำลังโหลด…</p>
-      ) : needsRegistration || !customer ? (
+      ) : !found ? (
         <div className="mt-6 rounded-catcha bg-paper px-4 py-4 text-center text-sm text-brown-soft">
           ยังไม่มีข้อมูลของคุณในระบบ
           <Link
@@ -70,48 +152,117 @@ export default function ProfilePage() {
         </div>
       ) : (
         <>
+          {/* ── ผู้ปกครอง ── */}
           <div className="mt-4 space-y-3 rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm">
             <label className="block text-xs font-bold text-brown-soft">
               ชื่อผู้ปกครอง
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="ชื่อของคุณ"
-                className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm font-bold text-brown"
-              />
+              <input value={name} onChange={(e) => setName(e.target.value)} className={`${field} mt-1 font-bold text-brown`} />
             </label>
             <label className="block text-xs font-bold text-brown-soft">
               เบอร์โทร
-              <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="08x-xxx-xxxx"
-                inputMode="tel"
-                className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
-              />
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" placeholder="08x-xxx-xxxx" className={`${field} mt-1`} />
             </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block text-xs font-bold text-brown-soft">
+                อีเมล
+                <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="you@email.com" className={`${field} mt-1`} />
+              </label>
+              <label className="block text-xs font-bold text-brown-soft">
+                วันเกิด
+                <input value={birthday} onChange={(e) => setBirthday(e.target.value)} type="date" className={`${field} mt-1`} />
+              </label>
+            </div>
           </div>
 
-          {(customer.cats || []).length > 0 && (
-            <div className="mt-4 space-y-3 rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm">
-              <p className="text-xs font-extrabold text-catcha-chocolate">🐱 น้องแมวของฉัน</p>
-              {customer.cats.map((c) => (
-                <label key={c.id} className="block text-xs font-bold text-brown-soft">
+          {/* ── น้องแมว ── */}
+          <div className="mt-4 space-y-3">
+            <p className="text-xs font-extrabold text-catcha-chocolate">🐱 น้องแมวของฉัน</p>
+            {cats.map((cat, idx) => (
+              <div key={cat.id} className="space-y-2 rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm">
+                <label className="block text-xs font-bold text-brown-soft">
                   ชื่อน้อง
-                  <input
-                    value={catNames[c.id] ?? ""}
-                    onChange={(e) =>
-                      setCatNames((prev) => ({ ...prev, [c.id]: e.target.value }))
-                    }
-                    className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm font-bold text-brown"
-                  />
+                  <input value={cat.name} onChange={(e) => updateCat(idx, { name: e.target.value })} className={`${sub} mt-1 font-bold text-brown`} />
                 </label>
+                <div className="flex gap-2">
+                  {([["male", "♂ ผู้"], ["female", "♀ เมีย"]] as const).map(([v, l]) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => updateCat(idx, { gender: cat.gender === v ? "" : v })}
+                      className={`flex-1 rounded-lg py-2 text-xs font-bold ${cat.gender === v ? "bg-latte/40 text-catcha-chocolate ring-1 ring-latte-deep" : "bg-paper text-brown-faint"}`}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+                <select
+                  value={cat.breed}
+                  onChange={(e) => updateCat(idx, { breed: e.target.value })}
+                  className={`${sub} ${cat.breed ? "text-brown" : "text-brown-faint"}`}
+                >
+                  <option value="">เลือกสายพันธุ์…</option>
+                  {breeds.map((b) => (
+                    <option key={b} value={b} className="text-brown">{b}</option>
+                  ))}
+                  <option value={OTHER_BREED} className="text-brown">{OTHER_BREED}</option>
+                </select>
+                {cat.breed === OTHER_BREED && (
+                  <input value={cat.breedOther} onChange={(e) => updateCat(idx, { breedOther: e.target.value })} placeholder="ระบุสายพันธุ์" className={sub} />
+                )}
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    value={cat.ageValue}
+                    onChange={(e) => updateCat(idx, { ageValue: e.target.value })}
+                    placeholder="อายุ"
+                    className="min-w-0 flex-1 rounded-lg border border-catcha-line bg-paper px-3 py-2 text-sm"
+                  />
+                  <select
+                    value={cat.ageUnit}
+                    onChange={(e) => updateCat(idx, { ageUnit: e.target.value as "year" | "month" })}
+                    className="w-24 shrink-0 rounded-lg border border-catcha-line bg-paper px-3 py-2 text-sm"
+                  >
+                    <option value="year">ปี</option>
+                    <option value="month">เดือน</option>
+                  </select>
+                </div>
+                <label className="block text-[10px] font-bold text-brown-soft">
+                  วันเกิดน้อง <span className="font-normal text-brown-faint">(ถ้าทราบ)</span>
+                  <input type="date" value={cat.birthday} onChange={(e) => updateCat(idx, { birthday: e.target.value })} className={`${sub} mt-0.5`} />
+                </label>
+                <input value={cat.medical} onChange={(e) => updateCat(idx, { medical: e.target.value })} placeholder="โรคประจำตัว (ถ้ามี)" className={sub} />
+                <input value={cat.note} onChange={(e) => updateCat(idx, { note: e.target.value })} placeholder="🐾 รายละเอียดเพิ่มเติม (ถ้ามี)" className={`${sub} text-xs`} />
+              </div>
+            ))}
+            <p className="text-[10px] text-brown-faint">
+              อยากเพิ่มน้องใหม่ ทักแชทบอกเราได้เลยนะคะ 🧡
+            </p>
+          </div>
+
+          {/* ── รู้จักเราจากทางไหน ── */}
+          <div className="mt-4">
+            <span className="mb-2 block text-xs font-bold text-brown-soft">รู้จักเราจากทางไหน?</span>
+            <div className="flex flex-wrap gap-2">
+              {referrals.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setReferral((p) => (p === opt ? "" : opt))}
+                  className={`rounded-full px-3 py-1.5 text-xs font-bold ${referral === opt ? "bg-latte/40 text-catcha-chocolate ring-1 ring-latte-deep" : "bg-paper text-brown-faint"}`}
+                >
+                  {opt}
+                </button>
               ))}
-              <p className="text-[10px] text-brown-faint">
-                อยากเพิ่มน้องใหม่ หรือแก้ประวัติเพิ่มเติม ทักแชทบอกเราได้เลยนะคะ 🧡
-              </p>
             </div>
-          )}
+          </div>
+
+          {/* ── ยินยอมรับข่าวสาร ── */}
+          <label className="mt-4 flex items-start gap-3 rounded-catcha-sm border border-catcha-line bg-card p-3">
+            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-4 w-4 flex-none accent-[#4A7348]" />
+            <span className="text-xs text-brown">ยินยอมให้ส่งข่าวสาร โปรโมชั่น และสิทธิพิเศษ</span>
+          </label>
 
           <button
             type="button"

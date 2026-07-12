@@ -754,7 +754,20 @@ export async function adjustDepositCredit(customerId: string, delta: number) {
 export async function updateCat(
   customerId: string,
   catId: string,
-  patch: Partial<Pick<CatRecord, "name" | "photoDataUrl" | "staffNote">>
+  patch: Partial<
+    Pick<
+      CatRecord,
+      | "name"
+      | "photoDataUrl"
+      | "staffNote"
+      | "gender"
+      | "breed"
+      | "ageValue"
+      | "ageUnit"
+      | "birthday"
+      | "medical"
+    >
+  >
 ) {
   const c = await getCustomer(customerId);
   if (!c) return null;
@@ -762,10 +775,15 @@ export async function updateCat(
   if (!cat) return null;
 
   Object.assign(cat, patch);
+  // ถ้าแก้อายุ → อัปเดตวันที่อ้างอิงอายุเป็นวันนี้ (ไว้คำนวณอายุปัจจุบัน)
+  if (patch.ageValue != null) {
+    cat.ageAsOf = new Date().toISOString().slice(0, 10);
+  }
   await touchCustomer(customerId);
 
   const sb = getSupabase();
   if (sb) {
+    // เขียนคอลัมน์พื้นฐานเสมอ (ต้องสำเร็จ) แล้วค่อยเขียนรายละเอียดเพิ่ม (best-effort เผื่อยังไม่ migrate)
     await sb
       .from("cats")
       .update({
@@ -774,6 +792,22 @@ export async function updateCat(
         staff_note: cat.staffNote || null,
       })
       .eq("id", catId);
+    try {
+      await sb
+        .from("cats")
+        .update({
+          gender: cat.gender || null,
+          breed: cat.breed || null,
+          age_value: cat.ageValue ?? null,
+          age_unit: cat.ageUnit || null,
+          age_as_of: cat.ageAsOf || null,
+          birthday: cat.birthday || null,
+          medical: cat.medical || null,
+        })
+        .eq("id", catId);
+    } catch {
+      /* ยังไม่ได้ migrate คอลัมน์เพิ่ม — ข้าม (ชื่อ/โน้ตยังบันทึกได้) */
+    }
   } else {
     memCustomers.set(customerId, c);
   }

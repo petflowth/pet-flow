@@ -21,7 +21,8 @@ import {
   getGroomInfoUrl,
   getConsentUrl,
 } from "@/lib/booking-reminders";
-import { listCustomers } from "@/lib/customers-store";
+import { listCustomers, getCatGroomInfo } from "@/lib/customers-store";
+import { parseGroomInfo, groomInfoSummary } from "@/lib/groom-info";
 import { renderTemplate } from "@/lib/messages";
 
 function addDays(dateStr: string, n: number) {
@@ -43,6 +44,7 @@ export async function GET(req: NextRequest) {
   const errors: string[] = [];
   let sent = 0;
   let groomInfoCards = 0;
+  let groomBriefs = 0;
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const allBookings = await listBookings();
@@ -77,18 +79,30 @@ export async function GET(req: NextRequest) {
       await pushLineMessage(b.lineUserId, [flex]);
       sent++;
 
-      // พ่วงการ์ดสอบถามประวัติน้อง สำหรับนัดอาบน้ำ (ส่งต่อจากยืนยันนัด)
+      // นัดอาบน้ำ: เคยกรอกประวัติแล้ว → บรีฟให้ร้าน · ยังไม่เคย → ส่งการ์ดให้ลูกค้ากรอก
       if (auto?.groomInfoEnabled !== false && b.service === "groom") {
-        const url = await getGroomInfoUrl(b.id);
-        const groomFlex = buildGroomInfoFlex({
-          catName: b.catName,
-          dateText: b.date ? `📅 นัดอาบน้ำ: ${b.date}${b.time ? ` ${b.time}` : ""}` : undefined,
-          body: buildGroomInfoBody(b, cfg),
-          url: url || undefined,
-          label: "🩺 แจ้งประวัติน้อง",
-        });
-        await pushLineMessage(b.lineUserId, [groomFlex]);
-        groomInfoCards++;
+        const info = parseGroomInfo(await getCatGroomInfo(b.lineUserId, b.catName));
+        if (info) {
+          await sendTelegram(
+            formatBookingTelegram(`🩺 บรีฟก่อนอาบน้ำ: ${b.catName}`, {
+              ลูกค้า: b.customerName,
+              วันนัด: `${b.date || ""}${b.time ? ` ${b.time}` : ""}`,
+              ...groomInfoSummary(info),
+            })
+          );
+          groomBriefs++;
+        } else {
+          const url = await getGroomInfoUrl(b.id);
+          const groomFlex = buildGroomInfoFlex({
+            catName: b.catName,
+            dateText: b.date ? `📅 นัดอาบน้ำ: ${b.date}${b.time ? ` ${b.time}` : ""}` : undefined,
+            body: buildGroomInfoBody(b, cfg),
+            url: url || undefined,
+            label: "🩺 แจ้งประวัติน้อง",
+          });
+          await pushLineMessage(b.lineUserId, [groomFlex]);
+          groomInfoCards++;
+        }
       }
     } catch (e) {
       errors.push(`${b.id}: ${String(e)}`);
@@ -246,6 +260,7 @@ export async function GET(req: NextRequest) {
     checkoutReminders > 0 ||
     reviewRequests > 0 ||
     groomInfoCards > 0 ||
+    groomBriefs > 0 ||
     birthdayGreetings > 0
   ) {
     await sendTelegram(
@@ -258,6 +273,7 @@ export async function GET(req: NextRequest) {
         เตือนเช็คเอาท์: String(checkoutReminders),
         ขอรีวิว: String(reviewRequests),
         ประวัติก่อนอาบน้ำ: String(groomInfoCards),
+        บรีฟก่อนอาบน้ำ: String(groomBriefs),
         อวยพรวันเกิดแมว: String(birthdayGreetings),
       })
     );
@@ -273,6 +289,7 @@ export async function GET(req: NextRequest) {
     checkoutReminders,
     reviewRequests,
     groomInfoCards,
+    groomBriefs,
     birthdayGreetings,
     errors,
   });

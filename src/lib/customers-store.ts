@@ -29,6 +29,8 @@ export type CatRecord = {
   staffNote?: string;
   /** โน้ตลับของร้าน — ซ่อนจากลูกค้า (ต้องรัน OVERNIGHT_SQL.md ก่อนถึงจะเซฟได้) */
   staffPrivateNote?: string;
+  /** ประวัติน้องก่อนอาบน้ำ (JSON) — เก็บถาวรที่แมว ถามครั้งแรกครั้งเดียว */
+  groomHealthInfo?: string;
 };
 
 export type CustomerRecord = {
@@ -109,6 +111,7 @@ type CatRow = {
   photo_data_url: string | null;
   staff_note: string | null;
   staff_private_note?: string | null;
+  groom_health_info?: string | null;
 };
 
 type CustomerRow = {
@@ -212,6 +215,7 @@ function mapCustomer(row: CustomerRow): CustomerRecord {
       photoDataUrl: c.photo_data_url ?? undefined,
       staffNote: c.staff_note ?? undefined,
       staffPrivateNote: c.staff_private_note ?? undefined,
+      groomHealthInfo: c.groom_health_info ?? undefined,
     })),
   };
 }
@@ -749,6 +753,46 @@ export async function updateCat(
     memCustomers.set(customerId, c);
   }
   return c;
+}
+
+/** หาแมวของลูกค้าจาก LINE + ชื่อน้อง (ถ้าไม่เจอชื่อตรง ใช้ตัวแรก) */
+async function resolveCatByLine(lineUserId: string, catName?: string) {
+  const c = await findCustomerByLine(lineUserId);
+  if (!c || c.cats.length === 0) return null;
+  const cat =
+    (catName && c.cats.find((x) => x.name === catName)) || c.cats[0];
+  return { customerId: c.id, cat };
+}
+
+/** อ่านประวัติน้องก่อนอาบน้ำ ที่เก็บไว้ที่แมว (คืน undefined ถ้ายังไม่เคยกรอก) */
+export async function getCatGroomInfo(lineUserId: string, catName?: string) {
+  const r = await resolveCatByLine(lineUserId, catName);
+  return r?.cat.groomHealthInfo;
+}
+
+/** บันทึกประวัติน้องก่อนอาบน้ำ ไว้ที่แมว (ถามครั้งแรกครั้งเดียว) — graceful */
+export async function setCatGroomInfo(
+  lineUserId: string,
+  catName: string | undefined,
+  infoJson: string
+) {
+  const r = await resolveCatByLine(lineUserId, catName);
+  if (!r) return { ok: false as const, error: "not_found" };
+  r.cat.groomHealthInfo = infoJson;
+  await touchCustomer(r.customerId);
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb
+        .from("cats")
+        .update({ groom_health_info: infoJson })
+        .eq("id", r.cat.id);
+      if (error) return { ok: false as const, error: "need_sql", catName: r.cat.name };
+    } catch {
+      return { ok: false as const, error: "need_sql", catName: r.cat.name };
+    }
+  }
+  return { ok: true as const, catName: r.cat.name };
 }
 
 export async function addCat(

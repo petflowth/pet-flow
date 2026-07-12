@@ -12,6 +12,7 @@ import { AddCustomerModal } from "@/components/AddCustomerModal";
 import { toast } from "@/components/Toast";
 import { CustomerLinkSection } from "@/components/CustomerLinkSection";
 import type { PointsHistoryEntry } from "@/lib/points-store";
+import { parseGroomInfo, groomInfoSummary } from "@/lib/groom-info";
 import type { Booking } from "@/lib/business";
 import { ExportSheetsButton } from "@/components/ExportSheetsButton";
 import { BookingEditModal, type EditableBooking } from "@/components/BookingEditModal";
@@ -1097,6 +1098,25 @@ export default function CustomersPage() {
                       onBlur={(e) => saveCatPrivateNote(cat.id, e.target.value)}
                     />
                   </label>
+                  {(() => {
+                    const gi = parseGroomInfo(cat.groomHealthInfo);
+                    if (!gi) return null;
+                    const s = groomInfoSummary(gi);
+                    return (
+                      <div className="mt-2 rounded-catcha-sm border border-sage/40 bg-sage/10 px-2 py-1.5">
+                        <p className="text-[10px] font-extrabold text-ok">
+                          🩺 ประวัติก่อนอาบน้ำ (ลูกค้ากรอกไว้)
+                        </p>
+                        <ul className="mt-1 space-y-0.5 text-[10px] text-brown">
+                          {Object.entries(s).map(([k, v]) => (
+                            <li key={k}>
+                              <span className="text-brown-soft">{k}:</span> {v}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })()}
                   <label className="mt-2 block text-[10px] font-bold text-latte-deep">
                     📷 อัปโหลดรูป (เห็นเฉพาะหลังบ้าน)
                     <input

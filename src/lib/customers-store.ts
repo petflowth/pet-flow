@@ -288,8 +288,22 @@ export async function getCustomer(id: string) {
 }
 
 export async function findCustomerByLine(lineUserId: string) {
-  const all = await fetchAllCustomers();
-  return all.find((c) => c.lineUserId === lineUserId);
+  const uid = (lineUserId || "").trim();
+  if (!uid) return undefined;
+  const sb = getSupabase();
+  if (sb) {
+    // ค้นตรงจาก line_user_id (รวมที่ถูกลบนุ่ม) — ป้องกันกรณีหาไม่เจอแล้วไป insert ซ้ำ
+    // จนชน unique constraint (customers_line_user_id_key)
+    const { data } = await sb
+      .from("customers")
+      .select("*, cats(*)")
+      .eq("line_user_id", uid)
+      .order("updated_at", { ascending: false })
+      .limit(1);
+    const row = (data as CustomerRow[] | null)?.[0];
+    return row ? mapCustomer(row) : undefined;
+  }
+  return [...memCustomers.values()].find((c) => c.lineUserId === uid);
 }
 
 export async function searchCustomers(query: string) {
@@ -340,6 +354,7 @@ export async function upsertCustomerFromLine(data: {
     existing.lineDisplayName = displayName;
     // ไม่ทับชื่อที่ร้านตั้งเอง — อัปเดตแค่ชื่อ LINE
     existing.updatedAt = now;
+    existing.deletedAt = undefined;
     if (sb) {
       await sb
         .from("customers")
@@ -349,6 +364,12 @@ export async function upsertCustomerFromLine(data: {
           updated_at: now,
         })
         .eq("id", existing.id);
+      // ถ้าเคยถูกลบนุ่มไว้ — กู้คืน (best-effort, ถ้ายังไม่มีคอลัมน์ deleted_at ก็ไม่พัง)
+      try {
+        await sb.from("customers").update({ deleted_at: null }).eq("id", existing.id);
+      } catch {
+        /* ไม่มีคอลัมน์ deleted_at — ข้าม */
+      }
     } else {
       memCustomers.set(existing.id, existing);
     }
@@ -1270,13 +1291,9 @@ export async function registerCustomerFromLine(data: {
 
   if (!lineUserId || !name || !phone || cats.length === 0) return null;
 
-  let customer = await findCustomerByLine(lineUserId);
-  if (!customer) {
-    customer = (await upsertCustomerFromLine({
-      lineUserId,
-      displayName: name,
-    })) ?? undefined;
-  }
+  // ผ่าน upsert เสมอ — หาบัญชีเดิม/สร้างใหม่/กู้คืนถ้าเคยลบ (กัน insert ซ้ำจน unique ชน)
+  const customer =
+    (await upsertCustomerFromLine({ lineUserId, displayName: name })) ?? undefined;
   if (!customer) return null;
 
   await updateCustomer(customer.id, {

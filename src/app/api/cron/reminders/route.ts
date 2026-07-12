@@ -22,6 +22,7 @@ import {
   getConsentUrl,
 } from "@/lib/booking-reminders";
 import { listCustomers, getCatGroomInfo } from "@/lib/customers-store";
+import { issueCoupon, listCustomerCoupons } from "@/lib/coupons-store";
 import { parseGroomInfo, groomInfoSummary } from "@/lib/groom-info";
 import { renderTemplate } from "@/lib/messages";
 
@@ -223,9 +224,11 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // ── 🎂 อวยพรวันเกิดแมว (เฉพาะลูกค้าที่ยินยอมรับข่าวสาร · เปิด/ปิดได้) ──
+  // ── 🎂 อวยพรวันเกิด (แมว/เจ้าของ) + แจกคูปองวันเกิด (เปิด/ปิดได้) ──
   let birthdayGreetings = 0;
+  let birthdayCoupons = 0;
   const mmdd = todayStr.slice(5); // "MM-DD"
+  const year = todayStr.slice(0, 4);
   try {
     if (auto?.birthdayEnabled === false) {
       // ปิดอวยพรวันเกิด — ข้าม
@@ -234,12 +237,39 @@ export async function GET(req: NextRequest) {
     for (const c of allCustomers) {
       if (!c.lineUserId || c.marketingConsent === false) continue;
       const bdayCat = c.cats.find((cat) => cat.birthday && cat.birthday.slice(5) === mmdd);
-      if (!bdayCat) continue;
-      const text = renderTemplate(cfg.messages.birthdayGreeting, {
-        shop: cfg.business.name,
-        name: c.name,
-        cat: bdayCat.name || "น้องแมว",
-      });
+      const ownerBday = Boolean(c.birthday && c.birthday.slice(5) === mmdd);
+      if (!bdayCat && !ownerBday) continue;
+
+      // แจกคูปองวันเกิด (ครั้งเดียวต่อปี)
+      let couponLine = "";
+      const amt = Math.round(auto?.birthdayCouponAmount ?? 100);
+      if (auto?.birthdayCouponEnabled !== false && amt > 0) {
+        try {
+          const mine = await listCustomerCoupons(c.id);
+          const already = mine.some(
+            (cp) => /วันเกิด/.test(cp.reason) && cp.createdAt.slice(0, 4) === year
+          );
+          if (!already) {
+            await issueCoupon({
+              customerId: c.id,
+              amount: amt,
+              reason: `🎂 ของขวัญวันเกิด ${year}`,
+              expiresInDays: 30,
+            });
+            birthdayCoupons++;
+            couponLine = `\n\n🎁 ร้านมีของขวัญวันเกิดให้ — คูปองส่วนลด ${amt} บาท เก็บไว้ในกระเป๋าคูปองแล้วนะคะ (ใช้ได้ 30 วัน) 🎟️`;
+          }
+        } catch (e) {
+          errors.push(`birthday-coupon ${c.id}: ${String(e)}`);
+        }
+      }
+
+      const text =
+        renderTemplate(cfg.messages.birthdayGreeting, {
+          shop: cfg.business.name,
+          name: c.name,
+          cat: (bdayCat ? bdayCat.name : c.name) || "น้องแมว",
+        }) + couponLine;
       try {
         await pushLineMessage(c.lineUserId, [{ type: "text", text }]);
         birthdayGreetings++;
@@ -274,7 +304,8 @@ export async function GET(req: NextRequest) {
         ขอรีวิว: String(reviewRequests),
         ประวัติก่อนอาบน้ำ: String(groomInfoCards),
         บรีฟก่อนอาบน้ำ: String(groomBriefs),
-        อวยพรวันเกิดแมว: String(birthdayGreetings),
+        อวยพรวันเกิด: String(birthdayGreetings),
+        คูปองวันเกิด: String(birthdayCoupons),
       })
     );
   }
@@ -291,6 +322,7 @@ export async function GET(req: NextRequest) {
     groomInfoCards,
     groomBriefs,
     birthdayGreetings,
+    birthdayCoupons,
     errors,
   });
 }

@@ -1143,6 +1143,8 @@ const AUTOMATION_DEFAULT = {
   groomInfoEnabled: true,
   freeLitterMinNights: 3,
   birthdayEnabled: true,
+  birthdayCouponEnabled: true,
+  birthdayCouponAmount: 100,
 };
 
 function Toggle({
@@ -1328,6 +1330,25 @@ function AutomationTab({
         checked={form.birthdayEnabled}
         onChange={(v) => set({ birthdayEnabled: v })}
       />
+
+      <div className="rounded-catcha-sm border border-catcha-line p-3">
+        <Toggle
+          label="🎁 แจกคูปองวันเกิดอัตโนมัติ (แมว/เจ้าของ)"
+          checked={form.birthdayCouponEnabled}
+          onChange={(v) => set({ birthdayCouponEnabled: v })}
+        />
+        {form.birthdayCouponEnabled && (
+          <Field
+            label="มูลค่าคูปองวันเกิด (บาท)"
+            type="number"
+            value={String(form.birthdayCouponAmount)}
+            onChange={(v) => set({ birthdayCouponAmount: Math.max(0, Number(v) || 0) })}
+          />
+        )}
+        <p className="mt-1 text-[10px] text-brown-soft">
+          วันเกิดน้อง/เจ้าของ ระบบจะแถมคูปองเข้ากระเป๋าให้เอง (ครั้งเดียวต่อปี · ใช้ได้ 30 วัน) พร้อมข้อความอวยพร
+        </p>
+      </div>
 
       <SaveBtn saving={saving} />
     </form>

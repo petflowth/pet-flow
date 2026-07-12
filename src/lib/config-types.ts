@@ -114,6 +114,10 @@ export type AutomationConfig = {
   freeLitterMinNights: number;
   /** อวยพรวันเกิดแมวอัตโนมัติ */
   birthdayEnabled: boolean;
+  /** แจกคูปองวันเกิดอัตโนมัติ (แมว/เจ้าของ) */
+  birthdayCouponEnabled: boolean;
+  /** มูลค่าคูปองวันเกิด (บาท) */
+  birthdayCouponAmount: number;
 };
 
 export type SiteConfig = {

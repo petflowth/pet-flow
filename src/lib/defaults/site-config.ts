@@ -51,6 +51,8 @@ export function getDefaultSiteConfig(): SiteConfig {
         groomInfoEnabled: true,
         freeLitterMinNights: 3,
         birthdayEnabled: true,
+        birthdayCouponEnabled: true,
+        birthdayCouponAmount: 100,
       },
       business: { ...BUSINESS },
       payment: {

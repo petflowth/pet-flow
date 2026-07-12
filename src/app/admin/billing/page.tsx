@@ -1355,6 +1355,25 @@ export default function BillingPage() {
                 </button>
               </div>
             )}
+            {inv.status === "paid" && (
+              <div className="mt-2">
+                <button
+                  type="button"
+                  disabled={invoiceBusy === `${inv.id}:unmark_paid`}
+                  onClick={() =>
+                    invoiceAction(
+                      inv.id,
+                      "unmark_paid",
+                      "ยกเลิกการชำระแล้ว ↩️ — บิลกลับเป็น 'รอชำระ' แก้ไขต่อได้",
+                      "ยกเลิกการชำระบิลนี้? (กดผิดใช่ไหม)\nจะกลับเป็น 'รอชำระ' + ย้อนรายรับ/แต้ม/เครดิตที่ลงไป"
+                    )
+                  }
+                  className="rounded-full bg-wait/15 px-3 py-1.5 text-xs font-bold text-wait disabled:opacity-50"
+                >
+                  ↩️ ยกเลิกการชำระ (กดผิด)
+                </button>
+              </div>
+            )}
             <button
               type="button"
               disabled={invoiceBusy === `${inv.id}:delete`}

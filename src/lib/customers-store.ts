@@ -1159,6 +1159,18 @@ export async function addServiceRecord(
   return rec;
 }
 
+/** ลบประวัติบริการที่ผูกกับบิล (ใช้ตอนยกเลิกการชำระ เพื่อไม่ให้จำนวนครั้งเกินจริง) */
+export async function deleteServiceRecordByInvoice(invoiceId: string) {
+  const sb = getSupabase();
+  if (sb) {
+    await sb.from("service_records").delete().eq("invoice_id", invoiceId);
+  } else {
+    for (let i = memServices.length - 1; i >= 0; i--) {
+      if (memServices[i].invoiceId === invoiceId) memServices.splice(i, 1);
+    }
+  }
+}
+
 async function listServiceRecords(customerId: string) {
   const sb = getSupabase();
   if (sb) {

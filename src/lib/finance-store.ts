@@ -200,6 +200,22 @@ export async function deleteFinanceByInvoice(invoiceId: string) {
   }
 }
 
+/** ลบเฉพาะรายรับ "ยอดชำระ" ของบิล (คงรายการมัดจำไว้) — ใช้ตอนยกเลิกการชำระ (แก้ไข) */
+export async function deleteInvoicePaymentIncome(invoiceId: string) {
+  const sb = getSupabase();
+  if (sb) {
+    await sb
+      .from("finance_records")
+      .delete()
+      .eq("invoice_id", invoiceId)
+      .neq("category", "มัดจำ");
+    return;
+  }
+  for (let i = mem.length - 1; i >= 0; i--) {
+    if (mem[i].invoiceId === invoiceId && mem[i].category !== "มัดจำ") mem.splice(i, 1);
+  }
+}
+
 export async function financeSummary(from?: string, to?: string) {
   const list = await listFinance(from, to);
   const income = list.filter((r) => r.type === "income").reduce((s, r) => s + r.amount, 0);

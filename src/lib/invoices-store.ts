@@ -1,14 +1,19 @@
 import { getSiteConfig } from "./config-store";
 import {
   deductMemberCredit,
+  addMemberCredit,
   addServiceRecord,
+  deleteServiceRecordByInvoice,
   getCustomer,
   adjustDepositCredit,
+  recalculateCustomerTier,
 } from "./customers-store";
 import {
   addFinanceEntry,
   incomeForInvoice,
   deleteFinanceByInvoice,
+  deleteInvoicePaymentIncome,
+  listFinance,
 } from "./finance-store";
 import { calcPromoDiscount } from "./promos-store";
 import { addPoints } from "./points-store";
@@ -462,6 +467,58 @@ export async function markInvoicePaid(
     settleAmount,
     alreadyReceived,
   };
+}
+
+/**
+ * ยกเลิกการชำระ (กดผิด) — คืนบิลกลับเป็น "รอชำระ" + ย้อนผลทั้งหมด:
+ * ลบรายรับยอดชำระ (คงมัดจำ), คืนแต้ม, คืนเครดิต Member, ลบประวัติบริการ
+ */
+export async function revertInvoicePaid(id: string) {
+  const inv = await getInvoice(id);
+  if (!inv || inv.status !== "paid") {
+    return { ok: false as const, error: "not_paid" };
+  }
+
+  // คืนเครดิต Member ที่หักไป (รายรับหมวด "member" ของบิลนี้)
+  if (inv.paymentMethod === "member_credit") {
+    const all = await listFinance();
+    const memberDeducted = all
+      .filter((r) => r.invoiceId === id && r.category === "member" && r.type === "income")
+      .reduce((s, r) => s + r.amount, 0);
+    if (memberDeducted > 0) await addMemberCredit(inv.customerId, memberDeducted);
+  }
+
+  // ลบรายรับ "ยอดชำระ" (คงรายการมัดจำไว้)
+  await deleteInvoicePaymentIncome(id);
+
+  // คืนแต้มที่ได้จากบิลนี้
+  if (inv.lineUserId && (inv.pointsEarned || 0) > 0) {
+    await addPoints(
+      inv.lineUserId,
+      -(inv.pointsEarned || 0),
+      "ยกเลิกการชำระ (แก้ไข)",
+      "Reverse payment",
+      inv.customerName
+    );
+  }
+
+  // ลบประวัติบริการ (กันจำนวนครั้งเกินจริง)
+  await deleteServiceRecordByInvoice(id);
+
+  inv.status = "pending";
+  inv.paymentMethod = undefined;
+  inv.paidAt = undefined;
+  inv.pointsEarned = undefined;
+  const sb = getSupabase();
+  if (sb) {
+    await sb
+      .from("invoices")
+      .update({ status: "pending", payment_method: null, paid_at: null, points_earned: null })
+      .eq("id", id);
+  }
+
+  await recalculateCustomerTier(inv.customerId);
+  return { ok: true as const, invoice: inv };
 }
 
 export async function salesSummary(from?: string, to?: string) {

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { BookingEditModal, type EditableBooking } from "@/components/BookingEditModal";
 import { CustomerSendButtons } from "@/components/CustomerSendButtons";
+import { InvoiceActionButtons } from "@/components/InvoiceActionButtons";
 import { bookingOnDate } from "@/lib/booking-customer-match";
 import { toast } from "@/components/Toast";
 
@@ -304,6 +305,7 @@ export function BookingCalendar() {
                     service={b.service}
                     onDone={load}
                   />
+                  <InvoiceActionButtons bookingId={b.id} onDone={load} />
                 </div>
               </li>
             ))

@@ -5,6 +5,7 @@ import {
   getInvoice,
   listInvoices,
   markInvoicePaid,
+  revertInvoicePaid,
   markInvoiceSent,
   receiveDepositCredit,
   receiveInvoiceDeposit,
@@ -284,6 +285,22 @@ export async function PATCH(req: NextRequest) {
       }),
     ]);
     return NextResponse.json({ ok: true });
+  }
+
+  if (action === "unmark_paid") {
+    const res = await revertInvoicePaid(id);
+    if (!res.ok) {
+      return NextResponse.json({ error: res.error }, { status: 400 });
+    }
+    await sendTelegram(
+      formatBookingTelegram("↩️ ยกเลิกการชำระ (แก้ไข)", {
+        ลูกค้า: inv.customerName,
+        น้องแมว: inv.catName,
+        บิล: inv.id,
+        ยอด: `${inv.total} บาท`,
+      })
+    );
+    return NextResponse.json({ ok: true, invoice: res.invoice });
   }
 
   if (action === "mark_paid") {

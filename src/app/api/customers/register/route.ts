@@ -4,8 +4,6 @@ import {
   findCustomerByReferralCode,
   setReferredBy,
 } from "@/lib/customers-store";
-import { issueCoupon } from "@/lib/coupons-store";
-import { pushLineMessage } from "@/lib/line";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 
 type CatBody = {
@@ -78,50 +76,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "ลงทะเบียนไม่สำเร็จ" }, { status: 500 });
   }
 
-  // ── ชวนเพื่อน: ออกคูปอง 100฿ ให้ทั้งคนชวน + คนถูกชวน (ครั้งเดียว) ──
+  // ── ชวนเพื่อน: บันทึกว่าถูกชวนมาโดยใคร (ยังไม่ออกคูปอง) ──
+  // คูปองจะจ่ายให้ทั้งคู่ตอนเพื่อน "มาใช้บริการครั้งแรก" (กันปั๊มบัญชีปลอมรับคูปอง)
   const refCode = String(body.referralCode || "").trim();
-  let referralBonus = 0;
+  let referredOk = false;
   if (refCode && !customer.referredBy) {
     const referrer = await findCustomerByReferralCode(refCode);
     if (referrer && referrer.id !== customer.id) {
       try {
         await setReferredBy(customer.id, referrer.id);
-        await issueCoupon({
-          customerId: customer.id,
-          amount: 100,
-          reason: "สมัครผ่านลิงก์เพื่อนแนะนำ 🎁",
-          expiresInDays: 60,
-        });
-        await issueCoupon({
-          customerId: referrer.id,
-          amount: 100,
-          reason: `ชวน ${customer.name} สมัครสำเร็จ 🎉`,
-          expiresInDays: 60,
-        });
-        referralBonus = 100;
-        if (referrer.lineUserId) {
-          await pushLineMessage(referrer.lineUserId, [
-            {
-              type: "text",
-              text: `🎉 เพื่อนที่คุณชวนสมัครเรียบร้อยแล้ว!\nคุณได้รับคูปองส่วนลด 100฿ เก็บไว้ในกระเป๋าคูปองแล้วนะคะ 🧡 (ใช้ได้ 60 วัน)`,
-            },
-          ]);
-        }
+        referredOk = true;
         await sendTelegram(
-          formatBookingTelegram("🎁 ชวนเพื่อนสำเร็จ (ออกคูปอง 100฿ x2)", {
+          formatBookingTelegram("👥 สมัครผ่านเพื่อนแนะนำ (รอมาใช้บริการ)", {
             คนชวน: referrer.name,
             คนถูกชวน: customer.name,
+            หมายเหตุ: "คูปอง 100฿ x2 จะจ่ายเมื่อมาใช้บริการครั้งแรก",
           })
         );
       } catch (e) {
-        console.error("referral coupon failed:", e);
+        console.error("referral link failed:", e);
       }
     }
   }
 
   return NextResponse.json({
     ok: true,
-    referralBonus,
+    referredOk,
     customer: {
       id: customer.id,
       name: customer.name,

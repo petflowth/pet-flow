@@ -49,7 +49,7 @@ export default function CouponsPage() {
   }, [profile?.lineUserId]);
 
   const share = async () => {
-    const text = `🐱 มาเลี้ยงน้องแมวที่ CatCha Hotel กันนะ! สมัครผ่านลิงก์นี้ รับคูปองส่วนลด 100฿ เลย 🎁\n${referralUrl}`;
+    const text = `🐱 มาเลี้ยงน้องแมวที่ CatCha Hotel กันนะ! สมัครผ่านลิงก์นี้ + มาใช้บริการครั้งแรก รับคูปองส่วนลด 100฿ ทั้งคู่เลย 🎁\n${referralUrl}`;
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -73,7 +73,7 @@ export default function CouponsPage() {
       <div className="mt-4 rounded-catcha border border-honey/50 bg-gradient-to-br from-honey/25 via-card to-latte/15 p-4 shadow-catcha-sm">
         <p className="text-sm font-extrabold text-catcha-chocolate">🎁 ชวนเพื่อน รับคนละ 100฿</p>
         <p className="mt-1 text-xs text-brown-soft">
-          ส่งลิงก์ให้เพื่อนสมัคร + แอดไลน์ — ได้คูปองส่วนลด <b className="text-latte-deep">100฿ ทั้งคุณและเพื่อน</b> เก็บไว้ใช้ได้เลย
+          ส่งลิงก์ให้เพื่อนสมัคร + <b className="text-latte-deep">มาใช้บริการครั้งแรก</b> — ได้คูปองส่วนลด <b className="text-latte-deep">100฿ ทั้งคุณและเพื่อน</b> 🧡
         </p>
         {referralCode && (
           <p className="mt-2 text-[11px] font-bold text-brown-soft">
@@ -129,7 +129,7 @@ export default function CouponsPage() {
           </p>
           {active.length === 0 ? (
             <p className="rounded-catcha-sm bg-paper px-4 py-4 text-center text-xs text-brown-soft">
-              ยังไม่มีคูปอง — ชวนเพื่อนสมัครรับ 100฿ ได้เลยนะคะ 🧡
+              ยังไม่มีคูปอง — ชวนเพื่อนมาใช้บริการ รับ 100฿ ได้เลยนะคะ 🧡
             </p>
           ) : (
             <div className="space-y-2">

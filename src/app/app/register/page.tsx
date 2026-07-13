@@ -170,7 +170,7 @@ export default function RegisterPage() {
 
       {referralCode && (
         <div className="mb-4 rounded-catcha-sm border border-honey/50 bg-honey/15 px-4 py-3 text-center text-xs font-extrabold text-catcha-chocolate">
-          🎁 สมัครผ่านเพื่อนแนะนำ — รับคูปองส่วนลด <span className="text-latte-deep">100฿</span> ทันทีหลังสมัคร!
+          🎁 สมัครผ่านเพื่อนแนะนำ — มาใช้บริการครั้งแรก รับคูปองส่วนลด <span className="text-latte-deep">100฿</span> ทั้งคุณและเพื่อน!
         </div>
       )}
 

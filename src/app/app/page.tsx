@@ -82,7 +82,7 @@ export default function CustomerHome() {
             🎫 กระเป๋าคูปองของฉัน
           </p>
           <p className="mt-0.5 text-[11px] font-bold text-brown-soft">
-            ชวนเพื่อน + คูปองส่วนลด รับคนละ 100฿
+            ชวนเพื่อนมาใช้บริการ รับคูปองคนละ 100฿
           </p>
         </div>
         <span className="flex shrink-0 items-center gap-1 rounded-full bg-latte-deep px-3.5 py-2 text-xs font-extrabold text-card shadow-catcha-sm">

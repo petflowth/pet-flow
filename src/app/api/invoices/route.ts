@@ -15,6 +15,7 @@ import {
   listTrashedInvoices,
 } from "@/lib/invoices-store";
 import { getCustomer } from "@/lib/customers-store";
+import { issueCoupon, listCustomerCoupons } from "@/lib/coupons-store";
 import { getPaymentConfig } from "@/lib/payment-config";
 import { getSiteConfig } from "@/lib/config-store";
 import {
@@ -395,6 +396,50 @@ export async function PATCH(req: NextRequest) {
         }
       )
     );
+
+    // ── ชวนเพื่อน: จ่ายคูปอง 100฿ x2 เมื่อเพื่อน "มาใช้บริการครั้งแรก" ──
+    // (ตอนสมัครแค่บันทึก referredBy ไว้ ยังไม่จ่าย เพื่อกันปั๊มบัญชีปลอมรับคูปอง)
+    if (customer?.referredBy) {
+      try {
+        const REWARD_TAG = "มาใช้บริการครั้งแรก";
+        const mine = await listCustomerCoupons(customer.id);
+        const alreadyRewarded = mine.some((c) => c.reason.includes(REWARD_TAG));
+        if (!alreadyRewarded) {
+          const referrer = await getCustomer(customer.referredBy);
+          if (referrer && referrer.id !== customer.id) {
+            await issueCoupon({
+              customerId: customer.id,
+              amount: 100,
+              reason: `🎁 ${REWARD_TAG} (เพื่อนแนะนำ)`,
+              expiresInDays: 60,
+            });
+            await issueCoupon({
+              customerId: referrer.id,
+              amount: 100,
+              reason: `🎉 เพื่อนที่คุณชวน (${customer.name}) ${REWARD_TAG}แล้ว`,
+              expiresInDays: 60,
+            });
+            if (referrer.lineUserId) {
+              await pushLineMessage(referrer.lineUserId, [
+                {
+                  type: "text",
+                  text: `🎉 เพื่อนที่คุณชวนมาใช้บริการแล้ว!\nคุณได้รับคูปองส่วนลด 100฿ เก็บไว้ในกระเป๋าคูปองแล้วนะคะ 🧡 (ใช้ได้ 60 วัน)`,
+                },
+              ]);
+            }
+            await sendTelegram(
+              formatBookingTelegram("🎁 ชวนเพื่อนสำเร็จ (จ่ายคูปอง 100฿ x2)", {
+                คนชวน: referrer.name,
+                เพื่อนที่ชวนมา: customer.name,
+                เหตุ: "เพื่อนมาใช้บริการครั้งแรก",
+              })
+            );
+          }
+        }
+      } catch (e) {
+        console.error("referral reward on first visit failed:", e);
+      }
+    }
 
     return NextResponse.json({ ok: true, invoice: paid });
   }

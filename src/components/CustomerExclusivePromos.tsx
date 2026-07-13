@@ -8,9 +8,11 @@ import { promoRewardLabel, type CustomerPromoView } from "@/lib/promos-store";
 
 type Props = {
   compact?: boolean;
+  /** แจ้ง parent ว่ามีโปรให้แสดงไหม (ไว้ซ่อนลิงก์ "ดูทั้งหมด" ตามกัน) */
+  onHasPromos?: (has: boolean) => void;
 };
 
-export function CustomerExclusivePromos({ compact }: Props) {
+export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
   const { locale } = useLocale();
   const { profile, refreshAccount, setPoints } = useLiff();
   const m = t(locale).customerPromos;
@@ -32,9 +34,11 @@ export function CustomerExclusivePromos({ compact }: Props) {
     });
     const res = await fetch(`/api/promos?${q}`);
     const data = await res.json();
-    setPromos(data.promos || []);
+    const list = data.promos || [];
+    setPromos(list);
+    onHasPromos?.(list.length > 0);
     setLoading(false);
-  }, [profile?.lineUserId]);
+  }, [profile?.lineUserId, onHasPromos]);
 
   useEffect(() => {
     load();
@@ -65,6 +69,9 @@ export function CustomerExclusivePromos({ compact }: Props) {
   };
 
   if (!profile?.lineUserId) return null;
+
+  // หน้าแรก (compact): ไม่มีโปร → ซ่อนทั้งช่องไปเลย (ไม่โชว์หัวข้อ/กล่องว่างแม้ตอนโหลด)
+  if (compact && promos.length === 0 && !claimedInfo) return null;
 
   return (
     <section className={compact ? "mb-4" : ""}>

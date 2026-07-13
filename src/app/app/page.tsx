@@ -21,6 +21,7 @@ export default function CustomerHome() {
   const { config } = useConfig();
   const m = t(locale).home;
   const [nextBooking, setNextBooking] = useState<Booking | null>(null);
+  const [hasPromos, setHasPromos] = useState(false);
 
   useEffect(() => {
     if (!profile?.lineUserId) return;
@@ -116,14 +117,16 @@ export default function CustomerHome() {
       {/* แมวของฉัน — อัป/แก้รูปเองได้ */}
       <MyCatsSection />
 
-      {/* โปรพิเศษลูกค้า — กดใช้จากแอป */}
-      <CustomerExclusivePromos compact />
+      {/* โปรพิเศษลูกค้า — โผล่เฉพาะตอนมีโปรจริง (ไม่มี = ซ่อนทั้งช่อง) */}
+      <CustomerExclusivePromos compact onHasPromos={setHasPromos} />
 
-      <div className="mb-4 text-right">
-        <Link href="/app/promos" className="text-[10px] font-bold text-latte-deep">
-          {m.promosNow} · {m.seeAll} →
-        </Link>
-      </div>
+      {hasPromos && (
+        <div className="mb-4 text-right">
+          <Link href="/app/promos" className="text-[10px] font-bold text-latte-deep">
+            {m.promosNow} · {m.seeAll} →
+          </Link>
+        </div>
+      )}
 
       {/* คิวถัดไป */}
       {nextBooking ? (

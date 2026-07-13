@@ -133,7 +133,7 @@ export default async function BlogPostPage({ params }: { params: Promise<Params>
         {/* CTA */}
         <div className="mt-8 rounded-catcha bg-gradient-to-br from-honey/30 via-card to-latte/15 p-5 text-center shadow-catcha">
           <p className="text-sm font-extrabold text-catcha-chocolate">
-            🐱 CatCha Hotel — โรงแรมแมว & อาบน้ำตัดขนแมว
+            🐱 CatCha Hotel — โรงแรมแมว & อาบน้ำแมว
           </p>
           <p className="mt-1 text-xs text-brown-soft">
             ย่านเทพารักษ์–หนามแดง ใกล้บางนา ศรีนครินทร์ เมกาบางนา · เริ่มคืนละ 350.-

@@ -6,7 +6,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catcha-hotel-five.v
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "บทความน่ารู้เรื่องแมว | ฝากแมว อาบน้ำแมว ตัดขนแมว — CatCha Hotel บางนา เทพารักษ์",
+  title: "บทความน่ารู้เรื่องแมว | ฝากแมว อาบน้ำแมว ดูแลแมว — CatCha Hotel บางนา เทพารักษ์",
   description:
     "รวมบทความจากโรงแรมแมว CatCha Hotel — ฝากแมวครั้งแรกเตรียมอะไร แมวอาบน้ำบ่อยแค่ไหน วิธีเลือกโรงแรมแมว และเคล็ดลับดูแลน้องแมว สำหรับทาสแมวย่านบางนา เทพารักษ์ สมุทรปราการ",
   alternates: { canonical: "/blog" },
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     url: `${SITE_URL}/blog`,
     siteName: "CatCha Hotel",
     title: "บทความน่ารู้เรื่องแมว — CatCha Hotel",
-    description: "เคล็ดลับฝากแมว อาบน้ำแมว ตัดขนแมว จากพี่เลี้ยงตัวจริง",
+    description: "เคล็ดลับฝากแมว อาบน้ำแมว และดูแลน้องแมว จากพี่เลี้ยงตัวจริง",
   },
   robots: { index: true, follow: true },
 };
@@ -31,7 +31,7 @@ export default function BlogIndexPage() {
         📚 บทความน่ารู้เรื่องแมว
       </h1>
       <p className="mt-2 text-sm leading-relaxed text-brown-soft">
-        เคล็ดลับฝากแมว อาบน้ำ-ตัดขนแมว และการดูแลน้องแมว เขียนจากประสบการณ์จริงของพี่เลี้ยง
+        เคล็ดลับฝากแมว อาบน้ำแมว และการดูแลน้องแมว เขียนจากประสบการณ์จริงของพี่เลี้ยง
         CatCha Hotel โรงแรมแมวย่านบางนา–เทพารักษ์ สมุทรปราการ
       </p>
 
@@ -56,7 +56,7 @@ export default function BlogIndexPage() {
 
       <div className="mt-10 rounded-catcha bg-gradient-to-br from-honey/30 via-card to-latte/15 p-5 text-center shadow-catcha">
         <p className="text-sm font-extrabold text-catcha-chocolate">
-          🐱 ฝากแมว / อาบน้ำตัดขนแมว ย่านบางนา เทพารักษ์
+          🐱 ฝากแมว / อาบน้ำแมว ย่านบางนา เทพารักษ์
         </p>
         <p className="mt-1 text-xs text-brown-soft">
           ห้องแอร์ส่วนตัว CCTV 24 ชม. รายงานเช้า-เย็นทุกวัน

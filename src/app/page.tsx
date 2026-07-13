@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { BUSINESS, ROOMS } from "@/lib/business";
+import { BLOG_POSTS } from "@/lib/blog-posts";
 
 /**
  * หน้าเว็บหลัก (SEO Landing Page) — โรงแรมแมว บางนา เทพารักษ์ สมุทรปราการ
  * เป้าหมาย: ติดอันดับ Google คำค้นท้องถิ่น เช่น "โรงแรมแมว บางนา", "รับฝากแมว เทพารักษ์"
  * หน้านี้เป็น Server Component ล้วน (static) — บอทอ่านเนื้อหาได้ครบ
+ * หมายเหตุ: ร้านมีบริการ "อาบน้ำแมว" เท่านั้น ไม่มีบริการตัดขน
  */
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catcha-hotel-five.vercel.app";
@@ -17,9 +19,9 @@ const MAPS_URL = BUSINESS.maps;
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title:
-    "โรงแรมแมว บางนา–เทพารักษ์ | รับฝากแมว อาบน้ำแมว ตัดขนแมว | CatCha Hotel สมุทรปราการ",
+    "โรงแรมแมว บางนา–เทพารักษ์ | รับฝากแมว อาบน้ำแมว | CatCha Hotel สมุทรปราการ",
   description:
-    "CatCha Hotel โรงแรมแมวย่านบางนา เทพารักษ์ หนามแดง ใกล้เมกาบางนา ศรีนครินทร์ — รับฝากแมวห้องแอร์ มี CCTV ดูน้องได้ 24 ชม. รายงานเช้า-เย็นทุกวัน พร้อมอาบน้ำ ตัดขน กรูมมิ่งแมวโดยพี่เลี้ยงใจดี เริ่มคืนละ 350.-",
+    "CatCha Hotel โรงแรมแมวย่านบางนา เทพารักษ์ หนามแดง ใกล้เมกาบางนา ศรีนครินทร์ — รับฝากแมวห้องแอร์ มี CCTV ดูน้องได้ 24 ชม. รายงานเช้า-เย็นทุกวัน พร้อมบริการอาบน้ำแมวโดยพี่เลี้ยงใจดี เริ่มคืนละ 350.-",
   keywords: [
     "โรงแรมแมว บางนา",
     "โรงแรมแมว เทพารักษ์",
@@ -28,8 +30,8 @@ export const metadata: Metadata = {
     "ฝากแมว เทพารักษ์",
     "ฝากเลี้ยงแมว ใกล้ฉัน",
     "อาบน้ำแมว บางนา",
-    "ตัดขนแมว เทพารักษ์",
-    "กรูมมิ่งแมว สมุทรปราการ",
+    "อาบน้ำแมว เทพารักษ์",
+    "อาบน้ำแมว สมุทรปราการ",
     "โรงแรมแมว เมกาบางนา",
     "โรงแรมแมว ศรีนครินทร์",
     "โรงแรมแมว หนามแดง",
@@ -42,8 +44,8 @@ export const metadata: Metadata = {
     siteName: "CatCha Hotel",
     title: "CatCha Hotel — โรงแรมแมว & อาบน้ำแมว บางนา เทพารักษ์",
     description:
-      "รับฝากแมวห้องแอร์ CCTV 24 ชม. รายงานเช้า-เย็น + อาบน้ำตัดขนแมว ย่านบางนา เทพารักษ์ ใกล้เมกาบางนา เริ่มคืนละ 350.-",
-    images: [{ url: "/logo.jpg", width: 512, height: 512, alt: "CatCha Hotel โรงแรมแมว บางนา" }],
+      "รับฝากแมวห้องแอร์ CCTV 24 ชม. รายงานเช้า-เย็น + อาบน้ำแมว ย่านบางนา เทพารักษ์ ใกล้เมกาบางนา เริ่มคืนละ 350.-",
+    images: [{ url: "/info/welcome.jpg", width: 1200, height: 1200, alt: "CatCha Hotel โรงแรมแมว บางนา" }],
   },
   robots: { index: true, follow: true },
 };
@@ -77,8 +79,8 @@ const FAQS = [
     a: "ได้ค่ะ มีกล้อง CCTV ให้เจ้าของดูน้องได้ และพี่เลี้ยงส่งรูป-รายงานพฤติกรรมน้องทาง LINE เช้า-เย็นทุกวัน",
   },
   {
-    q: "รับอาบน้ำ-ตัดขนแมวไหม ราคาเท่าไหร่?",
-    a: "รับค่ะ อาบน้ำ-เป่าขนเริ่มต้น 400 บาท (ตามพันธุ์และขนาด) มีโปรแกรมขจัดคราบมัน และ Catcha Premium ครบเซ็ต โดยพี่เลี้ยงที่จับแมวนุ่มนวล ใจเย็นกับน้องขี้กลัวเป็นพิเศษ",
+    q: "รับอาบน้ำแมวไหม ราคาเท่าไหร่?",
+    a: "รับค่ะ อาบน้ำ-เป่าขนเริ่มต้น 400 บาท (ตามพันธุ์และขนาด) มีโปรแกรมขจัดคราบมัน และ Catcha Premium ครบเซ็ต โดยพี่เลี้ยงที่จับแมวนุ่มนวล ใจเย็นกับน้องขี้กลัวเป็นพิเศษ (ทางร้านไม่มีบริการตัดขนนะคะ)",
   },
   {
     q: "ต้องเตรียมอะไรมาบ้างตอนฝากแมว?",
@@ -101,7 +103,7 @@ function jsonLd() {
         name: "CatCha Hotel โรงแรมแมว อาบน้ำแมว",
         alternateName: "แคทฉะ โฮเทล",
         description:
-          "โรงแรมแมวและอาบน้ำ-ตัดขนแมว ย่านบางนา เทพารักษ์ หนามแดง สมุทรปราการ ห้องแอร์ CCTV รายงานเช้า-เย็น",
+          "โรงแรมแมวและอาบน้ำแมว ย่านบางนา เทพารักษ์ หนามแดง สมุทรปราการ ห้องแอร์ CCTV รายงานเช้า-เย็น",
         url: SITE_URL,
         telephone: "+66805498969",
         priceRange: "฿350-฿1,450",
@@ -135,209 +137,432 @@ function jsonLd() {
 
 const singleRooms = ROOMS.filter((r) => r.count).slice(0, 3);
 
+/** การ์ดรูปอินโฟกราฟิก — คลิกเปิดดูรูปเต็มได้ */
+function InfoCard({
+  src,
+  alt,
+  caption,
+  priority,
+}: {
+  src: string;
+  alt: string;
+  caption?: string;
+  priority?: boolean;
+}) {
+  return (
+    <a
+      href={src}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group block overflow-hidden rounded-catcha border border-catcha-line bg-card shadow-catcha-sm transition hover:-translate-y-0.5 hover:shadow-catcha"
+    >
+      <Image
+        src={src}
+        alt={alt}
+        width={800}
+        height={900}
+        priority={priority}
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        className="h-auto w-full"
+      />
+      {caption && (
+        <p className="px-3 py-2 text-center text-[11px] font-bold text-brown-soft">
+          {caption} <span className="text-latte-deep">· แตะเพื่อขยาย</span>
+        </p>
+      )}
+    </a>
+  );
+}
+
 export default function HomePage() {
   return (
-    <main className="mx-auto max-w-3xl px-4 pb-16">
+    <main className="overflow-x-hidden">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd()) }}
       />
 
       {/* ── Hero ── */}
-      <header className="pt-10 text-center">
-        <Image
-          src="/logo.jpg"
-          alt="CatCha Hotel โรงแรมแมว บางนา เทพารักษ์"
-          width={96}
-          height={96}
-          className="mx-auto rounded-full border-4 border-honey/40"
-          priority
-        />
-        <h1 className="mt-5 text-2xl font-extrabold leading-snug text-catcha-chocolate sm:text-3xl">
-          โรงแรมแมว & อาบน้ำแมว
-          <span className="block text-latte-deep">บางนา – เทพารักษ์ – สมุทรปราการ</span>
-        </h1>
-        <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-brown-soft">
-          CatCha Hotel รับฝากแมวห้องแอร์ใกล้เมกาบางนา ศรีนครินทร์ หนามแดง —
-          มี CCTV ดูน้องได้ตลอด พี่เลี้ยงรายงานรูปเช้า-เย็นทุกวัน
-          พร้อมบริการอาบน้ำ ตัดขน กรูมมิ่งแมว เริ่มต้นคืนละ 350.-
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <a
-            href={LINE_URL}
-            className="rounded-catcha-sm bg-[#06C755] px-6 py-3 text-sm font-extrabold text-white"
-          >
-            💬 จองผ่าน LINE @catchahotel
-          </a>
-          <a
-            href={`tel:${PHONE_MAIN.replace(/-/g, "")}`}
-            className="rounded-catcha-sm bg-latte-deep px-6 py-3 text-sm font-extrabold text-white"
-          >
-            📞 โทร {PHONE_MAIN}
-          </a>
+      <header className="bg-gradient-to-b from-honey/30 via-paper to-transparent">
+        <div className="mx-auto grid max-w-5xl items-center gap-8 px-5 pb-12 pt-10 md:grid-cols-2 md:pb-16">
+          <div className="text-center md:text-left">
+            <Image
+              src="/logo.jpg"
+              alt="CatCha Hotel โรงแรมแมว บางนา เทพารักษ์"
+              width={88}
+              height={88}
+              className="mx-auto rounded-full border-4 border-honey/50 shadow-catcha md:mx-0"
+              priority
+            />
+            <h1 className="mt-5 text-[26px] font-extrabold leading-tight text-catcha-chocolate sm:text-3xl md:text-4xl">
+              โรงแรมแมว & อาบน้ำแมว
+              <span className="mt-1 block text-latte-deep">
+                บางนา · เทพารักษ์ · สมุทรปราการ
+              </span>
+            </h1>
+            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-brown-soft md:mx-0 md:text-[15px]">
+              CatCha Hotel รับฝากแมว<b className="text-catcha-chocolate">ห้องแอร์ส่วนตัว</b>ใกล้เมกาบางนา
+              ศรีนครินทร์ หนามแดง — มี CCTV ดูน้องได้ตลอด
+              พี่เลี้ยงรายงานรูปเช้า-เย็นทุกวัน พร้อมบริการอาบน้ำแมวโดยพี่เลี้ยงใจดี
+              <b className="text-latte-deep"> เริ่มต้นคืนละ 350.-</b>
+            </p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center md:justify-start">
+              <a
+                href={LINE_URL}
+                className="rounded-catcha-sm bg-[#06C755] px-6 py-3.5 text-center text-sm font-extrabold text-white shadow-catcha-sm active:scale-[0.98]"
+              >
+                💬 จองผ่าน LINE @catchahotel
+              </a>
+              <a
+                href={`tel:${PHONE_MAIN.replace(/-/g, "")}`}
+                className="rounded-catcha-sm bg-latte-deep px-6 py-3.5 text-center text-sm font-extrabold text-white shadow-catcha-sm active:scale-[0.98]"
+              >
+                📞 โทร {PHONE_MAIN}
+              </a>
+            </div>
+            <a
+              href={MAPS_URL}
+              className="mt-4 inline-block text-xs font-bold text-latte-deep underline"
+            >
+              🗺️ เปิดแผนที่ Google Maps — นำทางมาที่ร้าน
+            </a>
+          </div>
+          <div className="mx-auto w-full max-w-sm md:max-w-none">
+            <Image
+              src="/info/welcome.jpg"
+              alt="ยินดีต้อนรับสู่ CatCha Hotel โรงแรมแมวระบบปิด ดูแลใกล้ชิด อบอุ่นเหมือนอยู่บ้าน"
+              width={900}
+              height={900}
+              priority
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="h-auto w-full rounded-catcha border border-honey/40 shadow-catcha"
+            />
+          </div>
         </div>
-        <a
-          href={MAPS_URL}
-          className="mt-3 inline-block text-xs font-bold text-latte-deep underline"
-        >
-          🗺️ เปิดแผนที่ Google Maps — นำทางมาที่ร้าน
-        </a>
       </header>
 
-      {/* ── จุดเด่น ── */}
-      <section className="mt-12">
-        <h2 className="text-center text-lg font-extrabold text-catcha-chocolate">
-          ทำไมทาสแมวย่านบางนา–เทพารักษ์ ไว้ใจ CatCha
-        </h2>
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[
-            ["📹", "CCTV ดูน้องได้", "เปิดดูน้องแมวระหว่างฝากได้ อุ่นใจตลอดทริป"],
-            ["🧊", "ห้องแอร์ทุกห้อง", "สะอาด เย็นสบาย พี่เลี้ยงทำความสะอาดทุกวัน"],
-            ["📸", "รายงานเช้า-เย็น", "ส่งรูป+อัปเดตพฤติกรรมน้องทาง LINE ทุกวัน"],
-            ["🐾", "พาเล่นวันละ 2 รอบ", "น้องได้ยืดเส้น เดินเล่น ไม่เครียด"],
-          ].map(([icon, title, desc]) => (
-            <div key={title} className="rounded-catcha border border-catcha-line bg-card p-4 text-center">
-              <div className="text-2xl">{icon}</div>
-              <p className="mt-1 text-sm font-extrabold text-catcha-chocolate">{title}</p>
-              <p className="mt-1 text-[11px] leading-relaxed text-brown-soft">{desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <div className="mx-auto max-w-5xl px-5 pb-16">
+        {/* ── จุดเด่น ── */}
+        <section className="mt-2">
+          <h2 className="text-center text-xl font-extrabold text-catcha-chocolate">
+            ทำไมทาสแมวย่านบางนา–เทพารักษ์ ไว้ใจ CatCha 🧡
+          </h2>
+          <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+            {[
+              ["📹", "CCTV ดูน้องได้", "เปิดดูน้องแมวระหว่างฝากได้ อุ่นใจตลอดทริป"],
+              ["🧊", "ห้องแอร์ทุกห้อง", "สะอาด เย็นสบาย พี่เลี้ยงทำความสะอาดทุกวัน"],
+              ["📸", "รายงานเช้า-เย็น", "ส่งรูป+อัปเดตพฤติกรรมน้องทาง LINE ทุกวัน"],
+              ["🐾", "พาเล่นวันละ 2 รอบ", "น้องได้ยืดเส้น เดินเล่น ไม่เครียด"],
+            ].map(([icon, title, desc]) => (
+              <div
+                key={title}
+                className="rounded-catcha border border-catcha-line bg-card p-4 text-center shadow-catcha-sm"
+              >
+                <div className="text-3xl">{icon}</div>
+                <p className="mt-2 text-sm font-extrabold text-catcha-chocolate">{title}</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-brown-soft">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
-      {/* ── ห้องพัก + ราคา ── */}
-      <section className="mt-12">
-        <h2 className="text-center text-lg font-extrabold text-catcha-chocolate">
-          ห้องพักแมว ราคาเริ่มต้นคืนละ 350.-
-        </h2>
-        <p className="mt-1 text-center text-xs text-brown-soft">
-          ทั้งหมด 13 ห้อง · พัก 3 คืนขึ้นไปฟรีทรายแมว · พัก 7 คืนขึ้นไปฟรีกล้อง CCTV ส่วนตัว
-        </p>
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          {singleRooms.map((r) => (
-            <div key={r.id} className="rounded-catcha border border-catcha-line bg-card p-4">
-              <p className="text-sm font-extrabold text-catcha-chocolate">{r.name}</p>
-              <p className="text-xs text-brown-soft">{r.cats.th}</p>
-              <p className="mt-2 text-xl font-extrabold text-latte-deep">
-                {r.price.toLocaleString()}
-                <span className="text-xs font-bold text-brown-faint"> บาท/คืน</span>
+        {/* ── ห้องพัก + ราคา ── */}
+        <section className="mt-14">
+          <h2 className="text-center text-xl font-extrabold text-catcha-chocolate">
+            🏨 ห้องพักแมว เริ่มต้นคืนละ 350.-
+          </h2>
+          <p className="mt-2 text-center text-xs text-brown-soft">
+            ทั้งหมด 13 ห้อง · พัก 3 คืนขึ้นไปฟรีทรายแมว · พัก 7 คืนขึ้นไปฟรีกล้อง CCTV ส่วนตัว
+          </p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            {singleRooms.map((r, i) => (
+              <div
+                key={r.id}
+                className={`relative rounded-catcha border bg-card p-5 shadow-catcha-sm ${
+                  i === 0 ? "border-honey/60" : "border-catcha-line"
+                }`}
+              >
+                {i === 0 && (
+                  <span className="absolute -top-2.5 left-4 rounded-full bg-honey px-3 py-0.5 text-[10px] font-extrabold text-catcha-chocolate">
+                    ⭐ เริ่มต้น
+                  </span>
+                )}
+                <p className="text-base font-extrabold text-catcha-chocolate">{r.name}</p>
+                <p className="mt-0.5 text-xs text-brown-soft">{r.cats.th}</p>
+                <p className="mt-3 text-2xl font-extrabold text-latte-deep">
+                  {r.price.toLocaleString()}
+                  <span className="text-xs font-bold text-brown-faint"> บาท/คืน</span>
+                </p>
+                <ul className="mt-3 space-y-1.5 text-[11px] text-brown-soft">
+                  {r.amenities.th.slice(0, 3).map((a) => (
+                    <li key={a}>✓ {a}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-center text-xs text-brown-soft">
+            มีห้องคู่/ห้องเชื่อมสำหรับบ้านที่มีแมวหลายตัว — สอบถามได้ทางไลน์เลยค่ะ
+          </p>
+        </section>
+
+        {/* ── จองยังไง + เวลาทำการ ── */}
+        <section className="mt-14">
+          <h2 className="text-center text-xl font-extrabold text-catcha-chocolate">
+            📅 จองง่ายๆ 4 ขั้นตอน + เวลาให้บริการ
+          </h2>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <InfoCard
+              src="/info/booking-steps.jpg"
+              alt="วิธีจองห้องพักโรงแรมแมว CatCha Hotel ง่ายๆ 4 ขั้นตอน แจ้งวัน ส่งข้อมูลน้องแมว ชำระมัดจำ รับ Booking Confirmation"
+              caption="วิธีจองห้องพัก 4 ขั้นตอน"
+            />
+            <InfoCard
+              src="/info/hours.jpg"
+              alt="เวลาให้บริการ CatCha Hotel 09:00-19:00 ทุกวัน เช็กอิน 09:00-18:00 เช็กเอาต์ 09:00-19:00"
+              caption="เวลาให้บริการ · เช็กอิน-เช็กเอาต์"
+            />
+          </div>
+        </section>
+
+        {/* ── อาบน้ำแมว ── */}
+        <section className="mt-14">
+          <h2 className="text-center text-xl font-extrabold text-catcha-chocolate">
+            🛁 อาบน้ำแมว (Cat Bathing)
+          </h2>
+          <p className="mt-2 text-center text-xs text-brown-soft">
+            โดยพี่เลี้ยงที่จับแมวนุ่มนวล ใจเย็นกับน้องขี้กลัวเป็นพิเศษ
+          </p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            {[
+              ["อาบน้ำ – เป่าขน", "เริ่ม 400.-", "อาบสะอาด เป่าแห้งสนิท ตัดเล็บ เช็ดหู"],
+              ["อาบน้ำ + ขจัดคราบมัน", "เริ่ม 500.-", "สำหรับน้องขนมัน คราบเหนียว ขนกลับมาฟู"],
+              ["Catcha Premium", "เริ่ม 700.-", "จัดเต็มครบเซ็ต บำรุงขน แนะนำสำหรับขนยาว"],
+            ].map(([name, price, desc]) => (
+              <div
+                key={name}
+                className="rounded-catcha border border-catcha-line bg-card p-5 text-center shadow-catcha-sm"
+              >
+                <p className="text-sm font-extrabold text-catcha-chocolate">{name}</p>
+                <p className="mt-2 text-xl font-extrabold text-latte-deep">{price}</p>
+                <p className="mt-1.5 text-[11px] leading-relaxed text-brown-soft">{desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <InfoCard
+              src="/info/bath-info.jpg"
+              alt="ข้อมูลก่อนพาน้องแมวมาอาบน้ำที่ CatCha Hotel งดอาหารก่อนอาบ 2-3 ชั่วโมง แจ้งโรคประจำตัว พามาในกระเป๋าหรือกรง"
+              caption="ข้อมูลก่อนพาน้องมาอาบน้ำ"
+            />
+            <InfoCard
+              src="/info/bath-booking.jpg"
+              alt="เงื่อนไขการจองคิวอาบน้ำแมว CatCha Hotel มัดจำ 200 บาท นำไปหักค่าอาบน้ำ"
+              caption="เงื่อนไขการจองคิวอาบน้ำ"
+            />
+          </div>
+          <p className="mt-4 text-center text-xs text-brown-soft">
+            ราคาตามพันธุ์และน้ำหนัก · ถามประวัติน้องก่อนอาบทุกครั้ง เพื่อความปลอดภัยของน้องขี้กลัว/มีโรคประจำตัว
+            <br />
+            <span className="font-bold">หมายเหตุ: ทางร้านไม่มีบริการตัดขนนะคะ 🙏</span>
+          </p>
+        </section>
+
+        {/* ── เตรียมตัวก่อนเข้าพัก ── */}
+        <section className="mt-14">
+          <h2 className="text-center text-xl font-extrabold text-catcha-chocolate">
+            🧳 เตรียมตัวก่อนพาน้องเข้าพัก
+          </h2>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <InfoCard
+              src="/info/prepare-checkin.jpg"
+              alt="สิ่งที่ต้องเตรียมมาวันเข้าพักโรงแรมแมว สมุดวัคซีน อาหาร ทรายแมว ของใช้ประจำตัว กระเป๋าหรือกรง"
+              caption="สิ่งที่ต้องเตรียมมาวันเข้าพัก"
+            />
+            <InfoCard
+              src="/info/before-stay.jpg"
+              alt="ก่อนเข้าพักโรงแรมแมว วัคซีนครบตามกำหนด หยดยาเห็บหมัดภายใน 1 เดือน ส่งหลักฐานก่อนเข้าพัก"
+              caption="วัคซีน + ยาเห็บหมัด ก่อนเข้าพัก"
+            />
+            <InfoCard
+              src="/info/stay-rules.jpg"
+              alt="เงื่อนไขสำคัญในการเข้าพักโรงแรมแมว CatCha Hotel รับเฉพาะแมวเลี้ยงระบบปิด สุขภาพแข็งแรง อัปเดตรูปทุกวัน"
+              caption="เงื่อนไขสำคัญในการเข้าพัก"
+            />
+          </div>
+        </section>
+
+        {/* ── บริการรับส่ง ── */}
+        <section className="mt-14">
+          <div className="grid items-center gap-6 rounded-catcha bg-card p-5 shadow-catcha-sm md:grid-cols-2 md:p-8">
+            <div className="text-center md:text-left">
+              <h2 className="text-xl font-extrabold text-catcha-chocolate">
+                🚗 มีบริการรับ-ส่งน้องแมวถึงบ้าน
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-brown-soft">
+                ไม่สะดวกพาน้องมาเอง? เรามีบริการรับ-ส่งด้วยรถยนต์ส่วนตัว
+                ไม่รวมกับแมวบ้านอื่น ทำความสะอาดฆ่าเชื้อทุกครั้งหลังใช้งาน
               </p>
-              <ul className="mt-2 space-y-1 text-[11px] text-brown-soft">
-                {r.amenities.th.slice(0, 3).map((a) => (
-                  <li key={a}>✓ {a}</li>
-                ))}
+              <ul className="mt-4 space-y-2 text-left text-sm text-brown">
+                <li>✓ ไม่เกิน 1 กิโล — รับ-ส่ง<b className="text-latte-deep">ฟรี</b></li>
+                <li>✓ ไม่เกิน 5 กิโล — เหมา 100 บาท</li>
+                <li>✓ ไม่เกิน 10 กิโล — เหมา 150 บาท</li>
+                <li>✓ เกิน 10 กิโล — 150 บาท + กิโลละ 10 บาท</li>
               </ul>
             </div>
-          ))}
-        </div>
-        <p className="mt-3 text-center text-xs text-brown-soft">
-          มีห้องคู่/ห้องเชื่อมสำหรับบ้านที่มีแมวหลายตัว — สอบถามได้ทางไลน์เลยค่ะ
-        </p>
-      </section>
-
-      {/* ── อาบน้ำ / กรูมมิ่ง ── */}
-      <section className="mt-12">
-        <h2 className="text-center text-lg font-extrabold text-catcha-chocolate">
-          อาบน้ำแมว ตัดขนแมว (Cat Grooming)
-        </h2>
-        <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          {[
-            ["อาบน้ำ – เป่าขน", "เริ่ม 400.-", "อาบสะอาด เป่าแห้งสนิท ตัดเล็บ เช็ดหู"],
-            ["อาบน้ำ + ขจัดคราบมัน", "เริ่ม 500.-", "สำหรับน้องขนมัน คราบเหนียว ขนกลับมาฟู"],
-            ["Catcha Premium", "เริ่ม 700.-", "จัดเต็มครบเซ็ต บำรุงขน แนะนำสำหรับขนยาว"],
-          ].map(([name, price, desc]) => (
-            <div key={name} className="rounded-catcha border border-catcha-line bg-card p-4 text-center">
-              <p className="text-sm font-extrabold text-catcha-chocolate">{name}</p>
-              <p className="mt-1 text-lg font-extrabold text-latte-deep">{price}</p>
-              <p className="mt-1 text-[11px] leading-relaxed text-brown-soft">{desc}</p>
+            <div className="mx-auto w-full max-w-sm">
+              <InfoCard
+                src="/info/transport.jpg"
+                alt="บริการรับส่งน้องแมว CatCha Hotel เดินทางโดยรถยนต์ส่วนตัว คิดค่าบริการตามระยะทาง"
+              />
             </div>
-          ))}
-        </div>
-        <p className="mt-3 text-center text-xs text-brown-soft">
-          ราคาตามพันธุ์และน้ำหนัก · พี่เลี้ยงใจเย็น จับนุ่มนวล ถามประวัติน้องก่อนอาบทุกครั้ง
-          เพื่อความปลอดภัยของน้องขี้กลัว/มีโรคประจำตัว
-        </p>
-      </section>
+          </div>
+        </section>
 
-      {/* ── พื้นที่ให้บริการ ── */}
-      <section className="mt-12 rounded-catcha bg-card p-5 text-center">
-        <h2 className="text-lg font-extrabold text-catcha-chocolate">
-          รับฝากแมวใกล้คุณ — พื้นที่ให้บริการ
-        </h2>
-        <p className="mx-auto mt-2 max-w-xl text-xs leading-relaxed text-brown-soft">
-          ร้านตั้งอยู่ย่านหนามแดง–เทพารักษ์ เดินทางสะดวกจาก
-        </p>
-        <div className="mt-3 flex flex-wrap justify-center gap-2">
-          {AREAS.map((a) => (
-            <span key={a} className="rounded-full bg-paper px-3 py-1 text-xs font-bold text-brown-soft">
-              {a}
-            </span>
-          ))}
-        </div>
-        <a
-          href={MAPS_URL}
-          className="mt-4 inline-block rounded-catcha-sm bg-honey/40 px-5 py-2.5 text-sm font-extrabold text-catcha-chocolate"
-        >
-          🗺️ นำทางด้วย Google Maps
-        </a>
-      </section>
+        {/* ── สมาชิก / สะสมแต้ม ── */}
+        <section className="mt-14">
+          <h2 className="text-center text-xl font-extrabold text-catcha-chocolate">
+            🎁 เป็นสมาชิก ยิ่งพัก ยิ่งคุ้ม
+          </h2>
+          <p className="mt-2 text-center text-xs text-brown-soft">
+            สะสมแต้มทุกการใช้บริการ (100 บาท = 1 คะแนน) แลกส่วนลดสูงสุด 500.- · สมาชิกใหม่รับส่วนลด 5%
+          </p>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <InfoCard
+              src="/info/rewards.jpg"
+              alt="สะสมคะแนนแลกรางวัล CatCha Hotel ครบ 5 คะแนนรับขนมแมวเลีย แลกส่วนลดสูงสุด 500 บาท"
+              caption="สะสมคะแนน แลกส่วนลด/ของรางวัล"
+            />
+            <InfoCard
+              src="/info/new-member.jpg"
+              alt="สมาชิกใหม่ CatCha Hotel รับส่วนลด 5% เมื่อสมัครสมาชิกและรีวิวบน Google Maps"
+              caption="สมาชิกใหม่ รับส่วนลด 5%"
+            />
+          </div>
+          <div className="mt-5 text-center">
+            <Link
+              href="/app"
+              className="inline-block rounded-catcha-sm bg-honey/50 px-6 py-3 text-sm font-extrabold text-catcha-chocolate shadow-catcha-sm"
+            >
+              🐱 สมัครสมาชิก / เข้าระบบสมาชิก →
+            </Link>
+          </div>
+        </section>
 
-      {/* ── FAQ ── */}
-      <section className="mt-12">
-        <h2 className="text-center text-lg font-extrabold text-catcha-chocolate">
-          คำถามที่พบบ่อย
-        </h2>
-        <div className="mt-5 space-y-3">
-          {FAQS.map((f) => (
-            <details key={f.q} className="rounded-catcha border border-catcha-line bg-card p-4">
-              <summary className="cursor-pointer text-sm font-extrabold text-catcha-chocolate">
-                {f.q}
-              </summary>
-              <p className="mt-2 text-sm leading-relaxed text-brown-soft">{f.a}</p>
-            </details>
-          ))}
-        </div>
-      </section>
-
-      {/* ── CTA ท้าย ── */}
-      <section className="mt-12 rounded-catcha bg-gradient-to-br from-honey/30 via-card to-latte/15 p-6 text-center">
-        <h2 className="text-lg font-extrabold text-catcha-chocolate">
-          พร้อมดูแลน้องแมวของคุณแล้ววันนี้ 🧡
-        </h2>
-        <p className="mt-1 text-xs text-brown-soft">
-          จองคิวฝากแมว/อาบน้ำ ทักไลน์ได้เลย ตอบไวช่วงเวลาทำการ
-        </p>
-        <div className="mt-4 flex flex-wrap justify-center gap-3">
-          <a href={LINE_URL} className="rounded-catcha-sm bg-[#06C755] px-6 py-3 text-sm font-extrabold text-white">
-            💬 LINE @catchahotel
-          </a>
+        {/* ── พื้นที่ให้บริการ ── */}
+        <section className="mt-14 rounded-catcha bg-card p-6 text-center shadow-catcha-sm">
+          <h2 className="text-xl font-extrabold text-catcha-chocolate">
+            📍 รับฝากแมวใกล้คุณ — พื้นที่ให้บริการ
+          </h2>
+          <p className="mx-auto mt-2 max-w-xl text-xs leading-relaxed text-brown-soft">
+            ร้านตั้งอยู่ย่านหนามแดง–เทพารักษ์ เดินทางสะดวกจาก
+          </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            {AREAS.map((a) => (
+              <span
+                key={a}
+                className="rounded-full bg-paper px-3.5 py-1.5 text-xs font-bold text-brown-soft"
+              >
+                {a}
+              </span>
+            ))}
+          </div>
           <a
-            href={`tel:${PHONE_MAIN.replace(/-/g, "")}`}
-            className="rounded-catcha-sm bg-latte-deep px-6 py-3 text-sm font-extrabold text-white"
+            href={MAPS_URL}
+            className="mt-5 inline-block rounded-catcha-sm bg-honey/40 px-6 py-3 text-sm font-extrabold text-catcha-chocolate"
           >
-            📞 {PHONE_MAIN}
+            🗺️ นำทางด้วย Google Maps
           </a>
-        </div>
-        <Link href="/app" className="mt-4 inline-block text-xs font-bold text-latte-deep underline">
-          เป็นสมาชิกอยู่แล้ว? เข้าระบบสมาชิก (สะสมแต้ม/จองคิว) →
-        </Link>
-        <p className="mt-2">
-          <Link href="/blog" className="text-xs font-bold text-latte-deep underline">
-            📚 บทความน่ารู้: ฝากแมวครั้งแรก / อาบน้ำแมว / เลือกโรงแรมแมว →
-          </Link>
-        </p>
-      </section>
+        </section>
 
-      {/* ── Footer / NAP ── */}
-      <footer className="mt-12 border-t border-catcha-line pt-6 text-center text-[11px] leading-relaxed text-brown-faint">
-        <p className="font-bold text-brown-soft">
-          CatCha Hotel — โรงแรมแมว อาบน้ำแมว ตัดขนแมว
-        </p>
-        <p>หนามแดง เทพารักษ์ สมุทรปราการ (ใกล้บางนา · เมกาบางนา · ศรีนครินทร์)</p>
-        <p>
-          โทร {BUSINESS.phones.join(" / ")} · LINE {BUSINESS.lineOa}
-        </p>
-      </footer>
+        {/* ── FAQ ── */}
+        <section className="mt-14">
+          <h2 className="text-center text-xl font-extrabold text-catcha-chocolate">
+            ❓ คำถามที่พบบ่อย
+          </h2>
+          <div className="mt-6 space-y-3">
+            {FAQS.map((f) => (
+              <details
+                key={f.q}
+                className="group rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm"
+              >
+                <summary className="cursor-pointer list-none text-sm font-extrabold text-catcha-chocolate">
+                  <span className="mr-1 inline-block transition group-open:rotate-90">▸</span>
+                  {f.q}
+                </summary>
+                <p className="mt-2 pl-4 text-sm leading-relaxed text-brown-soft">{f.a}</p>
+              </details>
+            ))}
+          </div>
+        </section>
+
+        {/* ── บทความ ── */}
+        <section className="mt-14">
+          <h2 className="text-center text-xl font-extrabold text-catcha-chocolate">
+            📚 บทความน่ารู้จากพี่เลี้ยง CatCha
+          </h2>
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            {BLOG_POSTS.slice(0, 3).map((post) => (
+              <Link
+                key={post.slug}
+                href={`/blog/${post.slug}`}
+                className="rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm transition hover:border-honey/60"
+              >
+                <p className="text-2xl">{post.emoji}</p>
+                <p className="mt-2 text-sm font-extrabold leading-snug text-catcha-chocolate">
+                  {post.title}
+                </p>
+                <p className="mt-2 text-[11px] font-bold text-latte-deep">
+                  อ่านต่อ ({post.readMinutes} นาที) →
+                </p>
+              </Link>
+            ))}
+          </div>
+          <p className="mt-4 text-center">
+            <Link href="/blog" className="text-xs font-bold text-latte-deep underline">
+              ดูบทความทั้งหมด →
+            </Link>
+          </p>
+        </section>
+
+        {/* ── CTA ท้าย ── */}
+        <section className="mt-14 rounded-catcha bg-gradient-to-br from-honey/35 via-card to-latte/15 p-6 text-center shadow-catcha md:p-10">
+          <h2 className="text-xl font-extrabold text-catcha-chocolate">
+            พร้อมดูแลน้องแมวของคุณแล้ววันนี้ 🧡
+          </h2>
+          <p className="mt-2 text-xs text-brown-soft">
+            จองคิวฝากแมว/อาบน้ำ ทักไลน์ได้เลย ตอบไวช่วงเวลาทำการ 09:00–19:00 ทุกวัน
+          </p>
+          <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row sm:flex-wrap">
+            <a
+              href={LINE_URL}
+              className="rounded-catcha-sm bg-[#06C755] px-6 py-3.5 text-sm font-extrabold text-white shadow-catcha-sm active:scale-[0.98]"
+            >
+              💬 LINE @catchahotel
+            </a>
+            <a
+              href={`tel:${PHONE_MAIN.replace(/-/g, "")}`}
+              className="rounded-catcha-sm bg-latte-deep px-6 py-3.5 text-sm font-extrabold text-white shadow-catcha-sm active:scale-[0.98]"
+            >
+              📞 {PHONE_MAIN}
+            </a>
+          </div>
+          <Link href="/app" className="mt-5 inline-block text-xs font-bold text-latte-deep underline">
+            เป็นสมาชิกอยู่แล้ว? เข้าระบบสมาชิก (สะสมแต้ม/จองคิว) →
+          </Link>
+        </section>
+
+        {/* ── Footer / NAP ── */}
+        <footer className="mt-14 border-t border-catcha-line pt-6 text-center text-[11px] leading-relaxed text-brown-faint">
+          <p className="font-bold text-brown-soft">
+            CatCha Hotel — โรงแรมแมว รับฝากแมว อาบน้ำแมว
+          </p>
+          <p>หนามแดง เทพารักษ์ สมุทรปราการ (ใกล้บางนา · เมกาบางนา · ศรีนครินทร์)</p>
+          <p>
+            โทร {BUSINESS.phones.join(" / ")} · LINE {BUSINESS.lineOa}
+          </p>
+        </footer>
+      </div>
     </main>
   );
 }

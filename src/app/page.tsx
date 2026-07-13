@@ -116,7 +116,12 @@ function jsonLd() {
         },
         geo: { "@type": "GeoCoordinates", latitude: 13.6290175, longitude: 100.654973 },
         hasMap: MAPS_URL,
-        sameAs: [MAPS_URL],
+        sameAs: [
+          MAPS_URL,
+          BUSINESS.social.facebook,
+          BUSINESS.social.instagram,
+          BUSINESS.social.tiktok,
+        ],
         areaServed: AREAS.map((a) => ({ "@type": "Place", name: a })),
         makesOffer: [
           { "@type": "Offer", name: "รับฝากแมว ห้องพักแมวห้องแอร์", price: "350", priceCurrency: "THB" },
@@ -570,6 +575,44 @@ export default function HomePage() {
 
         {/* ── Footer / NAP ── */}
         <footer className="mt-14 border-t border-catcha-line pt-6 text-center text-[11px] leading-relaxed text-brown-faint">
+          <div className="mb-5 flex flex-wrap justify-center gap-2.5">
+            <a
+              href={BUSINESS.social.facebook}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Facebook CatCha Hotel"
+              className="inline-flex items-center gap-1.5 rounded-full border border-catcha-line bg-card px-4 py-2 text-xs font-bold text-brown-soft shadow-catcha-sm transition hover:-translate-y-0.5 hover:border-honey/60"
+            >
+              <span className="text-sm">📘</span> Facebook
+            </a>
+            <a
+              href={BUSINESS.social.instagram}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram CatCha Hotel"
+              className="inline-flex items-center gap-1.5 rounded-full border border-catcha-line bg-card px-4 py-2 text-xs font-bold text-brown-soft shadow-catcha-sm transition hover:-translate-y-0.5 hover:border-honey/60"
+            >
+              <span className="text-sm">📸</span> Instagram
+            </a>
+            <a
+              href={BUSINESS.social.tiktok}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="TikTok CatCha Hotel"
+              className="inline-flex items-center gap-1.5 rounded-full border border-catcha-line bg-card px-4 py-2 text-xs font-bold text-brown-soft shadow-catcha-sm transition hover:-translate-y-0.5 hover:border-honey/60"
+            >
+              <span className="text-sm">🎵</span> TikTok
+            </a>
+            <a
+              href={BUSINESS.social.line}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="LINE CatCha Hotel"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#06C755]/40 bg-[#06C755]/10 px-4 py-2 text-xs font-bold text-[#06934a] shadow-catcha-sm transition hover:-translate-y-0.5 hover:border-[#06C755]"
+            >
+              <span className="text-sm">💬</span> LINE
+            </a>
+          </div>
           <p className="font-bold text-brown-soft">
             CatCha Hotel — โรงแรมแมว รับฝากแมว อาบน้ำแมว
           </p>

@@ -5,6 +5,13 @@ export const BUSINESS = {
   phones: ["080-549-8969", "095-324-6989"],
   maps: "https://maps.app.goo.gl/u38pzVGa9LiEsLEK8",
   facebook: "catcha hotel",
+  /** โซเชียลมีเดีย — ลิงก์ทางการ (ตัด tracking param ออกแล้ว) */
+  social: {
+    line: "https://line.me/R/ti/p/@catchahotel",
+    instagram: "https://www.instagram.com/catcha.hotel",
+    tiktok: "https://www.tiktok.com/@catchahotel",
+    facebook: "https://www.facebook.com/share/1BZg1aaQTc/",
+  },
   reviewUrl: "https://g.page/r/CfUOdXCGI8AHEBM/review",
   reviewButtonText: "⭐ รีวิวให้เราหน่อยนะคะ",
   location: {

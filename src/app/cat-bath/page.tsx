@@ -52,7 +52,7 @@ function jsonLd() {
     description:
       "อาบน้ำแมวแชมพูพรีเมียม เป่าแห้งสนิท รวมตัดเล็บ เช็ดหู-ตา ไถขนก้นและอุ้งเท้า บริการแบบ Private",
     provider: { "@type": "LocalBusiness", name: "CatCha Hotel", telephone: "+66805498969" },
-    areaServed: ["บางนา", "เทพารักษ์", "หนามแดง", "ศรีนครินทร์", "สมุทรปราการ"],
+    areaServed: ["บางนา", "เทพารักษ์", "หนามแดง", "ศรีนครินทร์", "พัฒนาการ", "เมกาบางนา", "สมุทรปราการ"],
     offers: [
       { "@type": "Offer", name: "อาบน้ำ-เป่าขน", price: "400", priceCurrency: "THB" },
       { "@type": "Offer", name: "อาบน้ำ+ขจัดคราบมัน", price: "500", priceCurrency: "THB" },

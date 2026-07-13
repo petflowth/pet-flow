@@ -11,7 +11,7 @@ import { BLOG_POSTS } from "@/lib/blog-posts";
  * หมายเหตุ: ร้านมีบริการ "อาบน้ำแมว" เท่านั้น ไม่มีบริการตัดขน
  */
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catcha-hotel-five.vercel.app";
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catchahotel.com";
 const PHONE_MAIN = BUSINESS.phones[0];
 const LINE_URL = "https://line.me/R/ti/p/@catchahotel";
 const MAPS_URL = BUSINESS.maps;

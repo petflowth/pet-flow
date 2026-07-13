@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { BLOG_POSTS } from "@/lib/blog-posts";
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catcha-hotel-five.vercel.app";
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catchahotel.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

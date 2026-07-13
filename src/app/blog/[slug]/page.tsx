@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BLOG_POSTS, getBlogPost } from "@/lib/blog-posts";
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catcha-hotel-five.vercel.app";
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catchahotel.com";
 
 type Params = { slug: string };
 

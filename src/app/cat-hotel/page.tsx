@@ -5,7 +5,7 @@ import { BUSINESS, ROOMS } from "@/lib/business";
 
 /** หน้าห้องพักโรงแรมแมว — รูปจริง + ราคา ครบทุกห้อง (SEO service page) */
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catcha-hotel-five.vercel.app";
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catchahotel.com";
 const PHONE_MAIN = BUSINESS.phones[0];
 const LINE_URL = "https://line.me/R/ti/p/@catchahotel";
 

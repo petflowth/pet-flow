@@ -321,6 +321,11 @@ export default function HomePage() {
         <Link href="/app" className="mt-4 inline-block text-xs font-bold text-latte-deep underline">
           เป็นสมาชิกอยู่แล้ว? เข้าระบบสมาชิก (สะสมแต้ม/จองคิว) →
         </Link>
+        <p className="mt-2">
+          <Link href="/blog" className="text-xs font-bold text-latte-deep underline">
+            📚 บทความน่ารู้: ฝากแมวครั้งแรก / อาบน้ำแมว / เลือกโรงแรมแมว →
+          </Link>
+        </p>
       </section>
 
       {/* ── Footer / NAP ── */}

@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BLOG_POSTS, getBlogPost } from "@/lib/blog-posts";
+import SiteFooter from "@/components/SiteFooter";
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catchahotel.com";
 
@@ -190,6 +191,8 @@ export default async function BlogPostPage({ params }: { params: Promise<Params>
           </div>
         </div>
       )}
+
+      <SiteFooter />
     </main>
   );
 }

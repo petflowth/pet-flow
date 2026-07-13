@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { BUSINESS, ROOMS } from "@/lib/business";
+import SiteFooter from "@/components/SiteFooter";
 
 /** หน้าห้องพักโรงแรมแมว — รูปจริง + ราคา ครบทุกห้อง (SEO service page) */
 
@@ -177,6 +178,8 @@ export default function CatHotelPage() {
           </Link>
         </p>
       </div>
+
+      <SiteFooter />
     </main>
   );
 }

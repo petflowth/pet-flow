@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { BUSINESS, ROOMS } from "@/lib/business";
 import { BLOG_POSTS } from "@/lib/blog-posts";
+import SiteFooter, { SocialLinks } from "@/components/SiteFooter";
 
 /**
  * หน้าเว็บหลัก (SEO Landing Page) — โรงแรมแมว บางนา เทพารักษ์ สมุทรปราการ
@@ -224,13 +225,18 @@ export default function HomePage() {
               >
                 📞 โทร {PHONE_MAIN}
               </a>
+              <a
+                href={MAPS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-catcha-sm border-2 border-latte-deep bg-card px-6 py-3 text-center text-sm font-extrabold text-latte-deep shadow-catcha-sm active:scale-[0.98]"
+              >
+                🗺️ Google Maps นำทางมาร้าน
+              </a>
             </div>
-            <a
-              href={MAPS_URL}
-              className="mt-4 inline-block text-xs font-bold text-latte-deep underline"
-            >
-              🗺️ เปิดแผนที่ Google Maps — นำทางมาที่ร้าน
-            </a>
+            <div className="mt-5">
+              <SocialLinks />
+            </div>
           </div>
           <div className="mx-auto w-full max-w-sm md:max-w-none">
             <Image
@@ -574,53 +580,7 @@ export default function HomePage() {
         </section>
 
         {/* ── Footer / NAP ── */}
-        <footer className="mt-14 border-t border-catcha-line pt-6 text-center text-[11px] leading-relaxed text-brown-faint">
-          <div className="mb-5 flex flex-wrap justify-center gap-2.5">
-            <a
-              href={BUSINESS.social.facebook}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Facebook CatCha Hotel"
-              className="inline-flex items-center gap-1.5 rounded-full border border-catcha-line bg-card px-4 py-2 text-xs font-bold text-brown-soft shadow-catcha-sm transition hover:-translate-y-0.5 hover:border-honey/60"
-            >
-              <span className="text-sm">📘</span> Facebook
-            </a>
-            <a
-              href={BUSINESS.social.instagram}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Instagram CatCha Hotel"
-              className="inline-flex items-center gap-1.5 rounded-full border border-catcha-line bg-card px-4 py-2 text-xs font-bold text-brown-soft shadow-catcha-sm transition hover:-translate-y-0.5 hover:border-honey/60"
-            >
-              <span className="text-sm">📸</span> Instagram
-            </a>
-            <a
-              href={BUSINESS.social.tiktok}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="TikTok CatCha Hotel"
-              className="inline-flex items-center gap-1.5 rounded-full border border-catcha-line bg-card px-4 py-2 text-xs font-bold text-brown-soft shadow-catcha-sm transition hover:-translate-y-0.5 hover:border-honey/60"
-            >
-              <span className="text-sm">🎵</span> TikTok
-            </a>
-            <a
-              href={BUSINESS.social.line}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="LINE CatCha Hotel"
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#06C755]/40 bg-[#06C755]/10 px-4 py-2 text-xs font-bold text-[#06934a] shadow-catcha-sm transition hover:-translate-y-0.5 hover:border-[#06C755]"
-            >
-              <span className="text-sm">💬</span> LINE
-            </a>
-          </div>
-          <p className="font-bold text-brown-soft">
-            CatCha Hotel — โรงแรมแมว รับฝากแมว อาบน้ำแมว
-          </p>
-          <p>หนามแดง เทพารักษ์ สมุทรปราการ (ใกล้บางนา · เมกาบางนา · ศรีนครินทร์)</p>
-          <p>
-            โทร {BUSINESS.phones.join(" / ")} · LINE {BUSINESS.lineOa}
-          </p>
-        </footer>
+        <SiteFooter />
       </div>
     </main>
   );

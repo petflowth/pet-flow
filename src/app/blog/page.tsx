@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { BLOG_POSTS } from "@/lib/blog-posts";
+import SiteFooter from "@/components/SiteFooter";
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catchahotel.com";
 
@@ -83,6 +84,8 @@ export default function BlogIndexPage() {
           💬 ทัก LINE จองคิวเลย
         </a>
       </div>
+
+      <SiteFooter />
     </main>
   );
 }

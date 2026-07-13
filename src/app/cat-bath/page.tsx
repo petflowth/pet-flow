@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { BUSINESS } from "@/lib/business";
+import SiteFooter from "@/components/SiteFooter";
 
 /** หน้าอาบน้ำแมว — เมนู + ราคาเต็ม (SEO service page) · ร้านไม่มีบริการตัดขน */
 
@@ -208,6 +209,8 @@ export default function CatBathPage() {
           </Link>
         </p>
       </div>
+
+      <SiteFooter />
     </main>
   );
 }

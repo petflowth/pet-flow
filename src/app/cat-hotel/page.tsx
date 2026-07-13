@@ -64,7 +64,7 @@ function RoomCard({ room }: { room: (typeof ROOMS)[number] }) {
           width={800}
           height={800}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          className="h-56 w-full object-cover transition hover:scale-[1.02]"
+          className="h-auto w-full transition hover:scale-[1.02]"
         />
       </a>
       <div className="p-5">

@@ -22,6 +22,15 @@ export default function CustomerHome() {
   const m = t(locale).home;
   const [nextBooking, setNextBooking] = useState<Booking | null>(null);
   const [hasPromos, setHasPromos] = useState(false);
+  const [couponCount, setCouponCount] = useState(0);
+
+  useEffect(() => {
+    if (!profile?.lineUserId) return;
+    fetch(`/api/coupons?lineUserId=${profile.lineUserId}&active=1`)
+      .then((r) => r.json())
+      .then((d) => setCouponCount((d.coupons || []).length))
+      .catch(() => {});
+  }, [profile?.lineUserId]);
 
   useEffect(() => {
     if (!profile?.lineUserId) return;
@@ -66,13 +75,18 @@ export default function CustomerHome() {
 
       <Link
         href="/app/coupons"
-        className="mb-3 flex items-center justify-between gap-2 rounded-catcha border border-honey/50 bg-gradient-to-r from-honey/25 to-latte/15 px-4 py-3 shadow-catcha-sm"
+        className="mb-3 flex items-center justify-between gap-3 rounded-catcha border-2 border-honey/60 bg-gradient-to-r from-honey/35 to-latte/20 p-4 shadow-catcha"
       >
-        <span className="text-sm font-extrabold text-catcha-chocolate">
-          🎁 ชวนเพื่อน รับคูปอง 100฿
-        </span>
-        <span className="rounded-full bg-latte-deep px-2.5 py-1 text-[10px] font-bold text-card">
-          กระเป๋าคูปอง →
+        <div className="min-w-0">
+          <p className="text-base font-extrabold text-catcha-chocolate">
+            🎫 กระเป๋าคูปองของฉัน
+          </p>
+          <p className="mt-0.5 text-[11px] font-bold text-brown-soft">
+            ชวนเพื่อน + คูปองส่วนลด รับคนละ 100฿
+          </p>
+        </div>
+        <span className="flex shrink-0 items-center gap-1 rounded-full bg-latte-deep px-3.5 py-2 text-xs font-extrabold text-card shadow-catcha-sm">
+          {couponCount > 0 ? `${couponCount} ใบ` : "เปิด"} →
         </span>
       </Link>
 

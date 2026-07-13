@@ -29,6 +29,7 @@ export default function CouponsPage() {
   const [packages, setPackages] = useState<
     { id: string; name: string; totalUses: number; usedUses: number }[]
   >([]);
+  const [voucher, setVoucher] = useState<Coupon | null>(null);
 
   useEffect(() => {
     if (!profile?.lineUserId) return;
@@ -137,19 +138,28 @@ export default function CouponsPage() {
                 return (
                   <div
                     key={c.id}
-                    className="flex items-center gap-3 rounded-catcha border border-catcha-line bg-card p-3 shadow-catcha-sm"
+                    className="rounded-catcha border border-catcha-line bg-card p-3 shadow-catcha-sm"
                   >
-                    <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-catcha-sm bg-latte-deep text-card">
-                      <span className="text-lg font-extrabold leading-none">฿{c.amount}</span>
-                      <span className="text-[8px]">ส่วนลด</span>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-catcha-sm bg-latte-deep text-card">
+                        <span className="text-lg font-extrabold leading-none">฿{c.amount}</span>
+                        <span className="text-[8px]">ส่วนลด</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-brown">{c.reason}</p>
+                        <p className="text-[10px] text-brown-faint">
+                          โค้ด {c.code}
+                          {dl != null ? ` · หมดอายุใน ${dl} วัน` : ""}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-brown">{c.reason}</p>
-                      <p className="text-[10px] text-brown-faint">
-                        โค้ด {c.code}
-                        {dl != null ? ` · หมดอายุใน ${dl} วัน` : ""}
-                      </p>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setVoucher(c)}
+                      className="mt-2 w-full rounded-catcha-sm bg-gradient-to-r from-honey to-honey-deep py-2.5 text-xs font-extrabold text-catcha-chocolate active:scale-[0.98]"
+                    >
+                      🎫 กดใช้คูปองนี้
+                    </button>
                   </div>
                 );
               })}
@@ -176,6 +186,42 @@ export default function CouponsPage() {
             </>
           )}
         </>
+      )}
+
+      {/* วอเชอร์ — แสดงให้พนักงานตอนคิดเงิน */}
+      {voucher && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setVoucher(null)}
+        >
+          <div
+            className="w-full max-w-xs rounded-catcha bg-card p-6 text-center shadow-catcha"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-xs font-bold text-brown-soft">คูปองส่วนลด</p>
+            <p className="mt-1 text-5xl font-extrabold text-latte-deep">฿{voucher.amount}</p>
+            <p className="mt-1 text-sm font-bold text-brown">{voucher.reason}</p>
+            <div className="mt-4 rounded-catcha-sm border-2 border-dashed border-latte/50 bg-paper py-3">
+              <p className="text-[10px] font-bold text-brown-soft">รหัสคูปอง</p>
+              <p className="text-2xl font-extrabold tracking-widest text-catcha-chocolate">
+                {voucher.code}
+              </p>
+            </div>
+            <p className="mt-4 text-xs font-bold text-catcha-chocolate">
+              📸 แสดงหน้านี้ให้พนักงานตอนคิดเงิน
+            </p>
+            <p className="mt-1 text-[10px] text-brown-faint">
+              พนักงานจะกดใช้คูปองให้ตอนออกบิลค่ะ (คูปองจะถูกใช้เมื่อคิดเงินเท่านั้น)
+            </p>
+            <button
+              type="button"
+              onClick={() => setVoucher(null)}
+              className="mt-5 w-full rounded-catcha-sm bg-latte/25 py-2.5 text-xs font-bold text-catcha-chocolate"
+            >
+              ปิด
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

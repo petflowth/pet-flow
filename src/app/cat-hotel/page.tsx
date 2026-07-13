@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     siteName: "CatCha Hotel",
     title: "ห้องพักแมว CatCha Hotel — รูปจริง + ราคา เริ่ม 350.-/คืน",
     description: "ห้องแอร์ส่วนตัวทุกห้อง มีห้องเดี่ยว ห้องคู่ ห้องวิวหน้าต่าง CCTV ดูน้องได้",
-    images: [{ url: "/catalog/rooms/catflix.jpg", width: 800, height: 800, alt: "ห้องพักแมว CatCha Hotel" }],
+    images: [{ url: "/catalog/rooms/cat-hotel-bangna-catflix.jpg", width: 800, height: 800, alt: "ห้องพักแมว CatCha Hotel" }],
   },
   robots: { index: true, follow: true },
 };
@@ -40,7 +40,7 @@ function jsonLd() {
     "@type": "Product",
     name: "ห้องพักโรงแรมแมว CatCha Hotel",
     description: "ห้องพักแมวห้องแอร์ส่วนตัว ย่านบางนา เทพารักษ์ สมุทรปราการ",
-    image: `${SITE_URL}/catalog/rooms/catflix.jpg`,
+    image: `${SITE_URL}/catalog/rooms/cat-hotel-bangna-catflix.jpg`,
     offers: ROOMS.map((r) => ({
       "@type": "Offer",
       name: `ห้อง ${r.name}`,

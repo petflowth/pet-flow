@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BUSINESS } from "@/lib/business";
 
 /** แถวปุ่มโซเชียล — ใช้ซ้ำได้ทั้ง hero และ footer ทุกหน้า */
@@ -61,6 +62,17 @@ export default function SiteFooter() {
       >
         🗺️ เปิด Google Maps นำทางมาที่ร้าน
       </a>
+      <nav className="mb-3 flex flex-wrap justify-center gap-x-3 gap-y-1">
+        <Link href="/cat-hotel-bangna" className="font-bold text-brown-soft underline">
+          โรงแรมแมว บางนา–เมกาบางนา
+        </Link>
+        <Link href="/cat-hotel-samutprakan" className="font-bold text-brown-soft underline">
+          โรงแรมแมว เทพารักษ์–สมุทรปราการ
+        </Link>
+        <Link href="/cat-bath-bangna" className="font-bold text-brown-soft underline">
+          อาบน้ำแมว บางนา–ศรีนครินทร์–พัฒนาการ
+        </Link>
+      </nav>
       <p className="font-bold text-brown-soft">
         CatCha Hotel — โรงแรมแมว รับฝากแมว อาบน้ำแมว
       </p>

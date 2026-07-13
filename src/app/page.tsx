@@ -304,6 +304,14 @@ export default function HomePage() {
           <p className="mt-4 text-center text-xs text-brown-soft">
             มีห้องคู่/ห้องเชื่อมสำหรับบ้านที่มีแมวหลายตัว — สอบถามได้ทางไลน์เลยค่ะ
           </p>
+          <div className="mt-4 text-center">
+            <Link
+              href="/cat-hotel"
+              className="inline-block rounded-catcha-sm bg-latte/25 px-6 py-3 text-sm font-extrabold text-catcha-chocolate shadow-catcha-sm"
+            >
+              📷 ดูรูปห้องจริง + ราคาทุกห้อง →
+            </Link>
+          </div>
         </section>
 
         {/* ── จองยังไง + เวลาทำการ ── */}
@@ -366,6 +374,14 @@ export default function HomePage() {
             <br />
             <span className="font-bold">หมายเหตุ: ทางร้านไม่มีบริการตัดขนนะคะ 🙏</span>
           </p>
+          <div className="mt-4 text-center">
+            <Link
+              href="/cat-bath"
+              className="inline-block rounded-catcha-sm bg-latte/25 px-6 py-3 text-sm font-extrabold text-catcha-chocolate shadow-catcha-sm"
+            >
+              📋 ดูเมนู-ราคาอาบน้ำทุกสายพันธุ์ →
+            </Link>
+          </div>
         </section>
 
         {/* ── เตรียมตัวก่อนเข้าพัก ── */}

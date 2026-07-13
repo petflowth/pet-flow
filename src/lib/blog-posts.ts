@@ -16,6 +16,8 @@ export type BlogPost = {
   datePublished: string; // YYYY-MM-DD
   readMinutes: number;
   emoji: string;
+  /** รูปปกบทความ (ถ้ามี) — โชว์หัวบทความ + การ์ดหน้ารวม + og:image */
+  cover?: string;
   blocks: BlogBlock[];
   faqs: { q: string; a: string }[];
 };
@@ -36,6 +38,7 @@ export const BLOG_POSTS: BlogPost[] = [
     datePublished: "2026-07-13",
     readMinutes: 4,
     emoji: "🧳",
+    cover: "/blog/first-time-cat-boarding-checklist.png",
     blocks: [
       {
         type: "p",
@@ -165,6 +168,7 @@ export const BLOG_POSTS: BlogPost[] = [
     datePublished: "2026-07-13",
     readMinutes: 3,
     emoji: "🛁",
+    cover: "/blog/how-often-bathe-cat.png",
     blocks: [
       {
         type: "p",

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BLOG_POSTS, getBlogPost } from "@/lib/blog-posts";
@@ -33,6 +34,9 @@ export async function generateMetadata({
       title: post.title,
       description: post.description,
       publishedTime: post.datePublished,
+      ...(post.cover
+        ? { images: [{ url: post.cover, width: 1200, height: 800, alt: post.title }] }
+        : {}),
     },
     robots: { index: true, follow: true },
   };
@@ -51,6 +55,7 @@ export default async function BlogPostPage({ params }: { params: Promise<Params>
         headline: post.title,
         description: post.description,
         datePublished: post.datePublished,
+        ...(post.cover ? { image: `${SITE_URL}${post.cover}` } : {}),
         inLanguage: "th",
         author: { "@type": "Organization", name: "CatCha Hotel" },
         publisher: { "@type": "Organization", name: "CatCha Hotel" },
@@ -80,8 +85,22 @@ export default async function BlogPostPage({ params }: { params: Promise<Params>
       </Link>
 
       <article className="mt-3">
-        <p className="text-4xl">{post.emoji}</p>
-        <h1 className="mt-2 text-2xl font-extrabold leading-snug text-catcha-chocolate">
+        {post.cover ? (
+          <a href={post.cover} target="_blank" rel="noopener noreferrer">
+            <Image
+              src={post.cover}
+              alt={post.title}
+              width={1200}
+              height={800}
+              priority
+              sizes="(max-width: 640px) 100vw, 640px"
+              className="h-auto w-full rounded-catcha border border-catcha-line shadow-catcha-sm"
+            />
+          </a>
+        ) : (
+          <p className="text-4xl">{post.emoji}</p>
+        )}
+        <h1 className="mt-3 text-2xl font-extrabold leading-snug text-catcha-chocolate">
           {post.title}
         </h1>
         <p className="mt-2 text-[11px] font-bold text-brown-faint">

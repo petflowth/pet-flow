@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { BLOG_POSTS } from "@/lib/blog-posts";
 
@@ -40,9 +41,20 @@ export default function BlogIndexPage() {
           <Link
             key={post.slug}
             href={`/blog/${post.slug}`}
-            className="block rounded-catcha border border-catcha-line bg-card p-5 shadow-catcha-sm transition hover:border-honey/60"
+            className="block overflow-hidden rounded-catcha border border-catcha-line bg-card shadow-catcha-sm transition hover:border-honey/60"
           >
-            <p className="text-3xl">{post.emoji}</p>
+            {post.cover && (
+              <Image
+                src={post.cover}
+                alt={post.title}
+                width={1200}
+                height={800}
+                sizes="(max-width: 640px) 100vw, 640px"
+                className="h-auto w-full"
+              />
+            )}
+            <div className="p-5">
+            {!post.cover && <p className="text-3xl">{post.emoji}</p>}
             <h2 className="mt-2 text-base font-extrabold leading-snug text-catcha-chocolate">
               {post.title}
             </h2>
@@ -50,6 +62,7 @@ export default function BlogIndexPage() {
             <p className="mt-3 text-[11px] font-bold text-latte-deep">
               อ่านต่อ ({post.readMinutes} นาที) →
             </p>
+            </div>
           </Link>
         ))}
       </div>

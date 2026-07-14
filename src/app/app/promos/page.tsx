@@ -21,7 +21,9 @@ export default function PromosPage() {
   const [promos, setPromos] = useState<Promo[]>([]);
 
   useEffect(() => {
-    fetch("/api/promos?active=1")
+    // kind=display เท่านั้น — โปรแบบ "customer" (โปรเด่นเฉพาะคุณ) โชว์ผ่าน
+    // CustomerExclusivePromos ด้านบนแล้ว ไม่งั้นจะขึ้นซ้ำสองรอบ
+    fetch("/api/promos?active=1&kind=display")
       .then((r) => r.json())
       .then((data) => setPromos(data.promos || []));
   }, []);

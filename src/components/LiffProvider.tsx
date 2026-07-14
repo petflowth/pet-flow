@@ -227,8 +227,12 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     if (path === "register") {
-      const ref = params.get("ref");
-      router.replace(ref ? `/app/register?ref=${encodeURIComponent(ref)}` : "/app/register");
+      if (needsRegistration) {
+        const ref = params.get("ref");
+        router.replace(ref ? `/app/register?ref=${encodeURIComponent(ref)}` : "/app/register");
+      } else {
+        router.replace("/app");
+      }
       return;
     }
     if (path === "link") {

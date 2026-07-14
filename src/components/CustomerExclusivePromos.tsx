@@ -136,7 +136,7 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
                   </div>
                 )}
                 <div className="p-4">
-                  <p className="text-sm font-extrabold text-catcha-chocolate">
+                  <p className="line-clamp-1 text-sm font-extrabold text-catcha-chocolate">
                     {promo.title[locale]}
                     {reward ? ` · ${reward}` : ""}
                   </p>

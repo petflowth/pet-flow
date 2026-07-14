@@ -160,11 +160,11 @@ function GroomInfoContent() {
           </div>
 
           <p className="mt-5 mb-2 text-xs font-bold text-brown-soft">
-            เคยอาบน้ำที่ร้านเรามาก่อนไหมคะ?
+            น้องเคยอาบน้ำที่อื่นมาก่อนไหมคะ หรือว่าครั้งแรก
           </p>
           <div className="flex gap-2">
-            <Chip active={bathedBefore === "yes"} label="✅ เคยมาแล้ว" onClick={() => setBathedBefore("yes")} />
-            <Chip active={bathedBefore === "no"} label="🆕 มาครั้งแรก" onClick={() => setBathedBefore("no")} />
+            <Chip active={bathedBefore === "yes"} label="✅ เคยอาบที่อื่นแล้ว" onClick={() => setBathedBefore("yes")} />
+            <Chip active={bathedBefore === "no"} label="🆕 ครั้งแรก" onClick={() => setBathedBefore("no")} />
           </div>
 
           <p className="mt-5 mb-2 text-xs font-bold text-brown-soft">

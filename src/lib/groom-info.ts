@@ -35,11 +35,11 @@ export function parseGroomInfo(json?: string | null): GroomHealthInfo | null {
 /** สรุปประวัติน้องเป็น key→value (ใช้ส่ง Telegram brief ให้ร้านก่อนถึงวันนัด) */
 export function groomInfoSummary(info: GroomHealthInfo): Record<string, string> {
   return {
-    เคยอาบที่ร้าน:
+    เคยอาบน้ำที่อื่นมาก่อน:
       info.bathedBefore === "yes"
         ? "เคย"
         : info.bathedBefore === "no"
-          ? "มาครั้งแรก"
+          ? "ครั้งแรก"
           : "-",
     นิสัย:
       (info.temperament || []).map((t) => GROOM_TEMPERAMENT_LABELS[t] || t).join(", ") ||

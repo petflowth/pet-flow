@@ -19,6 +19,7 @@ import {
   recalcAllTiers,
 } from "@/lib/customers-store";
 import type { CustomerTier } from "@/lib/customer-tier";
+import { getAllPointsMap } from "@/lib/points-store";
 import {
   customerActivityInfo,
   listInactiveCustomers,
@@ -48,11 +49,27 @@ export async function GET(req: NextRequest) {
   }
 
   if (q) {
-    const customers = await searchCustomers(q);
-    return NextResponse.json({ customers });
+    const [customers, pointsMap] = await Promise.all([
+      searchCustomers(q),
+      getAllPointsMap(),
+    ]);
+    return NextResponse.json({
+      customers: customers.map((c) => ({
+        ...c,
+        points: c.lineUserId ? pointsMap[c.lineUserId] ?? 0 : 0,
+      })),
+    });
   }
-  const customers = await listCustomersWithAppointmentCounts();
-  return NextResponse.json({ customers });
+  const [customers, pointsMap] = await Promise.all([
+    listCustomersWithAppointmentCounts(),
+    getAllPointsMap(),
+  ]);
+  return NextResponse.json({
+    customers: customers.map((c) => ({
+      ...c,
+      points: c.lineUserId ? pointsMap[c.lineUserId] ?? 0 : 0,
+    })),
+  });
 }
 
 export async function POST(req: NextRequest) {

@@ -63,6 +63,24 @@ async function loadHistory(lineUserId: string) {
   return ((data as HistoryRow[] | null) || []).map(rowToHistory);
 }
 
+/** แต้มของทุกลูกค้าในครั้งเดียว (ใช้กับตารางลูกค้า — กันยิง query ทีละคน) */
+export async function getAllPointsMap(): Promise<Record<string, number>> {
+  const sb = getSupabase();
+  if (!sb) {
+    const map: Record<string, number> = {};
+    mem.forEach((acc, lineUserId) => {
+      map[lineUserId] = acc.points;
+    });
+    return map;
+  }
+  const { data } = await sb.from("points_accounts").select("line_user_id, points");
+  const map: Record<string, number> = {};
+  for (const row of (data as { line_user_id: string; points: number }[] | null) || []) {
+    map[row.line_user_id] = row.points;
+  }
+  return map;
+}
+
 export async function getAccount(
   lineUserId: string,
   displayName = ""

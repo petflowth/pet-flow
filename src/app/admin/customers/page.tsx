@@ -38,7 +38,8 @@ type Summary = {
   };
 };
 
-type CustomerListItem = CustomerRecord & { upcomingAppointments?: number };
+type CustomerListItem = CustomerRecord & { upcomingAppointments?: number; points?: number };
+type SortKey = "name" | "tier" | "points" | "credit" | "upcoming" | "birthday";
 
 function bookingWhen(b: EditableBooking) {
   if (b.service === "room" || b.checkin) {
@@ -1002,6 +1003,49 @@ export default function CustomersPage() {
   const [selected, setSelected] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(false);
   const [showTools, setShowTools] = useState(false);
+  const [tierFilter, setTierFilter] = useState<CustomerTier | "all">("all");
+  const [lineFilter, setLineFilter] = useState<"all" | "linked" | "unlinked">("all");
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const resetFilters = () => {
+    setQ("");
+    setTierFilter("all");
+    setLineFilter("all");
+    setSortKey("name");
+    setSortDir("asc");
+  };
+
+  const visibleList = list
+    .filter((c) => tierFilter === "all" || (c.tier || "new") === tierFilter)
+    .filter((c) => {
+      if (lineFilter === "all") return true;
+      const linked = Boolean(c.lineUserId);
+      return lineFilter === "linked" ? linked : !linked;
+    })
+    .slice()
+    .sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === "name") cmp = a.name.localeCompare(b.name, "th");
+      else if (sortKey === "tier")
+        cmp = (a.tier || "new").localeCompare(b.tier || "new");
+      else if (sortKey === "points") cmp = (a.points || 0) - (b.points || 0);
+      else if (sortKey === "credit") cmp = (a.memberCredit || 0) - (b.memberCredit || 0);
+      else if (sortKey === "upcoming")
+        cmp = (a.upcomingAppointments || 0) - (b.upcomingAppointments || 0);
+      else if (sortKey === "birthday")
+        cmp = (a.birthday || "").localeCompare(b.birthday || "");
+      return sortDir === "asc" ? cmp : -cmp;
+    });
 
   const search = useCallback(async (query: string) => {
     setLoading(true);
@@ -1358,6 +1402,40 @@ export default function CustomersPage() {
         )}
       </div>
 
+      {/* ตัวกรอง — กลุ่มลูกค้า / สถานะ LINE */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <select
+          value={tierFilter}
+          onChange={(e) => setTierFilter(e.target.value as CustomerTier | "all")}
+          className="rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs font-bold text-brown"
+        >
+          <option value="all">ทุกกลุ่ม</option>
+          {(Object.keys(TIER_LABELS) as CustomerTier[]).map((t) => (
+            <option key={t} value={t}>
+              {TIER_LABELS[t]}
+            </option>
+          ))}
+        </select>
+        <select
+          value={lineFilter}
+          onChange={(e) => setLineFilter(e.target.value as "all" | "linked" | "unlinked")}
+          className="rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs font-bold text-brown"
+        >
+          <option value="all">ทุกสถานะ LINE</option>
+          <option value="linked">✅ ผูก LINE แล้ว</option>
+          <option value="unlinked">⏳ ยังไม่ผูก LINE</option>
+        </select>
+        {(tierFilter !== "all" || lineFilter !== "all" || q) && (
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="rounded-catcha-sm bg-paper px-3 py-2 text-xs font-bold text-brown-soft"
+          >
+            ↺ รีเซ็ต
+          </button>
+        )}
+      </div>
+
       {/* เครื่องมือ (QR ลงทะเบียน / Export) — ซ่อนไว้ให้หน้าโล่ง */}
       <button
         type="button"
@@ -1378,10 +1456,102 @@ export default function CustomersPage() {
       ) : (
         <>
           <p className="mb-2 text-[11px] font-bold text-brown-faint">
-            {list.length} ราย
+            {visibleList.length} ราย
+            {visibleList.length !== list.length ? ` (จากทั้งหมด ${list.length})` : ""}
           </p>
-          <ul className="divide-y divide-catcha-line overflow-hidden rounded-catcha border border-catcha-line bg-card shadow-catcha-sm">
-            {list.map((c) => {
+
+          {/* ── ตาราง (จอกว้าง) — คลิกหัวคอลัมน์เพื่อเรียง ── */}
+          <div className="mb-4 hidden overflow-x-auto rounded-catcha border border-catcha-line bg-card shadow-catcha-sm md:block">
+            <table className="w-full min-w-[820px] text-left text-xs">
+              <thead>
+                <tr className="border-b border-catcha-line bg-paper/60 text-[10px] font-extrabold uppercase tracking-wide text-brown-soft">
+                  <SortableTh label="ลูกค้า" sortKey="name" active={sortKey} dir={sortDir} onSort={toggleSort} />
+                  <th className="px-3 py-2.5">แมว</th>
+                  <th className="px-3 py-2.5">LINE</th>
+                  <th className="px-3 py-2.5">เบอร์โทร</th>
+                  <SortableTh label="วันเกิด" sortKey="birthday" active={sortKey} dir={sortDir} onSort={toggleSort} />
+                  <SortableTh label="กลุ่ม" sortKey="tier" active={sortKey} dir={sortDir} onSort={toggleSort} />
+                  <SortableTh label="แต้ม" sortKey="points" active={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
+                  <SortableTh label="เครดิต" sortKey="credit" active={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
+                  <SortableTh label="นัด" sortKey="upcoming" active={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
+                  <th className="px-3 py-2.5" />
+                </tr>
+              </thead>
+              <tbody>
+                {visibleList.map((c) => (
+                  <tr
+                    key={c.id}
+                    onClick={() => open(c.id)}
+                    className="cursor-pointer border-b border-catcha-line last:border-0 transition hover:bg-paper/50"
+                  >
+                    <td className="px-3 py-2.5 font-bold text-brown">
+                      {c.name}
+                      {c.isMember && <span className="ml-1">💎</span>}
+                      {c.lineDisplayName && c.lineDisplayName !== c.name && (
+                        <span className="block text-[10px] font-normal text-brown-faint">
+                          LINE: {c.lineDisplayName}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5 text-brown-soft">
+                      {c.cats.map((x) => x.name).filter(Boolean).join(", ") || "—"}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {c.lineUserId ? (
+                        <span className="rounded-full bg-sage/20 px-2 py-0.5 text-[10px] font-bold text-ok">
+                          ✅ ผูกแล้ว
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-paper px-2 py-0.5 text-[10px] font-bold text-brown-faint">
+                          ยังไม่ผูก
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5 text-brown-soft">{c.phone || "—"}</td>
+                    <td className="px-3 py-2.5 text-brown-soft">{c.birthday || "—"}</td>
+                    <td className="px-3 py-2.5">
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${tierBadgeClass(c.tier || "new")}`}>
+                        {TIER_LABELS[c.tier || "new"]}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5 text-right font-bold text-latte-deep">
+                      {c.points || 0}
+                    </td>
+                    <td className="px-3 py-2.5 text-right text-brown-soft">
+                      {c.memberCredit ? `${c.memberCredit.toLocaleString()}฿` : "—"}
+                    </td>
+                    <td className="px-3 py-2.5 text-right text-brown-soft">
+                      {c.upcomingAppointments ? `📅 ${c.upcomingAppointments}` : "—"}
+                    </td>
+                    <td className="px-3 py-2.5 text-right">
+                      <button
+                        type="button"
+                        aria-label="ลบลูกค้า"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteCustomerRow(c);
+                        }}
+                        className="text-brown-faint transition hover:text-wait"
+                      >
+                        🗑️
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {visibleList.length === 0 && (
+                  <tr>
+                    <td colSpan={10} className="px-3 py-6 text-center text-brown-soft">
+                      ไม่พบลูกค้า
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ── การ์ด (มือถือ) ── */}
+          <ul className="divide-y divide-catcha-line overflow-hidden rounded-catcha border border-catcha-line bg-card shadow-catcha-sm md:hidden">
+            {visibleList.map((c) => {
               const photo = c.cats.find((x) => x.photoDataUrl)?.photoDataUrl;
               return (
                 <li key={c.id} className="flex items-center">
@@ -1443,7 +1613,7 @@ export default function CustomersPage() {
                 </li>
               );
             })}
-            {list.length === 0 && (
+            {visibleList.length === 0 && (
               <li className="px-3 py-4 text-center text-xs text-brown-soft">
                 ไม่พบลูกค้า
               </li>
@@ -1452,5 +1622,35 @@ export default function CustomersPage() {
         </>
       )}
     </div>
+  );
+}
+
+function SortableTh({
+  label,
+  sortKey,
+  active,
+  dir,
+  onSort,
+  align,
+}: {
+  label: string;
+  sortKey: SortKey;
+  active: SortKey;
+  dir: "asc" | "desc";
+  onSort: (key: SortKey) => void;
+  align?: "right";
+}) {
+  const isActive = active === sortKey;
+  return (
+    <th className={`px-3 py-2.5 ${align === "right" ? "text-right" : "text-left"}`}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`inline-flex items-center gap-0.5 ${isActive ? "text-catcha-chocolate" : "text-brown-soft"}`}
+      >
+        {label}
+        <span className="text-[9px]">{isActive ? (dir === "asc" ? "▲" : "▼") : "↕"}</span>
+      </button>
+    </th>
   );
 }

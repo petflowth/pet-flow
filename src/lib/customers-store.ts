@@ -358,6 +358,7 @@ export async function searchCustomers(query: string) {
       c.name,
       c.phone,
       c.lineUserId,
+      c.lineDisplayName || "",
       ...c.cats.map((cat) => cat.name),
       ...c.cats.map((cat) => cat.staffNote || ""),
     ]

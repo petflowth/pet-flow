@@ -30,6 +30,7 @@ function GroomInfoContent() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   const [bathedBefore, setBathedBefore] = useState("");
   const [temperament, setTemperament] = useState<string[]>([]);
@@ -65,6 +66,7 @@ function GroomInfoContent() {
   const submit = async () => {
     if (!id) return;
     setSaving(true);
+    setSaveError("");
     try {
       const res = await fetch("/api/bookings/groom-info", {
         method: "POST",
@@ -75,18 +77,23 @@ function GroomInfoContent() {
           info: { bathedBefore, temperament, health, allergy, note },
         }),
       });
-      if (res.ok) {
-        try {
-          const liff = (await import("@line/liff")).default;
-          if (liff.isInClient()) {
-            liff.closeWindow();
-            return;
-          }
-        } catch {
-          /* เปิดนอก LINE — โชว์หน้าจอเสร็จแทน */
-        }
-        setDone(true);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        setSaveError("บันทึกไม่สำเร็จ — ลองใหม่อีกครั้ง หรือแจ้งพนักงานที่ร้านได้เลยค่ะ");
+        return;
       }
+      try {
+        const liff = (await import("@line/liff")).default;
+        if (liff.isInClient()) {
+          liff.closeWindow();
+          return;
+        }
+      } catch {
+        /* เปิดนอก LINE — โชว์หน้าจอเสร็จแทน */
+      }
+      setDone(true);
+    } catch {
+      setSaveError("บันทึกไม่สำเร็จ — ลองใหม่อีกครั้ง หรือแจ้งพนักงานที่ร้านได้เลยค่ะ");
     } finally {
       setSaving(false);
     }
@@ -209,6 +216,11 @@ function GroomInfoContent() {
             className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
           />
 
+          {saveError && (
+            <p className="mt-4 rounded-catcha-sm bg-wait/10 px-3 py-2 text-xs font-bold text-wait">
+              😿 {saveError}
+            </p>
+          )}
           <button
             type="button"
             onClick={submit}

@@ -77,7 +77,6 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
   // หน้าแรก: โชว์แค่ teaser สั้นๆ (ไม่เอารายละเอียดเต็ม/ปุ่มกดใช้) — แตะเพื่อไปดูหน้าโปรเต็ม
   if (compact) {
     const top = promos[0];
-    const reward = top ? promoRewardLabel(top) : "";
     return (
       <Link
         href="/app/promos"
@@ -87,7 +86,6 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-extrabold text-catcha-chocolate">
             {top?.title[locale] || m.title}
-            {reward ? ` · ${reward}` : ""}
           </p>
           <p className="mt-0.5 text-[10px] font-bold text-brown-soft">
             {promos.length > 1

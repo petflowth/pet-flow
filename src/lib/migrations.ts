@@ -123,6 +123,10 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     name: "cats.media",
     sql: "alter table cats add column if not exists media jsonb not null default '[]'::jsonb;",
   },
+  {
+    name: "chat_watch.table",
+    sql: "create table if not exists chat_watch (line_user_id text primary key, last_message_at timestamptz, last_notified_at timestamptz);",
+  },
 ];
 
 export type MigrateResult = {

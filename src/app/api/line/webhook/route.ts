@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getLineCredentials } from "@/lib/line-config";
+import { findCustomerByLine } from "@/lib/customers-store";
 import { sendTelegram, sendTelegramPhoto } from "@/lib/telegram";
+import { shouldNotifyUnanswered } from "@/lib/chat-watch-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
  * LINE Messaging API webhook
- * มีคนเพิ่มเพื่อน LINE OA → ส่งแจ้งเตือนเข้า Telegram แอดมินทันที
- * (ลูกค้าตอบแชทธรรมดา — ไม่แจ้งเตือนแล้ว ตามที่ร้านขอ)
+ * - มีคนเพิ่มเพื่อน LINE OA → ส่งแจ้งเตือนเข้า Telegram แอดมินทันที
+ * - ลูกค้าตอบแชท → แจ้งเตือนเฉพาะตอนทักซ้ำหลังเงียบไปเกิน 10 นาที
+ *   (ระบบไม่รู้ว่าพนักงานตอบผ่านแอป LINE OA ไปแล้วหรือยัง — ใช้ "ทักซ้ำหลังเงียบนาน"
+ *   เป็นสัญญาณแทนว่าน่าจะยังไม่มีคนตอบ)
  *
  * ตั้งค่า: LINE Developers → Messaging API → Webhook URL =
  *   https://<โดเมนแอป>/api/line/webhook  แล้วกด Verify + เปิด "Use webhook"
@@ -22,6 +26,28 @@ type LineEvent = {
   source?: { type?: string; userId?: string };
   message?: LineMessage;
 };
+
+function describeMessage(m?: LineMessage) {
+  if (!m) return "(ไม่มีข้อความ)";
+  switch (m.type) {
+    case "text":
+      return m.text?.trim() || "(ข้อความว่าง)";
+    case "image":
+      return "[ส่งรูปภาพ 🖼️]";
+    case "sticker":
+      return "[ส่งสติกเกอร์ 😺]";
+    case "video":
+      return "[ส่งวิดีโอ 🎬]";
+    case "audio":
+      return "[ส่งข้อความเสียง 🎤]";
+    case "file":
+      return "[ส่งไฟล์ 📎]";
+    case "location":
+      return "[ส่งตำแหน่งที่ตั้ง 📍]";
+    default:
+      return `[${m.type}]`;
+  }
+}
 
 function verifySignature(body: string, signature: string | null, secret: string) {
   if (!signature) return false;
@@ -83,7 +109,18 @@ export async function POST(req: NextRequest) {
   await Promise.all(
     events.map(async (ev) => {
       try {
-        if (ev.type === "follow") {
+        if (ev.type === "message") {
+          const userId = ev.source?.userId || "";
+          if (!userId) return;
+          const notify = await shouldNotifyUnanswered(userId);
+          if (!notify) return;
+          const customer = await findCustomerByLine(userId).catch(() => null);
+          const who = customer?.name || customer?.lineDisplayName || "ลูกค้า (ยังไม่ลงทะเบียน)";
+          const text = describeMessage(ev.message);
+          await sendTelegram(
+            `⏰ ลูกค้ารอเกิน 10 นาที ยังไม่มีคนตอบ\n\n👤 ${who}\n🗨️ ${text}\n\n👉 เปิดแอป LINE Official Account เพื่อตอบกลับ`
+          );
+        } else if (ev.type === "follow") {
           const userId = ev.source?.userId || "";
           const { displayName, pictureUrl } = await lineProfile(userId, token);
           const name = displayName || "ไม่ทราบชื่อ";

@@ -26,7 +26,7 @@ async function resolveLineImageUrl(body: {
 }): Promise<string | undefined> {
   if (body.imageData && body.imageData.startsWith("data:")) {
     const id = await storeBroadcastImage(body.imageData);
-    const base = getAppUrlFromEnv() || "https://catcha-hotel-five.vercel.app";
+    const base = getAppUrlFromEnv() || "https://catchahotel.com";
     return `${base}/api/line/broadcast-image/${id}`;
   }
   if (body.imageUrl) {

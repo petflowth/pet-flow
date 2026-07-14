@@ -23,7 +23,7 @@ export async function GET() {
   const configured = await isLineConfigured();
   const liffConfigured = await isLiffConfigured();
   const creds = await getLineCredentials();
-  const appUrl = getAppUrlFromEnv() || "https://catcha-hotel-five.vercel.app";
+  const appUrl = getAppUrlFromEnv() || "https://catchahotel.com";
 
   let displayName: string | undefined;
   let basicId: string | undefined;
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
           message: "ยังไม่ได้ตั้ง Channel Access Token — ใส่ Token ก่อน",
         });
       }
-      const appUrl = getAppUrlFromEnv() || "https://catcha-hotel-five.vercel.app";
+      const appUrl = getAppUrlFromEnv() || "https://catchahotel.com";
       const webhookUrl = `${appUrl}/api/line/webhook`;
       const result = await setLineWebhookEndpoint(creds.channelToken, webhookUrl);
       if (!result.ok) {

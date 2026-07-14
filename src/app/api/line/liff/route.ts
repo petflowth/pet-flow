@@ -5,7 +5,7 @@ import { getAppUrlFromEnv, getLineCredentials, isLiffConfigured } from "@/lib/li
 export async function GET() {
   const creds = await getLineCredentials();
   const liffId = creds?.liffId || "";
-  const appUrl = getAppUrlFromEnv() || "https://catcha-hotel-five.vercel.app";
+  const appUrl = getAppUrlFromEnv() || "https://catchahotel.com";
 
   return NextResponse.json({
     liffId,

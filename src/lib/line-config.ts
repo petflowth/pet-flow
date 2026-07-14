@@ -77,17 +77,19 @@ export async function testLineChannelToken(token: string) {
   };
 }
 
+/** URL หลักของเว็บ — ใช้ตั้ง LINE webhook/LIFF/ลิงก์การ์ด ต้องเป็นโดเมนถาวรเท่านั้น
+ * (ห้าม fallback ไป VERCEL_URL เพราะเปลี่ยนทุกครั้งที่ deploy ใหม่ จะทำให้ webhook หลุด) */
 export function getAppUrlFromEnv() {
   return (
     process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "") ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "")
+    "https://catchahotel.com"
   );
 }
 
 export function bookingConfirmUrl(bookingId: string, liffId?: string) {
   const lid = liffId || process.env.NEXT_PUBLIC_LIFF_ID;
   const base =
-    getAppUrlFromEnv() || "https://catcha-hotel-five.vercel.app";
+    getAppUrlFromEnv() || "https://catchahotel.com";
   if (lid) {
     return `https://liff.line.me/${lid}?path=bookings&id=${bookingId}`;
   }

@@ -72,7 +72,7 @@ export function resolveBroadcastActionUri(
   actionId: BroadcastActionId,
   liffId?: string
 ): string {
-  const appBase = getAppUrlFromEnv() || "https://catcha-hotel-five.vercel.app";
+  const appBase = getAppUrlFromEnv() || "https://catchahotel.com";
   const lid = liffId?.trim();
 
   switch (actionId) {

@@ -90,9 +90,16 @@ function resetFormState() {
   };
 }
 
+type PromoSortKey = "title" | "start" | "end" | "claims" | "status";
+
 export default function PromosAdminPage() {
   const [promos, setPromos] = useState<Promo[]>([]);
   const [claims, setClaims] = useState<PromoClaim[]>([]);
+  const [promoQuery, setPromoQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [kindFilter, setKindFilter] = useState<"all" | PromoKind>("all");
+  const [promoSortKey, setPromoSortKey] = useState<PromoSortKey>("start");
+  const [promoSortDir, setPromoSortDir] = useState<"asc" | "desc">("desc");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Promo | null>(null);
   const [imageUrl, setImageUrl] = useState("");
@@ -353,6 +360,39 @@ export default function PromosAdminPage() {
   const claimsFor = (promoId: string) => claims.filter((c) => c.promoId === promoId);
   const showDiscount = rewardType === "discount" || rewardType === "both";
   const showPoints = rewardType === "points" || rewardType === "both";
+
+  const togglePromoSort = (key: PromoSortKey) => {
+    if (promoSortKey === key) {
+      setPromoSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setPromoSortKey(key);
+      setPromoSortDir("asc");
+    }
+  };
+
+  const resetPromoFilters = () => {
+    setPromoQuery("");
+    setStatusFilter("all");
+    setKindFilter("all");
+    setPromoSortKey("start");
+    setPromoSortDir("desc");
+  };
+
+  const q = promoQuery.trim().toLowerCase();
+  const visiblePromos = promos
+    .filter((p) => !q || p.title.th.toLowerCase().includes(q) || p.body.th.toLowerCase().includes(q))
+    .filter((p) => statusFilter === "all" || (statusFilter === "active") === p.active)
+    .filter((p) => kindFilter === "all" || p.kind === kindFilter)
+    .slice()
+    .sort((a, b) => {
+      let cmp = 0;
+      if (promoSortKey === "title") cmp = a.title.th.localeCompare(b.title.th, "th");
+      else if (promoSortKey === "start") cmp = a.startDate.localeCompare(b.startDate);
+      else if (promoSortKey === "end") cmp = a.until.localeCompare(b.until);
+      else if (promoSortKey === "claims") cmp = claimsFor(a.id).length - claimsFor(b.id).length;
+      else if (promoSortKey === "status") cmp = Number(a.active) - Number(b.active);
+      return promoSortDir === "asc" ? cmp : -cmp;
+    });
 
   return (
     <div>
@@ -791,9 +831,139 @@ export default function PromosAdminPage() {
         </div>
       )}
 
-      <h2 className="mb-2 text-sm font-extrabold text-catcha-chocolate">📋 รายการโปร ({promos.length})</h2>
-      <ul className="space-y-3">
-        {promos.map((p) => {
+      <h2 className="mb-2 text-sm font-extrabold text-catcha-chocolate">
+        📋 รายการโปร ({visiblePromos.length}{visiblePromos.length !== promos.length ? ` / ${promos.length}` : ""})
+      </h2>
+
+      {/* ตัวกรอง */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")}
+          className="rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs font-bold text-brown"
+        >
+          <option value="all">ทุกสถานะ</option>
+          <option value="active">✅ ใช้งาน</option>
+          <option value="inactive">⏸️ ปิด</option>
+        </select>
+        <select
+          value={kindFilter}
+          onChange={(e) => setKindFilter(e.target.value as "all" | PromoKind)}
+          className="rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs font-bold text-brown"
+        >
+          <option value="all">ทุกที่แสดงผล</option>
+          <option value="customer">🏠 หน้าแรก</option>
+          <option value="display">หน้าโปรเท่านั้น</option>
+        </select>
+        <input
+          value={promoQuery}
+          onChange={(e) => setPromoQuery(e.target.value)}
+          placeholder="🔍 ค้นหาชื่อ/รายละเอียด"
+          className="min-w-0 flex-1 rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs"
+        />
+        {(promoQuery || statusFilter !== "all" || kindFilter !== "all") && (
+          <button
+            type="button"
+            onClick={resetPromoFilters}
+            className="rounded-catcha-sm bg-paper px-3 py-2 text-xs font-bold text-brown-soft"
+          >
+            ↺ รีเซ็ต
+          </button>
+        )}
+      </div>
+
+      {/* ── ตาราง (จอกว้าง) ── */}
+      <div className="mb-4 hidden overflow-x-auto rounded-catcha border border-catcha-line bg-card shadow-catcha-sm md:block">
+        <table className="w-full min-w-[900px] text-left text-xs">
+          <thead>
+            <tr className="border-b border-catcha-line bg-paper/60 text-[10px] font-extrabold uppercase tracking-wide text-brown-soft">
+              <PromoSortableTh label="ชื่อ" sortKey="title" active={promoSortKey} dir={promoSortDir} onSort={togglePromoSort} />
+              <th className="px-3 py-2.5">เงื่อนไข</th>
+              <th className="px-3 py-2.5">กลุ่มลูกค้า</th>
+              <PromoSortableTh label="เริ่ม" sortKey="start" active={promoSortKey} dir={promoSortDir} onSort={togglePromoSort} />
+              <PromoSortableTh label="จบ" sortKey="end" active={promoSortKey} dir={promoSortDir} onSort={togglePromoSort} />
+              <th className="px-3 py-2.5">รูปภาพ</th>
+              <PromoSortableTh label="ใช้แล้ว" sortKey="claims" active={promoSortKey} dir={promoSortDir} onSort={togglePromoSort} align="right" />
+              <PromoSortableTh label="สถานะ" sortKey="status" active={promoSortKey} dir={promoSortDir} onSort={togglePromoSort} />
+              <th className="px-3 py-2.5">แสดงผล</th>
+              <th className="px-3 py-2.5" />
+            </tr>
+          </thead>
+          <tbody>
+            {visiblePromos.map((p) => {
+              const reward = promoRewardLabel(p);
+              return (
+                <tr key={p.id} className="border-b border-catcha-line last:border-0 hover:bg-paper/50">
+                  <td className="px-3 py-2.5">
+                    <p className="font-bold text-brown">{p.title.th}</p>
+                    <p className="mt-0.5 max-w-[220px] truncate text-[10px] text-brown-faint">{p.body.th}</p>
+                    {reward && <p className="text-[10px] text-latte-deep">{reward}</p>}
+                  </td>
+                  <td className="px-3 py-2.5 text-brown-soft">
+                    {restrictionLabel(p.restriction, p.validMonth)}
+                  </td>
+                  <td className="px-3 py-2.5 text-brown-soft">{p.tiers.join(", ")}</td>
+                  <td className="px-3 py-2.5 text-brown-soft">{p.startDate}</td>
+                  <td className="px-3 py-2.5 text-brown-soft">{p.until}</td>
+                  <td className="px-3 py-2.5">
+                    {p.imageUrl ? (
+                      <Image src={p.imageUrl} alt="" width={40} height={40} className="h-10 w-10 rounded-catcha-sm object-cover" unoptimized />
+                    ) : (
+                      <span className="text-brown-faint">—</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-bold text-latte-deep">
+                    {claimsFor(p.id).length}
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <button
+                      type="button"
+                      onClick={() => toggle(p.id, p.active)}
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                        p.active ? "bg-sage/20 text-ok" : "bg-paper text-brown-faint"
+                      }`}
+                    >
+                      {p.active ? "✅ ใช้งาน" : "⏸️ ปิด"}
+                    </button>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <button
+                      type="button"
+                      onClick={() => toggleHome(p)}
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                        p.kind === "customer" ? "bg-honey/30 text-catcha-chocolate" : "bg-paper text-brown-faint"
+                      }`}
+                    >
+                      {p.kind === "customer" ? "🏠 หน้าแรก" : "หน้าโปร"}
+                    </button>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex justify-end gap-2">
+                      <button type="button" onClick={() => openEdit(p)} className="text-catcha-chocolate" aria-label="แก้ไข">
+                        ✏️
+                      </button>
+                      <button type="button" onClick={() => remove(p)} className="text-wait" aria-label="ลบ">
+                        🗑️
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+            {visiblePromos.length === 0 && (
+              <tr>
+                <td colSpan={10} className="px-3 py-6 text-center text-brown-soft">
+                  ไม่พบโปรโมชั่น
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ── การ์ด (มือถือ) ── */}
+      <ul className="space-y-3 md:hidden">
+        {visiblePromos.map((p) => {
           const reward = promoRewardLabel(p);
           return (
             <li key={p.id} className="overflow-hidden rounded-catcha border border-catcha-line bg-card">
@@ -866,5 +1036,35 @@ export default function PromosAdminPage() {
         })}
       </ul>
     </div>
+  );
+}
+
+function PromoSortableTh({
+  label,
+  sortKey,
+  active,
+  dir,
+  onSort,
+  align,
+}: {
+  label: string;
+  sortKey: PromoSortKey;
+  active: PromoSortKey;
+  dir: "asc" | "desc";
+  onSort: (key: PromoSortKey) => void;
+  align?: "right";
+}) {
+  const isActive = active === sortKey;
+  return (
+    <th className={`px-3 py-2.5 ${align === "right" ? "text-right" : "text-left"}`}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`inline-flex items-center gap-0.5 ${isActive ? "text-catcha-chocolate" : "text-brown-soft"}`}
+      >
+        {label}
+        <span className="text-[9px]">{isActive ? (dir === "asc" ? "▲" : "▼") : "↕"}</span>
+      </button>
+    </th>
   );
 }

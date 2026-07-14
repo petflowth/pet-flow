@@ -24,22 +24,41 @@ function CustomerPicker({
 }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<CustomerListItem[]>([]);
+  const [recent, setRecent] = useState<CustomerListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [openCustomerId, setOpenCustomerId] = useState<string | null>(null);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
 
-  const search = useCallback(async (query: string) => {
-    const trimmed = query.trim();
-    if (!trimmed) {
-      setResults([]);
-      return;
-    }
-    setLoading(true);
-    const res = await fetch(`/api/customers?q=${encodeURIComponent(trimmed)}`);
-    const data = await res.json();
-    setResults(data.customers || []);
-    setLoading(false);
+  // โหลดลูกค้าสมัครล่าสุดไว้ล่วงหน้า — โชว์เป็นลิสต์ให้เลือกได้ทันทีโดยไม่ต้องพิมพ์ค้นหา
+  useEffect(() => {
+    fetch("/api/customers")
+      .then((r) => r.json())
+      .then((d) => {
+        const sorted = [...((d.customers || []) as CustomerListItem[])].sort(
+          (a, b) => (b.createdAt || "").localeCompare(a.createdAt || "")
+        );
+        const top = sorted.slice(0, 20);
+        setRecent(top);
+        setResults((prev) => (prev.length === 0 ? top : prev));
+      })
+      .catch(() => {});
   }, []);
+
+  const search = useCallback(
+    async (query: string) => {
+      const trimmed = query.trim();
+      if (!trimmed) {
+        setResults(recent);
+        return;
+      }
+      setLoading(true);
+      const res = await fetch(`/api/customers?q=${encodeURIComponent(trimmed)}`);
+      const data = await res.json();
+      setResults(data.customers || []);
+      setLoading(false);
+    },
+    [recent]
+  );
 
   useEffect(() => {
     const t = setTimeout(() => search(q), 250);
@@ -55,7 +74,7 @@ function CustomerPicker({
         lineUserId: c.lineUserId,
       });
       setQ("");
-      setResults([]);
+      setResults(recent);
       return;
     }
     setOpenCustomerId(c.id);
@@ -71,7 +90,7 @@ function CustomerPicker({
       lineUserId: c.lineUserId,
     });
     setQ("");
-    setResults([]);
+    setResults(recent);
     setOpenCustomerId(null);
     setChecked({});
   };
@@ -95,6 +114,12 @@ function CustomerPicker({
       </p>
 
       {loading && <p className="mt-2 text-[10px] text-brown-faint">กำลังค้นหา…</p>}
+
+      {!loading && !q.trim() && results.length > 0 && (
+        <p className="mt-2 text-[10px] font-bold text-latte-deep">
+          🆕 ลูกค้าสมัครล่าสุด — เลือกจากลิสต์ได้เลย
+        </p>
+      )}
 
       {results.length > 0 && (
         <ul className="mt-2 max-h-64 space-y-1 overflow-y-auto">

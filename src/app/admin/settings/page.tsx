@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { SiteConfig } from "@/lib/config-types";
 import type { RoomType } from "@/lib/business";
 import { adminJson } from "@/lib/admin-fetch";
+import { toJpegDataUrl } from "@/lib/image-convert";
 import { ExportSheetsButton } from "@/components/ExportSheetsButton";
 
 type Tab =
@@ -696,13 +697,69 @@ function PointsTab({
   onSave: (p: Partial<SiteConfig>) => void;
 }) {
   const [rewards, setRewards] = useState(config.pointsRewards);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
   useEffect(() => setRewards(config.pointsRewards), [config.pointsRewards]);
+
+  const onRewardImage = async (i: number, id: string, file: File) => {
+    setUploadingId(id);
+    try {
+      const dataUrl = await toJpegDataUrl(file);
+      setRewards((prev) => {
+        const next = [...prev];
+        next[i] = { ...next[i], imageUrl: dataUrl };
+        return next;
+      });
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "อัปโหลดรูปไม่สำเร็จ");
+    } finally {
+      setUploadingId(null);
+    }
+  };
 
   return (
     <div className="space-y-3">
       {rewards.map((r, i) => (
         <div key={r.id} className="rounded-catcha border border-catcha-line bg-card p-3 space-y-2">
           <p className="text-xs font-bold text-brown-faint">{r.id}</p>
+          <div className="flex gap-3">
+            {r.imageUrl ? (
+              <Image
+                src={r.imageUrl}
+                alt=""
+                width={64}
+                height={64}
+                className="h-16 w-16 shrink-0 rounded-catcha-sm object-cover"
+                unoptimized
+              />
+            ) : (
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-catcha-sm bg-paper text-2xl">
+                🎁
+              </div>
+            )}
+            <label className="flex-1 text-[10px] font-bold text-latte-deep">
+              รูปของรางวัล (ไม่บังคับ)
+              <input
+                type="file"
+                accept="image/*"
+                disabled={uploadingId === r.id}
+                className="mt-1 block w-full text-[10px]"
+                onChange={(e) => e.target.files?.[0] && onRewardImage(i, r.id, e.target.files[0])}
+              />
+              {r.imageUrl && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = [...rewards];
+                    next[i] = { ...next[i], imageUrl: undefined };
+                    setRewards(next);
+                  }}
+                  className="mt-1 text-wait"
+                >
+                  ลบรูป
+                </button>
+              )}
+            </label>
+          </div>
           <Field
             label="แต้มที่ใช้"
             type="number"

@@ -6,6 +6,7 @@ export type PointsRewardConfig = {
   id: string;
   points: number;
   reward: { th: string; en: string };
+  imageUrl?: string;
 };
 
 export type GroomingConfig = {

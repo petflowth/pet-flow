@@ -106,35 +106,45 @@ export function PointsRedeem({
           return (
             <div
               key={tier.id}
-              className={`flex snap-start shrink-0 flex-col justify-between rounded-catcha-sm border bg-paper/50 p-3 ${
+              className={`flex snap-start shrink-0 flex-col justify-between overflow-hidden rounded-catcha-sm border bg-paper/50 ${
                 compact ? "w-[72%] min-w-[220px]" : "w-[78%] min-w-[240px]"
               } max-w-[300px] ${
                 canRedeem ? "border-catcha-line" : "border-catcha-line/50 opacity-75"
               }`}
             >
-              <div>
-                <p className="text-sm font-extrabold text-latte-deep">
-                  {tier.points}{" "}
-                  <span className="text-xs font-bold text-brown-faint">
-                    {locale === "th" ? "แต้ม" : "pts"}
-                  </span>
-                </p>
-                <p className="mt-2 text-xs leading-relaxed text-brown-soft">
-                  {tier.reward[locale]}
-                </p>
+              {tier.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={tier.imageUrl}
+                  alt={tier.reward[locale]}
+                  className="h-28 w-full object-cover"
+                />
+              )}
+              <div className="flex flex-1 flex-col justify-between p-3">
+                <div>
+                  <p className="text-sm font-extrabold text-latte-deep">
+                    {tier.points}{" "}
+                    <span className="text-xs font-bold text-brown-faint">
+                      {locale === "th" ? "แต้ม" : "pts"}
+                    </span>
+                  </p>
+                  <p className="mt-2 text-xs leading-relaxed text-brown-soft">
+                    {tier.reward[locale]}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={!canRedeem || loading === tier.id}
+                  onClick={() => redeem(tier.id)}
+                  className={`mt-3 w-full rounded-catcha-sm py-2 text-xs font-extrabold ${
+                    canRedeem
+                      ? "bg-gradient-to-r from-honey to-honey-deep text-catcha-chocolate"
+                      : "bg-paper text-brown-faint"
+                  }`}
+                >
+                  {loading === tier.id ? "…" : m.redeem}
+                </button>
               </div>
-              <button
-                type="button"
-                disabled={!canRedeem || loading === tier.id}
-                onClick={() => redeem(tier.id)}
-                className={`mt-3 w-full rounded-catcha-sm py-2 text-xs font-extrabold ${
-                  canRedeem
-                    ? "bg-gradient-to-r from-honey to-honey-deep text-catcha-chocolate"
-                    : "bg-paper text-brown-faint"
-                }`}
-              >
-                {loading === tier.id ? "…" : m.redeem}
-              </button>
             </div>
           );
         })}

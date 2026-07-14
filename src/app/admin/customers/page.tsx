@@ -571,6 +571,11 @@ function CustomerSummaryCard({
 
   return (
     <section className="mb-4 overflow-hidden rounded-catcha bg-gradient-to-br from-honey/45 via-card to-latte/15 p-5 shadow-catcha">
+      {msg && (
+        <p className="mb-3 rounded-catcha-sm bg-sage/25 px-3 py-2 text-center text-xs font-extrabold text-ok">
+          {msg}
+        </p>
+      )}
       <div className="mb-4 flex items-start gap-3">
         {heroCat?.photoDataUrl ? (
           <Image
@@ -762,9 +767,13 @@ function CustomerSummaryCard({
         </p>
       </div>
 
-      <div className="space-y-3 rounded-catcha-sm border border-white/60 bg-card/70 p-3">
+      <div className="space-y-3 rounded-catcha-sm border-2 border-latte/30 bg-card/70 p-3.5">
+        <p className="flex items-center gap-1.5 text-xs font-extrabold text-catcha-chocolate">
+          ✏️ แก้ไขข้อมูลลูกค้า
+        </p>
+
         <label className="block text-xs font-bold text-brown-soft">
-          ชื่อที่ใช้ในร้าน (ตั้งเองได้)
+          <span className="mb-1 flex items-center gap-1">👤 ชื่อที่ใช้ในร้าน (ตั้งเองได้)</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -773,12 +782,12 @@ function CustomerSummaryCard({
               if (trimmed && trimmed !== customer.name) save({ name: trimmed });
             }}
             placeholder="เช่น คุณแม่น้องมะลิ"
-            className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm font-bold text-brown"
+            className="w-full rounded-catcha-sm border-2 border-catcha-line bg-paper px-3 py-2.5 text-sm font-bold text-brown outline-none transition focus:border-latte-deep focus:bg-card"
           />
         </label>
 
         <label className="block text-xs font-bold text-brown-soft">
-          เบอร์โทร
+          <span className="mb-1 flex items-center gap-1">📱 เบอร์โทร</span>
           <input
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
@@ -786,9 +795,10 @@ function CustomerSummaryCard({
               if (phone.trim() !== (customer.phone || "")) save({ phone: phone.trim() || undefined });
             }}
             placeholder="08x-xxx-xxxx"
-            className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
+            className="w-full rounded-catcha-sm border-2 border-catcha-line bg-paper px-3 py-2.5 text-sm outline-none transition focus:border-latte-deep focus:bg-card"
           />
         </label>
+        <p className="text-[10px] text-brown-faint">💾 พิมพ์แล้วแตะออกจากช่อง ระบบบันทึกให้อัตโนมัติ</p>
 
         {(inactive || customer.lineUserId) && (
           <div className="rounded-catcha-sm border border-catcha-line bg-paper/60 p-3">
@@ -817,9 +827,9 @@ function CustomerSummaryCard({
         )}
       </div>
 
-      <label className="mt-3 block text-xs font-bold text-brown-soft">
-        ระดับลูกค้า
-        <div className="mt-1 flex flex-wrap gap-2">
+      <label className="mt-3 block rounded-catcha-sm border-2 border-latte/30 bg-card/70 p-3.5 text-xs font-extrabold text-catcha-chocolate">
+        🏷️ ระดับลูกค้า (Tier)
+        <div className="mt-2 flex flex-wrap gap-2">
           {(Object.keys(TIER_LABELS) as CustomerTier[]).map((t) => (
             <button
               key={t}
@@ -873,8 +883,6 @@ function CustomerSummaryCard({
           </button>
         </div>
       </label>
-
-      {msg && <p className="mt-2 text-center text-[10px] font-bold text-ok">{msg}</p>}
 
       <button
         type="button"
@@ -1041,7 +1049,7 @@ export default function CustomersPage() {
     patch: { name?: string; staffNote?: string; photoDataUrl?: string }
   ) => {
     if (!selected) return;
-    await fetch("/api/customers", {
+    const res = await fetch("/api/customers", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1051,6 +1059,7 @@ export default function CustomersPage() {
         patch,
       }),
     });
+    if (res.ok) toast("✅ บันทึกข้อมูลแมวแล้ว", "success");
     open(selected.customer.id);
   };
 
@@ -1143,41 +1152,44 @@ export default function CustomersPage() {
             <p className="text-xs text-brown-soft">ยังไม่มีน้องแมว — กดปุ่มด้านบนเพื่อเพิ่ม</p>
           )}
           {c.cats.map((cat) => (
-            <div key={cat.id} className="rounded-catcha border border-catcha-line bg-card p-4">
-              <div className="mb-2 flex justify-end">
+            <div key={cat.id} className="overflow-hidden rounded-catcha border-2 border-latte/30 bg-card shadow-catcha-sm">
+              <div className="flex items-center justify-between bg-latte/10 px-4 py-2">
+                <p className="flex items-center gap-1.5 text-xs font-extrabold text-catcha-chocolate">
+                  ✏️ แก้ไขข้อมูล{cat.name ? ` — ${cat.name}` : "น้องแมว"}
+                </p>
                 <button
                   type="button"
                   onClick={() => deleteCatProfile(cat)}
-                  className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-bold text-wait"
+                  className="rounded-full bg-card px-2.5 py-1 text-[10px] font-bold text-wait shadow-catcha-sm"
                 >
-                  🗑️ ลบ
+                  🗑️ ลบตัวนี้
                 </button>
               </div>
-              <div className="flex gap-3">
+              <div className="flex gap-3 p-4">
                 {cat.photoDataUrl ? (
                   <Image
                     src={cat.photoDataUrl}
                     alt={cat.name}
                     width={72}
                     height={72}
-                    className="h-[72px] w-[72px] rounded-catcha-sm object-cover"
+                    className="h-[72px] w-[72px] shrink-0 rounded-catcha-sm object-cover ring-2 ring-latte/30"
                     unoptimized
                   />
                 ) : (
-                  <div className="flex h-[72px] w-[72px] items-center justify-center rounded-catcha-sm bg-paper text-2xl">
+                  <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-catcha-sm bg-paper text-2xl ring-2 ring-latte/30">
                     🐱
                   </div>
                 )}
                 <div className="flex-1">
                   <label className="block text-[10px] font-bold text-brown-soft">
-                    ชื่อน้องแมว
+                    <span className="mb-1 flex items-center gap-1">🐱 ชื่อน้องแมว</span>
                     <input
                       defaultValue={cat.name}
                       onBlur={(e) => {
                         const v = e.target.value.trim();
                         if (v && v !== cat.name) saveCat(cat.id, { name: v });
                       }}
-                      className="mt-0.5 w-full rounded-catcha-sm border border-catcha-line bg-paper px-2 py-1.5 text-sm font-bold text-brown"
+                      className="w-full rounded-catcha-sm border-2 border-catcha-line bg-paper px-2.5 py-2 text-sm font-bold text-brown outline-none transition focus:border-latte-deep focus:bg-card"
                     />
                   </label>
                   {(() => {

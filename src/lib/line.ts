@@ -1737,24 +1737,35 @@ export function buildReviewRequestFlex(data: {
     contents: {
       type: "bubble",
       size: "mega",
-      body: {
+      header: {
         type: "box",
         layout: "vertical",
+        backgroundColor: "#FBF4E9",
+        paddingAll: "20px",
         contents: [
+          { type: "text", text: "⭐⭐⭐⭐⭐", size: "xl", align: "center" },
           {
             type: "text",
             text: data.title,
             weight: "bold",
             size: "lg",
             color: "#5C4033",
+            align: "center",
+            margin: "sm",
             wrap: true,
           },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        paddingAll: "18px",
+        contents: [
           {
             type: "text",
             text: data.body,
             size: "sm",
             color: "#4E3E32",
-            margin: "md",
             wrap: true,
           },
         ],
@@ -1762,12 +1773,13 @@ export function buildReviewRequestFlex(data: {
       footer: {
         type: "box",
         layout: "vertical",
+        paddingAll: "12px",
         contents: [
           {
             type: "button",
             style: "primary",
-            color: BRAND_GREEN_DARK,
-            height: "sm",
+            color: "#C4956A",
+            height: "md",
             action: {
               type: "uri",
               label: data.reviewLabel || "⭐ รีวิวให้เราหน่อยนะคะ",

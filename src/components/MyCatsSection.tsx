@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { useLiff } from "@/components/LiffProvider";
+import { toJpegDataUrl } from "@/lib/image-convert";
 
 type MyCat = {
   id: string;
@@ -23,6 +24,7 @@ export function MyCatsSection() {
   const [cats, setCats] = useState<MyCat[]>([]);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [cheer, setCheer] = useState("");
+  const [uploadError, setUploadError] = useState("");
 
   const load = useCallback(async () => {
     if (!profile?.lineUserId) return;
@@ -37,28 +39,33 @@ export function MyCatsSection() {
     load();
   }, [load]);
 
-  const upload = (cat: MyCat, file: File) => {
+  const upload = async (cat: MyCat, file: File) => {
     if (!profile?.lineUserId) return;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      setUploadingId(cat.id);
+    setUploadError("");
+    setUploadingId(cat.id);
+    try {
+      const dataUrl = await toJpegDataUrl(file);
       const res = await fetch("/api/customers/cat-photo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           lineUserId: profile.lineUserId,
           catId: cat.id,
-          photoDataUrl: String(reader.result),
+          photoDataUrl: dataUrl,
         }),
       });
-      setUploadingId(null);
       if (res.ok) {
         setCheer(CHEERS[cats.findIndex((c) => c.id === cat.id) % CHEERS.length]);
         setTimeout(() => setCheer(""), 2500);
         await load();
+      } else {
+        setUploadError("อัปโหลดรูปไม่สำเร็จ — ลองใหม่อีกครั้งนะคะ");
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : "อัปโหลดรูปไม่สำเร็จ");
+    } finally {
+      setUploadingId(null);
+    }
   };
 
   if (!profile?.lineUserId || cats.length === 0) return null;
@@ -122,6 +129,11 @@ export function MyCatsSection() {
 
       {cheer && (
         <p className="mt-1 text-center text-xs font-extrabold text-ok">{cheer}</p>
+      )}
+      {uploadError && (
+        <p className="mt-1 text-center text-xs font-extrabold text-wait">
+          😿 {uploadError}
+        </p>
       )}
     </section>
   );

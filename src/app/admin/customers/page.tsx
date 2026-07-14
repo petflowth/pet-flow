@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import type { CatRecord, CustomerRecord, MemberCreditUsageRecord, MemberTopupRecord } from "@/lib/customers-store";
 import type { CustomerTier } from "@/lib/customer-tier";
+import { toJpegDataUrl } from "@/lib/image-convert";
 import { TIER_LABELS, tierBadgeClass } from "@/lib/customer-tier";
 import { catCurrentAgeLabel } from "@/lib/cat-age";
 import { RegistrationQrSection } from "@/components/LineSetupSection";
@@ -1093,12 +1094,13 @@ export default function CustomersPage() {
   };
 
 
-  const onPhoto = (cat: CatRecord, file: File) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      saveCatNote(cat.id, cat.staffNote || "", String(reader.result));
-    };
-    reader.readAsDataURL(file);
+  const onPhoto = async (cat: CatRecord, file: File) => {
+    try {
+      const dataUrl = await toJpegDataUrl(file);
+      await saveCatNote(cat.id, cat.staffNote || "", dataUrl);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "อัปโหลดรูปไม่สำเร็จ");
+    }
   };
 
   if (selected) {

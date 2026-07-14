@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getLineCredentials } from "@/lib/line-config";
-import { findCustomerByLine } from "@/lib/customers-store";
 import { sendTelegram, sendTelegramPhoto } from "@/lib/telegram";
 
 export const runtime = "nodejs";
@@ -9,7 +8,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * LINE Messaging API webhook
- * ลูกค้าตอบ/ทักเข้ามาใน LINE OA → ส่งแจ้งเตือนเข้า Telegram แอดมินทันที
+ * มีคนเพิ่มเพื่อน LINE OA → ส่งแจ้งเตือนเข้า Telegram แอดมินทันที
+ * (ลูกค้าตอบแชทธรรมดา — ไม่แจ้งเตือนแล้ว ตามที่ร้านขอ)
  *
  * ตั้งค่า: LINE Developers → Messaging API → Webhook URL =
  *   https://<โดเมนแอป>/api/line/webhook  แล้วกด Verify + เปิด "Use webhook"
@@ -33,28 +33,6 @@ function verifySignature(body: string, signature: string | null, secret: string)
   }
 }
 
-function describeMessage(m?: LineMessage) {
-  if (!m) return "(ไม่มีข้อความ)";
-  switch (m.type) {
-    case "text":
-      return m.text?.trim() || "(ข้อความว่าง)";
-    case "image":
-      return "[ส่งรูปภาพ 🖼️]";
-    case "sticker":
-      return "[ส่งสติกเกอร์ 😺]";
-    case "video":
-      return "[ส่งวิดีโอ 🎬]";
-    case "audio":
-      return "[ส่งข้อความเสียง 🎤]";
-    case "file":
-      return "[ส่งไฟล์ 📎]";
-    case "location":
-      return "[ส่งตำแหน่งที่ตั้ง 📍]";
-    default:
-      return `[${m.type}]`;
-  }
-}
-
 async function lineProfile(userId: string, token: string) {
   if (!token) return { displayName: "", pictureUrl: "" };
   try {
@@ -73,25 +51,6 @@ async function lineProfile(userId: string, token: string) {
   } catch {
     return { displayName: "", pictureUrl: "" };
   }
-}
-
-async function lineDisplayName(userId: string, token: string) {
-  return (await lineProfile(userId, token)).displayName;
-}
-
-async function resolveSender(userId: string | undefined, token: string) {
-  if (!userId) return { label: "ลูกค้า", cats: "" };
-  const customer = await findCustomerByLine(userId).catch(() => null);
-  if (customer) {
-    const cats =
-      customer.cats?.map((c) => c.name).filter(Boolean).join(", ") || "";
-    return {
-      label: customer.name || customer.lineDisplayName || "ลูกค้า",
-      cats,
-    };
-  }
-  const dn = await lineDisplayName(userId, token);
-  return { label: dn || "ลูกค้า (ยังไม่ลงทะเบียน)", cats: "" };
 }
 
 /** ให้กด Verify / เช็คสถานะได้ */
@@ -124,14 +83,7 @@ export async function POST(req: NextRequest) {
   await Promise.all(
     events.map(async (ev) => {
       try {
-        if (ev.type === "message") {
-          const { label, cats } = await resolveSender(ev.source?.userId, token);
-          const who = cats ? `${label} (🐱 ${cats})` : label;
-          const text = describeMessage(ev.message);
-          await sendTelegram(
-            `💬 ลูกค้าตอบใน LINE\n\n👤 ${who}\n🗨️ ${text}\n\n👉 เปิดแอป LINE Official Account เพื่อตอบกลับ`
-          );
-        } else if (ev.type === "follow") {
+        if (ev.type === "follow") {
           const userId = ev.source?.userId || "";
           const { displayName, pictureUrl } = await lineProfile(userId, token);
           const name = displayName || "ไม่ทราบชื่อ";

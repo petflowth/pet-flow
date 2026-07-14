@@ -84,7 +84,7 @@ export function CustomerSendButtons({
       okMsg
     );
 
-  // นัดที่จองทั้งบ้าน (หลายตัวพร้อมกัน) — ส่งการ์ดสอบถามประวัติแยกให้ครบทุกตัว ไม่ใช่แค่ตัวแรก
+  // นัดที่จองทั้งบ้าน (หลายตัวพร้อมกัน) — ส่งการ์ดเดียว ลิงก์เดียว ให้กรอกประวัติครบทุกตัวในหน้าเดียวกัน
   const sendGroomInfoAll = async () => {
     const ids =
       groomBookingIds && groomBookingIds.length > 0
@@ -95,23 +95,25 @@ export function CustomerSendButtons({
     if (ids.length === 0) return;
     setBusy("send_groom_info");
     try {
-      const results = await Promise.all(
-        ids.map((id) =>
-          fetch("/api/bookings", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id, action: "send_groom_info", lineUserId }),
-          })
-        )
-      );
-      if (results.every((r) => r.ok)) {
+      const res = await fetch("/api/bookings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: ids[0],
+          action: "send_groom_info_group",
+          ids,
+          lineUserId,
+        }),
+      });
+      if (res.ok) {
         toast(
-          ids.length > 1 ? `ส่งการ์ดสอบถามประวัติแล้ว ${ids.length} ตัว 🩺` : "ส่งการ์ดสอบถามประวัติน้องแล้ว 🩺",
+          ids.length > 1 ? `ส่งการ์ดสอบถามประวัติแล้ว (${ids.length} ตัว) 🩺` : "ส่งการ์ดสอบถามประวัติน้องแล้ว 🩺",
           "success"
         );
         onDone?.();
       } else {
-        toast("ส่งไม่สำเร็จบางตัว — ตรวจ LINE / ตั้งค่า", "error");
+        const d = await res.json().catch(() => ({}));
+        toast(d.error ? `ส่งไม่สำเร็จ: ${d.error}` : "ส่งไม่สำเร็จ — ตรวจ LINE / ตั้งค่า", "error");
       }
     } finally {
       setBusy("");

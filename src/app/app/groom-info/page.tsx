@@ -5,7 +5,15 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useLiff } from "@/components/LiffProvider";
 
-type Bk = { id: string; catName: string; service: string; date?: string; time?: string };
+type CatForm = {
+  id: string;
+  catName: string;
+  bathedBefore: string;
+  temperament: string[];
+  health: string[];
+  allergy: string;
+  note: string;
+};
 
 const TEMPERAMENT = [
   { key: "gentle", label: "😌 ใจดี ให้จับง่าย" },
@@ -23,63 +31,91 @@ const HEALTH = [
 
 function GroomInfoContent() {
   const params = useSearchParams();
-  const id = params.get("id") || "";
+  const ids = (params.get("id") || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   const { profile } = useLiff();
 
-  const [bk, setBk] = useState<Bk | null>(null);
+  const [forms, setForms] = useState<CatForm[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
   const [saveError, setSaveError] = useState("");
 
-  const [bathedBefore, setBathedBefore] = useState("");
-  const [temperament, setTemperament] = useState<string[]>([]);
-  const [health, setHealth] = useState<string[]>([]);
-  const [allergy, setAllergy] = useState("");
-  const [note, setNote] = useState("");
-
   useEffect(() => {
-    if (!id) {
+    if (ids.length === 0) {
       setLoading(false);
       return;
     }
-    fetch(`/api/bookings/groom-info?id=${id}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.found) {
-          setBk(d.booking);
-          if (d.info) {
-            setBathedBefore(d.info.bathedBefore || "");
-            setTemperament(d.info.temperament || []);
-            setHealth(d.info.health || []);
-            setAllergy(d.info.allergy || "");
-            setNote(d.info.note || "");
-          }
-        }
+    Promise.all(
+      ids.map((id) =>
+        fetch(`/api/bookings/groom-info?id=${id}`)
+          .then((r) => r.json())
+          .catch(() => null)
+      )
+    )
+      .then((results) => {
+        const loaded: CatForm[] = [];
+        results.forEach((d, i) => {
+          if (!d?.found) return;
+          loaded.push({
+            id: ids[i],
+            catName: d.booking?.catName || "น้อง",
+            bathedBefore: d.info?.bathedBefore || "",
+            temperament: d.info?.temperament || [],
+            health: d.info?.health || [],
+            allergy: d.info?.allergy || "",
+            note: d.info?.note || "",
+          });
+        });
+        setForms(loaded);
       })
       .finally(() => setLoading(false));
-  }, [id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.toString()]);
 
-  const toggle = (arr: string[], set: (v: string[]) => void, key: string) =>
-    set(arr.includes(key) ? arr.filter((x) => x !== key) : [...arr, key]);
+  const patch = (idx: number, p: Partial<CatForm>) =>
+    setForms((prev) => prev.map((f, i) => (i === idx ? { ...f, ...p } : f)));
+
+  const toggle = (idx: number, field: "temperament" | "health", key: string) =>
+    setForms((prev) =>
+      prev.map((f, i) => {
+        if (i !== idx) return f;
+        const arr = f[field];
+        return {
+          ...f,
+          [field]: arr.includes(key) ? arr.filter((x) => x !== key) : [...arr, key],
+        };
+      })
+    );
 
   const submit = async () => {
-    if (!id) return;
+    if (forms.length === 0) return;
     setSaving(true);
     setSaveError("");
     try {
-      const res = await fetch("/api/bookings/groom-info", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bookingId: id,
-          lineUserId: profile?.lineUserId,
-          info: { bathedBefore, temperament, health, allergy, note },
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.ok) {
-        setSaveError("บันทึกไม่สำเร็จ — ลองใหม่อีกครั้ง หรือแจ้งพนักงานที่ร้านได้เลยค่ะ");
+      const results = await Promise.all(
+        forms.map((f) =>
+          fetch("/api/bookings/groom-info", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              bookingId: f.id,
+              lineUserId: profile?.lineUserId,
+              info: {
+                bathedBefore: f.bathedBefore,
+                temperament: f.temperament,
+                health: f.health,
+                allergy: f.allergy,
+                note: f.note,
+              },
+            }),
+          }).then((r) => r.ok)
+        )
+      );
+      if (!results.every(Boolean)) {
+        setSaveError("บันทึกไม่สำเร็จบางตัว — ลองใหม่อีกครั้ง หรือแจ้งพนักงานที่ร้านได้เลยค่ะ");
         return;
       }
       try {
@@ -127,7 +163,7 @@ function GroomInfoContent() {
           ขอบคุณที่แจ้งประวัติน้องนะคะ!
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-brown-soft">
-          เราจะดูแล{bk?.catName || "น้อง"}อย่างระมัดระวังที่สุด 🐱
+          เราจะดูแล{forms.map((f) => f.catName).join(", ") || "น้อง"}อย่างระมัดระวังที่สุด 🐱
           <br />
           กลับไปที่แชท LINE ได้เลยค่ะ
         </p>
@@ -146,75 +182,96 @@ function GroomInfoContent() {
 
       {loading ? (
         <p className="mt-6 text-sm text-brown-soft">กำลังโหลด…</p>
-      ) : !bk ? (
+      ) : forms.length === 0 ? (
         <p className="mt-6 rounded-catcha-sm bg-paper px-4 py-3 text-sm text-brown-soft">
           ไม่พบข้อมูลการนัด
         </p>
       ) : (
         <>
-          <div className="mt-3 rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm">
-            <p className="text-sm font-bold text-brown">🐱 {bk.catName}</p>
-            <p className="text-xs text-brown-soft">
-              เพื่อความปลอดภัยของน้อง 🧡 รบกวนแจ้งข้อมูลสั้นๆ ให้เราเตรียมดูแลน้องได้ถูกวิธีนะคะ
+          {forms.length > 1 && (
+            <p className="mt-2 text-xs font-bold text-latte-deep">
+              🐾 มีน้อง {forms.length} ตัว — รบกวนกรอกให้ครบทุกตัวนะคะ
             </p>
-          </div>
+          )}
 
-          <p className="mt-5 mb-2 text-xs font-bold text-brown-soft">
-            น้องเคยอาบน้ำที่อื่นมาก่อนไหมคะ หรือว่าครั้งแรก
-          </p>
-          <div className="flex gap-2">
-            <Chip active={bathedBefore === "yes"} label="✅ เคยอาบที่อื่นแล้ว" onClick={() => setBathedBefore("yes")} />
-            <Chip active={bathedBefore === "no"} label="🆕 ครั้งแรก" onClick={() => setBathedBefore("no")} />
-          </div>
+          {forms.map((f, idx) => (
+            <div
+              key={f.id}
+              className="mt-4 rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm"
+            >
+              <p className="text-sm font-extrabold text-brown">🐱 {f.catName}</p>
+              {forms.length === 1 && (
+                <p className="mt-1 text-xs text-brown-soft">
+                  เพื่อความปลอดภัยของน้อง 🧡 รบกวนแจ้งข้อมูลสั้นๆ ให้เราเตรียมดูแลน้องได้ถูกวิธีนะคะ
+                </p>
+              )}
 
-          <p className="mt-5 mb-2 text-xs font-bold text-brown-soft">
-            นิสัยของน้องตอนถูกจับ/อาบน้ำ (เลือกได้หลายข้อ)
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {TEMPERAMENT.map((t) => (
-              <Chip
-                key={t.key}
-                active={temperament.includes(t.key)}
-                label={t.label}
-                onClick={() => toggle(temperament, setTemperament, t.key)}
+              <p className="mt-3 mb-1.5 text-xs font-bold text-brown-soft">
+                เคยอาบน้ำที่อื่นมาก่อนไหมคะ หรือว่าครั้งแรก
+              </p>
+              <div className="flex gap-2">
+                <Chip
+                  active={f.bathedBefore === "yes"}
+                  label="✅ เคยอาบที่อื่นแล้ว"
+                  onClick={() => patch(idx, { bathedBefore: "yes" })}
+                />
+                <Chip
+                  active={f.bathedBefore === "no"}
+                  label="🆕 ครั้งแรก"
+                  onClick={() => patch(idx, { bathedBefore: "no" })}
+                />
+              </div>
+
+              <p className="mt-3 mb-1.5 text-xs font-bold text-brown-soft">
+                นิสัยตอนถูกจับ/อาบน้ำ (เลือกได้หลายข้อ)
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {TEMPERAMENT.map((t) => (
+                  <Chip
+                    key={t.key}
+                    active={f.temperament.includes(t.key)}
+                    label={t.label}
+                    onClick={() => toggle(idx, "temperament", t.key)}
+                  />
+                ))}
+              </div>
+
+              <p className="mt-3 mb-1.5 text-xs font-bold text-brown-soft">
+                สุขภาพ (เลือกได้หลายข้อ)
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {HEALTH.map((h) => (
+                  <Chip
+                    key={h.key}
+                    active={f.health.includes(h.key)}
+                    label={h.label}
+                    onClick={() => toggle(idx, "health", h.key)}
+                  />
+                ))}
+              </div>
+
+              <p className="mt-3 mb-1 text-xs font-bold text-brown-soft">
+                แพ้อะไรไหมคะ (แชมพู/ยา) — ถ้าไม่มีเว้นว่างได้
+              </p>
+              <input
+                value={f.allergy}
+                onChange={(e) => patch(idx, { allergy: e.target.value })}
+                placeholder="เช่น แพ้แชมพูบางชนิด"
+                className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
               />
-            ))}
-          </div>
 
-          <p className="mt-5 mb-2 text-xs font-bold text-brown-soft">
-            สุขภาพของน้อง (เลือกได้หลายข้อ)
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {HEALTH.map((h) => (
-              <Chip
-                key={h.key}
-                active={health.includes(h.key)}
-                label={h.label}
-                onClick={() => toggle(health, setHealth, h.key)}
+              <p className="mt-3 mb-1 text-xs font-bold text-brown-soft">
+                อยากให้เราดูแล/ระวังเป็นพิเศษเรื่องอะไรไหมคะ
+              </p>
+              <textarea
+                value={f.note}
+                onChange={(e) => patch(idx, { note: e.target.value })}
+                placeholder="เช่น ไม่ชอบเป่าขนแรง, กลัวเสียงดัง"
+                rows={2}
+                className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
               />
-            ))}
-          </div>
-
-          <p className="mt-5 mb-1 text-xs font-bold text-brown-soft">
-            น้องแพ้อะไรไหมคะ (แชมพู/ยา) — ถ้าไม่มีเว้นว่างได้
-          </p>
-          <input
-            value={allergy}
-            onChange={(e) => setAllergy(e.target.value)}
-            placeholder="เช่น แพ้แชมพูบางชนิด"
-            className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
-          />
-
-          <p className="mt-4 mb-1 text-xs font-bold text-brown-soft">
-            อยากให้เราดูแล/ระวังเป็นพิเศษเรื่องอะไรไหมคะ
-          </p>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="เช่น ไม่ชอบเป่าขนแรง, กลัวเสียงดัง"
-            rows={3}
-            className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
-          />
+            </div>
+          ))}
 
           {saveError && (
             <p className="mt-4 rounded-catcha-sm bg-wait/10 px-3 py-2 text-xs font-bold text-wait">
@@ -227,7 +284,11 @@ function GroomInfoContent() {
             disabled={saving}
             className="mt-5 w-full rounded-catcha-sm bg-latte-deep py-3 text-sm font-extrabold text-card active:scale-[0.98] disabled:opacity-50"
           >
-            {saving ? "กำลังบันทึก…" : "💛 ส่งข้อมูลให้ร้าน"}
+            {saving
+              ? "กำลังบันทึก…"
+              : forms.length > 1
+                ? `💛 ส่งข้อมูลให้ร้าน (${forms.length} ตัว)`
+                : "💛 ส่งข้อมูลให้ร้าน"}
           </button>
         </>
       )}

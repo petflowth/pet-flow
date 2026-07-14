@@ -57,10 +57,10 @@ export function buildCheckinBodyText(
   });
 }
 
-/** ลิงก์หน้ากรอกประวัติน้องก่อนอาบน้ำ (คืน "" ถ้ายังไม่ได้ตั้ง LIFF ID) */
-export async function getGroomInfoUrl(bookingId: string): Promise<string> {
+/** ลิงก์หน้ากรอกประวัติน้องก่อนอาบน้ำ (คืน "" ถ้ายังไม่ได้ตั้ง LIFF ID) — ใส่ array ได้ถ้าจองทั้งบ้านหลายตัว */
+export async function getGroomInfoUrl(bookingIds: string | string[]): Promise<string> {
   const liffId = (await getLineCredentials())?.liffId;
-  return liffId ? buildGroomInfoUrl(liffId, bookingId) : "";
+  return liffId ? buildGroomInfoUrl(liffId, bookingIds) : "";
 }
 
 /** เนื้อความการ์ดสอบถามประวัติน้องก่อนอาบน้ำ */

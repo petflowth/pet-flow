@@ -28,9 +28,10 @@ export function buildBookingTimeUrl(
   return buildLiffUrl(liffId, { path: "booking-time", id: bookingId, type });
 }
 
-/** ลิงก์หน้ากรอกประวัติน้องก่อนอาบน้ำ */
-export function buildGroomInfoUrl(liffId: string, bookingId: string) {
-  return buildLiffUrl(liffId, { path: "groom-info", id: bookingId });
+/** ลิงก์หน้ากรอกประวัติน้องก่อนอาบน้ำ — จองทั้งบ้านหลายตัวใส่เป็น array ได้ ฟอร์มจะรวมทุกตัวในหน้าเดียว */
+export function buildGroomInfoUrl(liffId: string, bookingIds: string | string[]) {
+  const id = Array.isArray(bookingIds) ? bookingIds.join(",") : bookingIds;
+  return buildLiffUrl(liffId, { path: "groom-info", id });
 }
 
 /** ลิงก์หน้ากดรับคูปองจากแคมเปญ */

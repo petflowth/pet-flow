@@ -246,6 +246,44 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
+  // ── การ์ดสอบถามประวัติน้องก่อนอาบน้ำ แบบรวมทั้งบ้าน (หลายตัวพร้อมกัน) — ส่งการ์ดเดียว ลิงก์เดียว กรอกครบทุกตัวในหน้าเดียว ──
+  if (action === "send_groom_info_group") {
+    const ids: string[] = Array.isArray(body.ids) && body.ids.length > 0 ? body.ids : [id];
+    const to = await resolveRecipient(b, lineUserId);
+    if (!to) {
+      return NextResponse.json({ error: NO_LINE_ERROR }, { status: 400 });
+    }
+    const bookings = (
+      await Promise.all(ids.map((x: string) => getBooking(x)))
+    ).filter((x): x is StoredBooking => !!x);
+    if (bookings.length === 0) {
+      return NextResponse.json({ error: "not found" }, { status: 404 });
+    }
+    const cfg = await getSiteConfig();
+    const url = await getGroomInfoUrl(bookings.map((x) => x.id));
+    const catNames = bookings.map((x) => x.catName).join(", ");
+    const flex = buildGroomInfoFlex({
+      catName: catNames,
+      dateText: b.date ? `📅 นัดอาบน้ำ: ${b.date}${b.time ? ` ${b.time}` : ""}` : undefined,
+      body: buildGroomInfoBody(
+        { catName: bookings.length > 1 ? `น้องๆ ${bookings.length} ตัว` : catNames },
+        cfg
+      ),
+      url: url || undefined,
+      label:
+        bookings.length > 1
+          ? `🩺 แจ้งประวัติน้อง (${bookings.length} ตัว)`
+          : "🩺 แจ้งประวัติน้อง",
+    });
+    try {
+      await pushLineMessage(to, [flex]);
+      return NextResponse.json({ ok: true });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  }
+
   // ── การ์ดให้ลูกค้าเลือกเวลาส่ง/รับน้อง (กดเอง) ──
   if (action === "send_checkin_reminder" || action === "send_checkout_reminder") {
     const to = await resolveRecipient(b, lineUserId);

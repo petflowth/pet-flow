@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useLocale } from "@/components/LocaleProvider";
 import { useLiff } from "@/components/LiffProvider";
 import { t } from "@/lib/i18n";
-import { promoRewardLabel, type CustomerPromoView } from "@/lib/promos-store";
+import type { CustomerPromoView } from "@/lib/promos-store";
 
 type Props = {
   compact?: boolean;
@@ -122,7 +122,6 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
       ) : (
         <div className="space-y-3">
           {promos.map((promo, i) => {
-            const reward = promoRewardLabel(promo);
             return (
               <div
                 key={promo.id}
@@ -138,7 +137,6 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
                 <div className="p-4">
                   <p className="line-clamp-1 text-sm font-extrabold text-catcha-chocolate">
                     {promo.title[locale]}
-                    {reward ? ` · ${reward}` : ""}
                   </p>
                   <p
                     className={`mt-1 text-xs leading-relaxed text-brown-soft ${

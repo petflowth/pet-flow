@@ -52,7 +52,6 @@ export default function PromosPage() {
             <div className="p-4">
               <p className="line-clamp-1 text-sm font-extrabold text-catcha-chocolate">
                 {promo.title[locale]}
-                {promo.discountPercent ? ` · ${promo.discountPercent}%` : ""}
               </p>
               <p
                 className={`mt-1 text-xs leading-relaxed text-brown-soft ${

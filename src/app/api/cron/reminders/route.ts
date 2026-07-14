@@ -116,7 +116,6 @@ export async function GET(req: NextRequest) {
   const inCheckin = addDays(todayStr, auto?.checkinReminderDays ?? 1);
   const inCheckout = addDays(todayStr, auto?.checkoutReminderDays ?? 1);
   const afterCheckoutReview = addDays(todayStr, -(auto?.reviewRequestDaysAfter ?? 1));
-  const consentUrl = await getConsentUrl();
 
   let depositReminders = 0;
   let prestayReminders = 0;
@@ -145,8 +144,9 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // #4 — แจ้งรายละเอียด + เงื่อนไข N วันก่อนเข้าพัก (วันแรกพอ)
+    // #4 — แจ้งรายละเอียด + เงื่อนไข N วันก่อนเข้าพัก (วันแรกพอ) — ลิงก์ยอมรับต้องชี้ที่นัดนี้เท่านั้น ไม่ใช้ลิงก์กลาง
     if (auto?.prestayReminderEnabled !== false && b.checkin === in3) {
+      const consentUrl = await getConsentUrl(b.id);
       const flex = buildPrestayFlex({
         ...buildPrestayFlexData(b, cfg),
         consentUrl: consentUrl || undefined,

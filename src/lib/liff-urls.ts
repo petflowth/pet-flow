@@ -15,8 +15,9 @@ export function buildRegisterUrl(liffId: string) {
   return buildLiffUrl(liffId, { path: "register" });
 }
 
-export function buildConsentUrl(liffId: string) {
-  return buildLiffUrl(liffId, { path: "consent" });
+/** ลิงก์หน้ายอมรับข้อตกลง — ใส่ bookingId เพื่อชี้เฉพาะรอบเข้าพักนั้น (ลูกค้ามีหลายรอบพร้อมกันได้ ต้องยอมรับแยกทุกรอบ) */
+export function buildConsentUrl(liffId: string, bookingId?: string) {
+  return buildLiffUrl(liffId, bookingId ? { path: "consent", id: bookingId } : { path: "consent" });
 }
 
 /** ลิงก์หน้าเลือกเวลาส่ง/รับน้อง (เช็คอิน/เช็คเอาท์) */

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useLiff } from "@/components/LiffProvider";
 import { useConfig } from "@/components/ConfigProvider";
 import type { Booking } from "@/lib/business";
@@ -15,7 +16,94 @@ type StayBooking = Booking & {
   careNote?: string;
 };
 
-export default function ConsentPage() {
+function SignaturePad({
+  onChange,
+}: {
+  onChange: (dataUrl: string) => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const drawing = useRef(false);
+  const hasDrawn = useRef(false);
+
+  const getCtx = () => canvasRef.current?.getContext("2d") || null;
+
+  const point = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: ((e.clientX - rect.left) / rect.width) * canvas.width,
+      y: ((e.clientY - rect.top) / rect.height) * canvas.height,
+    };
+  };
+
+  const start = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const ctx = getCtx();
+    if (!ctx) return;
+    drawing.current = true;
+    const { x, y } = point(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const move = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!drawing.current) return;
+    e.preventDefault();
+    const ctx = getCtx();
+    if (!ctx) return;
+    const { x, y } = point(e);
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#4E3E32";
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    hasDrawn.current = true;
+  };
+
+  const end = () => {
+    if (!drawing.current) return;
+    drawing.current = false;
+    if (hasDrawn.current && canvasRef.current) {
+      onChange(canvasRef.current.toDataURL("image/png"));
+    }
+  };
+
+  const clear = () => {
+    const canvas = canvasRef.current;
+    const ctx = getCtx();
+    if (!canvas || !ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    hasDrawn.current = false;
+    onChange("");
+  };
+
+  return (
+    <div>
+      <canvas
+        ref={canvasRef}
+        width={600}
+        height={200}
+        onPointerDown={start}
+        onPointerMove={move}
+        onPointerUp={end}
+        onPointerLeave={end}
+        className="w-full touch-none rounded-catcha-sm border border-catcha-line bg-white"
+        style={{ height: 140 }}
+      />
+      <button
+        type="button"
+        onClick={clear}
+        className="mt-1.5 text-[11px] font-bold text-brown-soft underline"
+      >
+        ล้างลายเซ็น
+      </button>
+    </div>
+  );
+}
+
+function ConsentContent() {
+  const params = useSearchParams();
+  const bookingIdParam = params.get("id") || "";
   const { profile, ready } = useLiff();
   const { config } = useConfig();
   const [booking, setBooking] = useState<StayBooking | null>(null);
@@ -24,6 +112,8 @@ export default function ConsentPage() {
   const [checked, setChecked] = useState(false);
   const [saving, setSaving] = useState(false);
   const [careNote, setCareNote] = useState("");
+  const [signature, setSignature] = useState("");
+  const [signError, setSignError] = useState(false);
 
   const terms =
     config.messages?.consentTerms?.length
@@ -38,20 +128,28 @@ export default function ConsentPage() {
       .then((r) => r.json())
       .then((data) => {
         const list: StayBooking[] = data.bookings || [];
-        // เอาการจองห้องพักที่ยังไม่ยกเลิก และใกล้ที่สุด
-        const stay = list
-          .filter((b) => b.service === "room" && b.status !== "cancelled")
-          .sort((a, b) => (a.checkin || a.date).localeCompare(b.checkin || b.date))[0];
-        setBooking(stay || null);
+        // ถ้ามี id ระบุมาชัดเจน (จากลิงก์ที่ส่งเจาะจงนัดนั้น) ใช้ตัวนั้นเป๊ะๆ —
+        // แต่ละรอบเข้าพักต้องยอมรับแยกกันเสมอ ไม่ใช้ "นัดที่ใกล้ที่สุด" เดาแทน
+        const stay = bookingIdParam
+          ? list.find((b) => b.id === bookingIdParam) || null
+          : list
+              .filter((b) => b.service === "room" && b.status !== "cancelled")
+              .sort((a, b) => (a.checkin || a.date).localeCompare(b.checkin || b.date))[0] || null;
+        setBooking(stay);
         if (stay?.consentAcceptedAt) setAccepted(true);
         if (stay?.careNote) setCareNote(stay.careNote);
       })
       .catch(() => setBooking(null))
       .finally(() => setLoading(false));
-  }, [profile?.lineUserId]);
+  }, [profile?.lineUserId, bookingIdParam]);
 
   const submit = async () => {
     if (!booking || !profile?.lineUserId) return;
+    if (!signature) {
+      setSignError(true);
+      return;
+    }
+    setSignError(false);
     setSaving(true);
     try {
       const res = await fetch("/api/bookings/consent", {
@@ -61,6 +159,7 @@ export default function ConsentPage() {
           bookingId: booking.id,
           lineUserId: profile.lineUserId,
           careNote: careNote.trim(),
+          signature,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -147,6 +246,26 @@ export default function ConsentPage() {
             </div>
           ) : (
             <>
+              <div className="mt-5">
+                <label className="text-xs font-bold text-catcha-chocolate">
+                  ✍️ ลายเซ็นยืนยันตัวตน
+                </label>
+                <p className="mb-1.5 text-[11px] text-brown-faint">
+                  เซ็นด้วยนิ้วในกรอบด้านล่าง — ไว้เป็นหลักฐานว่าเจ้าของน้องเป็นผู้ยอมรับข้อตกลงเอง
+                </p>
+                <SignaturePad
+                  onChange={(v) => {
+                    setSignature(v);
+                    if (v) setSignError(false);
+                  }}
+                />
+                {signError && (
+                  <p className="mt-1 text-[11px] font-bold text-wait">
+                    กรุณาเซ็นชื่อในกรอบก่อนกดยอมรับข้อตกลง
+                  </p>
+                )}
+              </div>
+
               <label className="mt-4 flex items-start gap-2 text-xs text-brown">
                 <input
                   type="checkbox"
@@ -177,5 +296,15 @@ export default function ConsentPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function ConsentPage() {
+  return (
+    <Suspense
+      fallback={<p className="px-4 py-10 text-center text-sm text-brown-soft">กำลังโหลด…</p>}
+    >
+      <ConsentContent />
+    </Suspense>
   );
 }

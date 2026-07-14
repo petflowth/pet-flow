@@ -28,10 +28,10 @@ export function bookingScheduleText(b: {
   return `📅 นัดอาบน้ำ: ${d}${b.time ? ` ${b.time} น.` : ""}`.trim();
 }
 
-/** ลิงก์หน้ายอมรับข้อตกลง (คืน "" ถ้ายังไม่ได้ตั้ง LIFF ID) */
-export async function getConsentUrl(): Promise<string> {
+/** ลิงก์หน้ายอมรับข้อตกลง (คืน "" ถ้ายังไม่ได้ตั้ง LIFF ID) — ใส่ bookingId ให้ชี้เฉพาะรอบเข้าพักนั้นเสมอ */
+export async function getConsentUrl(bookingId?: string): Promise<string> {
   const liffId = (await getLineCredentials())?.liffId;
-  return liffId ? buildConsentUrl(liffId) : "";
+  return liffId ? buildConsentUrl(liffId, bookingId) : "";
 }
 
 /** ลิงก์หน้าเลือกเวลาส่ง/รับน้อง (คืน "" ถ้ายังไม่ได้ตั้ง LIFF ID) */

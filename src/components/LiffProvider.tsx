@@ -197,7 +197,8 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     if (path === "consent") {
-      router.replace("/app/consent");
+      const bkId = params.get("id");
+      router.replace(bkId ? `/app/consent?id=${encodeURIComponent(bkId)}` : "/app/consent");
       return;
     }
     if (path === "booking-time") {

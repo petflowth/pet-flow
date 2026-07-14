@@ -12,6 +12,7 @@ type CalendarDay = EditableBooking & {
   customerId?: string;
   careNote?: string;
   consentAcceptedAt?: string;
+  consentSignature?: string;
 };
 
 function formatThaiDateTime(iso: string) {
@@ -287,9 +288,19 @@ export function BookingCalendar() {
                     </p>
                     {b.service === "room" &&
                       (b.consentAcceptedAt ? (
-                        <p className="mt-1 text-[11px] font-bold text-ok">
-                          ✅ ยอมรับข้อตกลงแล้ว เมื่อ {formatThaiDateTime(b.consentAcceptedAt)}
-                        </p>
+                        <div className="mt-1 flex items-center gap-2">
+                          <p className="text-[11px] font-bold text-ok">
+                            ✅ ยอมรับข้อตกลงแล้ว เมื่อ {formatThaiDateTime(b.consentAcceptedAt)}
+                          </p>
+                          {b.consentSignature && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={b.consentSignature}
+                              alt="ลายเซ็นลูกค้า"
+                              className="h-6 w-14 rounded border border-catcha-line bg-white object-contain"
+                            />
+                          )}
+                        </div>
                       ) : (
                         <p className="mt-1 text-[11px] font-bold text-wait">
                           ⏳ ยังไม่กดยอมรับข้อตกลง

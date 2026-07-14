@@ -86,6 +86,7 @@ export async function GET(req: NextRequest) {
       checkout: b.checkout,
       notes: b.notes,
       consentAcceptedAt: b.consentAcceptedAt,
+      consentSignature: b.consentSignature,
       careNote: b.careNote,
       customerId: customer?.id,
     };
@@ -330,7 +331,7 @@ export async function PATCH(req: NextRequest) {
 
     // เงื่อนไขก่อนเข้าพัก → ส่งเป็น "การ์ด" พร้อมปุ่มไปหน้ากดยอมรับ
     if (action === "send_consent") {
-      const url = await getConsentUrl();
+      const url = await getConsentUrl(b.id);
       if (!url) {
         return NextResponse.json(
           { error: "ยังไม่ได้ตั้ง LIFF ID — ไป Admin → ติดตั้ง เพื่อตั้งค่าก่อน" },
@@ -360,7 +361,7 @@ export async function PATCH(req: NextRequest) {
 
     // แจ้งเข้าพัก → การ์ดเดียว: รายละเอียดเตรียมตัว + ปุ่มไปกดยอมรับเงื่อนไข
     if (action === "send_prestay") {
-      const url = await getConsentUrl();
+      const url = await getConsentUrl(b.id);
       const flex = buildPrestayFlex({
         ...buildPrestayFlexData(b, cfg),
         consentUrl: url || undefined,

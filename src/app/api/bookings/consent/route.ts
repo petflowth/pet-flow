@@ -7,11 +7,12 @@ export async function POST(req: NextRequest) {
   const bookingId = String(body.bookingId || "").trim();
   const lineUserId = String(body.lineUserId || "").trim();
   const careNote = String(body.careNote || "").trim();
+  const signature = String(body.signature || "").trim();
   if (!bookingId) {
     return NextResponse.json({ error: "bookingId required" }, { status: 400 });
   }
 
-  const res = await acceptBookingConsent(bookingId, lineUserId, careNote);
+  const res = await acceptBookingConsent(bookingId, lineUserId, careNote, signature);
   if (!res.ok && res.error === "not_found") {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }

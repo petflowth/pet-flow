@@ -127,6 +127,10 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     name: "chat_watch.table",
     sql: "create table if not exists chat_watch (line_user_id text primary key, last_message_at timestamptz, last_notified_at timestamptz);",
   },
+  {
+    name: "bookings.consent_signature",
+    sql: "alter table bookings add column if not exists consent_signature text;",
+  },
 ];
 
 export type MigrateResult = {

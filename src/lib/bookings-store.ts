@@ -12,6 +12,8 @@ export type StoredBooking = Booking & {
   consentAcceptedAt?: string;
   /** ข้อความ "แจ้งการดูแลเพิ่มเติม" ที่ลูกค้ากรอกตอนกดยอมรับข้อตกลง */
   careNote?: string;
+  /** ลายเซ็นลูกค้าตอนกดยอมรับข้อตกลง (data URL รูป PNG) — หลักฐานยืนยันตัวตน */
+  consentSignature?: string;
   /** เวลาที่ลูกค้าเลือกจะมาส่งน้อง (เช็คอิน) */
   arrivalTime?: string;
   /** เวลาที่ลูกค้าเลือกจะมารับน้อง (เช็คเอาท์) */
@@ -38,6 +40,7 @@ type BookingRow = {
   created_at: string;
   consent_accepted_at?: string | null;
   care_note?: string | null;
+  consent_signature?: string | null;
   arrival_time?: string | null;
   pickup_time?: string | null;
   groom_health_info?: string | null;
@@ -76,6 +79,7 @@ function rowToStored(r: BookingRow): StoredBooking {
     createdAt: r.created_at,
     consentAcceptedAt: r.consent_accepted_at || undefined,
     careNote: r.care_note || undefined,
+    consentSignature: r.consent_signature || undefined,
     arrivalTime: r.arrival_time || undefined,
     pickupTime: r.pickup_time || undefined,
     groomHealthInfo: r.groom_health_info || undefined,
@@ -196,7 +200,8 @@ export async function setBookingGroomInfo(
 export async function acceptBookingConsent(
   id: string,
   lineUserId: string,
-  careNote?: string
+  careNote?: string,
+  signature?: string
 ) {
   const b = await getBooking(id);
   if (!b) return { ok: false as const, error: "not_found" };
@@ -205,12 +210,17 @@ export async function acceptBookingConsent(
   }
   const now = new Date().toISOString();
   const note = (careNote || "").trim();
+  const sig = (signature || "").trim();
   const sb = getSupabase();
   if (sb) {
     try {
       const { error } = await sb
         .from("bookings")
-        .update({ consent_accepted_at: now, care_note: note || null })
+        .update({
+          consent_accepted_at: now,
+          care_note: note || null,
+          consent_signature: sig || null,
+        })
         .eq("id", id);
       if (error) {
         return { ok: false as const, error: "need_sql", message: error.message };
@@ -223,6 +233,7 @@ export async function acceptBookingConsent(
     if (idx >= 0) {
       mem[idx].consentAcceptedAt = now;
       mem[idx].careNote = note || undefined;
+      mem[idx].consentSignature = sig || undefined;
     }
   }
   return { ok: true as const, acceptedAt: now };

@@ -126,10 +126,16 @@ function BookingsContent() {
                   className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${
                     b.status === "confirmed"
                       ? "bg-sage/20 text-ok"
-                      : "bg-honey/25 text-wait"
+                      : b.status === "cancelled"
+                        ? "bg-brown-soft/15 text-brown-soft"
+                        : "bg-honey/25 text-wait"
                   }`}
                 >
-                  {b.status === "confirmed" ? m.confirmed : m.pending}
+                  {b.status === "confirmed"
+                    ? m.confirmed
+                    : b.status === "cancelled"
+                      ? m.cancelled
+                      : m.pending}
                 </span>
               </div>
 

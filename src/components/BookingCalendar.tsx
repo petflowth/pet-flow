@@ -17,6 +17,29 @@ function bookingWhen(b: CalendarDay) {
   return `${b.date} ${b.time || ""}`.trim();
 }
 
+/** กลุ่มบ้านเดียวกัน + นัดเดียวกัน (บริการ/วัน/เวลาตรงกัน) — เอาไว้รวมการ์ดหลายตัวในบ้านเดียวกัน */
+function groupKey(b: CalendarDay) {
+  return [
+    b.customerId || b.customerName,
+    b.service,
+    b.date || "",
+    b.time || "",
+    b.checkin || "",
+    b.checkout || "",
+  ].join("|");
+}
+
+function groupDayBookings(list: CalendarDay[]) {
+  const groups = new Map<string, CalendarDay[]>();
+  for (const b of list) {
+    const k = groupKey(b);
+    const arr = groups.get(k);
+    if (arr) arr.push(b);
+    else groups.set(k, [b]);
+  }
+  return Array.from(groups.values());
+}
+
 function formatThaiDate(iso: string) {
   const [y, m, d] = iso.split("-").map(Number);
   const months = [
@@ -74,27 +97,34 @@ export function BookingCalendar() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: b.id, action: "confirm", lineUserId: b.lineUserId }),
     });
-    if (res.ok) {
-      toast("ยืนยันนัดแล้ว ✔️", "success");
-      load();
-    } else {
-      toast("ยืนยันไม่สำเร็จ", "error");
-    }
+    return res.ok;
   };
 
   const cancelBooking = async (b: CalendarDay) => {
-    if (!confirm(`ยกเลิก${b.service === "room" ? "การเข้าพัก" : "นัด"} ${b.catName} · ${b.customerName}?`)) return;
     const res = await fetch("/api/bookings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: b.id, action: "cancel" }),
     });
-    if (res.ok) {
-      toast("ยกเลิกแล้ว", "info");
-      load();
-    } else {
-      toast("ยกเลิกไม่สำเร็จ", "error");
-    }
+    return res.ok;
+  };
+
+  // การ์ดที่รวมหลายตัวในบ้านเดียวกัน (นัดเดียวกัน) — ยืนยัน/ยกเลิกให้ครบทุกตัวในทีเดียว
+  const confirmGroup = async (group: CalendarDay[]) => {
+    const results = await Promise.all(group.map(confirmBooking));
+    if (results.every(Boolean)) toast("ยืนยันนัดแล้ว ✔️", "success");
+    else toast("ยืนยันไม่สำเร็จบางรายการ", "error");
+    load();
+  };
+
+  const cancelGroup = async (group: CalendarDay[]) => {
+    const names = group.map((b) => b.catName).join(", ");
+    const label = group[0].service === "room" ? "การเข้าพัก" : "นัด";
+    if (!confirm(`ยกเลิก${label} ${names} · ${group[0].customerName}?`)) return;
+    const results = await Promise.all(group.map(cancelBooking));
+    if (results.every(Boolean)) toast("ยกเลิกแล้ว", "info");
+    else toast("ยกเลิกไม่สำเร็จบางรายการ", "error");
+    load();
   };
 
   const ym = today.slice(0, 7);
@@ -223,24 +253,33 @@ export function BookingCalendar() {
               </Link>
             </li>
           ) : (
-            dayBookings.map((b) => (
+            groupDayBookings(dayBookings).map((group) => {
+              const b = group[0];
+              const allConfirmed = group.every((x) => x.status === "confirmed");
+              const catNames = group.map((x) => x.catName).join(", ");
+              return (
               <li
-                key={b.id}
+                key={group.map((x) => x.id).join(",")}
                 className="rounded-catcha-sm border border-catcha-line bg-paper/50 p-3"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-brown break-words">
-                      {b.catName} · {b.customerName}
+                      {catNames} · {b.customerName}
                     </p>
                     <p className="text-xs text-brown-soft break-words">
                       {b.service === "room" ? "🏠 ห้องพัก" : "🛁 อาบน้ำ"} · {bookingWhen(b)}
                     </p>
-                    {b.careNote && (
-                      <p className="mt-1 rounded-catcha-sm bg-sage/15 px-2 py-1 text-[11px] text-brown break-words">
-                        📝 การดูแลจากลูกค้า: {b.careNote}
-                      </p>
-                    )}
+                    {group
+                      .filter((x) => x.careNote)
+                      .map((x) => (
+                        <p
+                          key={x.id}
+                          className="mt-1 rounded-catcha-sm bg-sage/15 px-2 py-1 text-[11px] text-brown break-words"
+                        >
+                          📝 {x.catName}: {x.careNote}
+                        </p>
+                      ))}
                     {b.customerId ? (
                       <Link
                         href={`/admin/customers?id=${b.customerId}`}
@@ -254,32 +293,45 @@ export function BookingCalendar() {
                   </div>
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                      b.status === "confirmed" ? "bg-sage/20 text-ok" : "bg-honey/25 text-wait"
+                      allConfirmed ? "bg-sage/20 text-ok" : "bg-honey/25 text-wait"
                     }`}
                   >
-                    {b.status === "confirmed" ? "ยืนยัน" : "รอยืนยัน"}
+                    {allConfirmed ? "ยืนยัน" : "รอยืนยัน"}
                   </span>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  {b.status !== "confirmed" && (
+                  {!allConfirmed && (
                     <button
                       type="button"
-                      onClick={() => confirmBooking(b)}
+                      onClick={() => confirmGroup(group)}
                       className="rounded-full bg-sage/25 px-2.5 py-1 text-[10px] font-bold text-ok"
                     >
                       ✔️ ยืนยันนัด
                     </button>
                   )}
+                  {group.length > 1 ? (
+                    group.map((x) => (
+                      <button
+                        key={x.id}
+                        type="button"
+                        onClick={() => setEditing(x)}
+                        className="rounded-full bg-honey/25 px-2.5 py-1 text-[10px] font-bold text-catcha-chocolate"
+                      >
+                        ✏️ แก้ไข {x.catName}
+                      </button>
+                    ))
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setEditing(b)}
+                      className="rounded-full bg-honey/25 px-2.5 py-1 text-[10px] font-bold text-catcha-chocolate"
+                    >
+                      ✏️ แก้ไข
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={() => setEditing(b)}
-                    className="rounded-full bg-honey/25 px-2.5 py-1 text-[10px] font-bold text-catcha-chocolate"
-                  >
-                    ✏️ แก้ไข
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => cancelBooking(b)}
+                    onClick={() => cancelGroup(group)}
                     className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-bold text-wait"
                   >
                     ❌ ยกเลิก
@@ -308,7 +360,8 @@ export function BookingCalendar() {
                   <InvoiceActionButtons bookingId={b.id} onDone={load} />
                 </div>
               </li>
-            ))
+              );
+            })
           )}
         </ul>
       </section>

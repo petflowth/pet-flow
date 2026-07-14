@@ -121,11 +121,15 @@ export function buildConsentInviteText(
   });
 }
 
-/** ข้อความเตือน "เตรียมทรายมาเอง" ถ้าเข้าพักไม่ถึงเกณฑ์แถมทรายฟรี (คืน "" ถ้าถึงเกณฑ์) */
+/** ห้องที่ทรายแมวฟรีมีเงื่อนไขจำนวนคืนขั้นต่ำ — ห้องอื่นๆ แถมทรายให้ตลอดการเข้าพักไม่ว่าจะกี่คืน */
+const ROOMS_WITH_LITTER_MIN_NIGHTS = ["mini-meow", "mid-cozy"];
+
+/** ข้อความเตือน "เตรียมทรายมาเอง" ถ้าเข้าพักไม่ถึงเกณฑ์แถมทรายฟรี (คืน "" ถ้าถึงเกณฑ์ หรือห้องแถมทรายฟรีอยู่แล้ว) */
 export function litterNoteFor(
-  b: { checkin?: string; checkout?: string; date?: string },
+  b: { checkin?: string; checkout?: string; date?: string; room?: string },
   cfg: SiteConfig
 ): string {
+  if (!b.room || !ROOMS_WITH_LITTER_MIN_NIGHTS.includes(b.room)) return "";
   const min = cfg.automation?.freeLitterMinNights ?? 3;
   const nights =
     b.checkin && b.checkout

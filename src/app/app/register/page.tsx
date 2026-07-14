@@ -98,46 +98,53 @@ export default function RegisterPage() {
     setSaving(true);
     setError("");
 
-    const res = await fetch("/api/customers/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        lineUserId: profile.lineUserId,
-        name,
-        phone,
-        email,
-        birthday,
-        referralSource: referral,
-        referralCode: referralCode || undefined,
-        marketingConsent: consent,
-        cats: cats
-          .filter((c) => c.name.trim())
-          .map((c) => ({
-            name: c.name,
-            gender: c.gender,
-            breed:
-              (c.breed === OTHER_BREED ? c.breedOther.trim() : c.breed) ||
-              undefined,
-            ageValue: c.ageValue ? Number(c.ageValue) : undefined,
-            ageUnit: c.ageUnit,
-            birthday: c.birthday || undefined,
-            medical: c.medical || undefined,
-            staffNote: c.note || undefined,
-          })),
-      }),
-    });
+    try {
+      const res = await fetch("/api/customers/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lineUserId: profile.lineUserId,
+          name,
+          phone,
+          email,
+          birthday,
+          referralSource: referral,
+          referralCode: referralCode || undefined,
+          marketingConsent: consent,
+          cats: cats
+            .filter((c) => c.name.trim())
+            .map((c) => ({
+              name: c.name,
+              gender: c.gender,
+              breed:
+                (c.breed === OTHER_BREED ? c.breedOther.trim() : c.breed) ||
+                undefined,
+              ageValue: c.ageValue ? Number(c.ageValue) : undefined,
+              ageUnit: c.ageUnit,
+              birthday: c.birthday || undefined,
+              medical: c.medical || undefined,
+              staffNote: c.note || undefined,
+            })),
+        }),
+      });
 
-    const data = await res.json();
-    setSaving(false);
+      const data = await res.json().catch(() => ({}));
 
-    if (!res.ok) {
-      setError(data.error || "ลงทะเบียนไม่สำเร็จ");
-      return;
+      if (!res.ok) {
+        setError(data.error || "ลงทะเบียนไม่สำเร็จ — ลองใหม่อีกครั้งนะคะ");
+        return;
+      }
+
+      await refreshCustomer();
+      await refreshAccount();
+      router.replace("/app");
+    } catch {
+      setError(
+        "เชื่อมต่อไม่สำเร็จ — เช็คสัญญาณอินเทอร์เน็ตแล้วลองกดบันทึกอีกครั้งนะคะ"
+      );
+    } finally {
+      setSaving(false);
     }
-
-    await refreshCustomer();
-    await refreshAccount();
-    router.replace("/app");
   };
 
   if (!ready) {

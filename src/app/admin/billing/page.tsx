@@ -207,8 +207,8 @@ export default function BillingPage() {
   const [shopName, setShopName] = useState("CatCha Hotel");
   const [billMsg, setBillMsg] = useState({
     summaryBookingTitle: "สรุปการจอง",
-    summaryDepositTitle: "สรุปการจอง + แจ้งมัดจำ",
-    summaryFullTitle: "สรุปการจอง + แจ้งยอดชำระ",
+    summaryDepositTitle: "แจ้งมัดจำ",
+    summaryFullTitle: "แจ้งยอดชำระ",
     summaryClosing: "",
   });
   const [copied, setCopied] = useState(false);

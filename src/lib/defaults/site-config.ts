@@ -62,8 +62,8 @@ export function getDefaultSiteConfig(): SiteConfig {
       },
       billing: {
         summaryBookingTitle: "สรุปการจอง",
-        summaryDepositTitle: "สรุปการจอง + แจ้งมัดจำ",
-        summaryFullTitle: "สรุปการจอง + แจ้งยอดชำระ",
+        summaryDepositTitle: "แจ้งมัดจำ",
+        summaryFullTitle: "แจ้งยอดชำระ",
         summaryClosing: "โอนแล้วแจ้งสลิปได้เลยนะคะ 🧡",
       },
       roomInventory: { ...ROOM_INVENTORY },

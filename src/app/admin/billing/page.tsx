@@ -191,7 +191,7 @@ export default function BillingPage() {
   const [billDepPct, setBillDepPct] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [invoiceBusy, setInvoiceBusy] = useState("");
-  const [billFilter, setBillFilter] = useState<"all" | "pending" | "paid">("all");
+  const [billFilter, setBillFilter] = useState<"all" | "pending" | "paid">("pending");
   const [billSearch, setBillSearch] = useState("");
   const [billSort, setBillSort] = useState<
     | "date-desc"
@@ -1338,10 +1338,20 @@ export default function BillingPage() {
               </div>
             )}
 
-            <p className="mt-2 text-sm font-extrabold text-latte-deep">
-              {inv.total.toLocaleString()} บาท ·{" "}
-              {inv.status === "paid" ? "✅ ชำระแล้ว" : "⏳ รอชำระ"}
-            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="text-sm font-extrabold text-latte-deep">
+                {inv.total.toLocaleString()} บาท
+              </span>
+              {inv.status === "paid" ? (
+                <span className="rounded-full bg-ok/20 px-2.5 py-1 text-xs font-extrabold text-ok">
+                  ✅ ชำระแล้ว
+                </span>
+              ) : (
+                <span className="rounded-full bg-wait/20 px-2.5 py-1 text-xs font-extrabold text-wait">
+                  ⏳ รอชำระ
+                </span>
+              )}
+            </div>
             {(inv.deposit ?? 0) > 0 && (
               <p className="text-[11px] font-bold text-ok">
                 {inv.depositReceivedAt ? "✅ รับมัดจำแล้ว " : "💰 มัดจำ (รอรับ) "}

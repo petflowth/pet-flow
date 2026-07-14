@@ -18,13 +18,15 @@ function CustomerPicker({
   onSelect: (data: {
     customerId: string;
     customerName: string;
-    catName: string;
+    catNames: string[];
     lineUserId?: string;
   }) => void;
 }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<CustomerListItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [openCustomerId, setOpenCustomerId] = useState<string | null>(null);
+  const [checked, setChecked] = useState<Record<string, boolean>>({});
 
   const search = useCallback(async (query: string) => {
     const trimmed = query.trim();
@@ -44,16 +46,34 @@ function CustomerPicker({
     return () => clearTimeout(t);
   }, [q, search]);
 
-  const pick = (c: CustomerListItem, catName?: string) => {
-    const cat = catName || c.cats[0]?.name || "";
+  const openCustomer = (c: CustomerListItem) => {
+    if (c.cats.length === 0) {
+      onSelect({
+        customerId: c.id,
+        customerName: c.name,
+        catNames: [],
+        lineUserId: c.lineUserId,
+      });
+      setQ("");
+      setResults([]);
+      return;
+    }
+    setOpenCustomerId(c.id);
+    setChecked({});
+  };
+
+  const confirmPick = (c: CustomerListItem) => {
+    const names = c.cats.filter((cat) => checked[cat.id]).map((cat) => cat.name);
     onSelect({
       customerId: c.id,
       customerName: c.name,
-      catName: cat,
+      catNames: names,
       lineUserId: c.lineUserId,
     });
     setQ("");
     setResults([]);
+    setOpenCustomerId(null);
+    setChecked({});
   };
 
   return (
@@ -62,49 +82,94 @@ function CustomerPicker({
         🔍 ค้นหาลูกค้า (ชื่อแมว / ชื่อใน LINE)
         <input
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setOpenCustomerId(null);
+          }}
           placeholder="เช่น น้องจู๊ด หรือ ชื่อที่เห็นใน LINE"
           className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
         />
       </label>
       <p className="mt-1 text-[10px] text-brown-soft">
-        เลือกจากรายการ → ระบบใส่ชื่อ LINE + ผูกนัดให้อัตโนมัติ
+        เลือกลูกค้า → ติ๊กแมวที่มา (เลือกได้หลายตัว/ทั้งบ้าน) → ระบบผูกนัดให้อัตโนมัติ
       </p>
 
       {loading && <p className="mt-2 text-[10px] text-brown-faint">กำลังค้นหา…</p>}
 
       {results.length > 0 && (
-        <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto">
+        <ul className="mt-2 max-h-64 space-y-1 overflow-y-auto">
           {results.map((c) => (
             <li key={c.id}>
-              {c.cats.length === 0 ? (
+              {openCustomerId === c.id ? (
+                <div className="rounded-catcha-sm border border-honey/50 bg-card p-2.5">
+                  <p className="mb-1.5 text-xs font-extrabold text-catcha-chocolate">
+                    {c.name}
+                    {c.lineUserId && (
+                      <span className="ml-1 text-[10px] text-ok">LINE ✓</span>
+                    )}
+                  </p>
+                  <div className="space-y-1">
+                    {c.cats.map((cat) => (
+                      <label
+                        key={cat.id}
+                        className="flex items-center gap-2 rounded-catcha-sm bg-paper px-2.5 py-1.5 text-xs"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={!!checked[cat.id]}
+                          onChange={(e) =>
+                            setChecked((prev) => ({ ...prev, [cat.id]: e.target.checked }))
+                          }
+                        />
+                        <span className="font-bold text-brown">🐱 {cat.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setChecked(
+                          Object.fromEntries(c.cats.map((cat) => [cat.id, true]))
+                        )
+                      }
+                      className="rounded-full bg-honey/30 px-3 py-1 text-[10px] font-bold text-catcha-chocolate"
+                    >
+                      ✅ เลือกทั้งบ้าน ({c.cats.length} ตัว)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => confirmPick(c)}
+                      disabled={!Object.values(checked).some(Boolean)}
+                      className="rounded-full bg-latte-deep px-3 py-1 text-[10px] font-extrabold text-white disabled:opacity-40"
+                    >
+                      ➕ ใช้แมวที่เลือก
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOpenCustomerId(null)}
+                      className="rounded-full bg-paper px-3 py-1 text-[10px] font-bold text-brown-soft"
+                    >
+                      ยกเลิก
+                    </button>
+                  </div>
+                </div>
+              ) : (
                 <button
                   type="button"
-                  onClick={() => pick(c)}
+                  onClick={() => openCustomer(c)}
                   className="w-full rounded-catcha-sm bg-card px-3 py-2 text-left text-xs hover:bg-paper"
                 >
                   <span className="font-bold text-brown">{c.name}</span>
                   {c.lineUserId && (
                     <span className="ml-1 text-[10px] text-ok">LINE ✓</span>
                   )}
-                  <span className="block text-[10px] text-brown-faint">ยังไม่มีชื่อแมวในระบบ</span>
+                  <span className="block text-[10px] text-brown-faint">
+                    {c.cats.length > 0
+                      ? `🐱 ${c.cats.map((cat) => cat.name).join(", ")}`
+                      : "ยังไม่มีชื่อแมวในระบบ"}
+                  </span>
                 </button>
-              ) : (
-                c.cats.map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => pick(c, cat.name)}
-                    className="mb-1 w-full rounded-catcha-sm bg-card px-3 py-2 text-left text-xs hover:bg-paper"
-                  >
-                    <span className="font-bold text-brown">🐱 {cat.name}</span>
-                    <span className="text-brown-soft"> · {c.name}</span>
-                    {c.lineUserId && (
-                      <span className="ml-1 text-[10px] text-ok">LINE ✓</span>
-                    )}
-                    {c.isMember && <span className="text-latte-deep"> 💎</span>}
-                  </button>
-                ))
               )}
             </li>
           ))}
@@ -125,19 +190,22 @@ export default function NewBookingPage() {
   const presetDate = searchParams.get("date") || "";
   const [service, setService] = useState<"groom" | "room">("groom");
   const [saved, setSaved] = useState(false);
-  const [lastBooking, setLastBooking] = useState<{
-    id: string;
-    customerId?: string;
-    lineUserId?: string;
-    service: "groom" | "room";
-    catName: string;
-  } | null>(null);
+  const [lastBookings, setLastBookings] = useState<
+    {
+      id: string;
+      customerId?: string;
+      lineUserId?: string;
+      service: "groom" | "room";
+      catName: string;
+    }[]
+  >([]);
   const [rooms, setRooms] = useState<RoomType[]>([]);
   const [groomSlots, setGroomSlots] = useState<string[]>(["09:30", "12:30", "15:30"]);
   const [freebies_, setFreebies_] = useState<string[]>(FREEBIE_OPTIONS);
   const [customerId, setCustomerId] = useState("");
   const [customerName, setCustomerName] = useState("");
-  const [catName, setCatName] = useState("");
+  const [catNames, setCatNames] = useState<string[]>([]);
+  const [catInput, setCatInput] = useState("");
   const [lineUserId, setLineUserId] = useState("");
   const [freebies, setFreebies] = useState<string[]>([]);
   const [appointmentDate, setAppointmentDate] = useState(presetDate);
@@ -167,12 +235,33 @@ export default function NewBookingPage() {
       });
   }, []);
 
+  const addCatFromInput = () => {
+    const name = catInput.trim();
+    if (!name || catNames.includes(name)) return;
+    setCatNames((prev) => [...prev, name]);
+    setCatInput("");
+  };
+
+  const addUnknownCat = () => {
+    let name = "ยังไม่ระบุตัว";
+    let n = 2;
+    while (catNames.includes(name)) {
+      name = `ยังไม่ระบุตัว (${n})`;
+      n += 1;
+    }
+    setCatNames((prev) => [...prev, name]);
+  };
+
+  const removeCat = (name: string) => {
+    setCatNames((prev) => prev.filter((c) => c !== name));
+  };
+
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    const cat = String(fd.get("cat") || catName).trim();
-    if (!cat) {
-      toast("กรอกชื่อน้องแมวอย่างน้อย 1 ชื่อ", "error");
+    const cats = catNames.length > 0 ? catNames : catInput.trim() ? [catInput.trim()] : [];
+    if (cats.length === 0) {
+      toast("กรอกชื่อน้องแมวอย่างน้อย 1 ชื่อ (หรือกด “ยังไม่ทราบตัว”)", "error");
       return;
     }
 
@@ -181,11 +270,11 @@ export default function NewBookingPage() {
       ? `🎁 ของแถมฟรี: ${freebies.join(", ")}`
       : "";
     const notes = [noteBase, freebieLine].filter(Boolean).join("\n") || undefined;
+    const customerNameValue = String(fd.get("customer") || customerName).trim() || undefined;
 
-    const payload = {
+    const basePayload = {
       customerId: customerId || undefined,
-      customerName: String(fd.get("customer") || customerName).trim() || undefined,
-      catName: cat,
+      customerName: customerNameValue,
       lineUserId: lineUserId || undefined,
       service,
       date: service === "groom" ? String(fd.get("date") || "") : undefined,
@@ -196,33 +285,56 @@ export default function NewBookingPage() {
       notes,
     };
 
-    const res = await fetch("/api/bookings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const created: {
+      id: string;
+      customerId?: string;
+      lineUserId?: string;
+      service: "groom" | "room";
+      catName: string;
+    }[] = [];
+    let failed = 0;
 
-    if (res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setSaved(true);
-      if (data.booking?.id) {
-        setLastBooking({
-          id: data.booking.id,
-          customerId: data.customerId,
-          lineUserId: lineUserId || undefined,
-          service,
-          catName: cat,
-        });
+    for (const cat of cats) {
+      const res = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...basePayload, catName: cat }),
+      });
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (data.booking?.id) {
+          created.push({
+            id: data.booking.id,
+            customerId: data.customerId,
+            lineUserId: lineUserId || undefined,
+            service,
+            catName: cat,
+          });
+        }
+      } else {
+        failed += 1;
       }
+    }
+
+    if (created.length > 0) {
+      setSaved(true);
+      setLastBookings(created);
       setCustomerId("");
       setCustomerName("");
-      setCatName("");
+      setCatNames([]);
+      setCatInput("");
       setLineUserId("");
       setFreebies([]);
       e.currentTarget.reset();
       setTimeout(() => setSaved(false), 2500);
-    } else {
-      toast("บันทึกไม่สำเร็จ — ลองใหม่อีกครั้ง", "error");
+    }
+    if (failed > 0) {
+      toast(
+        created.length > 0
+          ? `บันทึกสำเร็จ ${created.length} ตัว แต่พลาด ${failed} ตัว — ลองใหม่ตัวที่เหลือ`
+          : "บันทึกไม่สำเร็จ — ลองใหม่อีกครั้ง",
+        "error"
+      );
     }
   };
 
@@ -233,34 +345,41 @@ export default function NewBookingPage() {
       </h1>
 
       {/* จองเสร็จแล้ว → ทำต่อได้เลยจากตรงนี้ */}
-      {lastBooking && (
-        <div className="mb-4 rounded-catcha border border-sage/50 bg-sage/10 p-4">
-          <p className="text-sm font-extrabold text-ok">
-            ✅ จอง{lastBooking.catName}แล้ว — ทำต่อได้เลย
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Link
-              href={`/admin/billing?bookingId=${lastBooking.id}`}
-              className="rounded-catcha-sm bg-honey/45 px-3 py-2 text-xs font-extrabold text-catcha-chocolate"
-            >
-              🧾 ออกบิลเลย
-            </Link>
+      {lastBookings.length > 0 && (
+        <div className="mb-4 space-y-3 rounded-catcha border border-sage/50 bg-sage/10 p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-extrabold text-ok">
+              ✅ จองแล้ว {lastBookings.length} ตัว: {lastBookings.map((b) => b.catName).join(", ")}
+            </p>
             <button
               type="button"
-              onClick={() => setLastBooking(null)}
-              className="rounded-catcha-sm bg-paper px-3 py-2 text-xs font-bold text-brown-soft"
+              onClick={() => setLastBookings([])}
+              className="shrink-0 rounded-catcha-sm bg-paper px-3 py-2 text-xs font-bold text-brown-soft"
             >
               จองอีกคน
             </button>
           </div>
-          <div className="mt-2 border-t border-sage/30 pt-2">
-            <CustomerSendButtons
-              bookingId={lastBooking.id}
-              customerId={lastBooking.customerId}
-              lineUserId={lastBooking.lineUserId}
-              service={lastBooking.service}
-            />
-          </div>
+          {lastBookings.map((b) => (
+            <div key={b.id} className="rounded-catcha-sm border border-sage/30 bg-card p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-extrabold text-catcha-chocolate">🐱 {b.catName}</p>
+                <Link
+                  href={`/admin/billing?bookingId=${b.id}`}
+                  className="shrink-0 rounded-catcha-sm bg-honey/45 px-3 py-1.5 text-[11px] font-extrabold text-catcha-chocolate"
+                >
+                  🧾 ออกบิลเลย
+                </Link>
+              </div>
+              <div className="mt-2 border-t border-catcha-line pt-2">
+                <CustomerSendButtons
+                  bookingId={b.id}
+                  customerId={b.customerId}
+                  lineUserId={b.lineUserId}
+                  service={b.service}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       )}
       {appointmentDate && (
@@ -296,8 +415,14 @@ export default function NewBookingPage() {
           onSelect={(data) => {
             setCustomerId(data.customerId);
             setCustomerName(data.customerName);
-            setCatName(data.catName);
             setLineUserId(data.lineUserId || "");
+            setCatNames((prev) => {
+              const merged = [...prev];
+              for (const n of data.catNames) {
+                if (!merged.includes(n)) merged.push(n);
+              }
+              return merged;
+            });
           }}
         />
 
@@ -308,14 +433,64 @@ export default function NewBookingPage() {
           onChange={setCustomerName}
           placeholder="ชื่อที่เห็นใน LINE"
         />
-        <Field
-          label="ชื่อน้องแมว *"
-          name="cat"
-          value={catName}
-          onChange={setCatName}
-          required
-          placeholder="รู้แค่ชื่อแมวก็บันทึกได้"
-        />
+
+        <div>
+          <label className="block text-xs font-bold text-brown-soft">น้องแมวที่มา *</label>
+
+          {catNames.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {catNames.map((name) => (
+                <span
+                  key={name}
+                  className="flex items-center gap-1 rounded-full bg-honey/30 px-3 py-1 text-xs font-bold text-catcha-chocolate"
+                >
+                  🐱 {name}
+                  <button
+                    type="button"
+                    onClick={() => removeCat(name)}
+                    className="ml-0.5 text-brown-faint hover:text-wait"
+                    aria-label={`เอา ${name} ออก`}
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-1.5 flex gap-2">
+            <input
+              value={catInput}
+              onChange={(e) => setCatInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addCatFromInput();
+                }
+              }}
+              placeholder="พิมพ์ชื่อแมว แล้วกด Enter หรือ ➕"
+              className="min-w-0 flex-1 rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm outline-none focus:border-latte-deep"
+            />
+            <button
+              type="button"
+              onClick={addCatFromInput}
+              disabled={!catInput.trim()}
+              className="shrink-0 rounded-catcha-sm bg-latte/25 px-3 py-2.5 text-sm font-extrabold text-catcha-chocolate disabled:opacity-40"
+            >
+              ➕
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={addUnknownCat}
+            className="mt-1.5 rounded-full bg-paper px-3 py-1.5 text-[11px] font-bold text-brown-soft"
+          >
+            ❓ ยังไม่ทราบตัว (จะแจ้งภายหลัง)
+          </button>
+          <p className="mt-1 text-[10px] text-brown-faint">
+            ทราบว่ามากี่ตัวแต่ไม่รู้ว่าตัวไหน กดปุ่มนี้ได้เลย — ใส่ชื่อจริงทีหลังตอนเช็คอินได้
+          </p>
+        </div>
 
         {lineUserId && (
           <p className="rounded-catcha-sm bg-sage/15 px-3 py-2 text-[10px] font-bold text-ok">

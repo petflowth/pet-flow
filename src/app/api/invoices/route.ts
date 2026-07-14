@@ -95,10 +95,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ invoices: await listTrashedInvoices() });
   }
 
-  // หาบิลล่าสุดที่ผูกกับนัดนี้ (ใช้จากปุ่มส่งการ์ดในการ์ดนัด)
+  // หาบิลที่ผูกกับนัดนี้ (ใช้จากปุ่มส่งการ์ดในการ์ดนัด)
+  // ถ้านัดนี้มีหลายบิล (เช่นออกบิลใหม่ทับของเดิม) ให้เอาบิลที่ยังไม่จ่ายก่อนเสมอ
+  // ไม่งั้นมัดจำที่เรียกเก็บจะไปผูกกับบิลเก่าที่จ่ายจบไปแล้ว แล้วบิลใหม่จะไม่เห็นมัดจำนั้นเลย
   if (bookingId) {
     const list = await listInvoices();
-    const inv = list.find((i) => i.bookingId === bookingId);
+    const matches = list.filter((i) => i.bookingId === bookingId);
+    const inv = matches.find((i) => i.status !== "paid") || matches[0];
     return NextResponse.json({ invoice: inv || null });
   }
 

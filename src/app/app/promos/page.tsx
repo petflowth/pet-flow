@@ -19,6 +19,7 @@ export default function PromosPage() {
   const { locale } = useLocale();
   const m = t(locale).promos;
   const [promos, setPromos] = useState<Promo[]>([]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     // kind=display เท่านั้น — โปรแบบ "customer" (โปรเด่นเฉพาะคุณ) โชว์ผ่าน
@@ -44,21 +45,37 @@ export default function PromosPage() {
             key={promo.id}
             className="overflow-hidden rounded-catcha border border-catcha-line bg-card shadow-catcha-sm"
           >
-            {promo.imageUrl ? (
+            {promo.imageUrl && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={promo.imageUrl} alt="" className="h-32 w-full object-cover" />
-            ) : (
-              <div className="bg-gradient-to-r from-catcha-yellow/50 to-honey/40 px-4 py-2">
-                <p className="text-sm font-extrabold text-catcha-chocolate">
-                  {promo.title[locale]}
-                  {promo.discountPercent ? ` · ${promo.discountPercent}%` : ""}
-                </p>
-              </div>
             )}
             <div className="p-4">
-              <p className="text-sm leading-relaxed text-brown-soft">
+              <p className="text-sm font-extrabold text-catcha-chocolate">
+                {promo.title[locale]}
+                {promo.discountPercent ? ` · ${promo.discountPercent}%` : ""}
+              </p>
+              <p
+                className={`mt-1 text-xs leading-relaxed text-brown-soft ${
+                  expandedId === promo.id ? "" : "line-clamp-2"
+                }`}
+              >
                 {promo.body[locale]}
               </p>
+              <button
+                type="button"
+                onClick={() =>
+                  setExpandedId((cur) => (cur === promo.id ? null : promo.id))
+                }
+                className="mt-0.5 text-[10px] font-bold text-latte-deep"
+              >
+                {expandedId === promo.id
+                  ? locale === "th"
+                    ? "▲ ย่อ"
+                    : "▲ Show less"
+                  : locale === "th"
+                    ? "รายละเอียดเพิ่มเติม ▾"
+                    : "More details ▾"}
+              </button>
               <p className="mt-3 text-[10px] font-bold text-brown-faint">
                 {m.until} {promo.until}
               </p>

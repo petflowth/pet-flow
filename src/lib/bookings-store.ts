@@ -231,16 +231,20 @@ export async function acceptBookingConsent(
 export async function addBooking(
   data: Omit<StoredBooking, "id" | "createdAt" | "status" | "calendarEventId">
 ) {
+  // ต่อเลขสุ่มท้าย timestamp กันชนกัน — ถ้าจองหลายตัวพร้อมกันเร็วมาก (เช่นจองทั้งบ้าน)
+  // Date.now() เพียวๆ มีโอกาสได้ id ซ้ำกันได้ถ้าสร้างในมิลลิวินาทีเดียวกัน แล้ว insert
+  // ตัวหลังจะชนคีย์ซ้ำ ทำให้ตัวนั้นหายไปเงียบๆ ทั้งที่ฝั่งลูกค้าเห็นว่าสำเร็จ
   const booking: StoredBooking = {
     ...data,
-    id: `B${Date.now()}`,
+    id: `B${Date.now()}${Math.random().toString(36).slice(2, 7)}`,
     status: "pending",
     createdAt: new Date().toISOString(),
   };
 
   const sb = getSupabase();
   if (sb) {
-    await sb.from("bookings").insert(storedToRow(booking));
+    const { error } = await sb.from("bookings").insert(storedToRow(booking));
+    if (error) throw new Error(`addBooking failed: ${error.message}`);
     return booking;
   }
 

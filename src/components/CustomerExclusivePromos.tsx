@@ -25,6 +25,7 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
     code?: string;
     pointsAwarded?: number;
   } | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!profile?.lineUserId) return;
@@ -139,7 +140,28 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
                     {promo.title[locale]}
                     {reward ? ` · ${reward}` : ""}
                   </p>
-                  <p className="mt-1 text-xs leading-relaxed text-brown-soft">{promo.body[locale]}</p>
+                  <p
+                    className={`mt-1 text-xs leading-relaxed text-brown-soft ${
+                      expandedId === promo.id ? "" : "line-clamp-2"
+                    }`}
+                  >
+                    {promo.body[locale]}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedId((cur) => (cur === promo.id ? null : promo.id))
+                    }
+                    className="mt-0.5 text-[10px] font-bold text-latte-deep"
+                  >
+                    {expandedId === promo.id
+                      ? locale === "th"
+                        ? "▲ ย่อ"
+                        : "▲ Show less"
+                      : locale === "th"
+                        ? "รายละเอียดเพิ่มเติม ▾"
+                        : "More details ▾"}
+                  </button>
                   <p className="mt-2 text-[10px] font-bold text-brown-faint">
                     {m.until} {promo.until}
                     {promo.validMonth ? ` · ${m.monthOnly} ${promo.validMonth}` : ""}

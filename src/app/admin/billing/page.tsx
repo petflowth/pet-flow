@@ -194,8 +194,13 @@ export default function BillingPage() {
   const [billFilter, setBillFilter] = useState<"all" | "pending" | "paid">("all");
   const [billSearch, setBillSearch] = useState("");
   const [billSort, setBillSort] = useState<
-    "date-desc" | "date-asc" | "amount-desc" | "due-desc"
-  >("date-desc");
+    | "date-desc"
+    | "date-asc"
+    | "issued-desc"
+    | "issued-asc"
+    | "amount-desc"
+    | "due-desc"
+  >("issued-desc");
   const [items, setItems] = useState<Item[]>([newGrooming()]);
   const [creating, setCreating] = useState(false);
   const [pay, setPay] = useState({ bankName: "", accountNumber: "", accountName: "" });
@@ -1245,8 +1250,10 @@ export default function BillingPage() {
           onChange={(e) => setBillSort(e.target.value as typeof billSort)}
           className="rounded-catcha-sm border border-catcha-line bg-paper px-2 py-1.5 text-xs font-bold text-brown-soft"
         >
-          <option value="date-desc">📅 วันล่าสุดก่อน</option>
-          <option value="date-asc">📅 วันเก่าก่อน</option>
+          <option value="issued-desc">🧾 ออกบิลล่าสุดก่อน</option>
+          <option value="issued-asc">🧾 ออกบิลเก่าก่อน</option>
+          <option value="date-desc">📅 วันนัดล่าสุดก่อน</option>
+          <option value="date-asc">📅 วันนัดเก่าก่อน</option>
           <option value="amount-desc">💰 ยอดมากสุด</option>
           <option value="due-desc">⏳ ค้างชำระมากสุด</option>
         </select>
@@ -1279,6 +1286,13 @@ export default function BillingPage() {
         list = [...list].sort((a, b) => {
           if (billSort === "amount-desc") return b.total - a.total;
           if (billSort === "due-desc") return dueOf(b) - dueOf(a);
+          if (billSort === "issued-asc" || billSort === "issued-desc") {
+            const ia = a.createdAt || "";
+            const ib = b.createdAt || "";
+            return billSort === "issued-asc"
+              ? ia < ib ? -1 : ia > ib ? 1 : 0
+              : ia > ib ? -1 : ia < ib ? 1 : 0;
+          }
           const da = serviceDate(a);
           const db = serviceDate(b);
           if (billSort === "date-asc") return da < db ? -1 : da > db ? 1 : 0;
@@ -1443,10 +1457,18 @@ export default function BillingPage() {
           );
         };
 
-        if (billSort === "date-desc" || billSort === "date-asc") {
+        if (
+          billSort === "date-desc" ||
+          billSort === "date-asc" ||
+          billSort === "issued-desc" ||
+          billSort === "issued-asc"
+        ) {
+          const isIssuedSort = billSort === "issued-desc" || billSort === "issued-asc";
           const groups: { date: string; bills: Invoice[] }[] = [];
           for (const inv of list) {
-            const d = serviceDate(inv);
+            const d = isIssuedSort
+              ? (inv.createdAt || "").slice(0, 10)
+              : serviceDate(inv);
             let g = groups.find((x) => x.date === d);
             if (!g) {
               g = { date: d, bills: [] };
@@ -1470,7 +1492,8 @@ export default function BillingPage() {
                   <div key={g.date || "no-date"}>
                     <div className="mb-2 flex items-center justify-between border-b border-catcha-line pb-1">
                       <span className="text-xs font-extrabold text-catcha-chocolate">
-                        📅 {g.date ? formatThaiDateShort(g.date) : "ไม่ระบุวัน"} ·{" "}
+                        {isIssuedSort ? "🧾" : "📅"}{" "}
+                        {g.date ? formatThaiDateShort(g.date) : "ไม่ระบุวัน"} ·{" "}
                         {g.bills.length} บิล
                       </span>
                       <span className="text-[11px] font-bold text-brown-soft">

@@ -108,6 +108,7 @@ export function CustomerSendButtons({
   const depositRequest = () => {
     // ถ้าบิลมีมัดจำอยู่แล้ว → ใช้ยอดนั้นเลย ไม่ต้องถามซ้ำ
     let amount = depForBill > 0 ? depForBill : 0;
+    const needsLinking = invId && depForBill <= 0; // บิลยังไม่มีมัดจำผูกไว้ — ผูกให้ตอนเรียกเก็บ
     if (amount <= 0) {
       const raw = prompt("เรียกเก็บมัดจำเท่าไหร่? (บาท)");
       if (raw == null) return;
@@ -119,13 +120,25 @@ export function CustomerSendButtons({
     }
     void call(
       "dep",
-      () =>
-        fetch("/api/invoices", {
+      async () => {
+        // ผูกมัดจำเข้ากับบิลนี้ก่อน — กันบิลไม่รู้ว่ามีมัดจำแล้ว ตอนแจ้งยอดคงเหลือจะได้หักถูก
+        if (needsLinking) {
+          await fetch("/api/invoices", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: invId, action: "update", deposit: amount }),
+          });
+          onDone?.();
+        }
+        return fetch("/api/invoices", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "send_deposit_request", customerId, amount }),
-        }),
-      `ส่งการ์ดเรียกเก็บมัดจำ ${amount.toLocaleString()} บาทแล้ว 📨`
+        });
+      },
+      needsLinking
+        ? `ส่งการ์ดเรียกเก็บมัดจำ ${amount.toLocaleString()} บาทแล้ว 📨 (ผูกกับบิลนี้แล้ว)`
+        : `ส่งการ์ดเรียกเก็บมัดจำ ${amount.toLocaleString()} บาทแล้ว 📨`
     );
   };
 

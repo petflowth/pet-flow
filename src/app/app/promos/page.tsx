@@ -47,7 +47,11 @@ export default function PromosPage() {
           >
             {promo.imageUrl && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={promo.imageUrl} alt="" className="h-32 w-full object-cover" />
+              <img
+                src={promo.imageUrl}
+                alt=""
+                className="h-auto max-h-64 w-full bg-honey/10 object-contain"
+              />
             )}
             <div className="p-4">
               <p className="line-clamp-1 text-sm font-extrabold text-catcha-chocolate">

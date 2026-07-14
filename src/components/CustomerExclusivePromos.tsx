@@ -139,7 +139,7 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
                   <img
                     src={promo.imageUrl}
                     alt={promo.title[locale]}
-                    className="h-40 w-full object-cover"
+                    className="h-auto max-h-64 w-full bg-honey/10 object-contain"
                   />
                 )}
                 <div className="p-4">

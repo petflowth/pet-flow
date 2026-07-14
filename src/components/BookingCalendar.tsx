@@ -8,7 +8,18 @@ import { InvoiceActionButtons } from "@/components/InvoiceActionButtons";
 import { bookingOnDate } from "@/lib/booking-customer-match";
 import { toast } from "@/components/Toast";
 
-type CalendarDay = EditableBooking & { customerId?: string; careNote?: string };
+type CalendarDay = EditableBooking & {
+  customerId?: string;
+  careNote?: string;
+  consentAcceptedAt?: string;
+};
+
+function formatThaiDateTime(iso: string) {
+  const d = new Date(iso);
+  const day = formatThaiDate(iso.slice(0, 10));
+  const time = d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+  return `${day} ${time} น.`;
+}
 
 function bookingWhen(b: CalendarDay) {
   if (b.service === "room" || b.checkin) {
@@ -274,6 +285,16 @@ export function BookingCalendar() {
                     <p className="text-xs text-brown-soft break-words">
                       {b.service === "room" ? "🏠 ห้องพัก" : "🛁 อาบน้ำ"} · {bookingWhen(b)}
                     </p>
+                    {b.service === "room" &&
+                      (b.consentAcceptedAt ? (
+                        <p className="mt-1 text-[11px] font-bold text-ok">
+                          ✅ ยอมรับข้อตกลงแล้ว เมื่อ {formatThaiDateTime(b.consentAcceptedAt)}
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-[11px] font-bold text-wait">
+                          ⏳ ยังไม่กดยอมรับข้อตกลง
+                        </p>
+                      ))}
                     {group
                       .filter((x) => x.careNote)
                       .map((x) => (

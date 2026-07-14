@@ -16,6 +16,7 @@ export function CustomerSendButtons({
   service,
   hasGroomService,
   invoiceDeposit = 0,
+  groomBookingIds,
   onDone,
 }: {
   lineUserId?: string;
@@ -26,6 +27,8 @@ export function CustomerSendButtons({
   /** บิลนี้มีรายการอาบน้ำ/กรูมรวมอยู่ด้วยไหม (ต่างหากจาก service หลักของนัด — เช่น เข้าพัก+อาบน้ำในบิลเดียว) */
   hasGroomService?: boolean;
   invoiceDeposit?: number;
+  /** ถ้านัดนี้เป็นการ์ดรวมหลายตัว (จองทั้งบ้าน) — bookingId ของทุกตัว เอาไว้ส่งการ์ดสอบถามประวัติแยกให้ครบทุกตัว */
+  groomBookingIds?: string[];
   onDone?: () => void;
 }) {
   const [busy, setBusy] = useState("");
@@ -80,6 +83,40 @@ export function CustomerSendButtons({
         }),
       okMsg
     );
+
+  // นัดที่จองทั้งบ้าน (หลายตัวพร้อมกัน) — ส่งการ์ดสอบถามประวัติแยกให้ครบทุกตัว ไม่ใช่แค่ตัวแรก
+  const sendGroomInfoAll = async () => {
+    const ids =
+      groomBookingIds && groomBookingIds.length > 0
+        ? groomBookingIds
+        : bookingId
+          ? [bookingId]
+          : [];
+    if (ids.length === 0) return;
+    setBusy("send_groom_info");
+    try {
+      const results = await Promise.all(
+        ids.map((id) =>
+          fetch("/api/bookings", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id, action: "send_groom_info", lineUserId }),
+          })
+        )
+      );
+      if (results.every((r) => r.ok)) {
+        toast(
+          ids.length > 1 ? `ส่งการ์ดสอบถามประวัติแล้ว ${ids.length} ตัว 🩺` : "ส่งการ์ดสอบถามประวัติน้องแล้ว 🩺",
+          "success"
+        );
+        onDone?.();
+      } else {
+        toast("ส่งไม่สำเร็จบางตัว — ตรวจ LINE / ตั้งค่า", "error");
+      }
+    } finally {
+      setBusy("");
+    }
+  };
 
   const invoiceSummary = (mode: string, okMsg: string) =>
     call(
@@ -174,8 +211,12 @@ export function CustomerSendButtons({
       {bookingId && (service === "groom" || hasGroomService) && (
         <Btn
           k="send_groom_info"
-          label="🩺 สอบถามประวัติก่อนอาบน้ำ"
-          onClick={() => bookingSend("send_groom_info", "ส่งการ์ดสอบถามประวัติน้องแล้ว 🩺")}
+          label={
+            groomBookingIds && groomBookingIds.length > 1
+              ? `🩺 สอบถามประวัติก่อนอาบน้ำ (${groomBookingIds.length} ตัว)`
+              : "🩺 สอบถามประวัติก่อนอาบน้ำ"
+          }
+          onClick={sendGroomInfoAll}
         />
       )}
       {bookingId && service === "room" && (

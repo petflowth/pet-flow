@@ -117,7 +117,7 @@ export function PointsRedeem({
                 <img
                   src={tier.imageUrl}
                   alt={tier.reward[locale]}
-                  className="h-28 w-full object-cover"
+                  className="h-auto max-h-48 w-full bg-honey/10 object-contain"
                 />
               )}
               <div className="flex flex-1 flex-col justify-between p-3">

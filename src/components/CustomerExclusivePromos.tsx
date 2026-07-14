@@ -85,9 +85,9 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
             <Link
               key={promo.id}
               href="/app/promos"
-              className="w-28 shrink-0"
+              className="w-36 shrink-0"
             >
-              <div className="h-28 w-28 overflow-hidden rounded-catcha border-2 border-honey/50 bg-honey/10 shadow-catcha-sm">
+              <div className="h-36 w-36 overflow-hidden rounded-catcha border-2 border-honey/50 bg-honey/10 shadow-catcha-sm">
                 {promo.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -96,10 +96,10 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-3xl">🎁</div>
+                  <div className="flex h-full items-center justify-center text-4xl">🎁</div>
                 )}
               </div>
-              <p className="mt-1 truncate text-center text-[10px] font-bold text-brown">
+              <p className="mt-1.5 truncate text-center text-xs font-bold text-brown">
                 {promo.title[locale]}
               </p>
             </Link>
@@ -134,23 +134,37 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
                     ✨ {m.featured}
                   </div>
                 )}
+                {promo.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={promo.imageUrl}
+                    alt={promo.title[locale]}
+                    className="h-40 w-full object-cover"
+                  />
+                )}
                 <div className="p-4">
-                  <p className="line-clamp-1 text-sm font-extrabold text-catcha-chocolate">
+                  <p className="line-clamp-1 text-base font-extrabold text-catcha-chocolate">
                     {promo.title[locale]}
                   </p>
-                  <p
-                    className={`mt-1 text-xs leading-relaxed text-brown-soft ${
-                      expandedId === promo.id ? "" : "line-clamp-2"
-                    }`}
-                  >
-                    {promo.body[locale]}
-                  </p>
+
+                  {expandedId === promo.id && (
+                    <>
+                      <p className="mt-1 text-xs leading-relaxed text-brown-soft">
+                        {promo.body[locale]}
+                      </p>
+                      <p className="mt-2 text-[10px] font-bold text-brown-faint">
+                        {m.until} {promo.until}
+                        {promo.validMonth ? ` · ${m.monthOnly} ${promo.validMonth}` : ""}
+                      </p>
+                    </>
+                  )}
+
                   <button
                     type="button"
                     onClick={() =>
                       setExpandedId((cur) => (cur === promo.id ? null : promo.id))
                     }
-                    className="mt-0.5 text-[10px] font-bold text-latte-deep"
+                    className="mt-1 text-xs font-bold text-latte-deep"
                   >
                     {expandedId === promo.id
                       ? locale === "th"
@@ -160,10 +174,6 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
                         ? "รายละเอียดเพิ่มเติม ▾"
                         : "More details ▾"}
                   </button>
-                  <p className="mt-2 text-[10px] font-bold text-brown-faint">
-                    {m.until} {promo.until}
-                    {promo.validMonth ? ` · ${m.monthOnly} ${promo.validMonth}` : ""}
-                  </p>
 
                   {promo.claimed ? (
                     <div className="mt-3 rounded-catcha-sm bg-sage/15 px-3 py-2 text-center">

@@ -426,6 +426,9 @@ export async function getCustomerPromos(lineUserId: string, now = new Date()): P
       Boolean(claim),
       now
     );
+    // ลูกค้าเห็นเฉพาะโปรที่ใช้ได้จริง (หรือเคยกดใช้แล้ว) — ไม่โชว์โปรที่ใช้ไม่ได้ให้เกะกะ
+    if (!eligible && !claim) continue;
+
     views.push({
       ...promo,
       claimed: Boolean(claim),

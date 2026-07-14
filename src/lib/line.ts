@@ -1731,6 +1731,12 @@ export function buildReviewRequestFlex(data: {
   reviewUrl: string;
   reviewLabel?: string;
 }) {
+  // แยกข้อความเป็นย่อหน้าตามบรรทัดว่าง ให้แต่ละย่อหน้ามีระยะห่างของตัวเองแทนที่จะอัดรวมเป็นก้อนเดียว
+  const paragraphs = data.body
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
   return {
     type: "flex",
     altText: data.title,
@@ -1742,13 +1748,20 @@ export function buildReviewRequestFlex(data: {
         layout: "vertical",
         backgroundColor: "#FBF4E9",
         paddingAll: "20px",
+        spacing: "xs",
         contents: [
-          { type: "text", text: "⭐⭐⭐⭐⭐", size: "xl", align: "center" },
+          {
+            type: "text",
+            text: "⭐ ⭐ ⭐ ⭐ ⭐",
+            size: "md",
+            align: "center",
+            color: "#C4956A",
+          },
           {
             type: "text",
             text: data.title,
             weight: "bold",
-            size: "lg",
+            size: "md",
             color: "#5C4033",
             align: "center",
             margin: "sm",
@@ -1760,26 +1773,28 @@ export function buildReviewRequestFlex(data: {
         type: "box",
         layout: "vertical",
         paddingAll: "18px",
-        contents: [
-          {
-            type: "text",
-            text: data.body,
-            size: "sm",
-            color: "#4E3E32",
-            wrap: true,
-          },
-        ],
+        spacing: "md",
+        contents: paragraphs.map((p) => ({
+          type: "text",
+          text: p,
+          size: "sm",
+          color: "#4E3E32",
+          wrap: true,
+        })),
       },
       footer: {
         type: "box",
         layout: "vertical",
         paddingAll: "12px",
+        spacing: "sm",
         contents: [
+          { type: "separator", color: "#F0E4D4" },
           {
             type: "button",
             style: "primary",
             color: "#C4956A",
             height: "md",
+            margin: "sm",
             action: {
               type: "uri",
               label: data.reviewLabel || "⭐ รีวิวให้เราหน่อยนะคะ",

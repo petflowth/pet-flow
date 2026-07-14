@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useLocale } from "@/components/LocaleProvider";
 import { useLiff } from "@/components/LiffProvider";
 import { t } from "@/lib/i18n";
@@ -72,6 +73,36 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
 
   // หน้าแรก (compact): ไม่มีโปร → ซ่อนทั้งช่องไปเลย (ไม่โชว์หัวข้อ/กล่องว่างแม้ตอนโหลด)
   if (compact && promos.length === 0 && !claimedInfo) return null;
+
+  // หน้าแรก: โชว์แค่ teaser สั้นๆ (ไม่เอารายละเอียดเต็ม/ปุ่มกดใช้) — แตะเพื่อไปดูหน้าโปรเต็ม
+  if (compact) {
+    const top = promos[0];
+    const reward = top ? promoRewardLabel(top) : "";
+    return (
+      <Link
+        href="/app/promos"
+        className="mb-4 flex items-center gap-3 rounded-catcha border border-honey/60 bg-gradient-to-r from-honey/30 to-card p-3.5 shadow-catcha-sm"
+      >
+        <span className="text-2xl leading-none">🎁</span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-extrabold text-catcha-chocolate">
+            {top?.title[locale] || m.title}
+            {reward ? ` · ${reward}` : ""}
+          </p>
+          <p className="mt-0.5 text-[10px] font-bold text-brown-soft">
+            {promos.length > 1
+              ? locale === "th"
+                ? `+ อีก ${promos.length - 1} โปร · แตะดูรายละเอียด`
+                : `+${promos.length - 1} more · Tap for details`
+              : locale === "th"
+                ? "แตะดูรายละเอียด"
+                : "Tap for details"}
+          </p>
+        </div>
+        <span className="shrink-0 text-latte-deep">→</span>
+      </Link>
+    );
+  }
 
   return (
     <section className={compact ? "mb-4" : ""}>

@@ -145,7 +145,13 @@ export function CustomerSendButtons({
     );
 
   const depositRequest = () => {
-    // ถ้าบิลมีมัดจำอยู่แล้ว → ใช้ยอดนั้นเลย ไม่ต้องถามซ้ำ
+    // ถ้าบิลมีมัดจำอยู่แล้ว → เคยเรียกเก็บไปแล้ว กันส่งซ้ำโดยไม่ตั้งใจ ต้องกดยืนยันอีกที
+    if (depForBill > 0) {
+      const ok = confirm(
+        `เรียกเก็บมัดจำนัดนี้ไปแล้ว ${depForBill.toLocaleString()} บาท — ต้องการส่งการ์ดซ้ำอีกครั้งไหม?`
+      );
+      if (!ok) return;
+    }
     let amount = depForBill > 0 ? depForBill : 0;
     if (amount <= 0) {
       const raw = prompt("เรียกเก็บมัดจำเท่าไหร่? (บาท)");
@@ -241,7 +247,15 @@ export function CustomerSendButtons({
       )}
 
       {customerId && (
-        <Btn k="dep" label="💰 เรียกเก็บมัดจำ" onClick={depositRequest} />
+        <Btn
+          k="dep"
+          label={
+            depForBill > 0
+              ? `💰 ขอมัดจำแล้ว (${depForBill.toLocaleString()}฿)`
+              : "💰 เรียกเก็บมัดจำ"
+          }
+          onClick={depositRequest}
+        />
       )}
 
       {invId && (

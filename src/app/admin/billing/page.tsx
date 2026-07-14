@@ -477,6 +477,20 @@ export default function BillingPage() {
     if (cust) await pickCustomer(cust);
     else setSearch(bk.customerName);
 
+    // นัดนี้เคยออกบิลไปแล้วหรือยัง — 1 นัดออกได้แค่ 1 บิลเท่านั้น
+    // มีบิลค้างอยู่แล้ว → เปิดมาแก้ไขบิลเดิมแทนสร้างซ้ำ, จ่ายจบแล้ว → ห้ามออกซ้ำ
+    const matches = invoices.filter((i) => i.bookingId === bk.id);
+    const existing = matches.find((i) => i.status !== "paid") || matches[0];
+    if (existing) {
+      if (existing.status === "paid") {
+        toast("นัดนี้ออกบิลและชำระแล้ว — แก้ไขไม่ได้ (1 นัดออกบิลได้ 1 ใบเท่านั้น)", "error");
+        return;
+      }
+      toast("นัดนี้มีบิลค้างอยู่แล้ว — เปิดมาแก้ไขบิลเดิมให้แทน", "info");
+      editInvoice(existing);
+      return;
+    }
+
     if (bk.service === "room") {
       // นัดเก็บ room เป็น id → จับคู่กับ id ก่อน แล้วค่อย fallback เป็นชื่อ
       const matched =

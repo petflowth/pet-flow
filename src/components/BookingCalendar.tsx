@@ -31,6 +31,61 @@ function bookingWhen(b: CalendarDay) {
   return `${b.date} ${b.time || ""}`.trim();
 }
 
+/** ปุ่ม "ออกบิล" ที่รู้สถานะบิลของนัดนี้ — กันออกบิลซ้ำ (1 นัด = 1 บิลเท่านั้น) */
+function BillButton({ bookingId }: { bookingId: string }) {
+  const [inv, setInv] = useState<{ id: string; status: string; total: number } | null | undefined>(
+    undefined
+  );
+
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/invoices?bookingId=${bookingId}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (alive) setInv(d.invoice || null);
+      })
+      .catch(() => {
+        if (alive) setInv(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [bookingId]);
+
+  if (inv === undefined) {
+    return (
+      <span className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-bold text-brown-faint">
+        🧾 …
+      </span>
+    );
+  }
+  if (inv?.status === "paid") {
+    return (
+      <span className="rounded-full bg-ok/15 px-2.5 py-1 text-[10px] font-extrabold text-ok">
+        ✅ บิลปิดแล้ว ({inv.total.toLocaleString()}฿)
+      </span>
+    );
+  }
+  if (inv) {
+    return (
+      <Link
+        href={`/admin/billing?bookingId=${bookingId}`}
+        className="rounded-full bg-honey/45 px-2.5 py-1 text-[10px] font-extrabold text-catcha-chocolate"
+      >
+        🧾 แก้ไขบิล ({inv.total.toLocaleString()}฿ · ค้างอยู่)
+      </Link>
+    );
+  }
+  return (
+    <Link
+      href={`/admin/billing?bookingId=${bookingId}`}
+      className="rounded-full bg-honey/45 px-2.5 py-1 text-[10px] font-extrabold text-catcha-chocolate"
+    >
+      🧾 ออกบิล
+    </Link>
+  );
+}
+
 /** กลุ่มบ้านเดียวกัน + นัดเดียวกัน (บริการ/วัน/เวลาตรงกัน) — เอาไว้รวมการ์ดหลายตัวในบ้านเดียวกัน */
 function groupKey(b: CalendarDay) {
   return [
@@ -69,6 +124,7 @@ export function BookingCalendar() {
   const [selectedDate, setSelectedDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<CalendarDay | null>(null);
+  const [zoomSignature, setZoomSignature] = useState<string | null>(null);
   const [rooms, setRooms] = useState<{ id: string; name: string; size: string; price: number }[]>([]);
   const [groomSlots, setGroomSlots] = useState<string[]>(["09:30", "12:30", "15:30"]);
   const queueRef = useRef<HTMLElement>(null);
@@ -295,12 +351,19 @@ export function BookingCalendar() {
                             ✅ ยอมรับข้อตกลงแล้ว เมื่อ {formatThaiDateTime(b.consentAcceptedAt)}
                           </p>
                           {b.consentSignature && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={b.consentSignature}
-                              alt="ลายเซ็นลูกค้า"
-                              className="h-6 w-14 rounded border border-catcha-line bg-white object-contain"
-                            />
+                            <button
+                              type="button"
+                              onClick={() => setZoomSignature(b.consentSignature!)}
+                              className="shrink-0"
+                              title="กดดูลายเซ็นแบบเต็ม"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={b.consentSignature}
+                                alt="ลายเซ็นลูกค้า — กดเพื่อดูขยาย"
+                                className="h-6 w-14 rounded border border-catcha-line bg-white object-contain"
+                              />
+                            </button>
                           )}
                         </div>
                       ) : (
@@ -387,12 +450,7 @@ export function BookingCalendar() {
                   >
                     📲 iCal
                   </a>
-                  <Link
-                    href={`/admin/billing?bookingId=${b.id}`}
-                    className="rounded-full bg-honey/45 px-2.5 py-1 text-[10px] font-extrabold text-catcha-chocolate"
-                  >
-                    🧾 ออกบิล
-                  </Link>
+                  <BillButton bookingId={b.id} />
                 </div>
                 <div className="mt-2 border-t border-catcha-line pt-2">
                   <CustomerSendButtons
@@ -411,6 +469,31 @@ export function BookingCalendar() {
           )}
         </ul>
       </section>
+
+      {zoomSignature && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
+          onClick={() => setZoomSignature(null)}
+        >
+          <div
+            className="max-w-md rounded-catcha bg-white p-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="mb-2 text-xs font-bold text-brown-soft">
+              ✍️ ลายเซ็นยืนยันตัวตนของลูกค้า
+            </p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={zoomSignature} alt="ลายเซ็นลูกค้าแบบเต็ม" className="w-full" />
+            <button
+              type="button"
+              onClick={() => setZoomSignature(null)}
+              className="mt-3 w-full rounded-catcha-sm bg-paper py-2 text-xs font-bold text-brown-soft"
+            >
+              ปิด
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

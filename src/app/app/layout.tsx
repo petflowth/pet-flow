@@ -2,6 +2,7 @@ import { LocaleProvider } from "@/components/LocaleProvider";
 import { LiffProvider } from "@/components/LiffProvider";
 import { ConfigProvider } from "@/components/ConfigProvider";
 import { CustomerNav } from "@/components/CustomerNav";
+import { LiffStuckBanner } from "@/components/LiffStuckBanner";
 
 export default function CustomerLayout({
   children,
@@ -13,6 +14,7 @@ export default function CustomerLayout({
       <ConfigProvider>
         <LiffProvider>
           <div className="bg-catcha-gradient min-h-screen pb-28">
+            <LiffStuckBanner />
             <div className="mx-auto max-w-lg">{children}</div>
             <CustomerNav />
           </div>

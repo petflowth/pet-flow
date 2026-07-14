@@ -156,6 +156,15 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
     }
 
     initLiff();
+
+    // ถ้าล็อกอิน LINE ค้างระหว่างทาง (redirect ไม่กลับมา) อย่าค้างจอเปล่าตลอดไป
+    const stuckTimer = setTimeout(() => {
+      setReady((r) => {
+        if (!r) setError("เข้าสู่ระบบช้ากว่าปกติ — ลองแตะปุ่มด้านล่างเพื่อโหลดใหม่");
+        return r;
+      });
+    }, 10000);
+    return () => clearTimeout(stuckTimer);
   }, []);
 
   useEffect(() => {

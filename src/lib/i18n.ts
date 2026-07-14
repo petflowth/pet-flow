@@ -4,6 +4,7 @@ const messages = {
   th: {
     nav: {
       home: "หน้าแรก",
+      services: "บริการ",
       rooms: "ห้องพัก",
       grooming: "อาบน้ำ",
       bookings: "คิวของฉัน",
@@ -124,6 +125,7 @@ const messages = {
   en: {
     nav: {
       home: "Home",
+      services: "Services",
       rooms: "Rooms",
       grooming: "Grooming",
       bookings: "Bookings",

@@ -7,10 +7,16 @@ import { t } from "@/lib/i18n";
 
 const tabs = [
   { href: "/app", key: "home" as const, icon: "🏠", match: (p: string) => p === "/app" },
-  { href: "/app/rooms", key: "rooms" as const, icon: "🛏️", match: (p: string) => p.startsWith("/app/rooms") },
-  { href: "/app/grooming", key: "grooming" as const, icon: "🛁", match: (p: string) => p.startsWith("/app/grooming") },
+  {
+    href: "/app/services",
+    key: "services" as const,
+    icon: "✨",
+    match: (p: string) =>
+      p.startsWith("/app/services") || p.startsWith("/app/rooms") || p.startsWith("/app/grooming"),
+  },
   { href: "/app/bookings", key: "bookings" as const, icon: "📅", match: (p: string) => p.startsWith("/app/bookings") },
-  { href: "/app/points", key: "points" as const, icon: "⭐", match: (p: string) => p.startsWith("/app/points") || p.startsWith("/app/promos") },
+  { href: "/app/promos", key: "promos" as const, icon: "🎉", match: (p: string) => p.startsWith("/app/promos") },
+  { href: "/app/points", key: "points" as const, icon: "⭐", match: (p: string) => p.startsWith("/app/points") },
 ];
 
 export function CustomerNav() {

@@ -14,7 +14,7 @@ import {
   restoreInvoice,
   listTrashedInvoices,
 } from "@/lib/invoices-store";
-import { getCustomer } from "@/lib/customers-store";
+import { getCustomer, adjustDepositCredit } from "@/lib/customers-store";
 import { issueCoupon, listCustomerCoupons } from "@/lib/coupons-store";
 import { getPaymentConfig } from "@/lib/payment-config";
 import { getSiteConfig } from "@/lib/config-store";
@@ -136,6 +136,17 @@ export async function POST(req: NextRequest) {
         /* คอร์สหมด/ไม่เจอ — ไม่ทำให้บิลพัง */
       }
     }
+    if (invoice.autoAppliedCredit > 0) {
+      await sendTelegram(
+        formatBookingTelegram("💰 หักมัดจำล่วงหน้าเข้าบิลอัตโนมัติ", {
+          ลูกค้า: invoice.customerName,
+          น้องแมว: invoice.catName,
+          มัดจำที่หักให้: `${invoice.autoAppliedCredit} บาท`,
+          บิล: invoice.id,
+          หมายเหตุ: "เคยเรียกเก็บมัดจำไว้ก่อนออกบิล — ระบบหักให้แล้ว",
+        })
+      );
+    }
     return NextResponse.json({ ok: true, invoice });
   }
 
@@ -147,6 +158,15 @@ export async function POST(req: NextRequest) {
     const customer = await getCustomer(body.customerId);
     if (!customer?.lineUserId) {
       return NextResponse.json({ error: "no_line" }, { status: 400 });
+    }
+    // ผูกมัดจำให้ทันทีที่เรียกเก็บ ไม่ว่าจะกดจากที่ไหน:
+    // - มีบิลอยู่แล้ว → ผูกเข้าบิลนั้นเลย (โผล่ปุ่ม "รับมัดจำแล้ว" + หักยอดคงเหลือถูกต้อง)
+    // - ยังไม่มีบิล → พักไว้เป็นเครดิตมัดจำล่วงหน้าของลูกค้า จะหักอัตโนมัติตอนออกบิลถัดไป
+    const linkInvoiceId = body.invoiceId ? String(body.invoiceId) : undefined;
+    if (linkInvoiceId) {
+      await updateInvoice(linkInvoiceId, { deposit: amount });
+    } else {
+      await adjustDepositCredit(body.customerId, amount);
     }
     const msgs = (await getSiteConfig()).messages;
     const payment = await getPaymentConfig();

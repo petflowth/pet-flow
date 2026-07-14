@@ -1509,49 +1509,85 @@ export function buildReceiptFlex(data: {
   pointsEarned: number;
   paymentMethod: string;
 }) {
-  const body: Record<string, unknown>[] = [
-    {
-      type: "text",
-      text: "🧾 ใบเสร็จ CatCha Hotel",
-      weight: "bold",
-      size: "lg",
-      color: "#5C4033",
-    },
-    {
-      type: "text",
-      text: `${data.catName} · ${data.customerName}`,
-      size: "sm",
-      color: "#A2907E",
-      margin: "md",
-    },
-    {
-      type: "text",
-      text: `เลขที่ ${data.invoiceId}`,
-      size: "xs",
-      color: "#A2907E",
-      margin: "sm",
-    },
-    {
-      type: "text",
-      text: `ชำระแล้ว ${data.total.toLocaleString()} บาท (${data.paymentMethod})`,
-      weight: "bold",
-      size: "md",
-      color: "#4E3E32",
-      margin: "lg",
-    },
-    {
-      type: "text",
-      text: `🎁 ได้รับ ${data.pointsEarned} แต้มสะสม`,
-      size: "sm",
-      color: "#C4956A",
-      margin: "md",
-    },
-  ];
-
   const bubble: Record<string, unknown> = {
     type: "bubble",
     size: "mega",
-    body: { type: "box", layout: "vertical", contents: body },
+    header: {
+      type: "box",
+      layout: "vertical",
+      backgroundColor: "#C4956A",
+      paddingAll: "18px",
+      contents: [
+        { type: "text", text: "🧾 ใบเสร็จรับเงิน", color: "#FFFFFF", weight: "bold", size: "lg" },
+        { type: "text", text: "CatCha Hotel", color: "#FFFFFF", size: "xs", margin: "xs" },
+      ],
+    },
+    body: {
+      type: "box",
+      layout: "vertical",
+      paddingAll: "18px",
+      contents: [
+        flexDetailRow("🐱", "ลูกค้า", `${data.catName} · ${data.customerName}`),
+        flexDetailRow("🔖", "เลขที่", data.invoiceId),
+        { type: "separator", margin: "lg", color: "#EFE3D2" },
+        {
+          type: "box",
+          layout: "vertical",
+          margin: "lg",
+          paddingAll: "16px",
+          backgroundColor: "#FBF4E9",
+          cornerRadius: "12px",
+          spacing: "xs",
+          contents: [
+            { type: "text", text: "ชำระแล้ว", size: "sm", color: "#A2907E", align: "center" },
+            {
+              type: "text",
+              text: `${data.total.toLocaleString()} บาท`,
+              weight: "bold",
+              size: "3xl",
+              color: "#4A7348",
+              align: "center",
+            },
+            {
+              type: "text",
+              text: `(${data.paymentMethod})`,
+              size: "xs",
+              color: "#A2907E",
+              align: "center",
+            },
+          ],
+        },
+        {
+          type: "box",
+          layout: "horizontal",
+          margin: "lg",
+          paddingAll: "12px",
+          backgroundColor: "#F4ECE0",
+          cornerRadius: "10px",
+          contents: [
+            { type: "text", text: "🎁 แต้มสะสมที่ได้รับ", size: "sm", color: "#5C4033", flex: 3 },
+            {
+              type: "text",
+              text: `+${data.pointsEarned}`,
+              weight: "bold",
+              size: "md",
+              color: "#C4956A",
+              align: "end",
+              flex: 2,
+            },
+          ],
+        },
+        {
+          type: "text",
+          text: "ขอบคุณที่ไว้วางใจ CatCha Hotel นะคะ 🧡",
+          size: "xs",
+          color: "#A2907E",
+          margin: "lg",
+          align: "center",
+          wrap: true,
+        },
+      ],
+    },
   };
 
   return {

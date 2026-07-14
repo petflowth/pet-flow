@@ -719,18 +719,26 @@ export default function BillingPage() {
         <div>
           <p className="mb-1 text-xs font-bold text-brown-soft">ลูกค้า</p>
           {selected ? (
-            <div className="flex items-center justify-between gap-2 rounded-catcha-sm border border-latte/50 bg-latte/10 px-3 py-2">
-              <span className="min-w-0 truncate text-sm font-bold text-brown">
-                🐱 {selected.cats[0]?.name || "—"} · {selected.name}
-                {selected.isMember ? ` · 💎 ${selected.memberCredit}฿` : ""}
-              </span>
-              <button
-                type="button"
-                onClick={clearCustomer}
-                className="shrink-0 text-xs font-bold text-wait"
-              >
-                ✕ เปลี่ยน
-              </button>
+            <div className="rounded-catcha-sm border border-latte/50 bg-latte/10 px-3 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="min-w-0 truncate text-sm font-bold text-brown">
+                  🐱 {selected.cats[0]?.name || "—"} · {selected.name}
+                  {selected.isMember ? ` · 💎 ${selected.memberCredit}฿` : ""}
+                </span>
+                <button
+                  type="button"
+                  onClick={clearCustomer}
+                  className="shrink-0 text-xs font-bold text-wait"
+                >
+                  ✕ เปลี่ยน
+                </button>
+              </div>
+              {(selected.depositCredit ?? 0) > 0 && (
+                <p className="mt-1.5 text-[11px] font-bold text-ok">
+                  💰 มีเครดิตมัดจำล่วงหน้า {selected.depositCredit!.toLocaleString()} บาท —
+                  ออกบิลนี้จะหักให้อัตโนมัติ
+                </p>
+              )}
             </div>
           ) : (
             <div className="relative">

@@ -223,7 +223,23 @@ export async function createInvoice(data: {
   const extra = Math.max(0, Math.round(data.extraDiscount || 0));
   const discount = Math.min(subtotal, promoDiscount + extra);
   const total = subtotal - discount;
-  const deposit = Math.min(total, Math.max(0, Math.round(data.deposit || 0)));
+  let deposit = Math.min(total, Math.max(0, Math.round(data.deposit || 0)));
+
+  // มัดจำที่เคยเรียกเก็บไว้ล่วงหน้า (ยังไม่ผูกบิลไหน — เช่น เรียกเก็บจากหน้าปฏิทินก่อนออกบิล)
+  // หักเข้าบิลนี้ให้อัตโนมัติ กันลืมว่าเคยรับมัดจำไปแล้ว
+  let autoAppliedCredit = 0;
+  if (data.customerId && deposit < total) {
+    const customer = await getCustomer(data.customerId);
+    const available = customer?.depositCredit || 0;
+    if (available > 0) {
+      autoAppliedCredit = Math.min(available, total - deposit);
+      if (autoAppliedCredit > 0) {
+        deposit += autoAppliedCredit;
+        await adjustDepositCredit(data.customerId, -autoAppliedCredit);
+      }
+    }
+  }
+
   const invoice: InvoiceRecord = {
     id: `INV${Date.now()}`,
     customerId: data.customerId,
@@ -249,7 +265,7 @@ export async function createInvoice(data: {
     mem.unshift(invoice);
   }
 
-  return invoice;
+  return { ...invoice, autoAppliedCredit };
 }
 
 /**

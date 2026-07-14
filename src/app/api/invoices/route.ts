@@ -27,6 +27,7 @@ import {
   buildReceiptFlex,
   buildMemberBalanceFlex,
   buildReviewRequestFlex,
+  reviewMessageFor,
 } from "@/lib/line";
 import { renderTemplate } from "@/lib/messages";
 import { redeemCoupon } from "@/lib/coupons-store";
@@ -283,13 +284,16 @@ export async function PATCH(req: NextRequest) {
     if (!reviewUrl) {
       return NextResponse.json({ error: "no_review_url" }, { status: 400 });
     }
+    const hasGroom = (inv.items || []).some(
+      (it) =>
+        it.kind === "grooming" || /อาบน้ำ|กรูม|premium|malaseb/i.test(it.label)
+    );
+    const hasRoom = (inv.items || []).some((it) => /คืน|ห้อง/.test(it.label));
+    const msg = reviewMessageFor(hasGroom, hasRoom);
     await pushLineMessage(inv.lineUserId, [
       buildReviewRequestFlex({
-        title: "⭐ ขอบคุณที่ใช้บริการค่ะ",
-        body: renderTemplate(cfg.messages.reviewRequest, {
-          shop: biz.name,
-          cat: inv.catName,
-        }),
+        title: msg.title,
+        body: msg.body,
         reviewUrl,
         reviewLabel: biz.reviewButtonText,
       }),
@@ -321,28 +325,6 @@ export async function PATCH(req: NextRequest) {
 
     const paid = result.invoice!;
     const customer = result.customer;
-    const biz = (await getSiteConfig()).business;
-
-    // รีวิวเฉพาะเมื่อใช้บริการแล้ว — บิลที่มี "ห้องพัก" (แม้จะพ่วงอาบน้ำ) ให้ยึดแบบโรงแรม
-    // = รีวิวได้ต่อเมื่อเช็คเอาท์แล้ว · อาบน้ำล้วน = รีวิวได้เลย (บริการจบวันนั้น)
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const billHasRoom = (paid.items || []).some((it) => /คืน|ห้อง/.test(it.label));
-    let roomCheckout: string | undefined;
-    if (paid.bookingId) {
-      const linkedBooking = await getBooking(paid.bookingId);
-      if (
-        linkedBooking &&
-        (linkedBooking.service === "room" || linkedBooking.checkin) &&
-        linkedBooking.checkout
-      ) {
-        roomCheckout = linkedBooking.checkout;
-      }
-    }
-    const showReview = billHasRoom
-      ? roomCheckout
-        ? roomCheckout <= todayStr
-        : false
-      : true;
 
     if (paid.lineUserId) {
       await pushLineMessage(paid.lineUserId, [
@@ -358,10 +340,6 @@ export async function PATCH(req: NextRequest) {
               : paid.paymentMethod === "cash"
                 ? "เงินสด"
                 : "โอนเงิน",
-          mapsUrl: biz.maps || BUSINESS.maps,
-          reviewUrl: biz.reviewUrl,
-          reviewLabel: biz.reviewButtonText,
-          showReview,
         }),
       ]);
 

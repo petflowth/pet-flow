@@ -1508,11 +1508,6 @@ export function buildReceiptFlex(data: {
   total: number;
   pointsEarned: number;
   paymentMethod: string;
-  mapsUrl: string;
-  reviewUrl?: string;
-  reviewLabel?: string;
-  /** โชว์ปุ่มรีวิวไหม — ปิดตอนจ่ายล่วงหน้าก่อนใช้บริการ (ห้องพักยังไม่เช็คเอาท์) */
-  showReview?: boolean;
 }) {
   const body: Record<string, unknown>[] = [
     {
@@ -1553,42 +1548,11 @@ export function buildReceiptFlex(data: {
     },
   ];
 
-  if (data.showReview === false) {
-    body.push({
-      type: "text",
-      text: "ขอบคุณที่วางใจให้เราดูแลน้องนะคะ 🧡 แล้วเจอกันวันเข้าพักค่ะ",
-      size: "xs",
-      color: "#A2907E",
-      margin: "lg",
-      wrap: true,
-    });
-  }
-
   const bubble: Record<string, unknown> = {
     type: "bubble",
     size: "mega",
     body: { type: "box", layout: "vertical", contents: body },
   };
-
-  if (data.showReview !== false) {
-    bubble.footer = {
-      type: "box",
-      layout: "vertical",
-      spacing: "sm",
-      contents: [
-        {
-          type: "button",
-          style: "link",
-          height: "sm",
-          action: {
-            type: "uri",
-            label: data.reviewLabel || "⭐ รีวิวให้เราหน่อยนะคะ",
-            uri: data.reviewUrl || data.mapsUrl,
-          },
-        },
-      ],
-    };
-  }
 
   return {
     type: "flex",
@@ -1697,6 +1661,30 @@ export function buildCouponOfferFlex(data: {
         ],
       },
     },
+  };
+}
+
+/** เลือกข้อความขอรีวิวให้ตรงกับบริการที่ใช้จริงในบิล — อาบน้ำ / เข้าพัก / ทั้งคู่ */
+export function reviewMessageFor(hasGroom: boolean, hasRoom: boolean): {
+  title: string;
+  body: string;
+} {
+  if (hasRoom && hasGroom) {
+    return {
+      title: "🧡 ขอบคุณที่เลือก CatCha Hotel ดูแลน้องนะคะ",
+      body: "หวังว่าน้องจะกลับบ้านไปพร้อมความสุข และคุณพ่อคุณแม่จะอุ่นใจทุกครั้งที่ใช้บริการกับเรา 🐾\n\nถ้าประทับใจในการดูแลของเรา\nฝากรีวิว ⭐⭐⭐⭐⭐ ให้ทีมงานสักนิดนะคะ\n\nทุกรีวิวมีความหมายกับพวกเรามาก และเป็นกำลังใจให้ตั้งใจดูแลน้อง ๆ ทุกตัวต่อไปค่ะ 🤍",
+    };
+  }
+  if (hasRoom) {
+    return {
+      title: "⭐ ขอบคุณที่ไว้วางใจ CatCha Hotel นะคะ 🧡",
+      body: "ตลอดช่วงที่น้องเข้าพัก พวกเราตั้งใจดูแลเหมือนเป็นหนึ่งในครอบครัว หวังว่าน้องจะกลับบ้านไปอย่างมีความสุขนะคะ 🐱✨\n\nหากประทับใจการเข้าพักของน้อง\nฝากรีวิว ⭐⭐⭐⭐⭐ ให้ CatCha Hotel สัก 1 รีวิว\nจะเป็นกำลังใจให้ทีมงาน และช่วยให้ผู้ปกครองแมวท่านอื่นตัดสินใจเลือกที่พักได้ง่ายขึ้นค่ะ 💛",
+    };
+  }
+  // อาบน้ำล้วน (ค่าเริ่มต้นถ้าตรวจไม่พบรายการห้องพัก)
+  return {
+    title: "⭐ ขอบคุณที่ไว้วางใจ CatCha Hotel นะคะ 🧡",
+    body: "หวังว่าน้องจะกลับบ้านไปตัวหอม นุ่มฟู และมีความสุขนะคะ 🐱✨\nถ้าประทับใจบริการของเรา\nฝากกด ⭐⭐⭐⭐⭐ และเขียนรีวิวสั้น ๆ ให้ทีมงานหน่อยนะคะ\nรีวิวของคุณคือกำลังใจเล็ก ๆ\nที่ทำให้พวกเราตั้งใจดูแลน้องแมวทุกตัวให้ดีที่สุดเลยค่ะ 💕",
   };
 }
 

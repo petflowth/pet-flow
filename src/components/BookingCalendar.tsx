@@ -265,7 +265,11 @@ export function BookingCalendar() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-brown break-words">
-                      {catNames} · {b.customerName}
+                      👤 {b.customerName}
+                      <span className="ml-2 font-normal text-brown-soft">
+                        🐱 {catNames}
+                        {group.length > 1 ? ` (${group.length} ตัว)` : ""}
+                      </span>
                     </p>
                     <p className="text-xs text-brown-soft break-words">
                       {b.service === "room" ? "🏠 ห้องพัก" : "🛁 อาบน้ำ"} · {bookingWhen(b)}

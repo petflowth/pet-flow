@@ -76,6 +76,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "ลงทะเบียนไม่สำเร็จ" }, { status: 500 });
   }
 
+  // ── แจ้งเตือนลูกค้าสมัครใหม่ ──
+  try {
+    const catNames = customer.cats.map((c) => c.name).filter(Boolean).join(", ") || "-";
+    await sendTelegram(
+      formatBookingTelegram("🆕 ลูกค้าสมัครสมาชิกใหม่", {
+        ชื่อ: customer.name,
+        เบอร์: customer.phone || "-",
+        น้องแมว: catNames,
+        ช่องทาง: referralSource || "-",
+      })
+    );
+  } catch (e) {
+    console.error("new customer notify failed:", e);
+  }
+
   // ── ชวนเพื่อน: บันทึกว่าถูกชวนมาโดยใคร (ยังไม่ออกคูปอง) ──
   // คูปองจะจ่ายให้ทั้งคู่ตอนเพื่อน "มาใช้บริการครั้งแรก" (กันปั๊มบัญชีปลอมรับคูปอง)
   const refCode = String(body.referralCode || "").trim();

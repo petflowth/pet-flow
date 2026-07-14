@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findCustomerByLine } from "@/lib/customers-store";
 import { getOffer, claimOffer } from "@/lib/coupons-store";
+import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 
 /** ข้อมูลแคมเปญคูปอง (สำหรับหน้ากดรับ) */
 export async function GET(req: NextRequest) {
@@ -39,5 +40,14 @@ export async function POST(req: NextRequest) {
       { status: res.error === "already_claimed" ? 200 : 400 }
     );
   }
+  const offer = await getOffer(offerId);
+  await sendTelegram(
+    formatBookingTelegram("🎟️ ลูกค้ากดรับคูปองแล้ว", {
+      ลูกค้า: cust.name,
+      แคมเปญ: offer?.title || offerId,
+      มูลค่า: `${(res.coupon?.amount ?? offer?.amount ?? 0).toLocaleString()} บาท`,
+      รหัสคูปอง: res.coupon?.id || "-",
+    })
+  );
   return NextResponse.json({ ok: true, coupon: res.coupon });
 }

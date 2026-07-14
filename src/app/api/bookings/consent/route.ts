@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { acceptBookingConsent } from "@/lib/bookings-store";
+import { acceptBookingConsent, getBooking } from "@/lib/bookings-store";
+import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 
 /** ลูกค้ากด "ยอมรับข้อตกลง" ก่อนเข้าพัก */
 export async function POST(req: NextRequest) {
@@ -19,6 +20,22 @@ export async function POST(req: NextRequest) {
   if (!res.ok && res.error === "forbidden") {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
+
+  if (res.ok) {
+    const b = await getBooking(bookingId);
+    if (b) {
+      await sendTelegram(
+        formatBookingTelegram("✅ ลูกค้ายอมรับข้อตกลงก่อนเข้าพักแล้ว", {
+          น้องแมว: b.catName,
+          ลูกค้า: b.customerName,
+          เข้าพัก: `${b.checkin || b.date || "-"}${b.checkout ? ` → ${b.checkout}` : ""}`,
+          ลายเซ็น: signature ? "มี ✍️" : "ไม่ได้เซ็น",
+          ...(careNote ? { "การดูแลเพิ่มเติม": careNote } : {}),
+        })
+      );
+    }
+  }
+
   return NextResponse.json({
     ok: res.ok,
     acceptedAt: res.ok ? res.acceptedAt : undefined,

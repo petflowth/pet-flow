@@ -88,6 +88,9 @@ export async function GET(req: NextRequest) {
       consentAcceptedAt: b.consentAcceptedAt,
       consentSignature: b.consentSignature,
       careNote: b.careNote,
+      arrivalTime: b.arrivalTime,
+      pickupTime: b.pickupTime,
+      groomHealthInfo: b.groomHealthInfo,
       customerId: customer?.id,
     };
   });

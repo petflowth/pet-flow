@@ -13,6 +13,8 @@ type CalendarDay = EditableBooking & {
   careNote?: string;
   consentAcceptedAt?: string;
   consentSignature?: string;
+  arrivalTime?: string;
+  pickupTime?: string;
 };
 
 function formatThaiDateTime(iso: string) {
@@ -306,6 +308,13 @@ export function BookingCalendar() {
                           ⏳ ยังไม่กดยอมรับข้อตกลง
                         </p>
                       ))}
+                    {(b.arrivalTime || b.pickupTime) && (
+                      <p className="mt-1 text-[11px] font-bold text-latte-deep">
+                        {b.arrivalTime && `🚗 ลูกค้าแจ้งเวลาส่งน้อง: ${b.arrivalTime}`}
+                        {b.arrivalTime && b.pickupTime && " · "}
+                        {b.pickupTime && `🚗 ลูกค้าแจ้งเวลารับน้อง: ${b.pickupTime}`}
+                      </p>
+                    )}
                     {group
                       .filter((x) => x.careNote)
                       .map((x) => (

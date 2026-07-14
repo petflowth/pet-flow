@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findCustomerByLine, updateCat } from "@/lib/customers-store";
+import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,7 +45,14 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const cat = customer.cats.find((c) => c.id === catId);
     await updateCat(customer.id, catId, { photoDataUrl });
+    await sendTelegram(
+      formatBookingTelegram("📷 ลูกค้าอัปโหลดรูปน้องแมวแล้ว", {
+        ลูกค้า: customer.name,
+        น้องแมว: cat?.name || catId,
+      })
+    );
     return NextResponse.json({ ok: true });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);

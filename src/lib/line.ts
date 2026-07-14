@@ -153,7 +153,7 @@ export function buildAppointmentConfirmFlex(booking: {
 
   const noteText =
     booking.notes?.trim() ||
-    "หมายเหตุ แพ้อาหาร/ต้องการอาหารพิเศษ หรือมีความต้องการอื่น แจ้งในแชท LINE ได้เลยค่ะ";
+    "หากมีรายละเอียดอื่นๆ เพิ่มเติม สามารถแจ้งในแชท LINE ได้เลยนะคะ";
 
   const altText = `ยืนยันนัด ${booking.catName} — ${dateText}`;
 

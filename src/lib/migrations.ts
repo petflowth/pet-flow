@@ -119,6 +119,10 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     name: "customer_packages.table",
     sql: "create table if not exists customer_packages (id text primary key, customer_id text, name text, total_uses integer not null default 0, used_uses integer not null default 0, price numeric not null default 0, status text not null default 'active', created_at timestamptz not null default now());",
   },
+  {
+    name: "cats.media",
+    sql: "alter table cats add column if not exists media jsonb not null default '[]'::jsonb;",
+  },
 ];
 
 export type MigrateResult = {

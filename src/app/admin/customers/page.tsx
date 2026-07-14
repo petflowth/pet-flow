@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import type { CatRecord, CustomerRecord, MemberCreditUsageRecord, MemberTopupRecord } from "@/lib/customers-store";
 import type { CustomerTier } from "@/lib/customer-tier";
 import { toJpegDataUrl } from "@/lib/image-convert";
+import { CatMediaGallery } from "@/components/CatMediaGallery";
 import { TIER_LABELS, tierBadgeClass } from "@/lib/customer-tier";
 import { catCurrentAgeLabel } from "@/lib/cat-age";
 import { RegistrationQrSection } from "@/components/LineSetupSection";
@@ -1245,7 +1246,7 @@ export default function CustomersPage() {
                     );
                   })()}
                   <label className="mt-2 block text-[10px] font-bold text-latte-deep">
-                    📷 อัปโหลดรูป (เห็นเฉพาะหลังบ้าน)
+                    📷 รูปโปรไฟล์ (ลูกค้าเห็นในแอปด้วย)
                     <input
                       type="file"
                       accept="image/*"
@@ -1256,6 +1257,8 @@ export default function CustomersPage() {
                       }}
                     />
                   </label>
+
+                  <CatMediaGallery customerId={c.id} cat={cat} onSaved={() => open(c.id)} />
                 </div>
               </div>
             </div>

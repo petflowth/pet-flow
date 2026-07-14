@@ -19,7 +19,12 @@ import { calcPromoDiscount } from "./promos-store";
 import { addPoints } from "./points-store";
 import { getSupabase } from "./supabase/server";
 
-export type InvoiceItem = { label: string; amount: number };
+export type InvoiceItem = {
+  label: string;
+  amount: number;
+  /** ประเภทรายการ — ใช้เช็คว่าบิลนี้มีอาบน้ำ/กรูมรวมอยู่ไหม (แม่นกว่าเดารูปแบบข้อความ) */
+  kind?: "grooming" | "room" | "service" | "custom" | "freebie";
+};
 
 export type InvoiceRecord = {
   id: string;

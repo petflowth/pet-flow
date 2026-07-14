@@ -55,7 +55,8 @@ export async function POST(req: NextRequest) {
       id: result.customer.id,
       name: result.customer.name,
       phone: result.customer.phone,
-      cats: result.customer.cats,
+      // ตัด staffPrivateNote/staffNote (โน้ตลับร้าน) ออกก่อนส่งให้ฝั่งลูกค้าเสมอ
+      cats: result.customer.cats.map((cat) => ({ id: cat.id, name: cat.name })),
       tier: result.customer.tier,
     },
   });

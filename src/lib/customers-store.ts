@@ -31,6 +31,16 @@ export type CatRecord = {
   staffPrivateNote?: string;
   /** ประวัติน้องก่อนอาบน้ำ (JSON) — เก็บถาวรที่แมว ถามครั้งแรกครั้งเดียว */
   groomHealthInfo?: string;
+  /** อัลบั้มรูป/วิดีโออ้างอิงหน้าตา-นิสัยแมว — เก็บหลังบ้านเท่านั้น ลูกค้าไม่เห็น (ต้องรัน migration cats.media ก่อน) */
+  media?: CatMediaItem[];
+};
+
+export type CatMediaItem = {
+  id: string;
+  type: "photo" | "video";
+  dataUrl: string;
+  caption?: string;
+  createdAt: string;
 };
 
 export type CustomerRecord = {
@@ -116,6 +126,7 @@ type CatRow = {
   staff_note: string | null;
   staff_private_note?: string | null;
   groom_health_info?: string | null;
+  media?: CatMediaItem[] | null;
 };
 
 type CustomerRow = {
@@ -224,6 +235,7 @@ function mapCustomer(row: CustomerRow): CustomerRecord {
       staffNote: c.staff_note ?? undefined,
       staffPrivateNote: c.staff_private_note ?? undefined,
       groomHealthInfo: c.groom_health_info ?? undefined,
+      media: Array.isArray(c.media) ? c.media : undefined,
     })),
   };
 }
@@ -1036,6 +1048,37 @@ export async function updateCatPrivateNote(
         .from("cats")
         .update({ staff_private_note: trimmed || null })
         .eq("id", catId);
+      if (error) {
+        return { ok: false as const, error: "need_sql", message: error.message };
+      }
+    } catch (e) {
+      return { ok: false as const, error: "need_sql", message: String(e) };
+    }
+  } else {
+    memCustomers.set(customerId, c);
+  }
+  return { ok: true as const };
+}
+
+/**
+ * บันทึกอัลบั้มรูป/วิดีโออ้างอิงของแมว (แทนที่ทั้งชุด — ฝั่งแอดมินส่ง array ที่แก้แล้วมา).
+ * ต้องรัน migration "cats.media" ก่อนถึงจะบันทึกลง DB ได้ —
+ * ถ้ายังไม่มีคอลัมน์ จะ return need_sql โดยไม่ทำให้หน้าแอดมินพัง.
+ */
+export async function updateCatMedia(
+  customerId: string,
+  catId: string,
+  media: CatMediaItem[]
+) {
+  const c = await getCustomer(customerId);
+  if (!c) return { ok: false as const, error: "not_found" };
+  const cat = c.cats.find((x) => x.id === catId);
+  if (!cat) return { ok: false as const, error: "not_found" };
+  cat.media = media;
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { error } = await sb.from("cats").update({ media }).eq("id", catId);
       if (error) {
         return { ok: false as const, error: "need_sql", message: error.message };
       }

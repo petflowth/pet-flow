@@ -48,7 +48,7 @@ type Invoice = {
   bookingId?: string;
   depositReceivedAt?: string;
   createdAt?: string;
-  items?: { label: string; amount: number }[];
+  items?: { label: string; amount: number; kind?: string }[];
 };
 
 type Booking = {
@@ -539,7 +539,9 @@ export default function BillingPage() {
     setCreating(true);
     const cat = selected.cats[0]?.name || "น้องแมว";
     // เก็บของแถม (ฟรี) ด้วย — label มี แต่ยอด 0
-    const payloadItems = lines.filter((l) => l.label.trim());
+    const payloadItems = items
+      .map((it, i) => ({ ...lines[i], kind: it.kind }))
+      .filter((l) => l.label.trim());
 
     if (editingId) {
       // แก้ไขบิลเดิม
@@ -1343,6 +1345,11 @@ export default function BillingPage() {
                     ? "room"
                     : "groom"
                 }
+                hasGroomService={inv.items?.some(
+                  (it) =>
+                    it.kind === "grooming" ||
+                    /อาบน้ำ|กรูม|premium|malaseb/i.test(it.label)
+                )}
                 invoiceDeposit={inv.deposit ?? 0}
                 onDone={load}
               />

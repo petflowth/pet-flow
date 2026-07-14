@@ -6,6 +6,8 @@ import {
   updateCustomer,
   updateCat,
   updateCatPrivateNote,
+  updateCatMedia,
+  type CatMediaItem,
   addCat,
   deleteCat,
   deleteCustomer,
@@ -100,6 +102,18 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "not found" }, { status: 404 });
     }
     // ถ้ายังไม่ได้รัน SQL (ไม่มีคอลัมน์) จะได้ need_sql — ไม่ถือว่า error ร้ายแรง
+    return NextResponse.json({
+      ok: res.ok,
+      needSql: !res.ok && res.error === "need_sql",
+    });
+  }
+
+  if (action === "update_cat_media") {
+    const media = Array.isArray(body.media) ? (body.media as CatMediaItem[]) : [];
+    const res = await updateCatMedia(id, body.catId, media);
+    if (!res.ok && res.error === "not_found") {
+      return NextResponse.json({ error: "not found" }, { status: 404 });
+    }
     return NextResponse.json({
       ok: res.ok,
       needSql: !res.ok && res.error === "need_sql",

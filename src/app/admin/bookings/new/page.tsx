@@ -243,10 +243,10 @@ export default function NewBookingPage() {
   };
 
   const addUnknownCat = () => {
-    let name = "ยังไม่ระบุตัว";
+    let name = "น้องไม่ระบุชื่อ";
     let n = 2;
     while (catNames.includes(name)) {
-      name = `ยังไม่ระบุตัว (${n})`;
+      name = `น้องไม่ระบุชื่อ (${n})`;
       n += 1;
     }
     setCatNames((prev) => [...prev, name]);

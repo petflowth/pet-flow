@@ -76,29 +76,35 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
 
   // หน้าแรก: โชว์แค่ teaser สั้นๆ (ไม่เอารายละเอียดเต็ม/ปุ่มกดใช้) — แตะเพื่อไปดูหน้าโปรเต็ม
   if (compact) {
-    const top = promos[0];
     return (
-      <Link
-        href="/app/promos"
-        className="mb-4 flex items-center gap-3 rounded-catcha border border-honey/60 bg-gradient-to-r from-honey/30 to-card p-3.5 shadow-catcha-sm"
-      >
-        <span className="text-2xl leading-none">🎁</span>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-extrabold text-catcha-chocolate">
-            {top?.title[locale] || m.title}
-          </p>
-          <p className="mt-0.5 text-[10px] font-bold text-brown-soft">
-            {promos.length > 1
-              ? locale === "th"
-                ? `+ อีก ${promos.length - 1} โปร · แตะดูรายละเอียด`
-                : `+${promos.length - 1} more · Tap for details`
-              : locale === "th"
-                ? "แตะดูรายละเอียด"
-                : "Tap for details"}
-          </p>
+      <section className="mb-4">
+        <h2 className="mb-2 text-sm font-extrabold text-catcha-chocolate">🎁 {m.title}</h2>
+        <div className="flex gap-3 overflow-x-auto pb-1">
+          {promos.map((promo) => (
+            <Link
+              key={promo.id}
+              href="/app/promos"
+              className="w-28 shrink-0"
+            >
+              <div className="h-28 w-28 overflow-hidden rounded-catcha border-2 border-honey/50 bg-honey/10 shadow-catcha-sm">
+                {promo.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={promo.imageUrl}
+                    alt={promo.title[locale]}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-3xl">🎁</div>
+                )}
+              </div>
+              <p className="mt-1 truncate text-center text-[10px] font-bold text-brown">
+                {promo.title[locale]}
+              </p>
+            </Link>
+          ))}
         </div>
-        <span className="shrink-0 text-latte-deep">→</span>
-      </Link>
+      </section>
     );
   }
 

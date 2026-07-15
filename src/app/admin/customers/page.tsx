@@ -1284,20 +1284,39 @@ export default function CustomersPage() {
                   </label>
                   {(() => {
                     const gi = parseGroomInfo(cat.groomHealthInfo);
-                    if (!gi) return null;
+                    if (!gi) {
+                      return (
+                        <div className="mt-2 rounded-catcha-sm border border-catcha-line bg-paper/60 px-2 py-1.5">
+                          <p className="text-[10px] font-extrabold text-brown-faint">
+                            🩺 ประวัติก่อนอาบน้ำ — ลูกค้ายังไม่ได้กรอก
+                          </p>
+                        </div>
+                      );
+                    }
                     const s = groomInfoSummary(gi);
                     return (
-                      <div className="mt-2 rounded-catcha-sm border border-sage/40 bg-sage/10 px-2 py-1.5">
-                        <p className="text-[10px] font-extrabold text-ok">
-                          🩺 ประวัติก่อนอาบน้ำ (ลูกค้ากรอกไว้)
-                        </p>
-                        <ul className="mt-1 space-y-0.5 text-[10px] text-brown">
+                      <div className="mt-2 rounded-catcha-sm border border-sage/40 bg-sage/10 px-2 py-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[10px] font-extrabold text-ok">
+                            🩺 ประวัติก่อนอาบน้ำ (ลูกค้ากรอกไว้)
+                          </p>
+                          {gi.submittedAt && (
+                            <p className="text-[9px] text-brown-faint">
+                              {new Date(gi.submittedAt).toLocaleString("th-TH", {
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                              })}
+                            </p>
+                          )}
+                        </div>
+                        <dl className="mt-1.5 space-y-1 text-[10px] text-brown">
                           {Object.entries(s).map(([k, v]) => (
-                            <li key={k}>
-                              <span className="text-brown-soft">{k}:</span> {v}
-                            </li>
+                            <div key={k} className="flex gap-2">
+                              <dt className="w-24 shrink-0 font-bold text-brown-soft">{k}</dt>
+                              <dd className="min-w-0 flex-1 break-words">{v}</dd>
+                            </div>
                           ))}
-                        </ul>
+                        </dl>
                       </div>
                     );
                   })()}

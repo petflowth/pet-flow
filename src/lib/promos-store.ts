@@ -441,6 +441,42 @@ export async function getCustomerPromos(lineUserId: string, now = new Date()): P
   return views;
 }
 
+/**
+ * บันทึกว่าลูกค้าใช้สิทธิ์โปรนี้ไปแล้ว — เรียกจากตอนออกบิลที่พนักงานเลือกโปรจาก dropdown เอง
+ * (ต่างจาก claimCustomerPromo ที่ลูกค้ากดใช้เองในแอป) ไม่เช็คเงื่อนไขซ้ำและไม่แจกแต้มโบนัส
+ * เพราะส่วนลด/แต้มจากยอดบิลคำนวณให้ในบิลอยู่แล้ว — แค่กันไม่ให้เห็นว่ายังใช้ได้อีกในแอป
+ */
+export async function recordAdminPromoClaim(
+  promoId: string,
+  customerId: string,
+  customerName: string,
+  lineUserId?: string
+) {
+  const existing = await getClaimForCustomer(promoId, customerId);
+  if (existing) return existing;
+
+  const promo = await getPromo(promoId);
+  const claim: PromoClaimRecord = {
+    id: `CL${Date.now()}`,
+    promoId,
+    customerId,
+    lineUserId,
+    customerName,
+    promoTitle: promo?.title.th || promoId,
+    source: "admin",
+    createdAt: new Date().toISOString(),
+  };
+
+  const sb = getSupabase();
+  if (sb) {
+    const { error } = await sb.from("promo_claims").insert(claimToRow(claim));
+    if (error) return undefined;
+  } else {
+    memClaims.unshift(claim);
+  }
+  return claim;
+}
+
 export async function claimCustomerPromo(
   promoId: string,
   lineUserId: string,

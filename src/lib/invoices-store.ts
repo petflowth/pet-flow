@@ -15,7 +15,7 @@ import {
   deleteInvoicePaymentIncome,
   listFinance,
 } from "./finance-store";
-import { calcPromoDiscount } from "./promos-store";
+import { calcPromoDiscount, recordAdminPromoClaim } from "./promos-store";
 import { addPoints } from "./points-store";
 import { getSupabase } from "./supabase/server";
 
@@ -263,6 +263,16 @@ export async function createInvoice(data: {
     await sb.from("invoices").insert(invoiceToRow(invoice));
   } else {
     mem.unshift(invoice);
+  }
+
+  // เลือกโปรจาก dropdown ตอนออกบิล → บันทึกว่าลูกค้าใช้สิทธิ์แล้ว กันเห็นเป็นใช้ได้อีกในแอป
+  if (data.promoId && data.customerId) {
+    await recordAdminPromoClaim(
+      data.promoId,
+      data.customerId,
+      data.customerName,
+      data.lineUserId
+    );
   }
 
   return { ...invoice, autoAppliedCredit };

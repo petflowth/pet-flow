@@ -42,6 +42,7 @@ function GroomInfoContent() {
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [attempted, setAttempted] = useState(false);
 
   useEffect(() => {
     if (ids.length === 0) {
@@ -90,8 +91,23 @@ function GroomInfoContent() {
       })
     );
 
+  const isMissing = (f: CatForm) => ({
+    bathedBefore: !f.bathedBefore,
+    temperament: f.temperament.length === 0,
+    health: f.health.length === 0,
+  });
+
   const submit = async () => {
     if (forms.length === 0) return;
+    setAttempted(true);
+    const hasMissing = forms.some((f) => {
+      const m = isMissing(f);
+      return m.bathedBefore || m.temperament || m.health;
+    });
+    if (hasMissing) {
+      setSaveError("กรุณาตอบให้ครบทุกข้อ (ช่องที่ติ๊กเลือก) ก่อนส่งข้อมูลนะคะ 🙏");
+      return;
+    }
     setSaving(true);
     setSaveError("");
     try {
@@ -194,7 +210,9 @@ function GroomInfoContent() {
             </p>
           )}
 
-          {forms.map((f, idx) => (
+          {forms.map((f, idx) => {
+            const missing = isMissing(f);
+            return (
             <div
               key={f.id}
               className="mt-4 rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm"
@@ -206,8 +224,13 @@ function GroomInfoContent() {
                 </p>
               )}
 
-              <p className="mt-3 mb-1.5 text-xs font-bold text-brown-soft">
-                เคยอาบน้ำที่อื่นมาก่อนไหมคะ หรือว่าครั้งแรก
+              <p
+                className={`mt-3 mb-1.5 text-xs font-bold ${
+                  attempted && missing.bathedBefore ? "text-wait" : "text-brown-soft"
+                }`}
+              >
+                เคยอาบน้ำที่อื่นมาก่อนไหมคะ หรือว่าครั้งแรก *
+                {attempted && missing.bathedBefore && " — กรุณาเลือก"}
               </p>
               <div className="flex gap-2">
                 <Chip
@@ -222,8 +245,13 @@ function GroomInfoContent() {
                 />
               </div>
 
-              <p className="mt-3 mb-1.5 text-xs font-bold text-brown-soft">
-                นิสัยตอนถูกจับ/อาบน้ำ (เลือกได้หลายข้อ)
+              <p
+                className={`mt-3 mb-1.5 text-xs font-bold ${
+                  attempted && missing.temperament ? "text-wait" : "text-brown-soft"
+                }`}
+              >
+                นิสัยตอนถูกจับ/อาบน้ำ (เลือกได้หลายข้อ) *
+                {attempted && missing.temperament && " — กรุณาเลือกอย่างน้อย 1 ข้อ"}
               </p>
               <div className="flex flex-wrap gap-2">
                 {TEMPERAMENT.map((t) => (
@@ -236,8 +264,13 @@ function GroomInfoContent() {
                 ))}
               </div>
 
-              <p className="mt-3 mb-1.5 text-xs font-bold text-brown-soft">
-                สุขภาพ (เลือกได้หลายข้อ)
+              <p
+                className={`mt-3 mb-1.5 text-xs font-bold ${
+                  attempted && missing.health ? "text-wait" : "text-brown-soft"
+                }`}
+              >
+                สุขภาพ (เลือกได้หลายข้อ) *
+                {attempted && missing.health && " — กรุณาเลือกอย่างน้อย 1 ข้อ"}
               </p>
               <div className="flex flex-wrap gap-2">
                 {HEALTH.map((h) => (
@@ -271,7 +304,8 @@ function GroomInfoContent() {
                 className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
               />
             </div>
-          ))}
+            );
+          })}
 
           {saveError && (
             <p className="mt-4 rounded-catcha-sm bg-wait/10 px-3 py-2 text-xs font-bold text-wait">

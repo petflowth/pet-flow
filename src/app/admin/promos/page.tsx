@@ -442,16 +442,34 @@ export default function PromosAdminPage() {
               </option>
             ))}
           </select>
-          <select
-            value={broadcastInactive}
-            onChange={(e) => setBroadcastInactive(Number(e.target.value))}
-            className="min-w-0 rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs"
-          >
-            <option value={0}>⏱️ ไม่จำกัดเวลา</option>
-            <option value={30}>หายไป &gt; 30 วัน</option>
-            <option value={60}>หายไป &gt; 60 วัน</option>
-            <option value={90}>หายไป &gt; 90 วัน</option>
-          </select>
+          <div className="flex min-w-0 items-center gap-1 rounded-catcha-sm border border-catcha-line bg-card px-2 py-1">
+            <span className="shrink-0 text-xs">⏱️ หายไป &gt;</span>
+            <input
+              type="number"
+              min={0}
+              value={broadcastInactive || ""}
+              onChange={(e) => setBroadcastInactive(Math.max(0, Number(e.target.value) || 0))}
+              placeholder="0"
+              className="w-full min-w-0 border-0 bg-transparent px-0 py-1 text-xs outline-none"
+            />
+            <span className="shrink-0 text-xs">วัน</span>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {[30, 60, 90].map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setBroadcastInactive(d)}
+              className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                broadcastInactive === d
+                  ? "bg-latte-deep text-card"
+                  : "bg-paper text-brown-soft"
+              }`}
+            >
+              &gt; {d} วัน
+            </button>
+          ))}
         </div>
         {(broadcastBreed || broadcastInactive > 0) && (
           <button

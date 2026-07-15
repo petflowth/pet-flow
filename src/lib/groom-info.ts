@@ -34,9 +34,7 @@ export type GroomHealthInfo = {
   note?: string;
   /** ได้รับวัคซีนแล้วหรือไม่ */
   vaccinated?: string;
-  /** สี/ลักษณะเด่น */
-  colorMarkings?: string;
-  /** น้ำหนักตัว */
+  /** น้ำหนักตัว (โดยประมาณ) — ค่า "unknown" แปลว่าลูกค้าติ๊กไม่ทราบ */
   weight?: string;
   /** วิธีการอาบน้ำที่เคยใช้ */
   dryMethod?: string;
@@ -68,8 +66,7 @@ export function groomInfoSummary(info: GroomHealthInfo): Record<string, string> 
       (info.health || []).map((h) => GROOM_HEALTH_LABELS[h] || h).join(", ") || "-",
     ได้รับวัคซีนแล้ว:
       info.vaccinated === "yes" ? "ใช่" : info.vaccinated === "no" ? "ไม่" : "-",
-    "สี/ลักษณะเด่น": info.colorMarkings || "-",
-    น้ำหนักตัว: info.weight || "-",
+    น้ำหนักตัว: info.weight === "unknown" ? "ไม่ทราบ" : info.weight || "-",
     วิธีอาบน้ำที่เคยใช้: info.dryMethod ? GROOM_DRY_METHOD_LABELS[info.dryMethod] || info.dryMethod : "-",
     แพ้: info.allergy || "-",
     เพิ่มเติม: info.note || "-",

@@ -12,8 +12,8 @@ type CatForm = {
   temperament: string[];
   health: string[];
   vaccinated: string;
-  colorMarkings: string;
   weight: string;
+  weightUnknown: boolean;
   dryMethod: string;
   allergy: string;
   note: string;
@@ -82,8 +82,8 @@ function GroomInfoContent() {
             temperament: d.info?.temperament || [],
             health: d.info?.health || [],
             vaccinated: d.info?.vaccinated || "",
-            colorMarkings: d.info?.colorMarkings || "",
-            weight: d.info?.weight || "",
+            weight: d.info?.weight === "unknown" ? "" : d.info?.weight || "",
+            weightUnknown: d.info?.weight === "unknown",
             dryMethod: d.info?.dryMethod || "",
             allergy: d.info?.allergy || "",
             note: d.info?.note || "",
@@ -145,8 +145,7 @@ function GroomInfoContent() {
                 temperament: f.temperament,
                 health: f.health,
                 vaccinated: f.vaccinated,
-                colorMarkings: f.colorMarkings,
-                weight: f.weight,
+                weight: f.weightUnknown ? "unknown" : f.weight,
                 dryMethod: f.dryMethod,
                 allergy: f.allergy,
                 note: f.note,
@@ -330,25 +329,30 @@ function GroomInfoContent() {
               </div>
 
               <p className="mt-3 mb-1 text-xs font-bold text-brown-soft">
-                สี/ลักษณะเด่นของน้อง — ถ้าไม่มีเว้นว่างได้
-              </p>
-              <input
-                value={f.colorMarkings}
-                onChange={(e) => patch(idx, { colorMarkings: e.target.value })}
-                placeholder="เช่น สีขาวสลับดำ มีจุดที่หู"
-                className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
-              />
-
-              <p className="mt-3 mb-1 text-xs font-bold text-brown-soft">
-                น้ำหนักตัวน้อง (กก.) — ถ้าไม่ทราบเว้นว่างได้
+                น้ำหนักตัวน้อง (กก.) — บอกคร่าวๆ ได้
               </p>
               <input
                 value={f.weight}
                 onChange={(e) => patch(idx, { weight: e.target.value })}
+                disabled={f.weightUnknown}
                 placeholder="เช่น 4.5"
                 inputMode="decimal"
-                className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
+                className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm disabled:opacity-50"
               />
+              <label className="mt-1.5 flex items-center gap-1.5 text-[11px] text-brown-soft">
+                <input
+                  type="checkbox"
+                  checked={f.weightUnknown}
+                  onChange={(e) =>
+                    patch(idx, {
+                      weightUnknown: e.target.checked,
+                      weight: e.target.checked ? "" : f.weight,
+                    })
+                  }
+                  className="h-3.5 w-3.5"
+                />
+                ไม่ทราบน้ำหนัก
+              </label>
 
               <p
                 className={`mt-3 mb-1.5 text-xs font-bold ${

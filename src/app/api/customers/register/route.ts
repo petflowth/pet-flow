@@ -15,6 +15,7 @@ type CatBody = {
   birthday?: string;
   medical?: string;
   furLength?: string;
+  color?: string;
   staffNote?: string;
 };
 
@@ -29,6 +30,7 @@ export async function POST(req: NextRequest) {
   const referralSource = String(body.referralSource || "").trim();
   const address = String(body.address || "").trim();
   const addressMapUrl = String(body.addressMapUrl || "").trim();
+  const postalCode = String(body.postalCode || "").trim();
   const marketingConsent = body.marketingConsent !== false;
   const cats = Array.isArray(body.cats)
     ? body.cats.map((c: CatBody) => ({
@@ -45,6 +47,7 @@ export async function POST(req: NextRequest) {
         medical: c.medical ? String(c.medical) : undefined,
         furLength:
           c.furLength === "short" || c.furLength === "long" ? c.furLength : undefined,
+        color: c.color ? String(c.color) : undefined,
         staffNote: c.staffNote ? String(c.staffNote) : undefined,
       }))
     : [];
@@ -70,6 +73,7 @@ export async function POST(req: NextRequest) {
       referralSource: referralSource || undefined,
       address: address || undefined,
       addressMapUrl: addressMapUrl || undefined,
+      postalCode: postalCode || undefined,
       marketingConsent,
       cats,
     });

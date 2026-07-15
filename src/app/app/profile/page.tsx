@@ -45,6 +45,7 @@ export default function ProfilePage() {
   const [referral, setReferral] = useState("");
   const [address, setAddress] = useState("");
   const [addressMapUrl, setAddressMapUrl] = useState("");
+  const [postalCode, setPostalCode] = useState("");
   const [consent, setConsent] = useState(true);
   const [cats, setCats] = useState<CatForm[]>([]);
   const [saving, setSaving] = useState(false);
@@ -65,6 +66,7 @@ export default function ProfilePage() {
         setReferral(c.referralSource || "");
         setAddress(c.address || "");
         setAddressMapUrl(c.addressMapUrl || "");
+        setPostalCode(c.postalCode || "");
         setConsent(c.marketingConsent !== false);
         setCats(
           (c.cats || []).map((x: Record<string, unknown>) => {
@@ -108,6 +110,7 @@ export default function ProfilePage() {
           referralSource: referral,
           address,
           addressMapUrl,
+          postalCode,
           marketingConsent: consent,
           cats: cats.map((c) => ({
             id: c.id,
@@ -195,6 +198,16 @@ export default function ProfilePage() {
                 value={addressMapUrl}
                 onChange={(e) => setAddressMapUrl(e.target.value)}
                 placeholder="เปิด Maps แล้วกดแชร์ลิงก์มาวางตรงนี้"
+                className={`${field} mt-1`}
+              />
+            </label>
+            <label className="block text-xs font-bold text-brown-soft">
+              รหัสไปรษณีย์
+              <input
+                value={postalCode}
+                onChange={(e) => setPostalCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 5))}
+                inputMode="numeric"
+                placeholder="เช่น 10260"
                 className={`${field} mt-1`}
               />
             </label>

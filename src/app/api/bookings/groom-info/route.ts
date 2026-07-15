@@ -43,8 +43,7 @@ export async function POST(req: NextRequest) {
     health: Array.isArray(info.health) ? info.health : [],
     vaccinated:
       info.vaccinated === "yes" ? "yes" : info.vaccinated === "no" ? "no" : "",
-    colorMarkings: String(info.colorMarkings || "").trim(),
-    weight: String(info.weight || "").trim(),
+    weight: info.weight === "unknown" ? "unknown" : String(info.weight || "").trim(),
     dryMethod:
       info.dryMethod === "dryer" || info.dryMethod === "cabinet" ? info.dryMethod : "",
     allergy: String(info.allergy || "").trim(),

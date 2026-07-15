@@ -39,7 +39,7 @@ type Summary = {
 };
 
 type CustomerListItem = CustomerRecord & { upcomingAppointments?: number; points?: number };
-type SortKey = "name" | "tier" | "points" | "credit" | "upcoming" | "birthday";
+type SortKey = "name" | "tier" | "points" | "credit" | "upcoming" | "birthday" | "recent";
 
 function bookingWhen(b: EditableBooking) {
   if (b.service === "room" || b.checkin) {
@@ -413,6 +413,7 @@ function CustomerSummaryCard({
   const [phone, setPhone] = useState(customer.phone || "");
   const [address, setAddress] = useState(customer.address || "");
   const [addressMapUrl, setAddressMapUrl] = useState(customer.addressMapUrl || "");
+  const [postalCode, setPostalCode] = useState(customer.postalCode || "");
   const [tier, setTier] = useState<CustomerTier>(customer.tier || "new");
   const [msg, setMsg] = useState("");
   const [followUpBusy, setFollowUpBusy] = useState(false);
@@ -511,10 +512,25 @@ function CustomerSummaryCard({
     setPhone(customer.phone || "");
     setAddress(customer.address || "");
     setAddressMapUrl(customer.addressMapUrl || "");
+    setPostalCode(customer.postalCode || "");
     setTier(customer.tier || "new");
-  }, [customer.id, customer.name, customer.phone, customer.address, customer.addressMapUrl, customer.tier]);
+  }, [
+    customer.id,
+    customer.name,
+    customer.phone,
+    customer.address,
+    customer.addressMapUrl,
+    customer.postalCode,
+    customer.tier,
+  ]);
 
-  const save = async (patch: { name?: string; phone?: string; address?: string; addressMapUrl?: string }) => {
+  const save = async (patch: {
+    name?: string;
+    phone?: string;
+    address?: string;
+    addressMapUrl?: string;
+    postalCode?: string;
+  }) => {
     const res = await fetch("/api/customers", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -858,6 +874,20 @@ function CustomerSummaryCard({
             </a>
           )}
         </label>
+        <label className="block text-xs font-bold text-brown-soft">
+          <span className="mb-1 flex items-center gap-1">📮 รหัสไปรษณีย์</span>
+          <input
+            value={postalCode}
+            onChange={(e) => setPostalCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 5))}
+            onBlur={() => {
+              if (postalCode.trim() !== (customer.postalCode || ""))
+                save({ postalCode: postalCode.trim() || undefined });
+            }}
+            inputMode="numeric"
+            placeholder="เช่น 10260"
+            className="w-full rounded-catcha-sm border-2 border-catcha-line bg-paper px-3 py-2.5 text-sm outline-none transition focus:border-latte-deep focus:bg-card"
+          />
+        </label>
         <p className="text-[10px] text-brown-faint">💾 พิมพ์แล้วแตะออกจากช่อง ระบบบันทึกให้อัตโนมัติ</p>
 
         {(inactive || customer.lineUserId) && (
@@ -1064,8 +1094,8 @@ export default function CustomersPage() {
   const [showTools, setShowTools] = useState(false);
   const [tierFilter, setTierFilter] = useState<CustomerTier | "all">("all");
   const [lineFilter, setLineFilter] = useState<"all" | "linked" | "unlinked">("all");
-  const [sortKey, setSortKey] = useState<SortKey>("name");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [sortKey, setSortKey] = useState<SortKey>("recent");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -1080,8 +1110,8 @@ export default function CustomersPage() {
     setQ("");
     setTierFilter("all");
     setLineFilter("all");
-    setSortKey("name");
-    setSortDir("asc");
+    setSortKey("recent");
+    setSortDir("desc");
   };
 
   const visibleList = list
@@ -1103,6 +1133,8 @@ export default function CustomersPage() {
         cmp = (a.upcomingAppointments || 0) - (b.upcomingAppointments || 0);
       else if (sortKey === "birthday")
         cmp = (a.birthday || "").localeCompare(b.birthday || "");
+      else if (sortKey === "recent")
+        cmp = (a.createdAt || "").localeCompare(b.createdAt || "");
       return sortDir === "asc" ? cmp : -cmp;
     });
 
@@ -1552,6 +1584,7 @@ export default function CustomersPage() {
                   <SortableTh label="แต้ม" sortKey="points" active={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
                   <SortableTh label="เครดิต" sortKey="credit" active={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
                   <SortableTh label="นัด" sortKey="upcoming" active={sortKey} dir={sortDir} onSort={toggleSort} align="right" />
+                  <SortableTh label="สมัคร" sortKey="recent" active={sortKey} dir={sortDir} onSort={toggleSort} />
                   <th className="px-3 py-2.5" />
                 </tr>
               </thead>
@@ -1601,6 +1634,9 @@ export default function CustomersPage() {
                     <td className="px-3 py-2.5 text-right text-brown-soft">
                       {c.upcomingAppointments ? `📅 ${c.upcomingAppointments}` : "—"}
                     </td>
+                    <td className="px-3 py-2.5 text-brown-soft">
+                      {c.createdAt ? c.createdAt.slice(0, 10) : "—"}
+                    </td>
                     <td className="px-3 py-2.5 text-right">
                       <button
                         type="button"
@@ -1618,7 +1654,7 @@ export default function CustomersPage() {
                 ))}
                 {visibleList.length === 0 && (
                   <tr>
-                    <td colSpan={10} className="px-3 py-6 text-center text-brown-soft">
+                    <td colSpan={11} className="px-3 py-6 text-center text-brown-soft">
                       ไม่พบลูกค้า
                     </td>
                   </tr>

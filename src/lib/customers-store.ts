@@ -28,6 +28,8 @@ export type CatRecord = {
   medical?: string;
   /** ขนสั้น/ขนยาว — ถามพร้อมสายพันธุ์ตอนสมัครสมาชิก */
   furLength?: "short" | "long";
+  /** สี/ลักษณะเด่น — ถามตอนสมัครสมาชิก */
+  color?: string;
   photoDataUrl?: string;
   staffNote?: string;
   /** โน้ตลับของร้าน — ซ่อนจากลูกค้า (ต้องรัน OVERNIGHT_SQL.md ก่อนถึงจะเซฟได้) */
@@ -63,6 +65,8 @@ export type CustomerRecord = {
   address?: string;
   /** ลิงก์ Google Maps ปักหมุดบ้านลูกค้า */
   addressMapUrl?: string;
+  /** รหัสไปรษณีย์ — ไว้ดูว่าลูกค้าส่วนใหญ่อยู่แถวไหนสำหรับทำการตลาด */
+  postalCode?: string;
   /** รหัสชวนเพื่อนของลูกค้าคนนี้ (แชร์ให้เพื่อนสมัคร) */
   referralCode?: string;
   /** ถูกชวนมาโดยลูกค้ารหัสนี้ (กันออกคูปองซ้ำ) */
@@ -130,6 +134,7 @@ type CatRow = {
   birthday: string | null;
   medical: string | null;
   fur_length?: string | null;
+  color?: string | null;
   photo_data_url: string | null;
   staff_note: string | null;
   staff_private_note?: string | null;
@@ -149,6 +154,7 @@ type CustomerRow = {
   referral_source: string | null;
   address?: string | null;
   address_map_url?: string | null;
+  postal_code?: string | null;
   referral_code?: string | null;
   referred_by?: string | null;
   is_member: boolean;
@@ -222,6 +228,7 @@ function mapCustomer(row: CustomerRow): CustomerRecord {
     referralSource: row.referral_source ?? undefined,
     address: row.address ?? undefined,
     addressMapUrl: row.address_map_url ?? undefined,
+    postalCode: row.postal_code ?? undefined,
     referralCode: row.referral_code ?? undefined,
     referredBy: row.referred_by ?? undefined,
     isMember: row.is_member,
@@ -244,6 +251,7 @@ function mapCustomer(row: CustomerRow): CustomerRecord {
       birthday: c.birthday ?? undefined,
       medical: c.medical ?? undefined,
       furLength: (c.fur_length as "short" | "long" | undefined) ?? undefined,
+      color: c.color ?? undefined,
       photoDataUrl: c.photo_data_url ?? undefined,
       staffNote: c.staff_note ?? undefined,
       staffPrivateNote: c.staff_private_note ?? undefined,
@@ -748,6 +756,7 @@ export async function updateCustomer(
       | "referralSource"
       | "address"
       | "addressMapUrl"
+      | "postalCode"
       | "isMember"
       | "memberCredit"
       | "memberSince"
@@ -786,11 +795,19 @@ export async function updateCustomer(
         updated_at: c.updatedAt,
       })
       .eq("id", id);
-    if (patch.address !== undefined || patch.addressMapUrl !== undefined) {
+    if (
+      patch.address !== undefined ||
+      patch.addressMapUrl !== undefined ||
+      patch.postalCode !== undefined
+    ) {
       // คอลัมน์ใหม่ — best-effort เผื่อยังไม่ได้รัน migration
       await sb
         .from("customers")
-        .update({ address: c.address || null, address_map_url: c.addressMapUrl || null })
+        .update({
+          address: c.address || null,
+          address_map_url: c.addressMapUrl || null,
+          postal_code: c.postalCode || null,
+        })
         .eq("id", id)
         .then(
           () => {},
@@ -849,6 +866,7 @@ export async function updateCat(
       | "birthday"
       | "medical"
       | "furLength"
+      | "color"
     >
   >
 ) {
@@ -898,6 +916,7 @@ export async function updateCat(
           birthday: cat.birthday || null,
           medical: cat.medical || null,
           fur_length: cat.furLength || null,
+          color: cat.color || null,
         })
         .eq("id", catId);
     } catch {
@@ -960,6 +979,7 @@ export async function addCat(
     birthday?: string;
     medical?: string;
     furLength?: "short" | "long";
+    color?: string;
     staffNote?: string;
   }
 ) {
@@ -984,6 +1004,7 @@ export async function addCat(
     birthday: data.birthday?.trim() || undefined,
     medical: data.medical?.trim() || undefined,
     furLength: data.furLength,
+    color: data.color?.trim() || undefined,
     staffNote: data.staffNote?.trim() || undefined,
   };
 
@@ -1006,12 +1027,16 @@ export async function addCat(
       staff_note: cat.staffNote || null,
     });
     if (error) throw new Error(error.message);
-    if (cat.furLength) {
+    if (cat.furLength || cat.color) {
       // คอลัมน์ใหม่ — best-effort เผื่อยังไม่ได้รัน migration
-      await sb.from("cats").update({ fur_length: cat.furLength }).eq("id", catId).then(
-        () => {},
-        () => {}
-      );
+      await sb
+        .from("cats")
+        .update({ fur_length: cat.furLength || null, color: cat.color || null })
+        .eq("id", catId)
+        .then(
+          () => {},
+          () => {}
+        );
     }
   } else {
     memCustomers.set(customerId, c);
@@ -1454,6 +1479,7 @@ export async function registerCustomerFromLine(data: {
   referralSource?: string;
   address?: string;
   addressMapUrl?: string;
+  postalCode?: string;
   marketingConsent?: boolean;
   cats: {
     name: string;
@@ -1464,6 +1490,7 @@ export async function registerCustomerFromLine(data: {
     birthday?: string;
     medical?: string;
     furLength?: "short" | "long";
+    color?: string;
     staffNote?: string;
   }[];
 }) {
@@ -1480,6 +1507,7 @@ export async function registerCustomerFromLine(data: {
       birthday: c.birthday?.trim(),
       medical: c.medical?.trim(),
       furLength: c.furLength,
+      color: c.color?.trim(),
       staffNote: c.staffNote?.trim(),
     }))
     .filter((c) => c.name);
@@ -1499,6 +1527,7 @@ export async function registerCustomerFromLine(data: {
     referralSource: data.referralSource?.trim() || undefined,
     address: data.address?.trim() || undefined,
     addressMapUrl: data.addressMapUrl?.trim() || undefined,
+    postalCode: data.postalCode?.trim() || undefined,
     marketingConsent: data.marketingConsent ?? true,
   });
 

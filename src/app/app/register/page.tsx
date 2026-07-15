@@ -13,6 +13,7 @@ type CatInput = {
   breed: string;
   breedOther: string;
   furLength: "" | "short" | "long";
+  color: string;
   ageValue: string;
   ageUnit: "year" | "month";
   birthday: string;
@@ -37,6 +38,7 @@ function emptyCat(): CatInput {
     breed: "",
     breedOther: "",
     furLength: "",
+    color: "",
     ageValue: "",
     ageUnit: "year",
     birthday: "",
@@ -60,6 +62,7 @@ export default function RegisterPage() {
   const [referral, setReferral] = useState("");
   const [address, setAddress] = useState("");
   const [addressMapUrl, setAddressMapUrl] = useState("");
+  const [postalCode, setPostalCode] = useState("");
   const [consent, setConsent] = useState(true);
   const [cats, setCats] = useState<CatInput[]>([emptyCat()]);
   const [saving, setSaving] = useState(false);
@@ -116,6 +119,7 @@ export default function RegisterPage() {
           referralCode: referralCode || undefined,
           address: address || undefined,
           addressMapUrl: addressMapUrl || undefined,
+          postalCode: postalCode || undefined,
           marketingConsent: consent,
           cats: cats
             .filter((c) => c.name.trim())
@@ -130,6 +134,7 @@ export default function RegisterPage() {
               birthday: c.birthday || undefined,
               medical: c.medical || undefined,
               furLength: c.furLength || undefined,
+              color: c.color || undefined,
               staffNote: c.note || undefined,
             })),
         }),
@@ -341,6 +346,12 @@ export default function RegisterPage() {
                     ))}
                   </div>
                 </div>
+                <input
+                  value={cat.color}
+                  onChange={(e) => updateCat(idx, { color: e.target.value })}
+                  placeholder="สี/ลักษณะเด่น เช่น สีขาวสลับดำ มีจุดที่หู (ไม่บังคับ)"
+                  className={subFieldClass}
+                />
                 <div className="flex gap-2">
                   <input
                     type="number"
@@ -433,6 +444,13 @@ export default function RegisterPage() {
             value={addressMapUrl}
             onChange={(e) => setAddressMapUrl(e.target.value)}
             placeholder="ลิงก์ Google Maps (ถ้ามี) — เปิด Maps แล้วกดแชร์ลิงก์มาวางตรงนี้"
+            className={`${fieldClass} mt-2`}
+          />
+          <input
+            value={postalCode}
+            onChange={(e) => setPostalCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 5))}
+            inputMode="numeric"
+            placeholder="รหัสไปรษณีย์ (ไม่บังคับ)"
             className={`${fieldClass} mt-2`}
           />
         </div>

@@ -139,6 +139,14 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     name: "customers.address",
     sql: "alter table customers add column if not exists address text, add column if not exists address_map_url text;",
   },
+  {
+    name: "customers.postal_code",
+    sql: "alter table customers add column if not exists postal_code text;",
+  },
+  {
+    name: "cats.color",
+    sql: "alter table cats add column if not exists color text;",
+  },
 ];
 
 export type MigrateResult = {

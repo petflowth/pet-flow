@@ -32,7 +32,14 @@ function bookingWhen(b: CalendarDay) {
 }
 
 /** ปุ่ม "ออกบิล" ที่รู้สถานะบิลของนัดนี้ — กันออกบิลซ้ำ (1 นัด = 1 บิลเท่านั้น) */
-function BillButton({ bookingId }: { bookingId: string }) {
+function BillButton({
+  bookingId,
+  onPaidState,
+}: {
+  bookingId: string;
+  /** แจ้งการ์ดแม่ว่าบิลของนัดนี้จ่ายจบแล้วหรือยัง — เอาไว้ติดป้าย "จบเคส" ทั้งใบ */
+  onPaidState?: (paid: boolean) => void;
+}) {
   const [inv, setInv] = useState<{ id: string; status: string; total: number } | null | undefined>(
     undefined
   );
@@ -42,7 +49,9 @@ function BillButton({ bookingId }: { bookingId: string }) {
     fetch(`/api/invoices?bookingId=${bookingId}`)
       .then((r) => r.json())
       .then((d) => {
-        if (alive) setInv(d.invoice || null);
+        if (!alive) return;
+        setInv(d.invoice || null);
+        onPaidState?.(d.invoice?.status === "paid");
       })
       .catch(() => {
         if (alive) setInv(null);
@@ -50,6 +59,7 @@ function BillButton({ bookingId }: { bookingId: string }) {
     return () => {
       alive = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookingId]);
 
   if (inv === undefined) {
@@ -125,6 +135,8 @@ export function BookingCalendar() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<CalendarDay | null>(null);
   const [zoomSignature, setZoomSignature] = useState<string | null>(null);
+  // นัดที่บิลจ่ายจบแล้ว (รายงานขึ้นมาจาก BillButton) — ติดป้าย "จบเคส" ให้เห็นชัดทั้งการ์ด
+  const [paidCases, setPaidCases] = useState<Record<string, boolean>>({});
   const [rooms, setRooms] = useState<{ id: string; name: string; size: string; price: number }[]>([]);
   const [groomSlots, setGroomSlots] = useState<string[]>(["09:30", "12:30", "15:30"]);
   const queueRef = useRef<HTMLElement>(null);
@@ -327,11 +339,21 @@ export function BookingCalendar() {
               const b = group[0];
               const allConfirmed = group.every((x) => x.status === "confirmed");
               const catNames = group.map((x) => x.catName).join(", ");
+              const caseDone = paidCases[b.id] === true;
               return (
               <li
                 key={group.map((x) => x.id).join(",")}
-                className="rounded-catcha-sm border border-catcha-line bg-paper/50 p-3"
+                className={`rounded-catcha-sm border p-3 ${
+                  caseDone
+                    ? "border-ok/50 bg-ok/5"
+                    : "border-catcha-line bg-paper/50"
+                }`}
               >
+                {caseDone && (
+                  <p className="mb-2 flex items-center gap-1.5 rounded-catcha-sm bg-ok/15 px-2.5 py-1.5 text-[11px] font-extrabold text-ok">
+                    🎉 เคสนี้จบแล้ว — ชำระครบ ปิดงานเรียบร้อย
+                  </p>
+                )}
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-brown break-words">
@@ -401,10 +423,14 @@ export function BookingCalendar() {
                   </div>
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                      allConfirmed ? "bg-sage/20 text-ok" : "bg-honey/25 text-wait"
+                      caseDone
+                        ? "bg-ok text-white"
+                        : allConfirmed
+                          ? "bg-sage/20 text-ok"
+                          : "bg-honey/25 text-wait"
                     }`}
                   >
-                    {allConfirmed ? "ยืนยัน" : "รอยืนยัน"}
+                    {caseDone ? "✅ จบเคส" : allConfirmed ? "ยืนยัน" : "รอยืนยัน"}
                   </span>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -450,7 +476,14 @@ export function BookingCalendar() {
                   >
                     📲 iCal
                   </a>
-                  <BillButton bookingId={b.id} />
+                  <BillButton
+                    bookingId={b.id}
+                    onPaidState={(paid) =>
+                      setPaidCases((prev) =>
+                        prev[b.id] === paid ? prev : { ...prev, [b.id]: paid }
+                      )
+                    }
+                  />
                 </div>
                 <div className="mt-2 border-t border-catcha-line pt-2">
                   <CustomerSendButtons

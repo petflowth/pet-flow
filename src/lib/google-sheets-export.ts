@@ -5,6 +5,17 @@ import { getSheetsApi } from "./google-auth";
 import { listCustomers } from "./customers-store";
 import { listFinance } from "./finance-store";
 import { catCurrentAgeLabel } from "./cat-age";
+import { parseGroomInfo, groomInfoSummary } from "./groom-info";
+
+/** ย่อประวัติก่อนอาบน้ำเป็นบรรทัดเดียวสำหรับใส่ช่องตาราง (ตัดข้อที่ไม่ได้ตอบออก) */
+function groomInfoCell(cat?: CatRecord): string {
+  const info = parseGroomInfo(cat?.groomHealthInfo);
+  if (!info) return "";
+  return Object.entries(groomInfoSummary(info))
+    .filter(([, v]) => v && v !== "-")
+    .map(([k, v]) => `${k}: ${v}`)
+    .join(" | ");
+}
 
 const CUSTOMERS_SHEET = "ลูกค้า";
 const FINANCE_SHEET = "รายรับรายจ่าย";
@@ -23,10 +34,14 @@ export const CUSTOMER_COLUMNS: CustomerColumn[] = [
   { key: "email", label: "อีเมล", get: (c) => c.email || "" },
   { key: "birthday", label: "วันเกิดผู้ปกครอง", get: (c) => c.birthday || "" },
   { key: "referral", label: "รู้จักจาก", get: (c) => c.referralSource || "" },
+  { key: "address", label: "ที่อยู่ (รับ-ส่ง)", get: (c) => c.address || "" },
+  { key: "addressMap", label: "ลิงก์แผนที่", get: (c) => c.addressMapUrl || "" },
+  { key: "postalCode", label: "รหัสไปรษณีย์", get: (c) => c.postalCode || "" },
   { key: "consent", label: "ยินยอมรับข่าวสาร", get: (c) => (c.marketingConsent ? "ใช่" : "ไม่") },
   { key: "line", label: "ผูก LINE", get: (c) => (c.lineUserId ? "ผูกแล้ว" : "") },
   { key: "member", label: "สมาชิก", get: (c) => (c.isMember ? "ใช่" : "ไม่") },
   { key: "credit", label: "เครดิตคงเหลือ", get: (c) => String(c.memberCredit) },
+  { key: "depositCredit", label: "เครดิตมัดจำล่วงหน้า", get: (c) => String(c.depositCredit || 0) },
   { key: "tier", label: "กลุ่มลูกค้า", get: (c) => c.tier || "" },
   { key: "catName", label: "ชื่อแมว", get: (_c, cat) => cat?.name || "" },
   {
@@ -36,9 +51,20 @@ export const CUSTOMER_COLUMNS: CustomerColumn[] = [
       cat?.gender === "male" ? "ผู้" : cat?.gender === "female" ? "เมีย" : "",
   },
   { key: "catBreed", label: "พันธุ์", get: (_c, cat) => cat?.breed || "" },
+  {
+    key: "catFur",
+    label: "ลักษณะขน",
+    get: (_c, cat) =>
+      cat?.furLength === "short" ? "ขนสั้น" : cat?.furLength === "long" ? "ขนยาว" : "",
+  },
+  { key: "catColor", label: "สี/ลักษณะเด่น", get: (_c, cat) => cat?.color || "" },
   { key: "catAge", label: "อายุ", get: (_c, cat) => (cat ? catCurrentAgeLabel(cat) : "") },
+  { key: "catBirthday", label: "วันเกิดแมว", get: (_c, cat) => cat?.birthday || "" },
   { key: "catMedical", label: "โรคประจำตัว", get: (_c, cat) => cat?.medical || "" },
+  { key: "catGroomInfo", label: "ประวัติก่อนอาบน้ำ", get: (_c, cat) => groomInfoCell(cat) },
   { key: "catNote", label: "โน้ตแมว", get: (_c, cat) => cat?.staffNote || "" },
+  { key: "catPrivateNote", label: "โน้ตลับร้าน", get: (_c, cat) => cat?.staffPrivateNote || "" },
+  { key: "createdAt", label: "วันที่สมัคร", get: (c) => c.createdAt.slice(0, 10) },
   { key: "updatedAt", label: "อัปเดตล่าสุด", get: (c) => c.updatedAt.slice(0, 10) },
 ];
 
@@ -109,9 +135,10 @@ async function writeSheet(
 ) {
   const sheets = await getSheetsApi();
   await ensureSheetTab(spreadsheetId, title);
+  // ล้างทั้งแท็บก่อนเขียนใหม่ทุกครั้ง — ข้อมูลเก่าถูกแทนด้วยชุดล่าสุดเสมอ (A:AZ เผื่อคอลัมน์เกิน 26)
   await sheets.spreadsheets.values.clear({
     spreadsheetId,
-    range: `'${title}'!A:Z`,
+    range: `'${title}'!A:AZ`,
   });
   const exportedAt = new Date().toISOString().slice(0, 19).replace("T", " ") + " (UTC)";
   await sheets.spreadsheets.values.update({

@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+</head>
+<body style="margin:0">
+<title>PetFlow — ระบบจัดการร้านสัตว์เลี้ยงครบวงจร</title>
+<style>
+  /*
+    PetFlow — sales showcase v3
+    Dark command-center world: aqua current + violet glow. Motion sells the
+    product: looping demo scenes + a gallery of realistic product screens.
+  */
+  :root {
+    --bg: #070b16;
+    --bg-2: #0c1224;
+    --panel: #111a30;
+    --panel-2: #16213c;
+    --line: #223054;
+    --aqua: #35e0c8;
+    --aqua-dim: #1a8f80;
+    --violet: #8f7ff5;
+    --text: #eef3ff;
+    --text-dim: #93a0c2;
+    --good: #4ade80;
+    --warn: #fbbf6e;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Leelawadee UI", Roboto, sans-serif;
+  }
+  .petflow { background: var(--bg); color: var(--text); font-family: var(--font); line-height: 1.55; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  .petflow * { box-sizing: border-box; }
+  .petflow ::selection { background: var(--aqua); color: #06231e; }
+  .petflow button:focus-visible, .petflow a:focus-visible, .petflow summary:focus-visible { outline: 2px solid var(--aqua); outline-offset: 3px; }
+  .pf-wrap { max-width: 1100px; margin: 0 auto; padding: 0 clamp(18px, 4.5vw, 48px); }
+
+  /* ═══ HERO ═══ */
+  .pf-hero { position: relative; padding: clamp(56px, 9vw, 110px) 0 clamp(48px, 7vw, 88px); overflow: hidden;
+    background:
+      radial-gradient(700px 420px at 18% -8%, rgba(143,127,245,0.22), transparent 65%),
+      radial-gradient(820px 480px at 85% 8%, rgba(53,224,200,0.14), transparent 60%),
+      var(--bg);
+  }
+  .pf-hero::after { content:""; position:absolute; inset:0; pointer-events:none;
+    background-image: linear-gradient(rgba(238,243,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(238,243,255,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(900px 600px at 50% 0%, black, transparent 80%);
+  }
+  .pf-hero-grid { position: relative; z-index:1; display:grid; grid-template-columns: 1.15fr 0.85fr; gap: clamp(28px, 5vw, 64px); align-items:center; }
+  @media (max-width: 880px) { .pf-hero-grid { grid-template-columns: 1fr; } }
+
+  .pf-eyebrow { display:inline-flex; align-items:center; gap:9px; font-size:11.5px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--aqua); padding:7px 15px; border:1px solid rgba(53,224,200,0.35); border-radius:999px; background:rgba(53,224,200,0.07); }
+  .pf-eyebrow::before { content:""; width:6px; height:6px; border-radius:50%; background:var(--aqua); box-shadow:0 0 10px var(--aqua); animation: pf-pulse 2.2s ease infinite; }
+  @keyframes pf-pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+  .pf-logo { margin: 22px 0 0; font-size: clamp(46px, 8.5vw, 88px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.02; text-wrap: balance; }
+  .pf-logo .flow { background: linear-gradient(92deg, var(--aqua), var(--violet)); -webkit-background-clip:text; background-clip:text; color: transparent; }
+  .pf-tagline { margin: 16px 0 0; font-size: clamp(17px, 2.3vw, 22px); color: var(--text-dim); max-width: 30ch; text-wrap: balance; }
+  .pf-tagline b { color: var(--text); font-weight: 700; }
+
+  .pf-hero-stats { display:flex; gap: clamp(18px, 3vw, 36px); margin-top: 34px; flex-wrap: wrap; }
+  .pf-stat .n { font-size: clamp(26px, 3.4vw, 36px); font-weight: 800; font-variant-numeric: tabular-nums; background: linear-gradient(180deg, var(--text), var(--text-dim)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .pf-stat .l { font-size: 11.5px; color: var(--text-dim); letter-spacing: 0.04em; margin-top: 2px; }
+
+  /* ═══ PHONE (looping demo) ═══ */
+  .pf-phone { width: min(300px, 82vw); margin: 0 auto; background: #05070e; border: 1px solid var(--line); border-radius: 34px; padding: 12px; box-shadow: 0 30px 80px -30px rgba(53,224,200,0.25), 0 20px 60px -20px rgba(0,0,0,0.8); position: relative; }
+  .pf-phone::before { content:""; position:absolute; top:12px; left:50%; transform:translateX(-50%); width:88px; height:20px; background:#05070e; border-radius:0 0 14px 14px; z-index:3; }
+  .pf-phone-screen { background: linear-gradient(180deg, #101a2e, #0b1322); border-radius: 24px; min-height: 480px; padding: 34px 12px 16px; overflow: hidden; position: relative; }
+  .pf-scene-bar { position:absolute; top:10px; left:50%; transform:translateX(-50%); width:56%; height:3px; background:rgba(238,243,255,0.12); border-radius:99px; overflow:hidden; z-index:2; }
+  .pf-scene-bar i { display:block; height:100%; width:100%; background:var(--aqua); transform-origin:left; animation: pf-progress 16s linear infinite; }
+  @keyframes pf-progress { from{transform:scaleX(0)} to{transform:scaleX(1)} }
+
+  .pf-chat { display:flex; flex-direction:column; gap:9px; }
+  .pf-msg { max-width: 86%; border-radius: 14px; padding: 9px 12px; font-size: 12px; opacity: 0; }
+  .pf-msg.cust { align-self: flex-end; background: #22c55e; color: #06230f; border-bottom-right-radius: 4px; font-weight: 600; }
+  .pf-msg.shop { align-self: flex-start; background: var(--panel-2); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+  .pf-card { align-self: flex-start; width: 92%; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); opacity: 0; }
+  .pf-card .hd { background: linear-gradient(90deg, var(--aqua-dim), #14655b); padding: 8px 12px; font-size: 11.5px; font-weight: 800; color: #dffcf6; }
+  .pf-card .bd { background: var(--panel); padding: 10px 12px; font-size: 11px; color: var(--text-dim); display:grid; gap: 4px; }
+  .pf-card .bd b { color: var(--text); font-weight: 700; }
+  .pf-card .bt { background: var(--panel); padding: 0 12px 12px; }
+  .pf-card .bt span { display:block; text-align:center; background: var(--aqua); color:#06231e; font-weight:800; font-size:11.5px; border-radius:9px; padding:8px; }
+  .pf-toast { position:absolute; left:50%; transform:translateX(-50%); bottom:14px; width: 88%; background:#0e1526; border:1px solid rgba(53,224,200,0.5); border-radius:12px; padding:9px 12px; font-size:10.5px; color:var(--text); opacity:0; box-shadow: 0 10px 30px -10px rgba(53,224,200,0.35); }
+  .pf-toast b { color: var(--aqua); }
+
+  @keyframes pf-s1 { 0%,3%{opacity:0; transform:translateY(10px)} 7%,94%{opacity:1; transform:none} 99%,100%{opacity:0} }
+  @keyframes pf-s2 { 0%,13%{opacity:0; transform:translateY(10px)} 17%,94%{opacity:1; transform:none} 99%,100%{opacity:0} }
+  @keyframes pf-s3 { 0%,27%{opacity:0; transform:translateY(10px)} 31%,94%{opacity:1; transform:none} 99%,100%{opacity:0} }
+  @keyframes pf-s4 { 0%,44%{opacity:0; transform:translateY(10px)} 48%,94%{opacity:1; transform:none} 99%,100%{opacity:0} }
+  @keyframes pf-s5 { 0%,60%{opacity:0; transform:translateY(10px)} 64%,94%{opacity:1; transform:none} 99%,100%{opacity:0} }
+  @keyframes pf-s6 { 0%,76%{opacity:0; transform:translateY(14px)} 81%,93%{opacity:1; transform:none} 98%,100%{opacity:0} }
+  .pf-t1 { animation: pf-s1 16s ease infinite; }
+  .pf-t2 { animation: pf-s2 16s ease infinite; }
+  .pf-t3 { animation: pf-s3 16s ease infinite; }
+  .pf-t4 { animation: pf-s4 16s ease infinite; }
+  .pf-t5 { animation: pf-s5 16s ease infinite; }
+  .pf-t6 { animation: pf-s6 16s ease infinite; }
+  .pf-phone-caption { text-align:center; margin-top:14px; font-size:11.5px; color:var(--text-dim); }
+  .pf-phone-caption b { color: var(--aqua); }
+
+  /* ═══ SECTIONS ═══ */
+  .pf-section { padding: clamp(52px, 8vw, 92px) 0; position: relative; }
+  .pf-section + .pf-section { border-top: 1px solid rgba(34,48,84,0.6); }
+  .pf-kicker { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--violet); }
+  .pf-h2 { margin: 10px 0 0; font-size: clamp(26px, 4.4vw, 42px); font-weight: 800; letter-spacing: -0.02em; text-wrap: balance; }
+  .pf-h2 .glow { color: var(--aqua); }
+  .pf-lead { margin: 12px 0 0; color: var(--text-dim); font-size: 15px; max-width: 52ch; }
+
+  /* before / after */
+  .pf-ba { display:grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: clamp(28px, 4vw, 44px); }
+  @media (max-width: 760px) { .pf-ba { grid-template-columns: 1fr; } }
+  .pf-ba-col { border-radius: 18px; padding: 24px; border: 1px solid var(--line); }
+  .pf-ba-col.before { background: linear-gradient(180deg, rgba(251,113,133,0.06), transparent 60%), var(--panel); }
+  .pf-ba-col.after { background: linear-gradient(180deg, rgba(53,224,200,0.08), transparent 60%), var(--panel); border-color: rgba(53,224,200,0.35); }
+  .pf-ba-title { display:flex; align-items:center; gap:10px; font-size: 16px; font-weight: 800; margin: 0 0 16px; }
+  .pf-ba-col.before .pf-ba-title { color: #fda4af; }
+  .pf-ba-col.after .pf-ba-title { color: var(--aqua); }
+  .pf-ba-list { list-style:none; margin:0; padding:0; display:grid; gap:12px; }
+  .pf-ba-list li { display:flex; gap:10px; font-size:13.5px; color:var(--text-dim); }
+  .pf-ba-list li b { color: var(--text); }
+  .pf-ba-list .ic { flex:none; width:22px; height:22px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:12px; }
+  .before .ic { background: rgba(251,113,133,0.14); }
+  .after .ic { background: rgba(53,224,200,0.14); }
+
+  /* ═══ SCREEN GALLERY (product shots) ═══ */
+  .pf-shots { display:grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: clamp(28px, 4vw, 44px); }
+  @media (max-width: 940px) { .pf-shots { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 640px) { .pf-shots { grid-template-columns: 1fr; } }
+  .pf-shot { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow:hidden; transition: transform 0.25s, border-color 0.25s; }
+  .pf-shot:hover { transform: translateY(-3px); border-color: rgba(53,224,200,0.45); }
+  .pf-shot-head { display:flex; align-items:center; justify-content:space-between; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .pf-shot-head .t { font-size: 12.5px; font-weight: 800; }
+  .pf-shot-head .k { font-size: 9px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--violet); }
+  .pf-shot-body { padding: 14px; font-size: 11px; min-height: 215px; display:flex; flex-direction:column; gap:8px; }
+  .pf-shot-caption { padding: 0 14px 14px; font-size: 11px; color: var(--text-dim); }
+  .pf-shot-caption b { color: var(--aqua); }
+
+  .pf-row2 { display:flex; justify-content:space-between; align-items:center; gap:8px; background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:8px 10px; }
+  .pf-row2 .who b { display:block; font-size:11.5px; }
+  .pf-row2 .who span { color:var(--text-dim); font-size:10px; }
+  .pf-chipx { font-size:9.5px; font-weight:800; padding:3px 9px; border-radius:99px; white-space:nowrap; }
+  .pf-chipx.ok { background:rgba(74,222,128,0.15); color:var(--good); }
+  .pf-chipx.wait { background:rgba(251,191,110,0.15); color:var(--warn); }
+  .pf-chipx.aqua { background:rgba(53,224,200,0.15); color:var(--aqua); }
+  .pf-chipx.vio { background:rgba(143,127,245,0.18); color:#c3b8ff; }
+  .pf-kv { display:flex; justify-content:space-between; font-size:10.5px; color:var(--text-dim); padding: 2px 0; }
+  .pf-kv .v { color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .pf-kv.hl .v { color: var(--aqua); }
+  .pf-divider { height:1px; background: var(--line); margin: 4px 0; }
+  .pf-total { display:flex; justify-content:space-between; align-items:baseline; margin-top:auto; padding-top:8px; border-top:1px dashed var(--line); }
+  .pf-total .l { font-size:10.5px; color:var(--text-dim); }
+  .pf-total .v { font-size:19px; font-weight:800; color:var(--aqua); font-variant-numeric:tabular-nums; }
+
+  /* mini LINE card inside shots */
+  .pf-linecard { border-radius: 12px; overflow:hidden; border:1px solid var(--line); }
+  .pf-linecard .h { background: linear-gradient(90deg, #2e7d5b, #1f6248); color:#e5fff3; font-weight:800; font-size:11px; padding:8px 11px; }
+  .pf-linecard .b { background:var(--panel-2); padding:9px 11px; color:var(--text-dim); font-size:10.5px; display:grid; gap:3px; }
+  .pf-linecard .b b { color: var(--text); }
+  .pf-linecard .btn { background:var(--panel-2); padding:0 11px 10px; }
+  .pf-linecard .btn span { display:block; text-align:center; background:#2e7d5b; color:#e5fff3; font-weight:800; font-size:10.5px; border-radius:8px; padding:7px; }
+
+  /* mini sheet */
+  .pf-sheet { border:1px solid var(--line); border-radius:10px; overflow:hidden; font-size:9.5px; }
+  .pf-sheet .sr { display:grid; grid-template-columns: 1.3fr 1fr 0.8fr 0.8fr; }
+  .pf-sheet .sr > span { padding: 6px 8px; border-bottom: 1px solid rgba(34,48,84,0.55); border-right: 1px solid rgba(34,48,84,0.55); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text-dim); }
+  .pf-sheet .sr > span:last-child { border-right:none; }
+  .pf-sheet .sr.hdr > span { background: rgba(53,224,200,0.1); color: var(--aqua); font-weight:800; }
+  .pf-sheet .sr .num { text-align:right; font-variant-numeric: tabular-nums; }
+
+  /* signature */
+  .pf-sign { background:#fdfbf4; border-radius:10px; padding:8px 10px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .pf-sign svg { flex:none; }
+  .pf-sign .m { color:#5b5136; font-size:9.5px; line-height:1.4; }
+  .pf-sign .m b { color:#241f14; font-size:10.5px; display:block; }
+
+  /* telegram digest */
+  .pf-tgbox { background:#101a2e; border:1px solid var(--line); border-left:3px solid #57a7ff; border-radius:10px; padding:9px 11px; font-size:10.5px; }
+  .pf-tgbox b { color:#9cc8ff; display:block; font-size:11px; margin-bottom:3px; }
+  .pf-tgbox .ln { display:flex; justify-content:space-between; color:var(--text-dim); padding:1.5px 0; }
+  .pf-tgbox .ln .v { color:var(--text); font-weight:700; font-variant-numeric:tabular-nums; }
+
+  /* ═══ CUSTOMER-SIDE mini phones ═══ */
+  .pf-cust { display:grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: clamp(28px, 4vw, 44px); }
+  @media (max-width: 900px) { .pf-cust { grid-template-columns: 1fr; } }
+  .pf-cust-item { text-align:center; }
+  .pf-step { display:inline-flex; align-items:center; gap:7px; margin-bottom: 12px; font-size: 12px; font-weight: 800; color: var(--aqua); }
+  .pf-step .n { width: 22px; height: 22px; border-radius: 50%; background: rgba(53,224,200,0.15); border: 1px solid rgba(53,224,200,0.5); display:inline-flex; align-items:center; justify-content:center; font-size: 11px; }
+  .pf-mini-phone { width: min(240px, 78vw); margin: 0 auto; background:#05070e; border:1px solid var(--line); border-radius:26px; padding:9px; box-shadow: 0 18px 44px -20px rgba(0,0,0,0.7); }
+  .pf-mini-screen { background:#fbf6ec; border-radius:18px; min-height: 300px; padding: 14px 12px; text-align:left; color:#4e3e32; font-size: 11px; display:flex; flex-direction:column; gap:8px; }
+  .pf-mini-screen .ttl { font-size: 12.5px; font-weight: 800; color: #4a3a12; }
+  .pf-lchip { display:inline-block; background:#f0e7d5; border:1px solid #e2d4b8; color:#6b5c40; border-radius:999px; padding:4px 10px; font-size:10px; font-weight:700; margin: 0 4px 4px 0; }
+  .pf-lchip.on { background:#7a6a48; border-color:#7a6a48; color:#fff8ec; }
+  .pf-lbtn { margin-top:auto; background:#8a7350; color:#fff8ec; text-align:center; border-radius:10px; padding:9px; font-size:11px; font-weight:800; }
+  .pf-terms { background:#f6efdf; border-radius:9px; padding:8px 10px; color:#6b5c40; font-size:9.5px; line-height:1.5; }
+  .pf-signbox { background:#ffffff; border:1.5px dashed #cbb989; border-radius:10px; height:64px; display:flex; align-items:center; justify-content:center; }
+  .pf-timegrid { display:flex; flex-wrap:wrap; gap:6px; }
+  .pf-cust-cap { margin-top: 12px; font-size: 11.5px; color: var(--text-dim); max-width: 30ch; margin-left:auto; margin-right:auto; }
+  .pf-cust-cap b { color: var(--text); }
+  .pf-notify-strip { margin-top: clamp(24px, 3.5vw, 36px); background: linear-gradient(90deg, rgba(87,167,255,0.1), rgba(53,224,200,0.08)); border: 1px solid rgba(87,167,255,0.4); border-radius: 16px; padding: 18px; }
+  .pf-notify-strip .head { font-size: 13.5px; font-weight: 800; color: #9cc8ff; margin: 0 0 12px; display:flex; align-items:center; gap:8px; }
+  .pf-notify-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  @media (max-width: 800px) { .pf-notify-grid { grid-template-columns: 1fr; } }
+  .pf-notify-grid .pf-tgbox { border-left-color:#57a7ff; }
+
+  /* showreel scenes */
+  .pf-reel { display:grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: clamp(28px, 4vw, 44px); }
+  @media (max-width: 900px) { .pf-reel { grid-template-columns: 1fr; } }
+  .pf-scene { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+  .pf-scene-head { display:flex; align-items:center; justify-content:space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .pf-scene-head .t { font-size: 13.5px; font-weight: 800; }
+  .pf-live { display:inline-flex; align-items:center; gap:6px; font-size:9.5px; font-weight:800; letter-spacing:0.1em; color:var(--aqua); }
+  .pf-live::before { content:""; width:6px; height:6px; border-radius:50%; background:var(--aqua); animation: pf-pulse 1.6s ease infinite; }
+  .pf-scene-body { padding: 16px; min-height: 240px; position: relative; display:flex; flex-direction:column; gap:9px; }
+  .pf-mini-row { display:flex; justify-content:space-between; align-items:center; gap:8px; background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:9px 11px; font-size:11.5px; opacity:0; }
+  .pf-mini-row .who b { display:block; font-size:12px; }
+  .pf-mini-row .who span { color:var(--text-dim); font-size:10.5px; }
+  .pf-bar-line { display:flex; justify-content:space-between; font-size:11px; color:var(--text-dim); opacity:0; }
+  .pf-bar-line .v { font-weight:800; color:var(--text); font-variant-numeric:tabular-nums; }
+  .pf-money { margin-top:auto; border-top:1px dashed var(--line); padding-top:10px; display:flex; justify-content:space-between; align-items:baseline; opacity:0; }
+  .pf-money .l { font-size:11px; color:var(--text-dim); }
+  .pf-money .v { font-size:22px; font-weight:800; color:var(--aqua); font-variant-numeric:tabular-nums; }
+  .pf-tg { display:flex; gap:9px; background:#101a2e; border:1px solid var(--line); border-left:3px solid #57a7ff; border-radius:10px; padding:9px 11px; font-size:11px; opacity:0; }
+  .pf-tg .em { flex:none; }
+  .pf-tg b { color:#9cc8ff; display:block; font-size:11px; }
+  .pf-tg span { color:var(--text-dim); font-size:10.5px; }
+
+  /* feature pillars */
+  .pf-pillars { display:grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: clamp(28px, 4vw, 44px); }
+  @media (max-width: 1000px) { .pf-pillars { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { .pf-pillars { grid-template-columns: 1fr; } }
+  .pf-pillar { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 4px; transition: border-color 0.25s, transform 0.25s; }
+  .pf-pillar:hover { border-color: rgba(53,224,200,0.5); transform: translateY(-2px); }
+  .pf-pillar details { border-radius: 13px; overflow: hidden; }
+  .pf-pillar summary { list-style: none; cursor: pointer; padding: 16px 16px 14px; }
+  .pf-pillar summary::-webkit-details-marker { display: none; }
+  .pf-pillar .ic { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 19px; background: linear-gradient(135deg, rgba(53,224,200,0.18), rgba(143,127,245,0.18)); border: 1px solid var(--line); margin-bottom: 11px; }
+  .pf-pillar h3 { margin: 0; font-size: 14.5px; font-weight: 800; }
+  .pf-pillar .sub { margin: 4px 0 0; font-size: 11.5px; color: var(--text-dim); }
+  .pf-pillar .more { margin-top: 9px; font-size: 10.5px; font-weight: 800; color: var(--aqua); letter-spacing: 0.04em; }
+  .pf-pillar details[open] .more .plus::before { content: "− ปิดรายละเอียด"; }
+  .pf-pillar .more .plus::before { content: "+ ดูรายละเอียด"; }
+  .pf-pillar ul { margin: 0; padding: 0 16px 16px; list-style: none; display: grid; gap: 7px; }
+  .pf-pillar ul li { font-size: 12px; color: var(--text-dim); display: flex; gap: 7px; }
+  .pf-pillar ul li::before { content: "▸"; color: var(--aqua); flex: none; }
+  .pf-pillar ul li b { color: var(--text); }
+
+  /* evidence strip */
+  .pf-evidence { display:grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: clamp(28px, 4vw, 40px); }
+  @media (max-width: 880px) { .pf-evidence { grid-template-columns: repeat(2, 1fr); } }
+  .pf-ev { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; text-align: center; }
+  .pf-ev .em { font-size: 26px; }
+  .pf-ev b { display:block; margin-top: 10px; font-size: 13px; }
+  .pf-ev span { display:block; margin-top: 4px; font-size: 11px; color: var(--text-dim); }
+
+  /* closing */
+  .pf-close { text-align:center; padding: clamp(60px, 10vw, 110px) 0; background: radial-gradient(600px 380px at 50% 100%, rgba(53,224,200,0.12), transparent 70%); }
+  .pf-close h2 { font-size: clamp(26px, 4.6vw, 44px); font-weight: 800; margin: 0; letter-spacing: -0.02em; text-wrap: balance; }
+  .pf-close p { color: var(--text-dim); margin: 14px auto 0; max-width: 44ch; font-size: 15px; }
+  .pf-cta { display:inline-block; margin-top: 30px; background: linear-gradient(92deg, var(--aqua), #58e8d4); color: #06231e; font-weight: 800; font-size: 15px; padding: 14px 34px; border-radius: 999px; text-decoration: none; box-shadow: 0 12px 36px -10px rgba(53,224,200,0.5); }
+  .pf-foot { margin-top: 40px; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); }
+  .pf-foot b { color: var(--aqua); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .petflow *, .petflow *::before, .petflow *::after { animation-duration: 0.01s !important; animation-iteration-count: 1 !important; }
+    .pf-msg, .pf-card, .pf-toast, .pf-mini-row, .pf-bar-line, .pf-money, .pf-tg { opacity: 1 !important; }
+  }
+</style>
+
+<div class="petflow">
+
+  <!-- ═══════════ HERO ═══════════ -->
+  <header class="pf-hero">
+    <div class="pf-wrap pf-hero-grid">
+      <div>
+        <span class="pf-eyebrow">Live จากร้านจริง — ใช้งานทุกวัน</span>
+        <h1 class="pf-logo">Pet<span class="flow">Flow</span></h1>
+        <p class="pf-tagline">ร้านสัตว์เลี้ยงของคุณ <b>ทำงานเองได้</b> — จองคิว เก็บเงิน ตามลูกค้า สรุปข้อมูล ครบในระบบเดียว</p>
+        <div class="pf-hero-stats">
+          <div class="pf-stat"><div class="n">80%</div><div class="l">ลดงานแชทตอบมือ</div></div>
+          <div class="pf-stat"><div class="n">0 บาท</div><div class="l">มัดจำตกหล่น — ผูกบิลอัตโนมัติ</div></div>
+          <div class="pf-stat"><div class="n">24 ชม.</div><div class="l">ระบบตอบลูกค้าแทนคุณ</div></div>
+        </div>
+      </div>
+
+      <figure style="margin:0">
+        <div class="pf-phone">
+          <div class="pf-phone-screen">
+            <div class="pf-scene-bar"><i></i></div>
+            <div class="pf-chat">
+              <div class="pf-msg cust pf-t1">จองอาบน้ำให้น้อง Soju พรุ่งนี้ได้ไหมคะ 🐱</div>
+              <div class="pf-card pf-t2">
+                <div class="hd">✅ ยืนยันนัดสำเร็จ</div>
+                <div class="bd"><span><b>Soju</b> · อาบน้ำ Premium</span><span>พรุ่งนี้ · 12:30 น.</span></div>
+                <div class="bt"><span>แจ้งประวัติน้องก่อนอาบน้ำ</span></div>
+              </div>
+              <div class="pf-msg cust pf-t3">โอนมัดจำแล้วนะคะ ✔️</div>
+              <div class="pf-card pf-t4">
+                <div class="hd">🧾 ใบเสร็จรับเงิน</div>
+                <div class="bd"><span>ชำระแล้ว <b>855 บาท</b></span><span>มัดจำ 200 หักให้อัตโนมัติ · +8 แต้ม</span></div>
+                <div class="bt"><span>⭐ รีวิวให้เราหน่อยนะคะ</span></div>
+              </div>
+              <div class="pf-msg shop pf-t5">ขอบคุณที่ไว้วางใจนะคะ แล้วเจอกันพรุ่งนี้ค่ะ 🧡</div>
+            </div>
+            <div class="pf-toast pf-t6">📲 <b>Telegram → ทีมงาน:</b> ลูกค้ายืนยันนัด + ชำระแล้ว 855 บาท — ไม่ต้องเฝ้าแชทเอง</div>
+          </div>
+        </div>
+        <figcaption class="pf-phone-caption">▶ เดโมจริงของระบบ — <b>ทั้งหมดนี้เกิดขึ้นเองอัตโนมัติ</b> ไม่มีพนักงานพิมพ์แม้แต่ข้อความเดียว</figcaption>
+      </figure>
+    </div>
+  </header>
+
+  <!-- ═══════════ BEFORE / AFTER ═══════════ -->
+  <section class="pf-section">
+    <div class="pf-wrap">
+      <p class="pf-kicker">ทำไมต้องเปลี่ยน</p>
+      <h2 class="pf-h2">วันของคุณตอนนี้ vs วันของคุณกับ <span class="glow">PetFlow</span></h2>
+
+      <div class="pf-ba">
+        <div class="pf-ba-col before">
+          <p class="pf-ba-title">😩 ไม่มีระบบ</p>
+          <ul class="pf-ba-list">
+            <li><span class="ic">💬</span><span>เฝ้าแชททั้งวัน — <b>ลืมตอบ = เสียลูกค้า</b></span></li>
+            <li><span class="ic">📝</span><span>จดคิวใส่กระดาษ/ไลน์ส่วนตัว <b>ตกหล่น จองซ้อน</b></span></li>
+            <li><span class="ic">💸</span><span>มัดจำโอนมาแล้ว... <b>แต่ใครจด? หักบิลหรือยัง?</b></span></li>
+            <li><span class="ic">🧠</span><span>ประวัติน้องแมวอยู่ในหัวพนักงาน — <b>คนออก ความรู้หาย</b></span></li>
+            <li><span class="ic">📄</span><span>ข้อมูลกระจัดกระจาย <b>อยากดูสรุปร้านต้องนั่งรวมเอง</b></span></li>
+          </ul>
+        </div>
+        <div class="pf-ba-col after">
+          <p class="pf-ba-title">⚡ มี PetFlow</p>
+          <ul class="pf-ba-list">
+            <li><span class="ic">🤖</span><span>ระบบส่งการ์ดยืนยัน เตือนนัด เก็บเงิน <b>เองทั้งหมด</b></span></li>
+            <li><span class="ic">📅</span><span>ปฏิทินกลาง 1 นัด = 1 บิล <b>ซ้อนไม่ได้ หลุดไม่ได้</b></span></li>
+            <li><span class="ic">🔗</span><span>มัดจำ<b>ผูกบิลอัตโนมัติ</b> ยอดคงเหลือคำนวณให้เสร็จ</span></li>
+            <li><span class="ic">🗂️</span><span>โปรไฟล์สัตว์เลี้ยงถาวร <b>อยู่ในระบบตลอดไป</b></span></li>
+            <li><span class="ic">📊</span><span>สรุปร้านส่งถึงมือทุกวัน + <b>ข้อมูลไหลลง Google Sheets อัตโนมัติ</b></span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ SCREEN GALLERY — 6 product shots ═══════════ -->
+  <section class="pf-section">
+    <div class="pf-wrap">
+      <p class="pf-kicker">หน้าจอจริงของระบบ — ฝั่งร้าน</p>
+      <h2 class="pf-h2">เก้าหน้าที่จะกลายเป็น<span class="glow">เครื่องมือประจำวัน</span>ของคุณ</h2>
+      <p class="pf-lead">ข้อมูลตัวอย่างจากการใช้งานจริง — ทุกหน้าเปิดจากมือถือได้ ไม่ต้องลงโปรแกรม</p>
+
+      <div class="pf-shots">
+
+        <!-- 1. Dashboard -->
+        <article class="pf-shot">
+          <div class="pf-shot-head"><span class="t">📅 ตารางนัดวันนี้</span><span class="k">Dashboard</span></div>
+          <div class="pf-shot-body">
+            <div class="pf-row2"><div class="who"><b>Soju · ตาล</b><span>🛁 อาบน้ำ · 12:30 น.</span></div><span class="pf-chipx ok">ยืนยันแล้ว</span></div>
+            <div class="pf-row2"><div class="who"><b>เรเนล · ดาด้า</b><span>🏠 เช็คอิน Mini Meow · มาส่ง 10:00</span></div><span class="pf-chipx ok">ยินยอมแล้ว</span></div>
+            <div class="pf-row2"><div class="who"><b>น้องพลูโต · คุณมาย</b><span>🛁 อาบน้ำ · 15:00 น.</span></div><span class="pf-chipx wait">รอยืนยัน</span></div>
+            <div class="pf-total"><span class="l">ยอดขายวันนี้</span><span class="v">฿4,950</span></div>
+          </div>
+          <p class="pf-shot-caption">เปิดมาเห็นทั้งวันในหน้าเดียว — <b>ใครมากี่โมง จ่ายหรือยัง ใครยังไม่ยืนยัน</b></p>
+        </article>
+
+        <!-- 2. Billing -->
+        <article class="pf-shot">
+          <div class="pf-shot-head"><span class="t">🧾 ออกบิล</span><span class="k">Billing</span></div>
+          <div class="pf-shot-body">
+            <div class="pf-kv"><span>Catcha Premium · แมวไทย M</span><span class="v">900 ฿</span></div>
+            <div class="pf-kv"><span>โปรสมาชิกใหม่ −5% (ตัดสิทธิ์อัตโนมัติ)</span><span class="v">−45 ฿</span></div>
+            <div class="pf-kv hl"><span>มัดจำที่เก็บไว้ก่อนหน้า (ผูกบิลเอง)</span><span class="v">−200 ฿</span></div>
+            <div class="pf-divider"></div>
+            <div class="pf-row2"><div class="who"><b>ส่งการ์ดเก็บยอดทาง LINE</b><span>พร้อมเลขบัญชี + ปุ่มก๊อปปี้</span></div><span class="pf-chipx aqua">1 คลิก</span></div>
+            <div class="pf-total"><span class="l">ยอดคงเหลือที่ต้องเก็บ</span><span class="v">655 ฿</span></div>
+          </div>
+          <p class="pf-shot-caption">จ่ายแล้วระบบทำต่อให้หมด: <b>ใบเสร็จ + ลงบัญชี + แต้มสะสม + ขอรีวิว</b></p>
+        </article>
+
+        <!-- 3. Customer profile -->
+        <article class="pf-shot">
+          <div class="pf-shot-head"><span class="t">🐾 โปรไฟล์ลูกค้า + แมว</span><span class="k">CRM</span></div>
+          <div class="pf-shot-body">
+            <div class="pf-row2"><div class="who"><b>เรเนล — ดาด้า</b><span>บริติช ชอร์ตแฮร์ · ขนสั้น · สีเทาเงิน · 6 ปี</span></div><span class="pf-chipx vio">💎 Member</span></div>
+            <div style="display:flex; gap:5px; flex-wrap:wrap;">
+              <span class="pf-chipx aqua">ขี้อ้อน</span><span class="pf-chipx aqua">ใจดี จับง่าย</span><span class="pf-chipx wait">แพ้แชมพูมะนาว</span><span class="pf-chipx ok">วัคซีนครบ</span>
+            </div>
+            <div class="pf-kv"><span>📍 ที่อยู่รับ-ส่ง</span><span class="v">ซ.เทพารักษ์ 12 · แผนที่ ↗</span></div>
+            <div class="pf-kv"><span>🔒 โน้ตลับพนักงาน</span><span class="v">ไม่ชอบเป่าขนแรง</span></div>
+            <div class="pf-sign">
+              <svg width="72" height="26" viewBox="0 0 72 26" aria-hidden="true"><path d="M4 18 C 12 4, 18 22, 26 12 S 40 4, 46 14 S 60 22, 68 8" fill="none" stroke="#31418c" stroke-width="1.6" stroke-linecap="round"/></svg>
+              <div class="m"><b>✍️ ลายเซ็นยินยอมเข้าพัก</b>บันทึก 14 ก.ค. 2569 · 23:49 น.</div>
+            </div>
+          </div>
+          <p class="pf-shot-caption">ความรู้เรื่องลูกค้าทุกอย่าง <b>อยู่ในระบบ ไม่หายไปกับพนักงาน</b> — พร้อมหลักฐานลายเซ็นจริง</p>
+        </article>
+
+        <!-- 4. Win-back card -->
+        <article class="pf-shot">
+          <div class="pf-shot-head"><span class="t">💌 การ์ดตามลูกค้าที่หายไป</span><span class="k">Win-back</span></div>
+          <div class="pf-shot-body">
+            <div class="pf-row2"><div class="who"><b>ระบบกรองให้อัตโนมัติ</b><span>ลูกค้าหายไป &gt; 45 วัน · มี LINE · 12 คน</span></div><span class="pf-chipx wait">เป้าหมาย</span></div>
+            <div class="pf-linecard">
+              <div class="h">🧡 คิดถึงน้อง Soju จังเลยค่ะ</div>
+              <div class="b">
+                <span>ไม่ได้เจอกัน <b>47 วันแล้ว</b> น้องสบายดีไหมคะ 🐱</span>
+                <span>กลับมาครั้งนี้ รับส่วนลดอาบน้ำ <b>10%</b> พิเศษเฉพาะคุณเลยค่ะ</span>
+              </div>
+              <div class="btn"><span>🛁 จองคิวเลย — รับส่วนลด</span></div>
+            </div>
+          </div>
+          <p class="pf-shot-caption">ใส่ชื่อน้องแมว + จำนวนวันจริงให้อัตโนมัติ — <b>ลูกค้ารู้สึกว่าร้านจำเขาได้</b> ไม่ใช่ข้อความหว่าน</p>
+        </article>
+
+        <!-- 5. Sheets auto-export -->
+        <article class="pf-shot">
+          <div class="pf-shot-head"><span class="t">📈 Google Sheets อัตโนมัติ</span><span class="k">Data Sync</span></div>
+          <div class="pf-shot-body">
+            <div class="pf-sheet">
+              <div class="sr hdr"><span>ลูกค้า</span><span>แมว</span><span class="num">ยอดสะสม</span><span class="num">แต้ม</span></div>
+              <div class="sr"><span>ตาล</span><span>Soju</span><span class="num">4,250</span><span class="num">42</span></div>
+              <div class="sr"><span>ดาด้า</span><span>เรเนล</span><span class="num">8,900</span><span class="num">89</span></div>
+              <div class="sr"><span>จุ๊กกะดิ๊ก</span><span>กาก้า, วอเทอร์</span><span class="num">2,100</span><span class="num">21</span></div>
+              <div class="sr"><span>คุณมาย</span><span>น้องพลูโต</span><span class="num">6,300</span><span class="num">63</span></div>
+            </div>
+            <div class="pf-row2" style="margin-top:auto"><div class="who"><b>ซิงก์อัตโนมัติทุกวัน</b><span>ลูกค้า + รายรับรายจ่าย → Google Sheet ของคุณ</span></div><span class="pf-chipx ok">Auto</span></div>
+          </div>
+          <p class="pf-shot-caption">ข้อมูลเป็นของคุณ 100% — <b>เปิดดูใน Sheets ทำกราฟ ทำบัญชีต่อได้ทันที</b> เลือกคอลัมน์เองได้</p>
+        </article>
+
+        <!-- 6. Daily summary -->
+        <article class="pf-shot">
+          <div class="pf-shot-head"><span class="t">📲 สรุปร้านส่งถึงมือทุกวัน</span><span class="k">Daily Report</span></div>
+          <div class="pf-shot-body">
+            <div class="pf-tgbox">
+              <b>💰 สรุปวันนี้ (15 ก.ค.)</b>
+              <div class="ln"><span>รับชำระ</span><span class="v">4,950 ฿ (5 บิล)</span></div>
+              <div class="ln"><span>รอชำระ</span><span class="v">2 บิล · 1,105 ฿</span></div>
+              <div class="ln"><span>ลูกค้าใหม่</span><span class="v">2 คน</span></div>
+            </div>
+            <div class="pf-tgbox">
+              <b>🌅 เตรียมตัวพรุ่งนี้</b>
+              <div class="ln"><span>🛁 อาบน้ำ</span><span class="v">3 คิว (12:30 / 14:00 / 15:30)</span></div>
+              <div class="ln"><span>🏠 เช็คอิน</span><span class="v">เรเนล — มาส่ง 10:00</span></div>
+              <div class="ln"><span>🏠 เช็คเอาท์</span><span class="v">Soju — มารับ 18:00</span></div>
+            </div>
+          </div>
+          <p class="pf-shot-caption">ปิดร้านแล้วรู้ยอดทันที ตื่นเช้ามา<b>รู้เลยว่าวันนี้ต้องเตรียมอะไร</b> — ส่งเข้า Telegram อัตโนมัติ</p>
+        </article>
+
+        <!-- 7. Month calendar -->
+        <article class="pf-shot">
+          <div class="pf-shot-head"><span class="t">🗓️ ปฏิทินทั้งเดือน</span><span class="k">Calendar</span></div>
+          <div class="pf-shot-body">
+            <div class="pf-row2"><div class="who"><b>ศุกร์ 18 ก.ค.</b><span>🏠 เข้าพัก 2 · 🛁 อาบน้ำ 3</span></div><span class="pf-chipx aqua">5 งาน</span></div>
+            <div class="pf-row2"><div class="who"><b>เสาร์ 19 ก.ค.</b><span>🏠 เข้าพัก 4 · 🛁 อาบน้ำ 5</span></div><span class="pf-chipx wait">แน่น</span></div>
+            <div class="pf-row2"><div class="who"><b>อาทิตย์ 20 ก.ค.</b><span>🏠 เช็คอิน เรเนล · เช็คเอาท์ Soju</span></div><span class="pf-chipx ok">พร้อม</span></div>
+            <div class="pf-row2" style="margin-top:auto"><div class="who"><b>เคสที่จบแล้ว</b><span>ติดป้าย 🎉 จบเคส สีเขียวชัดๆ ทั้งการ์ด</span></div><span class="pf-chipx ok">✅ จบเคส</span></div>
+          </div>
+          <p class="pf-shot-caption">แตะวันไหนก็เห็นงานวันนั้นทันที — <b>วันไหนแน่น วันไหนว่าง รับจองเพิ่มได้อีกไหม รู้ในวินาทีเดียว</b></p>
+        </article>
+
+        <!-- 8. Broadcast segment picker -->
+        <article class="pf-shot">
+          <div class="pf-shot-head"><span class="t">📣 บรอดแคสต์เลือกกลุ่ม</span><span class="k">Marketing</span></div>
+          <div class="pf-shot-body">
+            <div style="display:flex; gap:5px; flex-wrap:wrap;">
+              <span class="pf-chipx aqua">หายไป &gt; 45 วัน</span>
+              <span class="pf-chipx aqua">แมวเปอร์เซีย</span>
+              <span class="pf-chipx vio">💎 Member</span>
+              <span class="pf-chipx wait">ทุกพื้นที่</span>
+            </div>
+            <div class="pf-row2"><div class="who"><b>จะส่งหา 12 คน</b><span>มี LINE ครบ · ยินยอมรับข่าวสารทุกคน</span></div><span class="pf-chipx ok">พร้อมส่ง</span></div>
+            <div class="pf-linecard">
+              <div class="h">✨ โปรโมชั่น CatCha</div>
+              <div class="b"><span><b>อาบน้ำตัวที่ 2 ลด 50%</b> เฉพาะเดือนนี้ค่ะ 🧡</span></div>
+              <div class="btn"><span>🛁 จองคิวเลย</span></div>
+            </div>
+          </div>
+          <p class="pf-shot-caption">เลือกกลุ่มเป้าหมายแคบๆ แล้วส่งตรง — <b>ไม่หว่านโควตาทิ้ง ไม่รบกวนลูกค้าที่ไม่เกี่ยว</b></p>
+        </article>
+
+        <!-- 9. Points & rewards -->
+        <article class="pf-shot">
+          <div class="pf-shot-head"><span class="t">💎 แต้ม &amp; ของรางวัล</span><span class="k">Loyalty</span></div>
+          <div class="pf-shot-body">
+            <div class="pf-kv"><span>ทุก 100 บาท</span><span class="v">= 1 แต้ม อัตโนมัติ</span></div>
+            <div class="pf-divider"></div>
+            <div class="pf-row2"><div class="who"><b>🛁 อาบน้ำฟรี 1 ครั้ง</b><span>ของรางวัลยอดนิยม</span></div><span class="pf-chipx vio">50 แต้ม</span></div>
+            <div class="pf-row2"><div class="who"><b>🏠 ส่วนลดห้องพัก 20%</b><span>ใช้ได้ทุกประเภทห้อง</span></div><span class="pf-chipx vio">80 แต้ม</span></div>
+            <div class="pf-row2"><div class="who"><b>🎁 ทรีทเมนต์บำรุงขน</b><span>เพิ่มตอนอาบน้ำ</span></div><span class="pf-chipx vio">30 แต้ม</span></div>
+            <div class="pf-total"><span class="l">ลูกค้ากดแลกเองจากแอป</span><span class="v" style="font-size:13px">ตัดแต้มอัตโนมัติ</span></div>
+          </div>
+          <p class="pf-shot-caption">ตั้งของรางวัล + รูปเองได้จากหลังบ้าน — <b>ลูกค้าเห็นแต้มตัวเองตลอด อยากกลับมาสะสมต่อ</b></p>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ CUSTOMER SIDE ═══════════ -->
+  <section class="pf-section">
+    <div class="pf-wrap">
+      <p class="pf-kicker">ฝั่งลูกค้า</p>
+      <h2 class="pf-h2">ลูกค้าทำเองได้หมดจากมือถือ — <span class="glow">เสร็จปุ๊บ เด้งบอกร้านทันที</span></h2>
+      <p class="pf-lead">ทุกอย่างเปิดจากแชท LINE ที่ลูกค้าใช้อยู่แล้ว ไม่ต้องโหลดแอป ไม่ต้องสมัครอะไรเพิ่ม</p>
+
+      <div class="pf-cust">
+
+        <!-- Step 1: sign consent -->
+        <div class="pf-cust-item">
+          <span class="pf-step"><span class="n">1</span> เซ็นยอมรับข้อตกลง</span>
+          <div class="pf-mini-phone">
+            <div class="pf-mini-screen">
+              <span class="ttl">📋 ข้อตกลงการเข้าพัก</span>
+              <div class="pf-terms">1. โรงแรมดูแลน้องตามมาตรฐาน พ.ร.บ. สวัสดิภาพสัตว์ …<br />2. กรณีเจ็บป่วยจะแจ้งเจ้าของทันที …<br />3. ยกเลิกล่วงหน้า 5–10 วัน …</div>
+              <span style="font-size:10px; font-weight:800; color:#6b5c40;">✍️ เซ็นชื่อในกรอบ</span>
+              <div class="pf-signbox">
+                <svg width="110" height="34" viewBox="0 0 110 34" aria-hidden="true"><path d="M8 24 C 20 6, 30 30, 42 16 S 62 6, 72 20 S 92 28, 104 10" fill="none" stroke="#31418c" stroke-width="2" stroke-linecap="round"/></svg>
+              </div>
+              <div class="pf-lbtn">ยอมรับข้อตกลง</div>
+            </div>
+          </div>
+          <p class="pf-cust-cap">ลายเซ็น + วันเวลา <b>ถูกเก็บเป็นหลักฐานในระบบ</b> แยกทุกรอบเข้าพัก</p>
+        </div>
+
+        <!-- Step 2: pick check-in time -->
+        <div class="pf-cust-item">
+          <span class="pf-step"><span class="n">2</span> เลือกเวลามาส่งน้อง</span>
+          <div class="pf-mini-phone">
+            <div class="pf-mini-screen">
+              <span class="ttl">🕒 พรุ่งนี้จะมาส่งน้องกี่โมงคะ?</span>
+              <span style="font-size:10px; color:#8a7a5c;">เช็คอิน 20 ก.ค. · ห้อง Mini Meow</span>
+              <div class="pf-timegrid">
+                <span class="pf-lchip on">10:00</span>
+                <span class="pf-lchip">12:00</span>
+                <span class="pf-lchip">14:00</span>
+                <span class="pf-lchip">16:00</span>
+                <span class="pf-lchip">18:00</span>
+                <span class="pf-lchip">พิมพ์เวลาเอง…</span>
+              </div>
+              <div class="pf-lbtn">ยืนยันเวลา 10:00 น.</div>
+            </div>
+          </div>
+          <p class="pf-cust-cap">ไม่ต้องพิมพ์ถาม-ตอบกันไปมา — <b>กดเลือกจบใน 5 วินาที</b></p>
+        </div>
+
+        <!-- Step 3: groom info form -->
+        <div class="pf-cust-item">
+          <span class="pf-step"><span class="n">3</span> แจ้งประวัติน้องก่อนอาบน้ำ</span>
+          <div class="pf-mini-phone">
+            <div class="pf-mini-screen">
+              <span class="ttl">🩺 ประวัติน้อง Soju</span>
+              <span style="font-size:10px; font-weight:800; color:#6b5c40;">นิสัยตอนอาบน้ำ</span>
+              <div>
+                <span class="pf-lchip on">ขี้อ้อน</span><span class="pf-lchip">ขี้กลัว</span><span class="pf-lchip on">ใจดี จับง่าย</span><span class="pf-lchip">ดุ/กัด</span>
+              </div>
+              <span style="font-size:10px; font-weight:800; color:#6b5c40;">วัคซีน</span>
+              <div><span class="pf-lchip on">✅ ได้รับแล้ว</span><span class="pf-lchip">ยังไม่ได้รับ</span></div>
+              <span style="font-size:10px; font-weight:800; color:#6b5c40;">แพ้อะไรไหม</span>
+              <div class="pf-terms">แพ้แชมพูกลิ่นมะนาว</div>
+              <div class="pf-lbtn">💛 ส่งข้อมูลให้ร้าน</div>
+            </div>
+          </div>
+          <p class="pf-cust-cap">กรอกครั้งเดียว <b>เก็บถาวรที่ตัวน้อง</b> — มาครั้งหน้าไม่ต้องถามซ้ำ</p>
+        </div>
+
+      </div>
+
+      <!-- everything customers do → instant notify -->
+      <div class="pf-notify-strip">
+        <p class="head">📲 ลูกค้าทำอะไรเสร็จ → เด้งแจ้งร้านทันทีทุกครั้ง ไม่ต้องเฝ้าถาม</p>
+        <div class="pf-notify-grid">
+          <div class="pf-tgbox">
+            <b>✅ ลูกค้ายอมรับข้อตกลงแล้ว</b>
+            <div class="ln"><span>น้องแมว</span><span class="v">เรเนล</span></div>
+            <div class="ln"><span>ลายเซ็น</span><span class="v">มี ✍️</span></div>
+            <div class="ln"><span>ดูแลพิเศษ</span><span class="v">ไม่ชอบเสียงดัง</span></div>
+          </div>
+          <div class="pf-tgbox">
+            <b>🕒 ลูกค้าเลือกเวลาส่งน้อง</b>
+            <div class="ln"><span>น้องแมว</span><span class="v">เรเนล</span></div>
+            <div class="ln"><span>เวลา</span><span class="v">10:00 น.</span></div>
+            <div class="ln"><span>วันที่</span><span class="v">20 ก.ค.</span></div>
+          </div>
+          <div class="pf-tgbox">
+            <b>🩺 ลูกค้ากรอกประวัติน้องแล้ว</b>
+            <div class="ln"><span>นิสัย</span><span class="v">ขี้อ้อน · ใจดี</span></div>
+            <div class="ln"><span>วัคซีน</span><span class="v">ได้รับแล้ว</span></div>
+            <div class="ln"><span>แพ้</span><span class="v">แชมพูมะนาว</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ SHOWREEL — 3 live scenes ═══════════ -->
+  <section class="pf-section">
+    <div class="pf-wrap">
+      <p class="pf-kicker">ดูระบบทำงาน</p>
+      <h2 class="pf-h2">สามฉากที่เกิดขึ้นจริง <span class="glow">ทุกวัน</span></h2>
+      <p class="pf-lead">ทุกจอด้านล่างเล่นวนอัตโนมัติ — นี่คือสิ่งที่ระบบทำแทนคุณตลอดเวลา</p>
+
+      <div class="pf-reel">
+
+        <article class="pf-scene">
+          <div class="pf-scene-head"><span class="t">🌅 ตื่นมา งานถูกจัดให้แล้ว</span><span class="pf-live">LIVE</span></div>
+          <div class="pf-scene-body">
+            <div class="pf-tg pf-t1"><span class="em">📲</span><div><b>PetFlow → Telegram (ทุกเช้า)</b><span>เตรียมตัวพรุ่งนี้: อาบน้ำ 3 คิว · เช็คอิน 2 · เช็คเอาท์ 1</span></div></div>
+            <div class="pf-mini-row pf-t2"><div class="who"><b>Soju · ตาล</b><span>🛁 12:30 น. · แจ้งประวัติแล้ว</span></div><span class="pf-chipx ok">พร้อม</span></div>
+            <div class="pf-mini-row pf-t3"><div class="who"><b>เรเนล · ดาด้า</b><span>🏠 เช็คอิน · แจ้งมาส่ง 10:00</span></div><span class="pf-chipx ok">ยินยอมแล้ว</span></div>
+            <div class="pf-mini-row pf-t4"><div class="who"><b>น้องพลูโต · คุณมาย</b><span>🛁 15:00 น.</span></div><span class="pf-chipx wait">รอยืนยัน</span></div>
+            <div class="pf-tg pf-t5"><span class="em">🤖</span><div><b>ระบบส่งการ์ดเตือนเอง</b><span>ลูกค้าที่ยังไม่ยืนยัน จะได้การ์ดเตือนอัตโนมัติ — คุณไม่ต้องทวง</span></div></div>
+          </div>
+        </article>
+
+        <article class="pf-scene">
+          <div class="pf-scene-head"><span class="t">💰 เงินทุกบาทมีที่มา</span><span class="pf-live">LIVE</span></div>
+          <div class="pf-scene-body">
+            <div class="pf-bar-line pf-t1"><span>Catcha Premium · แมวไทย M</span><span class="v">900 ฿</span></div>
+            <div class="pf-bar-line pf-t2"><span>โปรสมาชิกใหม่ −5% <em style="color:var(--aqua); font-style:normal">(ตัดสิทธิ์อัตโนมัติ)</em></span><span class="v">−45 ฿</span></div>
+            <div class="pf-bar-line pf-t3"><span>มัดจำที่เก็บไว้ก่อนหน้า <em style="color:var(--aqua); font-style:normal">(ผูกบิลเอง)</em></span><span class="v">−200 ฿</span></div>
+            <div class="pf-mini-row pf-t4"><div class="who"><b>ส่งการ์ดเก็บยอดคงเหลือทาง LINE</b><span>พร้อมเลขบัญชี + ปุ่มก๊อปปี้</span></div><span class="pf-chipx aqua">1 คลิก</span></div>
+            <div class="pf-tg pf-t5"><span class="em">🧾</span><div><b>จ่ายแล้ว → ใบเสร็จ + แต้ม อัตโนมัติ</b><span>ลงบัญชีรายรับทันที · แต้มสะสมเข้าเอง · ขอรีวิวต่อให้</span></div></div>
+            <div class="pf-money pf-t6"><span class="l">ยอดคงเหลือที่ต้องเก็บ</span><span class="v">655 ฿</span></div>
+          </div>
+        </article>
+
+        <article class="pf-scene">
+          <div class="pf-scene-head"><span class="t">🎯 ตามลูกค้ากลับมาเอง</span><span class="pf-live">LIVE</span></div>
+          <div class="pf-scene-body">
+            <div class="pf-mini-row pf-t1"><div class="who"><b>ลูกค้าหายไป &gt; 45 วัน</b><span>ระบบกรองให้: 12 คน · มี LINE ครบ</span></div><span class="pf-chipx wait">เป้าหมาย</span></div>
+            <div class="pf-mini-row pf-t2"><div class="who"><b>ส่งโปรเฉพาะกลุ่ม</b><span>เลือกจากพันธุ์แมว / ระดับลูกค้า / พื้นที่</span></div><span class="pf-chipx aqua">Segment</span></div>
+            <div class="pf-tg pf-t3"><span class="em">🎂</span><div><b>วันเกิดน้องแมว → อวยพร + คูปองเอง</b><span>ไม่ต้องจำวันเกิดลูกค้าสักคน</span></div></div>
+            <div class="pf-tg pf-t4"><span class="em">👥</span><div><b>ชวนเพื่อน = คูปอง 2 ต่อ</b><span>จ่ายจริงเมื่อเพื่อนมาใช้บริการ — กันบัญชีปลอม</span></div></div>
+            <div class="pf-mini-row pf-t5"><div class="who"><b>ลูกค้ากลับมาจอง</b><span>ทุกอย่างวนเข้าระบบเดิม อัตโนมัติ</span></div><span class="pf-chipx ok">ครบวงจร</span></div>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ FEATURE PILLARS ═══════════ -->
+  <section class="pf-section">
+    <div class="pf-wrap">
+      <p class="pf-kicker">ฟังก์ชันทั้งหมด</p>
+      <h2 class="pf-h2">แตะดูรายละเอียดได้<span class="glow">ทุกหมวด</span></h2>
+
+      <div class="pf-pillars">
+
+        <div class="pf-pillar"><details>
+          <summary>
+            <div class="ic">📅</div>
+            <h3>จองคิว &amp; ปฏิทิน</h3>
+            <p class="sub">คิวไม่ซ้อน บิลไม่ซ้ำ ทีมเห็นตรงกัน</p>
+            <p class="more"><span class="plus"></span></p>
+          </summary>
+          <ul>
+            <li><b>ปฏิทินรวม</b> ห้องพัก + อาบน้ำ ในหน้าเดียว</li>
+            <li><b>จองทั้งบ้าน</b> หลายตัวพร้อมกัน รวมเป็นการ์ดเดียว</li>
+            <li><b>1 นัด = 1 บิล</b> ระบบกันออกบิลซ้ำให้เอง</li>
+            <li>ลูกค้าเลือกเวลามาส่ง-มารับเองจาก LINE</li>
+            <li>ซิงก์ Google Calendar + ไฟล์ iCal</li>
+          </ul>
+        </details></div>
+
+        <div class="pf-pillar"><details>
+          <summary>
+            <div class="ic">💳</div>
+            <h3>บิล มัดจำ การเงิน</h3>
+            <p class="sub">เก็บเงินครบ ไม่มีหลุดสักบาท</p>
+            <p class="more"><span class="plus"></span></p>
+          </summary>
+          <ul>
+            <li><b>มัดจำผูกบิลอัตโนมัติ</b> เก็บจากหน้าไหนก็ตามระบบจำให้</li>
+            <li>ส่งการ์ดเก็บเงินทาง LINE พร้อมเลขบัญชีก๊อปได้</li>
+            <li>จ่ายแล้ว → <b>ใบเสร็จสวย + ลงบัญชี + แต้ม</b> ในคลิกเดียว</li>
+            <li>บัญชีรายรับ-รายจ่ายในตัว แยกหมวดอัตโนมัติ</li>
+            <li>ยกเลิกชำระผิด → ย้อนรายการให้ครบ ไม่ต้องแก้มือ</li>
+          </ul>
+        </details></div>
+
+        <div class="pf-pillar"><details>
+          <summary>
+            <div class="ic">🐾</div>
+            <h3>โปรไฟล์สัตว์เลี้ยง</h3>
+            <p class="sub">ความรู้ของร้านอยู่ในระบบ ไม่ใช่ในหัวคน</p>
+            <p class="more"><span class="plus"></span></p>
+          </summary>
+          <ul>
+            <li>พันธุ์ ขน สี เพศ อายุ วันเกิด รูปถ่าย <b>รายตัว</b></li>
+            <li><b>แบบสอบถามก่อนอาบน้ำ</b> — นิสัย วัคซีน น้ำหนัก อาการแพ้</li>
+            <li>โน้ตลับเฉพาะพนักงาน (ลูกค้าไม่เห็น)</li>
+            <li>อัลบั้มรูป/วิดีโอหลังบ้านต่อแมวแต่ละตัว</li>
+            <li>ลูกค้าอัปรูปน้องเองได้จากแอป</li>
+          </ul>
+        </details></div>
+
+        <div class="pf-pillar"><details>
+          <summary>
+            <div class="ic">🤖</div>
+            <h3>ข้อความอัตโนมัติ</h3>
+            <p class="sub">ระบบคุยกับลูกค้าแทนคุณ 24 ชม.</p>
+            <p class="more"><span class="plus"></span></p>
+          </summary>
+          <ul>
+            <li>การ์ด LINE ทุกจังหวะ: <b>ยืนยันนัด · เตือนเข้าพัก · เก็บเงิน · ใบเสร็จ · ขอรีวิว</b></li>
+            <li>เตือนอัตโนมัติล่วงหน้า (ตั้งจำนวนวันเองได้)</li>
+            <li>แก้ข้อความทุกใบเองได้จากหลังบ้าน ไม่ต้องแก้โค้ด</li>
+            <li>แจ้ง Telegram ทีมงานทุกครั้งที่ลูกค้าตอบ/จอง/จ่าย</li>
+            <li>สั่งงานผ่านแชท Telegram ได้เลย — เพิ่มนัด เช็คยอด ค้นลูกค้า</li>
+          </ul>
+        </details></div>
+
+        <div class="pf-pillar"><details>
+          <summary>
+            <div class="ic">🎯</div>
+            <h3>ตามลูกค้า &amp; การตลาด</h3>
+            <p class="sub">ลูกค้าเก่าไม่หาย ลูกค้าใหม่เพิ่ม</p>
+            <p class="more"><span class="plus"></span></p>
+          </summary>
+          <ul>
+            <li><b>การ์ดตามลูกค้าที่หายไป</b> — กำหนดเองว่ากี่วัน ใส่ชื่อน้องแมวให้อัตโนมัติ</li>
+            <li>บรอดแคสต์เฉพาะกลุ่ม: พันธุ์ / ระดับลูกค้า / ความถี่ที่มา</li>
+            <li>อวยพรวันเกิดน้องแมว + แจกคูปองอัตโนมัติ</li>
+            <li>ระบบชวนเพื่อน — คูปอง 2 ต่อเมื่อเพื่อนมาใช้จริง</li>
+            <li>เก็บรหัสไปรษณีย์ → รู้ว่าลูกค้าส่วนใหญ่อยู่โซนไหน ยิงแอดถูกที่</li>
+          </ul>
+        </details></div>
+
+        <div class="pf-pillar"><details>
+          <summary>
+            <div class="ic">📁</div>
+            <h3>เอกสาร &amp; หลักฐาน</h3>
+            <p class="sub">มีปัญหาเมื่อไหร่ เปิดดูได้ทันที</p>
+            <p class="more"><span class="plus"></span></p>
+          </summary>
+          <ul>
+            <li><b>ลายเซ็นดิจิทัล</b>ยอมรับข้อตกลงก่อนเข้าพัก — แยกทุกรอบ</li>
+            <li>บันทึกวัน-เวลาที่ลูกค้ากดยอมรับ เป็นหลักฐาน</li>
+            <li>คำตอบลูกค้าทุกแบบฟอร์มเก็บถาวรในระบบ</li>
+            <li>ประวัติบิล/การชำระย้อนหลังครบทุกใบ</li>
+            <li>ลบผิด? <b>ถังขยะกู้คืนได้</b> ไม่หายถาวร</li>
+          </ul>
+        </details></div>
+
+        <div class="pf-pillar"><details>
+          <summary>
+            <div class="ic">💎</div>
+            <h3>สมาชิก แต้ม โปรโมชั่น</h3>
+            <p class="sub">ขาจรกลายเป็นขาประจำ</p>
+            <p class="more"><span class="plus"></span></p>
+          </summary>
+          <ul>
+            <li>แต้มสะสมอัตโนมัติทุกบิล + ของรางวัลแลกแต้ม</li>
+            <li>เครดิตสมาชิกเติมเงินล่วงหน้า (Member)</li>
+            <li>โปรโมชั่น/คูปอง <b>ตัดสิทธิ์อัตโนมัติ ใช้ซ้ำไม่ได้</b></li>
+            <li>คอร์สเหมา (แพ็กเกจ) ขายแล้วกดหักครั้งต่อครั้ง</li>
+            <li>จัดกลุ่ม VIP/ประจำ/ใหม่ อัตโนมัติจากยอดใช้จริง</li>
+          </ul>
+        </details></div>
+
+        <div class="pf-pillar"><details>
+          <summary>
+            <div class="ic">📊</div>
+            <h3>รายงาน &amp; ข้อมูล</h3>
+            <p class="sub">รู้ตัวเลขร้านโดยไม่ต้องนั่งรวมเอง</p>
+            <p class="more"><span class="plus"></span></p>
+          </summary>
+          <ul>
+            <li><b>สรุปร้านประจำวัน</b>ส่งเข้า Telegram อัตโนมัติ — ยอดขาย บิลค้าง ลูกค้าใหม่</li>
+            <li><b>รายงานเตรียมตัวพรุ่งนี้</b> — กี่คิว กี่โมง เช็คอิน/เช็คเอาท์ใคร</li>
+            <li><b>ข้อมูลไหลลง Google Sheets ทุกวันอัตโนมัติ</b> เลือกคอลัมน์เองได้</li>
+            <li>ยอดขาย/กำไร รายวัน รายเดือน ดูย้อนหลังได้</li>
+            <li>ข้อมูลเป็นของร้าน 100% — ส่งออกได้ตลอดเวลา</li>
+          </ul>
+        </details></div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ EVIDENCE ═══════════ -->
+  <section class="pf-section">
+    <div class="pf-wrap">
+      <p class="pf-kicker">ความน่าเชื่อถือ</p>
+      <h2 class="pf-h2">ไม่ใช่ระบบบนกระดาษ — <span class="glow">ใช้จริงมาแล้ว</span></h2>
+      <div class="pf-evidence">
+        <div class="pf-ev"><span class="em">🏪</span><b>รันร้านจริงทุกวัน</b><span>พัฒนาและทดสอบที่ร้านโรงแรมแมวจริงในบางนา</span></div>
+        <div class="pf-ev"><span class="em">💬</span><b>ทำงานบน LINE</b><span>ช่องทางที่ลูกค้าคนไทยใช้อยู่แล้ว ไม่ต้องโหลดแอปใหม่</span></div>
+        <div class="pf-ev"><span class="em">📲</span><b>ทีมงานรู้ทุกความเคลื่อนไหว</b><span>Telegram แจ้งทันทีทุกครั้งที่ลูกค้าตอบ จอง หรือจ่าย</span></div>
+        <div class="pf-ev"><span class="em">🔧</span><b>ปรับแต่งได้เอง</b><span>ราคา ห้อง ข้อความ โปรโมชั่น แก้จากหลังบ้าน ไม่ต้องแก้โค้ด</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ CLOSING ═══════════ -->
+  <footer class="pf-close">
+    <div class="pf-wrap">
+      <h2>ให้ร้านทำงานแทนคุณ<br />ตั้งแต่วันแรกที่ติดตั้ง</h2>
+      <p>นัดเดโมสด 30 นาที — เห็นระบบทำงานกับข้อมูลตัวอย่างจริง แล้วค่อยตัดสินใจ</p>
+      <a class="pf-cta" href="#" onclick="return false">📅 นัดดูเดโมสด</a>
+      <p class="pf-foot"><b>PetFlow</b> — Pet Business Operating System</p>
+    </div>
+  </footer>
+
+</div>
+
+</body>
+</html>

@@ -11,6 +11,54 @@ import {
 
 import { parseTelegramCommand } from "@/lib/telegram";
 
+/** สร้างข้อความ "เตรียมตัวพรุ่งนี้" — ใช้ทั้งคำสั่ง /tomorrow และ digest อัตโนมัติตอนเช้า */
+export async function buildTomorrowPrepMessage(tomorrow: string) {
+  const all = await listBookings();
+  const live = all.filter((b) => b.status !== "cancelled");
+  const groom = live.filter((b) => b.service === "groom" && b.date === tomorrow);
+  const checkin = live.filter((b) => b.service === "room" && b.checkin === tomorrow);
+  const checkout = live.filter((b) => b.service === "room" && b.checkout === tomorrow);
+  const total = groom.length + checkin.length + checkout.length;
+
+  if (total === 0) {
+    return `🗓️ เตรียมตัวพรุ่งนี้ (${tomorrow})\n\nยังไม่มีนัด/เข้าพัก-ออกพักในระบบค่ะ 🎉`;
+  }
+
+  const lines: string[] = [`🗓️ เตรียมตัวพรุ่งนี้ (${tomorrow})`];
+  if (groom.length) {
+    lines.push(
+      `\n🛁 นัดอาบน้ำ (${groom.length}):\n` +
+        groom
+          .map((b, i) => `${i + 1}. ${b.catName} · ${b.customerName} — ${b.time || "ไม่ระบุเวลา"}`)
+          .join("\n")
+    );
+  }
+  if (checkin.length) {
+    lines.push(
+      `\n🏠 เช็คอิน (${checkin.length}):\n` +
+        checkin
+          .map(
+            (b, i) =>
+              `${i + 1}. ${b.catName} · ${b.customerName} — ห้อง ${b.room || "-"}${b.arrivalTime ? ` · แจ้งเวลา ${b.arrivalTime}` : ""}`
+          )
+          .join("\n")
+    );
+  }
+  if (checkout.length) {
+    lines.push(
+      `\n🏠 เช็คเอาท์ (${checkout.length}):\n` +
+        checkout
+          .map(
+            (b, i) =>
+              `${i + 1}. ${b.catName} · ${b.customerName} — ห้อง ${b.room || "-"}${b.pickupTime ? ` · แจ้งเวลา ${b.pickupTime}` : ""}`
+          )
+          .join("\n")
+    );
+  }
+  lines.push(`\nรวมงานพรุ่งนี้: ${total} รายการ`);
+  return lines.join("\n");
+}
+
 export async function handleTelegramCommand(
   text: string,
   _chatId?: number | string
@@ -25,7 +73,8 @@ export async function handleTelegramCommand(
       message:
         `🐱 <b>วิธีใช้ CatCha Bot</b>\n\n` +
         `👇 กดปุ่มเมนูด้านล่างได้เลย\n` +
-        `📅 นัดวันนี้ · ⏳ คิวรอยืนยัน · 🗓️ ตารางเดือน\n` +
+        `📅 นัดวันนี้ · 🌅 เตรียมตัวพรุ่งนี้\n` +
+        `⏳ คิวรอยืนยัน · 🗓️ ตารางเดือน\n` +
         `💰 ยอดขาย · 📒 การเงิน\n` +
         `➕ เพิ่มนัด · 📋 สรุปลูกค้า · ✅ ส่งยืนยันนัด\n\n` +
         `<b>เพิ่มนัด</b>\n` +
@@ -51,6 +100,13 @@ export async function handleTelegramCommand(
           )
           .join("\n\n"),
     };
+  }
+
+  if (command === "/tomorrow") {
+    const tomorrow = new Date(`${today}T12:00:00`);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const message = await buildTomorrowPrepMessage(tomorrow.toISOString().slice(0, 10));
+    return { message };
   }
 
   if (command === "/month") {

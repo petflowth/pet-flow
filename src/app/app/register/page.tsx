@@ -58,6 +58,8 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [birthday, setBirthday] = useState("");
   const [referral, setReferral] = useState("");
+  const [address, setAddress] = useState("");
+  const [addressMapUrl, setAddressMapUrl] = useState("");
   const [consent, setConsent] = useState(true);
   const [cats, setCats] = useState<CatInput[]>([emptyCat()]);
   const [saving, setSaving] = useState(false);
@@ -112,6 +114,8 @@ export default function RegisterPage() {
           birthday,
           referralSource: referral,
           referralCode: referralCode || undefined,
+          address: address || undefined,
+          addressMapUrl: addressMapUrl || undefined,
           marketingConsent: consent,
           cats: cats
             .filter((c) => c.name.trim())
@@ -408,6 +412,29 @@ export default function RegisterPage() {
             <span className="text-lg">🐱</span> เพิ่มน้องแมวอีกตัว
             <span className="text-lg">🐾</span>
           </button>
+        </div>
+
+        {/* ── ที่อยู่บ้าน (สำหรับบริการรับ-ส่ง) ── */}
+        <div>
+          <span className="mb-1 block text-xs font-bold text-brown">
+            📍 ที่อยู่บ้าน{" "}
+            <span className="font-normal text-brown-faint">
+              (ไม่บังคับ — ไว้ใช้ตอนขอบริการรับ-ส่ง จะได้ไม่ต้องพิมพ์ซ้ำ)
+            </span>
+          </span>
+          <textarea
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="เช่น บ้านเลขที่ ซอย ถนน แขวง/ตำบล เขต/อำเภอ"
+            rows={2}
+            className={fieldClass}
+          />
+          <input
+            value={addressMapUrl}
+            onChange={(e) => setAddressMapUrl(e.target.value)}
+            placeholder="ลิงก์ Google Maps (ถ้ามี) — เปิด Maps แล้วกดแชร์ลิงก์มาวางตรงนี้"
+            className={`${fieldClass} mt-2`}
+          />
         </div>
 
         {/* ── รู้จักเราจากทางไหน ── */}

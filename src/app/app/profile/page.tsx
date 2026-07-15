@@ -43,6 +43,8 @@ export default function ProfilePage() {
   const [email, setEmail] = useState("");
   const [birthday, setBirthday] = useState("");
   const [referral, setReferral] = useState("");
+  const [address, setAddress] = useState("");
+  const [addressMapUrl, setAddressMapUrl] = useState("");
   const [consent, setConsent] = useState(true);
   const [cats, setCats] = useState<CatForm[]>([]);
   const [saving, setSaving] = useState(false);
@@ -61,6 +63,8 @@ export default function ProfilePage() {
         setEmail(c.email || "");
         setBirthday(c.birthday || "");
         setReferral(c.referralSource || "");
+        setAddress(c.address || "");
+        setAddressMapUrl(c.addressMapUrl || "");
         setConsent(c.marketingConsent !== false);
         setCats(
           (c.cats || []).map((x: Record<string, unknown>) => {
@@ -102,6 +106,8 @@ export default function ProfilePage() {
           email: email.trim(),
           birthday,
           referralSource: referral,
+          address,
+          addressMapUrl,
           marketingConsent: consent,
           cats: cats.map((c) => ({
             id: c.id,
@@ -172,6 +178,26 @@ export default function ProfilePage() {
                 <input value={birthday} onChange={(e) => setBirthday(e.target.value)} type="date" className={`${field} mt-1`} />
               </label>
             </div>
+            <label className="block text-xs font-bold text-brown-soft">
+              📍 ที่อยู่บ้าน{" "}
+              <span className="font-normal text-brown-faint">(ไว้ใช้บริการรับ-ส่ง)</span>
+              <textarea
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="เช่น บ้านเลขที่ ซอย ถนน แขวง/ตำบล เขต/อำเภอ"
+                rows={2}
+                className={`${field} mt-1`}
+              />
+            </label>
+            <label className="block text-xs font-bold text-brown-soft">
+              ลิงก์ Google Maps
+              <input
+                value={addressMapUrl}
+                onChange={(e) => setAddressMapUrl(e.target.value)}
+                placeholder="เปิด Maps แล้วกดแชร์ลิงก์มาวางตรงนี้"
+                className={`${field} mt-1`}
+              />
+            </label>
           </div>
 
           {/* ── น้องแมว ── */}

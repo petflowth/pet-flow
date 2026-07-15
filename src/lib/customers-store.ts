@@ -59,6 +59,10 @@ export type CustomerRecord = {
   marketingConsent: boolean;
   /** รู้จักร้านจากทางไหน */
   referralSource?: string;
+  /** ที่อยู่บ้าน (พิมพ์เอง) — ไว้ใช้บริการรับ-ส่ง ไม่ต้องถามซ้ำทุกครั้ง */
+  address?: string;
+  /** ลิงก์ Google Maps ปักหมุดบ้านลูกค้า */
+  addressMapUrl?: string;
   /** รหัสชวนเพื่อนของลูกค้าคนนี้ (แชร์ให้เพื่อนสมัคร) */
   referralCode?: string;
   /** ถูกชวนมาโดยลูกค้ารหัสนี้ (กันออกคูปองซ้ำ) */
@@ -143,6 +147,8 @@ type CustomerRow = {
   line_display_name: string | null;
   marketing_consent: boolean | null;
   referral_source: string | null;
+  address?: string | null;
+  address_map_url?: string | null;
   referral_code?: string | null;
   referred_by?: string | null;
   is_member: boolean;
@@ -214,6 +220,8 @@ function mapCustomer(row: CustomerRow): CustomerRecord {
     lineDisplayName: row.line_display_name ?? undefined,
     marketingConsent: row.marketing_consent !== false,
     referralSource: row.referral_source ?? undefined,
+    address: row.address ?? undefined,
+    addressMapUrl: row.address_map_url ?? undefined,
     referralCode: row.referral_code ?? undefined,
     referredBy: row.referred_by ?? undefined,
     isMember: row.is_member,
@@ -738,6 +746,8 @@ export async function updateCustomer(
       | "lineUserId"
       | "marketingConsent"
       | "referralSource"
+      | "address"
+      | "addressMapUrl"
       | "isMember"
       | "memberCredit"
       | "memberSince"
@@ -776,6 +786,17 @@ export async function updateCustomer(
         updated_at: c.updatedAt,
       })
       .eq("id", id);
+    if (patch.address !== undefined || patch.addressMapUrl !== undefined) {
+      // คอลัมน์ใหม่ — best-effort เผื่อยังไม่ได้รัน migration
+      await sb
+        .from("customers")
+        .update({ address: c.address || null, address_map_url: c.addressMapUrl || null })
+        .eq("id", id)
+        .then(
+          () => {},
+          () => {}
+        );
+    }
   } else {
     memCustomers.set(id, c);
   }
@@ -1431,6 +1452,8 @@ export async function registerCustomerFromLine(data: {
   email?: string;
   birthday?: string;
   referralSource?: string;
+  address?: string;
+  addressMapUrl?: string;
   marketingConsent?: boolean;
   cats: {
     name: string;
@@ -1474,6 +1497,8 @@ export async function registerCustomerFromLine(data: {
     email: data.email?.trim() || undefined,
     birthday: data.birthday?.trim() || undefined,
     referralSource: data.referralSource?.trim() || undefined,
+    address: data.address?.trim() || undefined,
+    addressMapUrl: data.addressMapUrl?.trim() || undefined,
     marketingConsent: data.marketingConsent ?? true,
   });
 

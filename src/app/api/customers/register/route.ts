@@ -27,6 +27,8 @@ export async function POST(req: NextRequest) {
   const email = String(body.email || "").trim();
   const birthday = String(body.birthday || "").trim();
   const referralSource = String(body.referralSource || "").trim();
+  const address = String(body.address || "").trim();
+  const addressMapUrl = String(body.addressMapUrl || "").trim();
   const marketingConsent = body.marketingConsent !== false;
   const cats = Array.isArray(body.cats)
     ? body.cats.map((c: CatBody) => ({
@@ -66,6 +68,8 @@ export async function POST(req: NextRequest) {
       email: email || undefined,
       birthday: birthday || undefined,
       referralSource: referralSource || undefined,
+      address: address || undefined,
+      addressMapUrl: addressMapUrl || undefined,
       marketingConsent,
       cats,
     });

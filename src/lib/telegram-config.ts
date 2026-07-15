@@ -115,6 +115,7 @@ export async function testTelegramToken(token: string) {
 export const TELEGRAM_BOT_COMMANDS = [
   { command: "start", description: "เริ่มใช้ + ดู Chat ID" },
   { command: "today", description: "นัดวันนี้" },
+  { command: "tomorrow", description: "เตรียมตัวพรุ่งนี้ (นัด + เช็คอิน/เอาท์)" },
   { command: "queue", description: "คิวรอยืนยัน" },
   { command: "month", description: "ตารางเดือนนี้" },
   { command: "sales", description: "ยอดขายวันนี้" },

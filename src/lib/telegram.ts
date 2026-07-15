@@ -20,6 +20,7 @@ export type TelegramCommand = {
 /** ปุ่มเมนูด้านล่างแชท — กดได้เลย ไม่ต้องพิมพ์คำสั่ง */
 export const TELEGRAM_MENU_BUTTONS = {
   today: "📅 นัดวันนี้",
+  tomorrow: "🌅 เตรียมตัวพรุ่งนี้",
   queue: "⏳ คิวรอยืนยัน",
   month: "🗓️ ตารางเดือน",
   sales: "💰 ยอดขายวันนี้",
@@ -32,6 +33,7 @@ export const TELEGRAM_MENU_BUTTONS = {
 
 const MENU_TO_COMMAND: Record<string, string> = {
   [TELEGRAM_MENU_BUTTONS.today]: "/today",
+  [TELEGRAM_MENU_BUTTONS.tomorrow]: "/tomorrow",
   [TELEGRAM_MENU_BUTTONS.queue]: "/queue",
   [TELEGRAM_MENU_BUTTONS.month]: "/month",
   [TELEGRAM_MENU_BUTTONS.sales]: "/sales",
@@ -47,21 +49,24 @@ export function getTelegramMenuKeyboard() {
     keyboard: [
       [
         { text: TELEGRAM_MENU_BUTTONS.today },
+        { text: TELEGRAM_MENU_BUTTONS.tomorrow },
+      ],
+      [
         { text: TELEGRAM_MENU_BUTTONS.queue },
-      ],
-      [
         { text: TELEGRAM_MENU_BUTTONS.month },
+      ],
+      [
         { text: TELEGRAM_MENU_BUTTONS.sales },
-      ],
-      [
         { text: TELEGRAM_MENU_BUTTONS.finance },
-        { text: TELEGRAM_MENU_BUTTONS.book },
       ],
       [
+        { text: TELEGRAM_MENU_BUTTONS.book },
         { text: TELEGRAM_MENU_BUTTONS.summary },
-        { text: TELEGRAM_MENU_BUTTONS.confirm },
       ],
-      [{ text: TELEGRAM_MENU_BUTTONS.help }],
+      [
+        { text: TELEGRAM_MENU_BUTTONS.confirm },
+        { text: TELEGRAM_MENU_BUTTONS.help },
+      ],
     ],
     resize_keyboard: true,
     is_persistent: true,
@@ -74,6 +79,7 @@ export function normalizeTelegramInput(text: string) {
   if (MENU_TO_COMMAND[trimmed]) return MENU_TO_COMMAND[trimmed];
   if (/คิว.*ยืนยัน/.test(trimmed)) return "/queue";
   if (/นัดวันนี้/.test(trimmed)) return "/today";
+  if (/เตรียมตัวพรุ่งนี้|พรุ่งนี้/.test(trimmed)) return "/tomorrow";
   if (/ตารางเดือน/.test(trimmed)) return "/month";
   if (/ยอดขาย/.test(trimmed)) return "/sales";
   if (/การเงิน/.test(trimmed)) return "/finance";

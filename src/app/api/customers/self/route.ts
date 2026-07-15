@@ -23,6 +23,8 @@ export async function GET(req: NextRequest) {
       email: c.email || "",
       birthday: c.birthday || "",
       referralSource: c.referralSource || "",
+      address: c.address || "",
+      addressMapUrl: c.addressMapUrl || "",
       marketingConsent: c.marketingConsent !== false,
       cats: c.cats.map((x) => ({
         id: x.id,
@@ -55,6 +57,8 @@ export async function POST(req: NextRequest) {
     email?: string;
     birthday?: string;
     referralSource?: string;
+    address?: string;
+    addressMapUrl?: string;
     marketingConsent?: boolean;
   } = {};
   if (typeof body.name === "string" && body.name.trim()) patch.name = body.name.trim();
@@ -63,6 +67,9 @@ export async function POST(req: NextRequest) {
   if (typeof body.birthday === "string") patch.birthday = body.birthday.trim() || undefined;
   if (typeof body.referralSource === "string")
     patch.referralSource = body.referralSource.trim() || undefined;
+  if (typeof body.address === "string") patch.address = body.address.trim() || undefined;
+  if (typeof body.addressMapUrl === "string")
+    patch.addressMapUrl = body.addressMapUrl.trim() || undefined;
   if (typeof body.marketingConsent === "boolean")
     patch.marketingConsent = body.marketingConsent;
   await updateCustomer(c.id, patch);

@@ -411,6 +411,8 @@ function CustomerSummaryCard({
 }) {
   const [name, setName] = useState(customer.name);
   const [phone, setPhone] = useState(customer.phone || "");
+  const [address, setAddress] = useState(customer.address || "");
+  const [addressMapUrl, setAddressMapUrl] = useState(customer.addressMapUrl || "");
   const [tier, setTier] = useState<CustomerTier>(customer.tier || "new");
   const [msg, setMsg] = useState("");
   const [followUpBusy, setFollowUpBusy] = useState(false);
@@ -507,10 +509,12 @@ function CustomerSummaryCard({
   useEffect(() => {
     setName(customer.name);
     setPhone(customer.phone || "");
+    setAddress(customer.address || "");
+    setAddressMapUrl(customer.addressMapUrl || "");
     setTier(customer.tier || "new");
-  }, [customer.id, customer.name, customer.phone, customer.tier]);
+  }, [customer.id, customer.name, customer.phone, customer.address, customer.addressMapUrl, customer.tier]);
 
-  const save = async (patch: { name?: string; phone?: string }) => {
+  const save = async (patch: { name?: string; phone?: string; address?: string; addressMapUrl?: string }) => {
     const res = await fetch("/api/customers", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -615,6 +619,25 @@ function CustomerSummaryCard({
             {customer.birthday && <p>🎂 วันเกิด {customer.birthday}</p>}
             {customer.referralSource && (
               <p>📣 รู้จักจาก: {customer.referralSource}</p>
+            )}
+            {customer.address && (
+              <p>
+                📍 {customer.address}
+                {customer.addressMapUrl && (
+                  <>
+                    {" "}
+                    ·{" "}
+                    <a
+                      href={customer.addressMapUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-bold text-latte-deep underline"
+                    >
+                      แผนที่
+                    </a>
+                  </>
+                )}
+              </p>
             )}
             <p className={customer.marketingConsent ? "text-ok" : "font-bold text-wait"}>
               {customer.marketingConsent
@@ -798,6 +821,42 @@ function CustomerSummaryCard({
             placeholder="08x-xxx-xxxx"
             className="w-full rounded-catcha-sm border-2 border-catcha-line bg-paper px-3 py-2.5 text-sm outline-none transition focus:border-latte-deep focus:bg-card"
           />
+        </label>
+        <label className="block text-xs font-bold text-brown-soft">
+          <span className="mb-1 flex items-center gap-1">📍 ที่อยู่บ้าน (บริการรับ-ส่ง)</span>
+          <textarea
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            onBlur={() => {
+              if (address.trim() !== (customer.address || "")) save({ address: address.trim() || undefined });
+            }}
+            placeholder="เช่น บ้านเลขที่ ซอย ถนน แขวง/ตำบล เขต/อำเภอ"
+            rows={2}
+            className="w-full rounded-catcha-sm border-2 border-catcha-line bg-paper px-3 py-2.5 text-sm outline-none transition focus:border-latte-deep focus:bg-card"
+          />
+        </label>
+        <label className="block text-xs font-bold text-brown-soft">
+          <span className="mb-1 flex items-center gap-1">🗺️ ลิงก์ Google Maps</span>
+          <input
+            value={addressMapUrl}
+            onChange={(e) => setAddressMapUrl(e.target.value)}
+            onBlur={() => {
+              if (addressMapUrl.trim() !== (customer.addressMapUrl || ""))
+                save({ addressMapUrl: addressMapUrl.trim() || undefined });
+            }}
+            placeholder="วางลิงก์ Google Maps ที่ลูกค้าแชร์มา"
+            className="w-full rounded-catcha-sm border-2 border-catcha-line bg-paper px-3 py-2.5 text-sm outline-none transition focus:border-latte-deep focus:bg-card"
+          />
+          {addressMapUrl && (
+            <a
+              href={addressMapUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1 inline-block text-[10px] font-bold text-latte-deep underline"
+            >
+              📍 เปิดดูแผนที่
+            </a>
+          )}
         </label>
         <p className="text-[10px] text-brown-faint">💾 พิมพ์แล้วแตะออกจากช่อง ระบบบันทึกให้อัตโนมัติ</p>
 

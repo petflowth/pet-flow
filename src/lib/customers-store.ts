@@ -26,6 +26,8 @@ export type CatRecord = {
   ageAsOf?: string;
   birthday?: string;
   medical?: string;
+  /** ขนสั้น/ขนยาว — ถามพร้อมสายพันธุ์ตอนสมัครสมาชิก */
+  furLength?: "short" | "long";
   photoDataUrl?: string;
   staffNote?: string;
   /** โน้ตลับของร้าน — ซ่อนจากลูกค้า (ต้องรัน OVERNIGHT_SQL.md ก่อนถึงจะเซฟได้) */
@@ -123,6 +125,7 @@ type CatRow = {
   age_as_of: string | null;
   birthday: string | null;
   medical: string | null;
+  fur_length?: string | null;
   photo_data_url: string | null;
   staff_note: string | null;
   staff_private_note?: string | null;
@@ -232,6 +235,7 @@ function mapCustomer(row: CustomerRow): CustomerRecord {
       ageAsOf: c.age_as_of ?? undefined,
       birthday: c.birthday ?? undefined,
       medical: c.medical ?? undefined,
+      furLength: (c.fur_length as "short" | "long" | undefined) ?? undefined,
       photoDataUrl: c.photo_data_url ?? undefined,
       staffNote: c.staff_note ?? undefined,
       staffPrivateNote: c.staff_private_note ?? undefined,
@@ -823,6 +827,7 @@ export async function updateCat(
       | "ageUnit"
       | "birthday"
       | "medical"
+      | "furLength"
     >
   >
 ) {
@@ -871,6 +876,7 @@ export async function updateCat(
           age_as_of: cat.ageAsOf || null,
           birthday: cat.birthday || null,
           medical: cat.medical || null,
+          fur_length: cat.furLength || null,
         })
         .eq("id", catId);
     } catch {
@@ -932,6 +938,7 @@ export async function addCat(
     ageUnit?: "year" | "month";
     birthday?: string;
     medical?: string;
+    furLength?: "short" | "long";
     staffNote?: string;
   }
 ) {
@@ -955,6 +962,7 @@ export async function addCat(
     ageAsOf: hasAge ? today : undefined,
     birthday: data.birthday?.trim() || undefined,
     medical: data.medical?.trim() || undefined,
+    furLength: data.furLength,
     staffNote: data.staffNote?.trim() || undefined,
   };
 
@@ -977,6 +985,13 @@ export async function addCat(
       staff_note: cat.staffNote || null,
     });
     if (error) throw new Error(error.message);
+    if (cat.furLength) {
+      // คอลัมน์ใหม่ — best-effort เผื่อยังไม่ได้รัน migration
+      await sb.from("cats").update({ fur_length: cat.furLength }).eq("id", catId).then(
+        () => {},
+        () => {}
+      );
+    }
   } else {
     memCustomers.set(customerId, c);
   }
@@ -1425,6 +1440,7 @@ export async function registerCustomerFromLine(data: {
     ageUnit?: "year" | "month";
     birthday?: string;
     medical?: string;
+    furLength?: "short" | "long";
     staffNote?: string;
   }[];
 }) {
@@ -1440,6 +1456,7 @@ export async function registerCustomerFromLine(data: {
       ageUnit: c.ageUnit,
       birthday: c.birthday?.trim(),
       medical: c.medical?.trim(),
+      furLength: c.furLength,
       staffNote: c.staffNote?.trim(),
     }))
     .filter((c) => c.name);

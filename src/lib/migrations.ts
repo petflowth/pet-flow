@@ -131,6 +131,10 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     name: "bookings.consent_signature",
     sql: "alter table bookings add column if not exists consent_signature text;",
   },
+  {
+    name: "cats.fur_length",
+    sql: "alter table cats add column if not exists fur_length text;",
+  },
 ];
 
 export type MigrateResult = {

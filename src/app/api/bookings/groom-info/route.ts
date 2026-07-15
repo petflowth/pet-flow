@@ -41,6 +41,12 @@ export async function POST(req: NextRequest) {
       info.bathedBefore === "yes" ? "yes" : info.bathedBefore === "no" ? "no" : "",
     temperament: Array.isArray(info.temperament) ? info.temperament : [],
     health: Array.isArray(info.health) ? info.health : [],
+    vaccinated:
+      info.vaccinated === "yes" ? "yes" : info.vaccinated === "no" ? "no" : "",
+    colorMarkings: String(info.colorMarkings || "").trim(),
+    weight: String(info.weight || "").trim(),
+    dryMethod:
+      info.dryMethod === "dryer" || info.dryMethod === "cabinet" ? info.dryMethod : "",
     allergy: String(info.allergy || "").trim(),
     note: String(info.note || "").trim(),
     submittedAt: new Date().toISOString(),

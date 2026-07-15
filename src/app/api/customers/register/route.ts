@@ -14,6 +14,7 @@ type CatBody = {
   ageUnit?: string;
   birthday?: string;
   medical?: string;
+  furLength?: string;
   staffNote?: string;
 };
 
@@ -40,6 +41,8 @@ export async function POST(req: NextRequest) {
         ageUnit: c.ageUnit === "month" ? "month" : c.ageUnit === "year" ? "year" : undefined,
         birthday: c.birthday ? String(c.birthday) : undefined,
         medical: c.medical ? String(c.medical) : undefined,
+        furLength:
+          c.furLength === "short" || c.furLength === "long" ? c.furLength : undefined,
         staffNote: c.staffNote ? String(c.staffNote) : undefined,
       }))
     : [];

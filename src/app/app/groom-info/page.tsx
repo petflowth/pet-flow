@@ -11,14 +11,25 @@ type CatForm = {
   bathedBefore: string;
   temperament: string[];
   health: string[];
+  vaccinated: string;
+  colorMarkings: string;
+  weight: string;
+  dryMethod: string;
   allergy: string;
   note: string;
 };
 
 const TEMPERAMENT = [
+  { key: "normal", label: "🙂 ปกติ" },
+  { key: "playful", label: "😸 ขี้เล่น" },
+  { key: "clingy", label: "🥰 ขี้อ้อน" },
+  { key: "stressed", label: "😿 เครียดง่าย" },
   { key: "gentle", label: "😌 ใจดี ให้จับง่าย" },
   { key: "fearful", label: "🙀 ขี้กลัว/ตกใจง่าย" },
+  { key: "struggle", label: "🌀 ดิ้น" },
   { key: "aggressive", label: "😾 ดุ/กัด/ข่วน" },
+  { key: "strangerShy", label: "🙈 ไม่ชอบคนแปลกหน้า" },
+  { key: "other", label: "➕ อื่นๆ" },
 ];
 const HEALTH = [
   { key: "healthy", label: "💪 แข็งแรงดี" },
@@ -27,6 +38,10 @@ const HEALTH = [
   { key: "seizure", label: "⚡ ลมชัก/ชัก" },
   { key: "senior", label: "👵 สูงอายุ" },
   { key: "other", label: "➕ อื่นๆ" },
+];
+const DRY_METHODS = [
+  { key: "dryer", label: "💨 ไดร์เป่าขน" },
+  { key: "cabinet", label: "📦 ตู้เป่าขน" },
 ];
 
 function GroomInfoContent() {
@@ -66,6 +81,10 @@ function GroomInfoContent() {
             bathedBefore: d.info?.bathedBefore || "",
             temperament: d.info?.temperament || [],
             health: d.info?.health || [],
+            vaccinated: d.info?.vaccinated || "",
+            colorMarkings: d.info?.colorMarkings || "",
+            weight: d.info?.weight || "",
+            dryMethod: d.info?.dryMethod || "",
             allergy: d.info?.allergy || "",
             note: d.info?.note || "",
           });
@@ -95,6 +114,8 @@ function GroomInfoContent() {
     bathedBefore: !f.bathedBefore,
     temperament: f.temperament.length === 0,
     health: f.health.length === 0,
+    vaccinated: !f.vaccinated,
+    dryMethod: !f.dryMethod,
   });
 
   const submit = async () => {
@@ -102,7 +123,7 @@ function GroomInfoContent() {
     setAttempted(true);
     const hasMissing = forms.some((f) => {
       const m = isMissing(f);
-      return m.bathedBefore || m.temperament || m.health;
+      return m.bathedBefore || m.temperament || m.health || m.vaccinated || m.dryMethod;
     });
     if (hasMissing) {
       setSaveError("กรุณาตอบให้ครบทุกข้อ (ช่องที่ติ๊กเลือก) ก่อนส่งข้อมูลนะคะ 🙏");
@@ -123,6 +144,10 @@ function GroomInfoContent() {
                 bathedBefore: f.bathedBefore,
                 temperament: f.temperament,
                 health: f.health,
+                vaccinated: f.vaccinated,
+                colorMarkings: f.colorMarkings,
+                weight: f.weight,
+                dryMethod: f.dryMethod,
                 allergy: f.allergy,
                 note: f.note,
               },
@@ -279,6 +304,67 @@ function GroomInfoContent() {
                     active={f.health.includes(h.key)}
                     label={h.label}
                     onClick={() => toggle(idx, "health", h.key)}
+                  />
+                ))}
+              </div>
+
+              <p
+                className={`mt-3 mb-1.5 text-xs font-bold ${
+                  attempted && missing.vaccinated ? "text-wait" : "text-brown-soft"
+                }`}
+              >
+                ได้รับวัคซีนแล้วหรือยังคะ *
+                {attempted && missing.vaccinated && " — กรุณาเลือก"}
+              </p>
+              <div className="flex gap-2">
+                <Chip
+                  active={f.vaccinated === "yes"}
+                  label="✅ ได้รับแล้ว"
+                  onClick={() => patch(idx, { vaccinated: "yes" })}
+                />
+                <Chip
+                  active={f.vaccinated === "no"}
+                  label="❌ ยังไม่ได้รับ"
+                  onClick={() => patch(idx, { vaccinated: "no" })}
+                />
+              </div>
+
+              <p className="mt-3 mb-1 text-xs font-bold text-brown-soft">
+                สี/ลักษณะเด่นของน้อง — ถ้าไม่มีเว้นว่างได้
+              </p>
+              <input
+                value={f.colorMarkings}
+                onChange={(e) => patch(idx, { colorMarkings: e.target.value })}
+                placeholder="เช่น สีขาวสลับดำ มีจุดที่หู"
+                className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
+              />
+
+              <p className="mt-3 mb-1 text-xs font-bold text-brown-soft">
+                น้ำหนักตัวน้อง (กก.) — ถ้าไม่ทราบเว้นว่างได้
+              </p>
+              <input
+                value={f.weight}
+                onChange={(e) => patch(idx, { weight: e.target.value })}
+                placeholder="เช่น 4.5"
+                inputMode="decimal"
+                className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
+              />
+
+              <p
+                className={`mt-3 mb-1.5 text-xs font-bold ${
+                  attempted && missing.dryMethod ? "text-wait" : "text-brown-soft"
+                }`}
+              >
+                เคยใช้วิธีเป่าขนแบบไหนคะ *
+                {attempted && missing.dryMethod && " — กรุณาเลือก"}
+              </p>
+              <div className="flex gap-2">
+                {DRY_METHODS.map((d) => (
+                  <Chip
+                    key={d.key}
+                    active={f.dryMethod === d.key}
+                    label={d.label}
+                    onClick={() => patch(idx, { dryMethod: d.key })}
                   />
                 ))}
               </div>

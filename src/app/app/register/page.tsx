@@ -12,6 +12,7 @@ type CatInput = {
   gender?: CatGender;
   breed: string;
   breedOther: string;
+  furLength: "" | "short" | "long";
   ageValue: string;
   ageUnit: "year" | "month";
   birthday: string;
@@ -35,6 +36,7 @@ function emptyCat(): CatInput {
     name: "",
     breed: "",
     breedOther: "",
+    furLength: "",
     ageValue: "",
     ageUnit: "year",
     birthday: "",
@@ -123,6 +125,7 @@ export default function RegisterPage() {
               ageUnit: c.ageUnit,
               birthday: c.birthday || undefined,
               medical: c.medical || undefined,
+              furLength: c.furLength || undefined,
               staffNote: c.note || undefined,
             })),
         }),
@@ -308,6 +311,32 @@ export default function RegisterPage() {
                     className={subFieldClass}
                   />
                 )}
+                <div>
+                  <span className="mb-1 block text-[10px] font-bold text-brown-soft">
+                    ลักษณะขน
+                  </span>
+                  <div className="flex gap-2">
+                    {(
+                      [
+                        ["short", "✂️ ขนสั้น"],
+                        ["long", "🧵 ขนยาว"],
+                      ] as const
+                    ).map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => updateCat(idx, { furLength: value })}
+                        className={`flex-1 rounded-lg border px-3 py-2 text-xs font-bold ${
+                          cat.furLength === value
+                            ? "border-latte-deep bg-latte-deep text-card"
+                            : "border-catcha-line bg-paper text-brown-soft"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <input
                     type="number"

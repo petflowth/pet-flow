@@ -1,5 +1,6 @@
 import type { Booking, BookingStatus } from "./business";
 import { getSupabase } from "./supabase/server";
+import { uploadDataUrlToStorage } from "./supabase/storage";
 
 export type StoredBooking = Booking & {
   lineUserId?: string;
@@ -210,7 +211,10 @@ export async function acceptBookingConsent(
   }
   const now = new Date().toISOString();
   const note = (careNote || "").trim();
-  const sig = (signature || "").trim();
+  let sig = (signature || "").trim();
+  if (sig.startsWith("data:")) {
+    sig = await uploadDataUrlToStorage(`consent-signatures/${id}-${Date.now()}`, sig);
+  }
   const sb = getSupabase();
   if (sb) {
     try {

@@ -961,6 +961,7 @@ function AdvancedTab({
   return (
     <div className="space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm">
       <MigrateSection />
+      <MigratePhotosSection />
       <ExportSheetsButton />
       <p className="text-[10px] text-brown-faint">
         ส่งออกแท็บ ลูกค้า + รายรับรายจ่าย ไป Google Sheet เดียว (ต้องตั้ง GOOGLE_SPREADSHEET_ID)
@@ -987,6 +988,55 @@ function AdvancedTab({
           {saving ? "…" : "📥 นำเข้า JSON"}
         </button>
       </div>
+    </div>
+  );
+}
+
+function MigratePhotosSection() {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const run = async () => {
+    setBusy(true);
+    setMsg("");
+    try {
+      const res = await fetch("/api/admin/migrate-photos", { method: "POST" });
+      const d = await res.json();
+      if (!res.ok) {
+        setMsg(`❌ ${d.error || "ทำไม่สำเร็จ"}`);
+      } else {
+        const total = d.photos + d.media + d.signatures;
+        setMsg(
+          total === 0
+            ? "✅ ไม่มีรูปเก่าที่ต้องย้ายแล้ว (เก็บเป็นไฟล์หมดแล้ว)"
+            : `✅ ย้ายแล้ว — รูปโปรไฟล์ ${d.photos}, อัลบั้ม ${d.media}, ลายเซ็น ${d.signatures}` +
+              (d.errors?.length ? ` (พลาด ${d.errors.length} รายการ)` : "")
+        );
+      }
+    } catch {
+      setMsg("❌ เชื่อมต่อไม่สำเร็จ");
+    }
+    setBusy(false);
+  };
+
+  return (
+    <div className="rounded-catcha-sm border border-sage/40 bg-sage/10 p-3">
+      <p className="text-xs font-extrabold text-catcha-chocolate">
+        🖼️ ย้ายรูป/วิดีโอเก่าไป Storage
+      </p>
+      <p className="mb-2 text-[10px] text-brown-soft">
+        รูปโปรไฟล์แมว, อัลบั้มหลังบ้าน, ลายเซ็นยินยอม ที่เคยเก็บเป็น base64 ยัดในฐานข้อมูลตรงๆ
+        (กินพื้นที่เปลือง) — ย้ายไปเก็บเป็นไฟล์แทน ประหยัดพื้นที่กว่าเดิม กดซ้ำได้ปลอดภัย
+      </p>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={run}
+        className="w-full rounded-catcha-sm bg-sage/70 py-2 text-xs font-extrabold text-catcha-chocolate disabled:opacity-50"
+      >
+        {busy ? "กำลังย้าย… (อาจใช้เวลาสักครู่)" : "🖼️ ย้ายรูปเก่าตอนนี้"}
+      </button>
+      {msg && <p className="mt-2 text-[11px] font-bold text-brown">{msg}</p>}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
 import { listBookings } from "./bookings-store";
 import { getAccount, getPointsHistory } from "./points-store";
 import { getSupabase } from "./supabase/server";
+import { uploadDataUrlToStorage } from "./supabase/storage";
 import { getSiteConfig } from "./config-store";
 
 export type { CustomerTier } from "./customer-tier";
@@ -830,6 +831,17 @@ export async function updateCat(
   const cat = c.cats.find((x) => x.id === catId);
   if (!cat) return null;
 
+  // เก็บรูปเป็นไฟล์ใน Supabase Storage แทนยัด base64 ลงฐานข้อมูลตรงๆ (ประหยัดพื้นที่ + bandwidth)
+  if (patch.photoDataUrl?.startsWith("data:")) {
+    patch = {
+      ...patch,
+      photoDataUrl: await uploadDataUrlToStorage(
+        `cats/${catId}/profile-${Date.now()}`,
+        patch.photoDataUrl
+      ),
+    };
+  }
+
   Object.assign(cat, patch);
   // ถ้าแก้อายุ → อัปเดตวันที่อ้างอิงอายุเป็นวันนี้ (ไว้คำนวณอายุปัจจุบัน)
   if (patch.ageValue != null) {
@@ -1074,6 +1086,16 @@ export async function updateCatMedia(
   if (!c) return { ok: false as const, error: "not_found" };
   const cat = c.cats.find((x) => x.id === catId);
   if (!cat) return { ok: false as const, error: "not_found" };
+
+  // เก็บรูป/วิดีโอในอัลบั้มเป็นไฟล์ใน Storage แทน base64 — วิดีโอเคยยัดลง jsonb ตรงๆ ได้ถึง 15MB/คลิป
+  media = await Promise.all(
+    media.map(async (m) =>
+      m.dataUrl.startsWith("data:")
+        ? { ...m, dataUrl: await uploadDataUrlToStorage(`cats/${catId}/media-${m.id}`, m.dataUrl) }
+        : m
+    )
+  );
+
   cat.media = media;
   const sb = getSupabase();
   if (sb) {

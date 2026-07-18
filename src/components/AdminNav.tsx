@@ -15,6 +15,7 @@ export const ADMIN_TABS = [
   { href: "/admin/promos", label: "โปร", icon: "✨" },
   { href: "/admin/coupons", label: "คูปอง", icon: "🎟️" },
   { href: "/admin/cards", label: "ปรับแต่งการ์ด LINE", icon: "🎴" },
+  { href: "/admin/articles", label: "บทความหน้าเว็บ", icon: "📝" },
   { href: "/admin/settings", label: "ตั้งค่า", icon: "⚙️" },
   { href: "/admin/trash", label: "ถังขยะ", icon: "🗑️" },
   { href: "/admin/setup", label: "ติดตั้ง", icon: "🚀" },

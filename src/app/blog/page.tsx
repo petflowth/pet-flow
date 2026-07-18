@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { BLOG_POSTS } from "@/lib/blog-posts";
+import { listArticles } from "@/lib/articles-store";
 import SiteFooter from "@/components/SiteFooter";
+
+// บทความที่เขียนเองจากหลังบ้านโผล่ภายใน ~5 นาทีหลังบันทึก
+export const revalidate = 300;
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catchahotel.com";
 
@@ -23,7 +27,32 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default function BlogIndexPage() {
+export default async function BlogIndexPage() {
+  // รวมบทความจากหลังบ้าน (DB) + บทความ SEO เดิม (โค้ด) เรียงตามวันที่
+  const dbArticles = await listArticles();
+  const posts = [
+    ...dbArticles.map((a) => ({
+      slug: a.slug,
+      title: a.title,
+      description: a.description,
+      cover: a.coverUrl,
+      external: true,
+      emoji: a.emoji,
+      readMinutes: Math.max(1, Math.round(a.body.length / 1200)),
+      datePublished: a.datePublished,
+    })),
+    ...BLOG_POSTS.map((p) => ({
+      slug: p.slug,
+      title: p.title,
+      description: p.description,
+      cover: p.cover,
+      external: false,
+      emoji: p.emoji,
+      readMinutes: p.readMinutes,
+      datePublished: p.datePublished,
+    })),
+  ].sort((a, b) => b.datePublished.localeCompare(a.datePublished));
+
   return (
     <main className="mx-auto max-w-2xl px-5 pb-16 pt-8">
       <Link href="/" className="text-xs font-bold text-brown-soft">
@@ -38,22 +67,26 @@ export default function BlogIndexPage() {
       </p>
 
       <div className="mt-6 space-y-4">
-        {BLOG_POSTS.map((post) => (
+        {posts.map((post) => (
           <Link
             key={post.slug}
             href={`/blog/${post.slug}`}
             className="block overflow-hidden rounded-catcha border border-catcha-line bg-card shadow-catcha-sm transition hover:border-honey/60"
           >
-            {post.cover && (
-              <Image
-                src={post.cover}
-                alt={post.title}
-                width={1200}
-                height={800}
-                sizes="(max-width: 640px) 100vw, 640px"
-                className="h-auto w-full"
-              />
-            )}
+            {post.cover &&
+              (post.external ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={post.cover} alt={post.title} className="h-auto w-full" />
+              ) : (
+                <Image
+                  src={post.cover}
+                  alt={post.title}
+                  width={1200}
+                  height={800}
+                  sizes="(max-width: 640px) 100vw, 640px"
+                  className="h-auto w-full"
+                />
+              ))}
             <div className="p-5">
             {!post.cover && <p className="text-3xl">{post.emoji}</p>}
             <h2 className="mt-2 text-base font-extrabold leading-snug text-catcha-chocolate">

@@ -2,8 +2,37 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BLOG_POSTS, getBlogPost } from "@/lib/blog-posts";
+import { BLOG_POSTS, getBlogPost, type BlogPost } from "@/lib/blog-posts";
+import { getArticleBySlug, articleBodyToBlocks } from "@/lib/articles-store";
 import SiteFooter from "@/components/SiteFooter";
+
+// รองรับบทความที่เขียนเองจากหลังบ้าน (ไม่ได้ prerender) — อัปเดตทุก ~5 นาที
+export const revalidate = 300;
+
+/** หาบทความจากโค้ดก่อน ไม่เจอค่อยหาที่เขียนเองในหลังบ้าน */
+async function resolvePost(
+  slug: string
+): Promise<{ post: BlogPost; external: boolean } | null> {
+  const builtin = getBlogPost(slug);
+  if (builtin) return { post: builtin, external: false };
+  const db = await getArticleBySlug(slug);
+  if (!db) return null;
+  return {
+    external: true,
+    post: {
+      slug: db.slug,
+      title: db.title,
+      description: db.description,
+      keywords: [],
+      datePublished: db.datePublished,
+      readMinutes: Math.max(1, Math.round(db.body.length / 1200)),
+      emoji: db.emoji,
+      cover: db.coverUrl,
+      blocks: articleBodyToBlocks(db.body),
+      faqs: [],
+    },
+  };
+}
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catchahotel.com";
 
@@ -19,8 +48,9 @@ export async function generateMetadata({
   params: Promise<Params>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const post = getBlogPost(slug);
-  if (!post) return {};
+  const resolvedMeta = await resolvePost(slug);
+  if (!resolvedMeta) return {};
+  const post = resolvedMeta.post;
   return {
     metadataBase: new URL(SITE_URL),
     title: `${post.title} | CatCha Hotel`,
@@ -45,8 +75,9 @@ export async function generateMetadata({
 
 export default async function BlogPostPage({ params }: { params: Promise<Params> }) {
   const { slug } = await params;
-  const post = getBlogPost(slug);
-  if (!post) notFound();
+  const resolved = await resolvePost(slug);
+  if (!resolved) notFound();
+  const { post, external } = resolved;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -88,15 +119,24 @@ export default async function BlogPostPage({ params }: { params: Promise<Params>
       <article className="mt-3">
         {post.cover ? (
           <a href={post.cover} target="_blank" rel="noopener noreferrer">
-            <Image
-              src={post.cover}
-              alt={post.title}
-              width={1200}
-              height={800}
-              priority
-              sizes="(max-width: 640px) 100vw, 640px"
-              className="h-auto w-full rounded-catcha border border-catcha-line shadow-catcha-sm"
-            />
+            {external ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={post.cover}
+                alt={post.title}
+                className="h-auto w-full rounded-catcha border border-catcha-line shadow-catcha-sm"
+              />
+            ) : (
+              <Image
+                src={post.cover}
+                alt={post.title}
+                width={1200}
+                height={800}
+                priority
+                sizes="(max-width: 640px) 100vw, 640px"
+                className="h-auto w-full rounded-catcha border border-catcha-line shadow-catcha-sm"
+              />
+            )}
           </a>
         ) : (
           <p className="text-4xl">{post.emoji}</p>
@@ -138,6 +178,7 @@ export default async function BlogPostPage({ params }: { params: Promise<Params>
         </div>
 
         {/* FAQ */}
+        {post.faqs.length > 0 && (
         <div className="mt-8">
           <h2 className="text-lg font-extrabold text-catcha-chocolate">❓ คำถามที่พบบ่อย</h2>
           <div className="mt-3 space-y-3">
@@ -149,6 +190,7 @@ export default async function BlogPostPage({ params }: { params: Promise<Params>
             ))}
           </div>
         </div>
+        )}
 
         {/* CTA */}
         <div className="mt-8 rounded-catcha bg-gradient-to-br from-honey/30 via-card to-latte/15 p-5 text-center shadow-catcha">

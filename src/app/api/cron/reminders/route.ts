@@ -9,7 +9,9 @@ import {
   buildTimePickerFlex,
   buildReviewRequestFlex,
   buildGroomInfoFlex,
+  buildBillSummaryFlex,
 } from "@/lib/line";
+import { getPaymentConfig } from "@/lib/payment-config";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import {
   buildDepositReminderText,
@@ -20,6 +22,7 @@ import {
   getBookingTimeUrl,
   getGroomInfoUrl,
   getConsentUrl,
+  bookingScheduleText,
 } from "@/lib/booking-reminders";
 import { listCustomers, getCatGroomInfo } from "@/lib/customers-store";
 import { issueCoupon, listCustomerCoupons } from "@/lib/coupons-store";
@@ -66,22 +69,23 @@ export async function GET(req: NextRequest) {
   for (const b of confirmList) {
     if (!b.lineUserId) continue;
     try {
-      const flex = await buildBookingConfirmFlex({
-        id: b.id,
-        catName: b.catName,
-        customerName: b.customerName,
-        service: b.service,
-        date: b.date,
-        time: b.time,
-        checkin: b.checkin,
-        checkout: b.checkout,
-        room: b.room,
-        notes: b.notes,
-      });
-      await pushLineMessage(b.lineUserId, [flex]);
-      sent++;
+      // รวมการ์ดของวันนี้ไว้ใน push เดียว (เตือนนัด + ขอประวัติ ถ้าจำเป็น) — นับ 1 ข้อความ LINE
+      const dayMessages: object[] = [
+        await buildBookingConfirmFlex({
+          id: b.id,
+          catName: b.catName,
+          customerName: b.customerName,
+          service: b.service,
+          date: b.date,
+          time: b.time,
+          checkin: b.checkin,
+          checkout: b.checkout,
+          room: b.room,
+          notes: b.notes,
+        }),
+      ];
 
-      // นัดอาบน้ำ: เคยกรอกประวัติแล้ว → บรีฟให้ร้าน · ยังไม่เคย → ส่งการ์ดให้ลูกค้ากรอก
+      // นัดอาบน้ำ: เคยกรอกประวัติแล้ว → บรีฟให้ร้าน · ยังไม่เคย → แนบการ์ดกรอกไปในข้อความเดียวกัน
       if (auto?.groomInfoEnabled !== false && b.service === "groom") {
         const info = parseGroomInfo(await getCatGroomInfo(b.lineUserId, b.catName));
         if (info) {
@@ -95,17 +99,21 @@ export async function GET(req: NextRequest) {
           groomBriefs++;
         } else {
           const url = await getGroomInfoUrl(b.id);
-          const groomFlex = buildGroomInfoFlex({
-            catName: b.catName,
-            dateText: b.date ? `📅 นัดอาบน้ำ: ${b.date}${b.time ? ` ${b.time}` : ""}` : undefined,
-            body: buildGroomInfoBody(b, cfg),
-            url: url || undefined,
-            label: "🩺 แจ้งประวัติน้อง",
-          }, cfg.cards?.groomInfo);
-          await pushLineMessage(b.lineUserId, [groomFlex]);
+          dayMessages.push(
+            buildGroomInfoFlex({
+              catName: b.catName,
+              dateText: b.date ? `📅 นัดอาบน้ำ: ${b.date}${b.time ? ` ${b.time}` : ""}` : undefined,
+              body: buildGroomInfoBody(b, cfg),
+              url: url || undefined,
+              label: "🩺 แจ้งประวัติน้อง",
+            }, cfg.cards?.groomInfo)
+          );
           groomInfoCards++;
         }
       }
+
+      await pushLineMessage(b.lineUserId, dayMessages);
+      sent++;
     } catch (e) {
       errors.push(`${b.id}: ${String(e)}`);
     }
@@ -145,15 +153,54 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // #4 — แจ้งรายละเอียด + เงื่อนไข N วันก่อนเข้าพัก (วันแรกพอ) — ลิงก์ยอมรับต้องชี้ที่นัดนี้เท่านั้น ไม่ใช้ลิงก์กลาง
+    // #4 — ชุดก่อนเข้าพัก N วัน: เตรียมตัว+เงื่อนไข + ยอดคงเหลือ (ถ้ามี) + เลือกเวลาเช็คอิน
+    // รวมทั้งหมดใน push เดียว = นับ 1 ข้อความ LINE — ลิงก์ยอมรับชี้ที่นัดนี้เท่านั้น
     if (auto?.prestayReminderEnabled !== false && b.checkin === in3) {
       const consentUrl = await getConsentUrl(b.id);
-      const flex = buildPrestayFlex({
-        ...buildPrestayFlexData(b, cfg),
-        consentUrl: consentUrl || undefined,
-      });
+      const prestayBundle: object[] = [
+        buildPrestayFlex({
+          ...buildPrestayFlexData(b, cfg),
+          consentUrl: consentUrl || undefined,
+        }),
+      ];
+      // มีบิลค้าง + มัดจำแล้ว → แนบการ์ดยอดคงเหลือที่ต้องโอนก่อนเข้าพัก
+      const pendingInv = allInvoices.find(
+        (i) => i.bookingId === b.id && i.status === "pending" && (i.deposit || 0) > 0
+      );
+      if (pendingInv && pendingInv.total - (pendingInv.deposit || 0) > 0) {
+        const payment = await getPaymentConfig();
+        prestayBundle.push(
+          buildBillSummaryFlex({
+            mode: "remaining",
+            title: "แจ้งยอดคงเหลือที่ต้องโอนก่อนเข้าพัก",
+            closing: "",
+            customerName: pendingInv.customerName,
+            catName: pendingInv.catName,
+            scheduleText: bookingScheduleText(b),
+            items: pendingInv.items,
+            subtotal: pendingInv.subtotal,
+            discount: pendingInv.discount,
+            total: pendingInv.total,
+            deposit: pendingInv.deposit || 0,
+            remaining: Math.max(0, pendingInv.total - (pendingInv.deposit || 0)),
+            bankName: payment.bankName,
+            accountNumber: payment.accountNumber,
+            accountName: payment.accountName,
+          }, cfg.cards?.billSummary)
+        );
+      }
+      // แนบการ์ดเลือกเวลาเช็คอินไปเลย — ไม่ต้องรอส่งแยกอีกวัน
+      const checkinUrl = await getBookingTimeUrl(b.id, "checkin");
+      prestayBundle.push(
+        buildTimePickerFlex({
+          title: "🕒 เลือกเวลาเข้าพัก",
+          body: buildCheckinBodyText(b, cfg),
+          url: checkinUrl || undefined,
+          label: "🕒 เลือกเวลาส่งน้อง",
+        })
+      );
       try {
-        await pushLineMessage(b.lineUserId, [flex]);
+        await pushLineMessage(b.lineUserId, prestayBundle);
         prestayReminders++;
       } catch (e) {
         errors.push(`prestay ${b.id}: ${String(e)}`);
@@ -161,7 +208,8 @@ export async function GET(req: NextRequest) {
     }
 
     // เตือนเช็คอิน N วันก่อนเข้าพัก → การ์ดให้ลูกค้าเลือกเวลามาส่งน้อง
-    if (auto?.checkinReminderEnabled !== false && b.checkin === inCheckin) {
+    // (ข้ามถ้าลูกค้าเลือกเวลาแล้วจากชุดก่อนเข้าพัก — ไม่ถามซ้ำ)
+    if (auto?.checkinReminderEnabled !== false && b.checkin === inCheckin && !b.arrivalTime) {
       const url = await getBookingTimeUrl(b.id, "checkin");
       const flex = buildTimePickerFlex({
         title: "🕒 เลือกเวลาเข้าพัก",
@@ -181,7 +229,8 @@ export async function GET(req: NextRequest) {
     if (
       auto?.checkoutReminderEnabled !== false &&
       b.checkout &&
-      b.checkout === inCheckout
+      b.checkout === inCheckout &&
+      !b.pickupTime
     ) {
       const url = await getBookingTimeUrl(b.id, "checkout");
       const flex = buildTimePickerFlex({

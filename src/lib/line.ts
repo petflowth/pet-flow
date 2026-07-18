@@ -190,7 +190,7 @@ export function buildAppointmentConfirmFlex(booking: {
             type: "text",
             text: serviceTitle,
             weight: "bold",
-            size: "lg",
+            size: st.titleSize || "lg",
             color: st.accentColor || "#5C4033",
             wrap: true,
           },
@@ -654,7 +654,7 @@ export function buildBillSummaryFlex(data: {
       type: "text",
       text: `${icon} ${data.title}`,
       weight: "bold",
-      size: "lg",
+      size: st.titleSize || "lg",
       color: titleColor,
       wrap: true,
     },
@@ -1255,7 +1255,7 @@ export function buildGroomInfoFlex(data: {
       type: "text",
       text: `🐱 ${data.catName}`,
       weight: "bold",
-      size: "lg",
+      size: st.titleSize || "lg",
       color: st.accentColor || "#5C4033",
       wrap: true,
     },
@@ -1344,7 +1344,7 @@ export function buildDepositRequestFlex(data: {
   const st = style || {};
   const show = (k: string) => st.show?.[k] !== false;
   const body: Record<string, unknown>[] = [
-    { type: "text", text: data.title, weight: "bold", size: "lg", color: st.headerColor || "#5C4033", wrap: true },
+    { type: "text", text: data.title, weight: "bold", size: st.titleSize || "lg", color: st.headerColor || "#5C4033", wrap: true },
     { type: "text", text: data.body, size: "sm", color: "#4E3E32", margin: "md", wrap: true },
   ];
   if (data.note && show("note")) {
@@ -1548,7 +1548,7 @@ export function buildReceiptFlex(data: {
       backgroundColor: st.headerColor || "#C4956A",
       paddingAll: "18px",
       contents: [
-        { type: "text", text: "🧾 ใบเสร็จรับเงิน", color: st.headerTextColor || "#FFFFFF", weight: "bold", size: "lg" },
+        { type: "text", text: "🧾 ใบเสร็จรับเงิน", color: st.headerTextColor || "#FFFFFF", weight: "bold", size: st.titleSize || "lg" },
         { type: "text", text: "CatCha Hotel", color: st.headerTextColor || "#FFFFFF", size: "xs", margin: "xs" },
       ],
     },
@@ -1807,7 +1807,7 @@ export function buildReviewRequestFlex(data: {
             type: "text",
             text: data.title,
             weight: "bold",
-            size: "md",
+            size: st.titleSize || "md",
             color: st.headerTextColor || "#5C4033",
             align: "center",
             margin: "sm",

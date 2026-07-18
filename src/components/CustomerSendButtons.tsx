@@ -183,6 +183,70 @@ export function CustomerSendButtons({
     );
   };
 
+  // 📦 ชุดการ์ด — เลือกหลายใบ ส่งใน push เดียว (LINE นับ 1 ข้อความ)
+  const [bundleOpen, setBundleOpen] = useState(false);
+  const [bundleParts, setBundleParts] = useState<string[]>([]);
+  const toggleBundlePart = (p: string) =>
+    setBundleParts((prev) =>
+      prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]
+    );
+
+  const sendBundle = async () => {
+    if (!bookingId || bundleParts.length === 0) return;
+    let depositAmount = 0;
+    if (bundleParts.includes("deposit")) {
+      const raw = prompt(
+        "เรียกเก็บมัดจำเท่าไหร่? (บาท)",
+        depForBill > 0 ? String(depForBill) : ""
+      );
+      if (raw == null) return;
+      depositAmount = Math.round(Number(raw) || 0);
+      if (depositAmount <= 0) {
+        toast("ใส่จำนวนมัดจำ", "error");
+        return;
+      }
+    }
+    setBusy("bundle");
+    try {
+      const res = await fetch("/api/bookings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: bookingId,
+          action: "send_bundle",
+          parts: bundleParts,
+          depositAmount: depositAmount || undefined,
+          lineUserId,
+        }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast(`ส่งชุดการ์ด ${d.sent} ใบใน 1 ข้อความแล้ว 📦`, "success");
+        setBundleOpen(false);
+        setBundleParts([]);
+        onDone?.();
+      } else {
+        toast(d.error ? `ส่งไม่สำเร็จ: ${d.error}` : "ส่งไม่สำเร็จ", "error");
+      }
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const BUNDLE_OPTIONS: { key: string; label: string; when: boolean }[] = [
+    { key: "reminder", label: "📨 แจ้งเตือนนัด", when: !!bookingId },
+    { key: "consent", label: "📋 เงื่อนไข + ลายเซ็น", when: service === "room" },
+    {
+      key: "groomInfo",
+      label: "🩺 ขอประวัติก่อนอาบน้ำ",
+      when: service === "groom" || !!hasGroomService,
+    },
+    { key: "checkin", label: "🧳 เลือกเวลาเช็คอิน", when: service === "room" },
+    { key: "checkout", label: "🧳 เลือกเวลาเช็คเอาท์", when: service === "room" },
+    { key: "deposit", label: "💰 เรียกเก็บมัดจำ", when: true },
+    { key: "payment", label: "💳 แจ้งยอดชำระ/คงเหลือ", when: !!invId },
+  ];
+
   const Btn = ({ k, label, onClick }: { k: string; label: string; onClick: () => void }) => (
     <button
       type="button"
@@ -286,6 +350,51 @@ export function CustomerSendButtons({
         />
       )}
       {invId && <Btn k="inv:review" label="⭐ ขอรีวิว" onClick={sendReview} />}
+
+      {/* 📦 ชุดการ์ด — รวมหลายใบส่งครั้งเดียว */}
+      {bookingId && (
+        <button
+          type="button"
+          disabled={noLine || busy !== ""}
+          onClick={() => setBundleOpen((v) => !v)}
+          className="rounded-full bg-latte/40 px-2.5 py-1 text-[10px] font-extrabold text-catcha-chocolate disabled:opacity-40"
+        >
+          📦 ส่งชุดการ์ด {bundleOpen ? "▲" : "▼"}
+        </button>
+      )}
+      {bundleOpen && bookingId && (
+        <div className="w-full rounded-catcha-sm border border-latte/50 bg-card p-2.5">
+          <p className="mb-1.5 text-[10px] font-bold text-brown-soft">
+            เลือกการ์ดที่จะส่งพร้อมกัน (สูงสุด 5 ใบ = นับเป็น 1 ข้อความ LINE):
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {BUNDLE_OPTIONS.filter((o) => o.when).map((o) => (
+              <button
+                key={o.key}
+                type="button"
+                onClick={() => toggleBundlePart(o.key)}
+                className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                  bundleParts.includes(o.key)
+                    ? "bg-latte-deep text-white"
+                    : "bg-paper text-brown-soft"
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            disabled={bundleParts.length === 0 || busy !== ""}
+            onClick={sendBundle}
+            className="mt-2 w-full rounded-catcha-sm bg-latte-deep py-2 text-[11px] font-extrabold text-white disabled:opacity-40"
+          >
+            {busy === "bundle"
+              ? "กำลังส่ง…"
+              : `📦 ส่ง ${bundleParts.length} การ์ดใน 1 ข้อความ`}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

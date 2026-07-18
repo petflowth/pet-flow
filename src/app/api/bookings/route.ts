@@ -23,15 +23,19 @@ import {
   buildPrestayFlex,
   buildTimePickerFlex,
   buildGroomInfoFlex,
+  buildDepositRequestFlex,
+  buildBillSummaryFlex,
 } from "@/lib/line";
 import { buildBookingConfirmFlex } from "@/lib/booking-line-card";
 import {
   findCustomerForBooking,
   recalculateCustomerTier,
+  adjustDepositCredit,
 } from "@/lib/customers-store";
 import { getSiteConfig } from "@/lib/config-store";
-import { DEFAULT_MESSAGES } from "@/lib/messages";
-import { listInvoices } from "@/lib/invoices-store";
+import { DEFAULT_MESSAGES, renderTemplate } from "@/lib/messages";
+import { listInvoices, updateInvoice } from "@/lib/invoices-store";
+import { getPaymentConfig } from "@/lib/payment-config";
 import {
   buildDepositReminderText,
   buildPrestayFlexData,
@@ -41,6 +45,7 @@ import {
   getBookingTimeUrl,
   getGroomInfoUrl,
   getConsentUrl,
+  bookingScheduleText,
 } from "@/lib/booking-reminders";
 
 export const dynamic = "force-dynamic";
@@ -314,6 +319,167 @@ export async function PATCH(req: NextRequest) {
     try {
       await pushLineMessage(to, [flex]);
       return NextResponse.json({ ok: true });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  }
+
+  // ── 📦 ส่งชุดการ์ดที่เลือกเอง — หลายการ์ดใน push เดียว (LINE นับเป็น 1 ข้อความ) ──
+  // parts: reminder | consent | groomInfo | checkin | checkout | deposit(+amount) | payment
+  if (action === "send_bundle") {
+    const to = await resolveRecipient(b, lineUserId);
+    if (!to) {
+      return NextResponse.json({ error: NO_LINE_ERROR }, { status: 400 });
+    }
+    const parts: string[] = (Array.isArray(body.parts) ? body.parts : [])
+      .map(String)
+      .slice(0, 5); // LINE จำกัด 5 การ์ดต่อ push
+    if (parts.length === 0) {
+      return NextResponse.json({ error: "เลือกอย่างน้อย 1 การ์ด" }, { status: 400 });
+    }
+    const cfg = await getSiteConfig();
+    const messages: object[] = [];
+
+    for (const part of parts) {
+      if (part === "reminder") {
+        messages.push(
+          await buildBookingConfirmFlex({
+            id,
+            catName: String(b.catName),
+            customerName: String(b.customerName),
+            service: String(b.service),
+            date: b.date,
+            time: b.time,
+            checkin: b.checkin,
+            checkout: b.checkout,
+            room: b.room,
+            notes: b.notes,
+          })
+        );
+      } else if (part === "consent") {
+        const url = await getConsentUrl(b.id);
+        if (url) {
+          messages.push(
+            buildConsentFlex({
+              businessName: cfg.business.name,
+              title: cfg.messages.consentTitle || DEFAULT_MESSAGES.consentTitle,
+              catName: String(b.catName),
+              checkin: b.checkin || b.date,
+              checkout: b.checkout,
+              room: b.room,
+              terms: cfg.messages.consentTerms?.length
+                ? cfg.messages.consentTerms
+                : DEFAULT_MESSAGES.consentTerms,
+              url,
+            })
+          );
+        }
+      } else if (part === "groomInfo") {
+        const url = await getGroomInfoUrl(b.id);
+        messages.push(
+          buildGroomInfoFlex({
+            catName: String(b.catName),
+            dateText: b.date
+              ? `📅 นัดอาบน้ำ: ${b.date}${b.time ? ` ${b.time}` : ""}`
+              : undefined,
+            body: buildGroomInfoBody(b, cfg),
+            url: url || undefined,
+            label: "🩺 แจ้งประวัติน้อง",
+          }, cfg.cards?.groomInfo)
+        );
+      } else if (part === "checkin" || part === "checkout") {
+        const url = await getBookingTimeUrl(b.id, part);
+        messages.push(
+          part === "checkin"
+            ? buildTimePickerFlex({
+                title: "🕒 เลือกเวลาเข้าพัก",
+                body: buildCheckinBodyText(b, cfg),
+                url: url || undefined,
+                label: "🕒 เลือกเวลาส่งน้อง",
+              })
+            : buildTimePickerFlex({
+                title: "🕒 เลือกเวลารับน้อง",
+                body: buildCheckoutBodyText(b, cfg),
+                url: url || undefined,
+                label: "🕒 เลือกเวลารับน้อง",
+              })
+        );
+      } else if (part === "deposit") {
+        const amount = Math.round(Number(body.depositAmount) || 0);
+        if (amount > 0) {
+          // ผูกมัดจำเหมือนกดปุ่มเรียกเก็บมัดจำเดี่ยว: มีบิลค้าง → ผูกบิล, ไม่มี → เครดิตล่วงหน้า
+          const all = await listInvoices();
+          const openInv = all.find(
+            (i) => i.bookingId === b.id && i.status !== "paid"
+          );
+          const customer = await findCustomerForBooking(b);
+          if (openInv) {
+            await updateInvoice(openInv.id, { deposit: amount });
+          } else if (customer) {
+            await adjustDepositCredit(customer.id, amount);
+          }
+          const payment = await getPaymentConfig();
+          messages.push(
+            buildDepositRequestFlex({
+              title: cfg.messages.depositRequestTitle,
+              body: renderTemplate(cfg.messages.depositRequestBody, {
+                name: String(b.customerName),
+                cat: String(b.catName),
+                amount: amount.toLocaleString(),
+                pct: "",
+              }),
+              amount,
+              bankName: payment.bankName,
+              accountNumber: payment.accountNumber,
+              accountName: payment.accountName,
+            }, cfg.cards?.depositRequest)
+          );
+        }
+      } else if (part === "payment") {
+        const all = await listInvoices();
+        const inv =
+          all.find((i) => i.bookingId === b.id && i.status !== "paid") ||
+          all.find((i) => i.bookingId === b.id);
+        if (inv) {
+          const payment = await getPaymentConfig();
+          const deposit = inv.deposit || 0;
+          const mode = deposit > 0 ? "remaining" : "full";
+          messages.push(
+            buildBillSummaryFlex({
+              mode,
+              title:
+                mode === "remaining"
+                  ? "แจ้งยอดคงเหลือที่ต้องโอน"
+                  : cfg.billing.summaryFullTitle,
+              closing: "",
+              customerName: inv.customerName,
+              catName: inv.catName,
+              scheduleText: bookingScheduleText(b),
+              items: inv.items,
+              subtotal: inv.subtotal,
+              discount: inv.discount,
+              total: inv.total,
+              deposit,
+              remaining: Math.max(0, inv.total - deposit),
+              bankName: payment.bankName,
+              accountNumber: payment.accountNumber,
+              accountName: payment.accountName,
+            }, cfg.cards?.billSummary)
+          );
+        }
+      }
+    }
+
+    if (messages.length === 0) {
+      return NextResponse.json(
+        { error: "สร้างการ์ดไม่ได้สักใบ — เช็คว่ามีบิล/ตั้งค่า LIFF แล้ว" },
+        { status: 400 }
+      );
+    }
+    try {
+      await pushLineMessage(to, messages);
+      return NextResponse.json({ ok: true, sent: messages.length });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       return NextResponse.json({ error: message }, { status: 500 });

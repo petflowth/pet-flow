@@ -136,6 +136,8 @@ export type CardStyleConfig = {
   accentColor?: string;
   /** ข้อความปิดท้ายการ์ด (แทนของเดิม) */
   closing?: string;
+  /** ขนาดตัวอักษรหัวข้อการ์ด */
+  titleSize?: "sm" | "md" | "lg" | "xl";
   /** เปิด/ปิดส่วนประกอบในการ์ด — key ตามการ์ดแต่ละใบ, ไม่ตั้ง = แสดง */
   show?: Record<string, boolean>;
 };

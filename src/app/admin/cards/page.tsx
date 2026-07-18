@@ -5,8 +5,8 @@ import type { CardStyleConfig } from "@/lib/config-types";
 import { toast } from "@/components/Toast";
 
 /**
- * 🎴 ปรับแต่งการ์ด LINE — เลือกสี/ข้อความ/ส่วนประกอบของการ์ดแต่ละใบ พร้อมพรีวิวสดข้างๆ
- * ค่าเก็บใน site config (cards) — ไม่ตั้ง = หน้าตาเดิมของระบบ
+ * 🎴 ปรับแต่งการ์ด LINE — สี ขนาดตัวอักษร ข้อความ เงื่อนไข และส่วนประกอบของการ์ดแต่ละใบ
+ * พร้อมพรีวิวสดข้างๆ — ค่าเก็บใน site config (cards + messages + billing)
  */
 
 type FieldMeta = { key: string; label: string };
@@ -15,6 +15,13 @@ type ColorRole = {
   label: string;
   fallback: string;
 };
+/** ช่องแก้ข้อความของการ์ดนั้นๆ — ชี้ไปที่ messages.* หรือ billing.* */
+type TextMeta = {
+  stateKey: string;
+  label: string;
+  multiline?: boolean;
+  hint?: string;
+};
 
 type CardMeta = {
   key: string;
@@ -22,7 +29,9 @@ type CardMeta = {
   desc: string;
   colors: ColorRole[];
   fields: FieldMeta[];
+  texts: TextMeta[];
   closingLabel?: string;
+  hasTitleSize?: boolean;
 };
 
 const CARDS: CardMeta[] = [
@@ -41,6 +50,8 @@ const CARDS: CardMeta[] = [
       { key: "notes", label: "📝 หมายเหตุ" },
       { key: "map", label: "🗺️ ปุ่มดูแผนที่" },
     ],
+    texts: [],
+    hasTitleSize: true,
   },
   {
     key: "billSummary",
@@ -57,7 +68,13 @@ const CARDS: CardMeta[] = [
       { key: "bank", label: "🏦 กล่องเลขบัญชี + ปุ่มคัดลอก" },
       { key: "closing", label: "💬 ข้อความปิดท้าย" },
     ],
-    closingLabel: "ข้อความปิดท้าย (เช่น โอนแล้วแจ้งสลิปได้เลยนะคะ 🧡)",
+    texts: [
+      { stateKey: "summaryBookingTitle", label: "หัวข้อการ์ดสรุปการจอง" },
+      { stateKey: "summaryDepositTitle", label: "หัวข้อการ์ดแจ้งมัดจำ" },
+      { stateKey: "summaryFullTitle", label: "หัวข้อการ์ดแจ้งยอดชำระ" },
+      { stateKey: "summaryClosing", label: "ข้อความปิดท้าย (ค่าเริ่มต้น)", multiline: true },
+    ],
+    hasTitleSize: true,
   },
   {
     key: "depositRequest",
@@ -72,12 +89,22 @@ const CARDS: CardMeta[] = [
       { key: "note", label: "📝 โน้ตเพิ่มเติม" },
       { key: "bank", label: "🏦 กล่องเลขบัญชี" },
     ],
+    texts: [
+      { stateKey: "depositRequestTitle", label: "หัวข้อการ์ด" },
+      {
+        stateKey: "depositRequestBody",
+        label: "เนื้อความ",
+        multiline: true,
+        hint: "ใช้ได้: {name} {cat} {amount} {pct}",
+      },
+    ],
     closingLabel: "ข้อความปิดท้าย (ไม่บังคับ)",
+    hasTitleSize: true,
   },
   {
     key: "receipt",
     name: "🧾 ใบเสร็จรับเงิน",
-    desc: "ส่งอัตโนมัติหลังรับชำระ",
+    desc: "ส่งอัตโนมัติหลังรับชำระ (แนบขอรีวิวใน push เดียว)",
     colors: [
       { key: "headerColor", label: "สีแถบหัว", fallback: "#C4956A" },
       { key: "headerTextColor", label: "สีตัวหนังสือหัว", fallback: "#FFFFFF" },
@@ -87,8 +114,11 @@ const CARDS: CardMeta[] = [
       { key: "invoiceNo", label: "🔖 เลขที่บิล" },
       { key: "points", label: "🎁 แต้มสะสมที่ได้รับ" },
       { key: "closing", label: "💬 ข้อความขอบคุณ" },
+      { key: "reviewBundle", label: "⭐ แนบการ์ดขอรีวิวไปด้วย (นับ 1 ข้อความ)" },
     ],
+    texts: [],
     closingLabel: "ข้อความขอบคุณท้ายใบเสร็จ",
+    hasTitleSize: true,
   },
   {
     key: "review",
@@ -101,7 +131,16 @@ const CARDS: CardMeta[] = [
       { key: "buttonColor", label: "สีปุ่มรีวิว", fallback: "#C4956A" },
     ],
     fields: [{ key: "stars", label: "⭐ แถวดาว 5 ดวงบนหัวการ์ด" }],
+    texts: [
+      {
+        stateKey: "reviewRequest",
+        label: "เนื้อความขอรีวิว (แบบอัตโนมัติหลังเช็คเอาท์)",
+        multiline: true,
+        hint: "ใช้ได้: {shop} {cat}",
+      },
+    ],
     closingLabel: "ประโยคเสริมท้ายการ์ด (ไม่บังคับ)",
+    hasTitleSize: true,
   },
   {
     key: "groomInfo",
@@ -114,31 +153,75 @@ const CARDS: CardMeta[] = [
       { key: "buttonColor", label: "สีปุ่มแจ้งประวัติ", fallback: "#4A7348" },
     ],
     fields: [{ key: "date", label: "📅 วันเวลานัด" }],
+    texts: [
+      {
+        stateKey: "groomInfoIntro",
+        label: "เนื้อความชวนกรอกประวัติ",
+        multiline: true,
+        hint: "ใช้ได้: {shop} {cat}",
+      },
+    ],
     closingLabel: "ประโยคเสริมท้ายการ์ด (ไม่บังคับ)",
+    hasTitleSize: true,
+  },
+  {
+    key: "consent",
+    name: "📋 เงื่อนไขเข้าพัก + ลายเซ็น",
+    desc: "หัวข้อและข้อตกลงที่ลูกค้าต้องอ่านและเซ็นยอมรับ — เขียนเองได้ทุกข้อ",
+    colors: [],
+    fields: [],
+    texts: [
+      { stateKey: "consentTitle", label: "หัวข้อข้อตกลง" },
+      {
+        stateKey: "consentTerms",
+        label: "ข้อตกลงทั้งหมด (1 บรรทัด = 1 ข้อ — เพิ่ม/ลบ/แก้ได้อิสระ)",
+        multiline: true,
+      },
+    ],
   },
 ];
 
 const SWATCHES = [
-  "#5A8F5A", "#4A7348", "#C4956A", "#5C4033", "#B4553B",
-  "#3E6990", "#7C5CBF", "#C75B7A", "#2E8B8B", "#D4A017",
+  "#5A8F5A", "#4A7348", "#C4956A", "#5C4033", "#B4553B", "#3E6990",
 ];
+
+const TITLE_SIZES: { value: "" | "sm" | "md" | "lg" | "xl"; label: string }[] = [
+  { value: "", label: "ค่าเริ่มต้น" },
+  { value: "sm", label: "เล็ก" },
+  { value: "md", label: "กลาง" },
+  { value: "lg", label: "ใหญ่" },
+  { value: "xl", label: "ใหญ่มาก" },
+];
+
+const SIZE_PREVIEW: Record<string, string> = {
+  sm: "text-xs",
+  md: "text-sm",
+  lg: "text-base",
+  xl: "text-lg",
+};
 
 function styleValue(st: CardStyleConfig, role: ColorRole) {
   return st[role.key] || role.fallback;
 }
 
-/* ── พรีวิวสด — จำลองหน้าตาการ์ดใน LINE ── */
-function Preview({ meta, st }: { meta: CardMeta; st: CardStyleConfig }) {
+/* ── พรีวิวสด ── */
+function Preview({
+  meta,
+  st,
+  texts,
+}: {
+  meta: CardMeta;
+  st: CardStyleConfig;
+  texts: Record<string, string>;
+}) {
   const show = (k: string) => st.show?.[k] !== false;
   const c = (role: ColorRole["key"], fb: string) => st[role] || fb;
+  const titleCls = SIZE_PREVIEW[st.titleSize || ""] || "text-sm";
 
   const bubble = "overflow-hidden rounded-2xl border border-[#e8e0d0] bg-white shadow-lg";
   const btn = (color: string, label: string) => (
     <div className="px-3 pb-3">
-      <div
-        className="rounded-lg py-2 text-center text-xs font-bold text-white"
-        style={{ background: color }}
-      >
+      <div className="rounded-lg py-2 text-center text-xs font-bold text-white" style={{ background: color }}>
         {label}
       </div>
     </div>
@@ -148,12 +231,10 @@ function Preview({ meta, st }: { meta: CardMeta; st: CardStyleConfig }) {
     return (
       <div className={bubble}>
         <div className="px-4 py-3" style={{ background: c("headerColor", "#5A8F5A") }}>
-          <p className="text-xs font-extrabold" style={{ color: c("headerTextColor", "#FFFFFF") }}>
-            📅 กำหนดการนัด
-          </p>
+          <p className="text-xs font-extrabold" style={{ color: c("headerTextColor", "#FFFFFF") }}>📅 กำหนดการนัด</p>
         </div>
         <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
-          <p className="text-sm font-extrabold" style={{ color: c("accentColor", "#5C4033") }}>
+          <p className={`${titleCls} font-extrabold`} style={{ color: c("accentColor", "#5C4033") }}>
             อาบน้ำ &amp; กรูมมิ่ง · Soju
           </p>
           <p className="text-[10px] text-[#A2907E]">แจ้งกำหนดการนัด 🗓️ คุณตาล</p>
@@ -163,9 +244,7 @@ function Preview({ meta, st }: { meta: CardMeta; st: CardStyleConfig }) {
           {show("notes") && <p>📝 <b>หมายเหตุ</b> — แจ้งในแชทได้เลยนะคะ</p>}
         </div>
         {btn(c("buttonColor", "#4A7348"), "🐾 ยืนยันนัด")}
-        {show("map") && (
-          <p className="pb-3 text-center text-[10px] font-bold text-[#3E6990]">🗺️ ดูแผนที่ / เส้นทาง</p>
-        )}
+        {show("map") && <p className="pb-3 text-center text-[10px] font-bold text-[#3E6990]">🗺️ ดูแผนที่ / เส้นทาง</p>}
       </div>
     );
   }
@@ -174,8 +253,8 @@ function Preview({ meta, st }: { meta: CardMeta; st: CardStyleConfig }) {
     return (
       <div className={bubble}>
         <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
-          <p className="text-sm font-extrabold" style={{ color: c("headerColor", "#5C4033") }}>
-            💳 แจ้งยอดชำระ
+          <p className={`${titleCls} font-extrabold`} style={{ color: c("headerColor", "#5C4033") }}>
+            💳 {texts.summaryFullTitle || "แจ้งยอดชำระ"}
           </p>
           <p className="text-[10px] text-[#A2907E]">Soju · ตาล</p>
           {show("schedule") && <p className="text-[10px] font-bold">🛁 นัดอาบน้ำ: 24 ก.ค. 12:30 น.</p>}
@@ -188,9 +267,7 @@ function Preview({ meta, st }: { meta: CardMeta; st: CardStyleConfig }) {
             <span className="text-base font-extrabold" style={{ color: c("accentColor", "#C4956A") }}>855 บาท</span>
           </div>
           {show("freebies") && (
-            <div className="rounded-lg bg-[#FBF7F0] px-2.5 py-1.5 text-[10px]">
-              <b>🎁 ของแถมฟรี</b> · กล้องวงจรปิด (CCTV)
-            </div>
+            <div className="rounded-lg bg-[#FBF7F0] px-2.5 py-1.5 text-[10px]"><b>🎁 ของแถมฟรี</b> · กล้องวงจรปิด (CCTV)</div>
           )}
           {show("bank") && (
             <div className="rounded-lg bg-[#F4ECE0] px-2.5 py-2">
@@ -199,8 +276,8 @@ function Preview({ meta, st }: { meta: CardMeta; st: CardStyleConfig }) {
               <p className="text-[10px] text-[#A2907E]">ชื่อบัญชี: CatCha Hotel</p>
             </div>
           )}
-          {show("closing") && (st.closing || "โอนแล้วแจ้งสลิปได้เลยนะคะ 🧡") && (
-            <p className="text-[10px] text-[#A2907E]">{st.closing || "โอนแล้วแจ้งสลิปได้เลยนะคะ 🧡"}</p>
+          {show("closing") && (
+            <p className="text-[10px] text-[#A2907E]">{st.closing || texts.summaryClosing || "โอนแล้วแจ้งสลิปได้เลยนะคะ 🧡"}</p>
           )}
         </div>
         {show("bank") && btn(c("buttonColor", "#4A7348"), "📋 คัดลอกเลขบัญชี")}
@@ -212,10 +289,14 @@ function Preview({ meta, st }: { meta: CardMeta; st: CardStyleConfig }) {
     return (
       <div className={bubble}>
         <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
-          <p className="text-sm font-extrabold" style={{ color: c("headerColor", "#5C4033") }}>
-            🧡 ล็อกคิวให้น้องกันค่ะ
+          <p className={`${titleCls} font-extrabold`} style={{ color: c("headerColor", "#5C4033") }}>
+            {texts.depositRequestTitle || "🧡 ล็อกคิวให้น้องกันค่ะ"}
           </p>
-          <p>รบกวนชำระมัดจำเพื่อจองคิวนะคะ มัดจำหักจากยอดสุดท้าย ไม่เก็บเพิ่มค่ะ</p>
+          <p className="whitespace-pre-line">
+            {(texts.depositRequestBody || "รบกวนชำระมัดจำเพื่อจองคิวนะคะ")
+              .replace("{name}", "ตาล").replace("{cat}", "Soju")
+              .replace("{amount}", "200").replace("{pct}", "")}
+          </p>
           {show("note") && <p className="text-[10px] text-[#A2907E]">📝 โน้ต: จองคิววันเสาร์</p>}
           <div className="rounded-xl bg-[#FBF4E9] px-3 py-3 text-center">
             <p className="text-[10px] text-[#A2907E]">มัดจำที่ต้องโอน</p>
@@ -225,7 +306,6 @@ function Preview({ meta, st }: { meta: CardMeta; st: CardStyleConfig }) {
             <div className="rounded-lg bg-[#F4ECE0] px-2.5 py-2">
               <p className="font-extrabold">กรุงไทย</p>
               <p className="text-sm font-extrabold text-[#4A7348]">664-4-43446-0</p>
-              <p className="text-[10px] text-[#A2907E]">ชื่อบัญชี: CatCha Hotel</p>
             </div>
           )}
           {st.closing && <p className="text-[10px] text-[#A2907E]">{st.closing}</p>}
@@ -239,9 +319,7 @@ function Preview({ meta, st }: { meta: CardMeta; st: CardStyleConfig }) {
     return (
       <div className={bubble}>
         <div className="px-4 py-3" style={{ background: c("headerColor", "#C4956A") }}>
-          <p className="text-sm font-extrabold" style={{ color: c("headerTextColor", "#FFFFFF") }}>
-            🧾 ใบเสร็จรับเงิน
-          </p>
+          <p className={`${titleCls} font-extrabold`} style={{ color: c("headerTextColor", "#FFFFFF") }}>🧾 ใบเสร็จรับเงิน</p>
           <p className="text-[10px]" style={{ color: c("headerTextColor", "#FFFFFF") }}>CatCha Hotel</p>
         </div>
         <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
@@ -250,17 +328,18 @@ function Preview({ meta, st }: { meta: CardMeta; st: CardStyleConfig }) {
           <div className="rounded-xl bg-[#FBF4E9] px-3 py-3 text-center">
             <p className="text-[10px] text-[#A2907E]">ชำระแล้ว</p>
             <p className="text-2xl font-extrabold" style={{ color: c("accentColor", "#4A7348") }}>855 บาท</p>
-            <p className="text-[10px] text-[#A2907E]">(โอนเงิน)</p>
           </div>
           {show("points") && (
             <div className="flex justify-between rounded-lg bg-[#F4ECE0] px-2.5 py-2">
-              <span>🎁 แต้มสะสมที่ได้รับ</span>
-              <b className="text-[#C4956A]">+8</b>
+              <span>🎁 แต้มสะสมที่ได้รับ</span><b className="text-[#C4956A]">+8</b>
             </div>
           )}
           {show("closing") && (
-            <p className="text-center text-[10px] text-[#A2907E]">
-              {st.closing || "ขอบคุณที่ไว้วางใจ CatCha Hotel นะคะ 🧡"}
+            <p className="text-center text-[10px] text-[#A2907E]">{st.closing || "ขอบคุณที่ไว้วางใจ CatCha Hotel นะคะ 🧡"}</p>
+          )}
+          {show("reviewBundle") && (
+            <p className="rounded-lg border border-dashed border-[#d9c9a8] px-2 py-1.5 text-center text-[9px] text-[#A2907E]">
+              ⭐ การ์ดขอรีวิวจะแนบไปใน push เดียวกัน (นับ 1 ข้อความ)
             </p>
           )}
         </div>
@@ -272,19 +351,40 @@ function Preview({ meta, st }: { meta: CardMeta; st: CardStyleConfig }) {
     return (
       <div className={bubble}>
         <div className="px-4 py-4 text-center" style={{ background: c("headerColor", "#FBF4E9") }}>
-          {show("stars") && (
-            <p className="text-sm" style={{ color: c("accentColor", "#C4956A") }}>⭐ ⭐ ⭐ ⭐ ⭐</p>
-          )}
-          <p className="mt-1 text-xs font-extrabold" style={{ color: c("headerTextColor", "#5C4033") }}>
+          {show("stars") && <p className="text-sm" style={{ color: c("accentColor", "#C4956A") }}>⭐ ⭐ ⭐ ⭐ ⭐</p>}
+          <p className={`mt-1 ${titleCls} font-extrabold`} style={{ color: c("headerTextColor", "#5C4033") }}>
             ขอบคุณที่ไว้วางใจ CatCha Hotel นะคะ 🧡
           </p>
         </div>
         <div className="space-y-1.5 px-4 py-3 text-[11px] text-[#4E3E32]">
-          <p>หวังว่าน้องจะกลับบ้านไปตัวหอม นุ่มฟู และมีความสุขนะคะ 🐱✨</p>
-          <p>ถ้าประทับใจบริการของเรา ฝากรีวิวสั้นๆ ให้ทีมงานหน่อยนะคะ</p>
+          <p className="whitespace-pre-line">
+            {(texts.reviewRequest || "ถ้าประทับใจ ฝากรีวิวให้ทีมงานหน่อยนะคะ")
+              .replace("{shop}", "CatCha Hotel").replace("{cat}", "น้อง Soju")}
+          </p>
           {st.closing && <p className="text-[10px] text-[#A2907E]">{st.closing}</p>}
         </div>
         {btn(c("buttonColor", "#C4956A"), "⭐ รีวิวให้เราหน่อยนะคะ")}
+      </div>
+    );
+  }
+
+  if (meta.key === "consent") {
+    const terms = (texts.consentTerms || "").split("\n").map((t) => t.trim()).filter(Boolean);
+    return (
+      <div className={bubble}>
+        <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
+          <p className="text-sm font-extrabold text-[#5C4033]">📋 {texts.consentTitle || "ข้อตกลงและเงื่อนไขการเข้าพัก"}</p>
+          <p className="text-[10px] text-[#A2907E]">🐱 เรเนล · เข้าพัก 20 → 26 ก.ค.</p>
+          <div className="space-y-1">
+            {(terms.length ? terms : ["(ยังไม่มีข้อตกลง — พิมพ์ด้านซ้ายได้เลย)"]).slice(0, 5).map((t, i) => (
+              <p key={i} className="rounded bg-[#F8F2E4] px-2 py-1 text-[10px]">{i + 1}. {t}</p>
+            ))}
+            {terms.length > 5 && (
+              <p className="text-center text-[9px] text-[#A2907E]">…และอีก {terms.length - 5} ข้อ (เห็นครบในหน้าเซ็น)</p>
+            )}
+          </div>
+        </div>
+        {btn("#4A7348", "📋 อ่าน + เซ็นยอมรับข้อตกลง")}
       </div>
     );
   }
@@ -293,14 +393,15 @@ function Preview({ meta, st }: { meta: CardMeta; st: CardStyleConfig }) {
   return (
     <div className={bubble}>
       <div className="px-4 py-3" style={{ background: c("headerColor", "#5A8F5A") }}>
-        <p className="text-xs font-extrabold" style={{ color: c("headerTextColor", "#FFFFFF") }}>
-          🩺 ประวัติน้องก่อนอาบน้ำ
-        </p>
+        <p className="text-xs font-extrabold" style={{ color: c("headerTextColor", "#FFFFFF") }}>🩺 ประวัติน้องก่อนอาบน้ำ</p>
       </div>
       <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
-        <p className="text-sm font-extrabold" style={{ color: c("accentColor", "#5C4033") }}>🐱 Soju</p>
+        <p className={`${titleCls} font-extrabold`} style={{ color: c("accentColor", "#5C4033") }}>🐱 Soju</p>
         {show("date") && <p className="text-[10px] text-[#A2907E]">📅 นัดอาบน้ำ: 24 ก.ค. 12:30</p>}
-        <p>รบกวนแจ้งประวัติน้องสั้นๆ เพื่อให้เราเตรียมดูแลน้องได้ถูกวิธีนะคะ 🐾</p>
+        <p className="whitespace-pre-line">
+          {(texts.groomInfoIntro || "รบกวนแจ้งประวัติน้องสั้นๆ นะคะ 🐾")
+            .replace("{shop}", "CatCha Hotel").replace("{cat}", "น้อง Soju")}
+        </p>
         {st.closing && <p className="text-[10px] text-[#A2907E]">{st.closing}</p>}
       </div>
       {btn(c("buttonColor", "#4A7348"), "🩺 แจ้งประวัติน้อง")}
@@ -310,6 +411,7 @@ function Preview({ meta, st }: { meta: CardMeta; st: CardStyleConfig }) {
 
 export default function CardsStudioPage() {
   const [cards, setCards] = useState<Record<string, CardStyleConfig>>({});
+  const [texts, setTexts] = useState<Record<string, string>>({});
   const [activeKey, setActiveKey] = useState(CARDS[0].key);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -319,7 +421,20 @@ export default function CardsStudioPage() {
     fetch("/api/config")
       .then((r) => r.json())
       .then((d) => {
-        setCards(d.config?.cards || {});
+        const cfg = d.config || {};
+        setCards(cfg.cards || {});
+        setTexts({
+          summaryBookingTitle: cfg.billing?.summaryBookingTitle || "",
+          summaryDepositTitle: cfg.billing?.summaryDepositTitle || "",
+          summaryFullTitle: cfg.billing?.summaryFullTitle || "",
+          summaryClosing: cfg.billing?.summaryClosing || "",
+          depositRequestTitle: cfg.messages?.depositRequestTitle || "",
+          depositRequestBody: cfg.messages?.depositRequestBody || "",
+          reviewRequest: cfg.messages?.reviewRequest || "",
+          groomInfoIntro: cfg.messages?.groomInfoIntro || "",
+          consentTitle: cfg.messages?.consentTitle || "",
+          consentTerms: (cfg.messages?.consentTerms || []).join("\n"),
+        });
       })
       .finally(() => setLoaded(true));
   }, []);
@@ -331,12 +446,14 @@ export default function CardsStudioPage() {
     setCards((prev) => ({ ...prev, [activeKey]: { ...prev[activeKey], ...p } }));
     setDirty(true);
   };
-
+  const patchText = (key: string, value: string) => {
+    setTexts((prev) => ({ ...prev, [key]: value }));
+    setDirty(true);
+  };
   const toggleField = (key: string) => {
     const cur = st.show?.[key] !== false;
     patch({ show: { ...st.show, [key]: !cur } });
   };
-
   const resetCard = () => {
     setCards((prev) => {
       const next = { ...prev };
@@ -352,10 +469,31 @@ export default function CardsStudioPage() {
       const res = await fetch("/api/config", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ patch: { cards } }),
+        body: JSON.stringify({
+          patch: {
+            cards,
+            billing: {
+              summaryBookingTitle: texts.summaryBookingTitle,
+              summaryDepositTitle: texts.summaryDepositTitle,
+              summaryFullTitle: texts.summaryFullTitle,
+              summaryClosing: texts.summaryClosing,
+            },
+            messages: {
+              depositRequestTitle: texts.depositRequestTitle,
+              depositRequestBody: texts.depositRequestBody,
+              reviewRequest: texts.reviewRequest,
+              groomInfoIntro: texts.groomInfoIntro,
+              consentTitle: texts.consentTitle,
+              consentTerms: texts.consentTerms
+                .split("\n")
+                .map((t) => t.trim())
+                .filter(Boolean),
+            },
+          },
+        }),
       });
       if (res.ok) {
-        toast("✅ บันทึกแล้ว — การ์ดที่ส่งหลังจากนี้ใช้หน้าตาใหม่ทันที", "success");
+        toast("✅ บันทึกแล้ว — การ์ดที่ส่งหลังจากนี้ใช้ค่าล่าสุดทันที", "success");
         setDirty(false);
       } else {
         toast("บันทึกไม่สำเร็จ — ลองใหม่อีกครั้ง", "error");
@@ -375,7 +513,7 @@ export default function CardsStudioPage() {
         <div>
           <h1 className="text-lg font-extrabold text-catcha-chocolate">🎴 ปรับแต่งการ์ด LINE</h1>
           <p className="mt-1 text-xs text-brown-soft">
-            เลือกสี เปิด/ปิดส่วนประกอบ และข้อความของการ์ดแต่ละใบ — เห็นตัวอย่างสดทางขวาก่อนบันทึก
+            สี ขนาดตัวอักษร ข้อความ เงื่อนไข และส่วนประกอบของการ์ดแต่ละใบ — พรีวิวสดทางขวา
           </p>
         </div>
         <button
@@ -388,7 +526,6 @@ export default function CardsStudioPage() {
         </button>
       </div>
 
-      {/* เลือกการ์ด */}
       <div className="mb-4 flex flex-wrap gap-1.5">
         {CARDS.map((c) => (
           <button
@@ -402,7 +539,6 @@ export default function CardsStudioPage() {
             }`}
           >
             {c.name}
-            {cards[c.key] && Object.keys(cards[c.key]).length > 0 ? " •" : ""}
           </button>
         ))}
       </div>
@@ -415,72 +551,119 @@ export default function CardsStudioPage() {
             <p className="text-[11px] text-brown-soft">{meta.desc}</p>
           </div>
 
-          {/* สี */}
-          <div>
-            <p className="mb-2 text-xs font-extrabold text-brown">🎨 สีของการ์ด</p>
-            <div className="space-y-2.5">
-              {meta.colors.map((role) => (
-                <div key={role.key} className="flex flex-wrap items-center gap-2">
-                  <label className="w-36 shrink-0 text-[11px] font-bold text-brown-soft">
-                    {role.label}
-                  </label>
-                  <input
-                    type="color"
-                    value={styleValue(st, role)}
-                    onChange={(e) => patch({ [role.key]: e.target.value })}
-                    className="h-8 w-12 cursor-pointer rounded border border-catcha-line bg-paper"
-                  />
-                  <span className="text-[10px] font-mono text-brown-faint">
-                    {styleValue(st, role)}
-                  </span>
-                  <div className="flex gap-1">
-                    {SWATCHES.slice(0, 6).map((sw) => (
+          {meta.colors.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs font-extrabold text-brown">🎨 สีของการ์ด</p>
+              <div className="space-y-2.5">
+                {meta.colors.map((role) => (
+                  <div key={role.key} className="flex flex-wrap items-center gap-2">
+                    <label className="w-36 shrink-0 text-[11px] font-bold text-brown-soft">{role.label}</label>
+                    <input
+                      type="color"
+                      value={styleValue(st, role)}
+                      onChange={(e) => patch({ [role.key]: e.target.value })}
+                      className="h-8 w-12 cursor-pointer rounded border border-catcha-line bg-paper"
+                    />
+                    <span className="font-mono text-[10px] text-brown-faint">{styleValue(st, role)}</span>
+                    <div className="flex gap-1">
+                      {SWATCHES.map((sw) => (
+                        <button
+                          key={sw}
+                          type="button"
+                          title={sw}
+                          onClick={() => patch({ [role.key]: sw })}
+                          className="h-5 w-5 rounded-full border border-white shadow"
+                          style={{ background: sw }}
+                        />
+                      ))}
+                    </div>
+                    {st[role.key] && (
                       <button
-                        key={sw}
                         type="button"
-                        title={sw}
-                        onClick={() => patch({ [role.key]: sw })}
-                        className="h-5 w-5 rounded-full border border-white shadow"
-                        style={{ background: sw }}
-                      />
-                    ))}
+                        onClick={() => patch({ [role.key]: undefined })}
+                        className="text-[10px] font-bold text-wait underline"
+                      >
+                        คืนค่าเดิม
+                      </button>
+                    )}
                   </div>
-                  {st[role.key] && (
-                    <button
-                      type="button"
-                      onClick={() => patch({ [role.key]: undefined })}
-                      className="text-[10px] font-bold text-wait underline"
-                    >
-                      คืนค่าเดิม
-                    </button>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* ส่วนประกอบ */}
-          <div>
-            <p className="mb-2 text-xs font-extrabold text-brown">🧩 ในการ์ดจะมีอะไรบ้าง</p>
-            <div className="grid gap-1.5 sm:grid-cols-2">
-              {meta.fields.map((f) => (
-                <label
-                  key={f.key}
-                  className="flex items-center gap-2 rounded-catcha-sm bg-paper px-2.5 py-2 text-[11px] font-bold text-brown"
-                >
-                  <input
-                    type="checkbox"
-                    checked={st.show?.[f.key] !== false}
-                    onChange={() => toggleField(f.key)}
-                    className="h-4 w-4 accent-[#4A7348]"
-                  />
-                  {f.label}
-                </label>
-              ))}
+          {meta.hasTitleSize && (
+            <div>
+              <p className="mb-1.5 text-xs font-extrabold text-brown">🔠 ขนาดตัวอักษรหัวข้อ</p>
+              <div className="flex flex-wrap gap-1.5">
+                {TITLE_SIZES.map((s) => (
+                  <button
+                    key={s.value}
+                    type="button"
+                    onClick={() => patch({ titleSize: s.value || undefined })}
+                    className={`rounded-full px-3 py-1.5 text-[11px] font-bold ${
+                      (st.titleSize || "") === s.value
+                        ? "bg-latte-deep text-white"
+                        : "bg-paper text-brown-soft"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* ข้อความปิดท้าย */}
+          {meta.fields.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs font-extrabold text-brown">🧩 ในการ์ดจะมีอะไรบ้าง</p>
+              <div className="grid gap-1.5 sm:grid-cols-2">
+                {meta.fields.map((f) => (
+                  <label
+                    key={f.key}
+                    className="flex items-center gap-2 rounded-catcha-sm bg-paper px-2.5 py-2 text-[11px] font-bold text-brown"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={st.show?.[f.key] !== false}
+                      onChange={() => toggleField(f.key)}
+                      className="h-4 w-4 accent-[#4A7348]"
+                    />
+                    {f.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {meta.texts.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs font-extrabold text-brown">📝 ข้อความในการ์ด (เขียนเองได้)</p>
+              <div className="space-y-2.5">
+                {meta.texts.map((t) => (
+                  <label key={t.stateKey} className="block text-[11px] font-bold text-brown-soft">
+                    {t.label}
+                    {t.multiline ? (
+                      <textarea
+                        value={texts[t.stateKey] || ""}
+                        onChange={(e) => patchText(t.stateKey, e.target.value)}
+                        rows={t.stateKey === "consentTerms" ? 8 : 3}
+                        className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs font-normal"
+                      />
+                    ) : (
+                      <input
+                        value={texts[t.stateKey] || ""}
+                        onChange={(e) => patchText(t.stateKey, e.target.value)}
+                        className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs font-normal"
+                      />
+                    )}
+                    {t.hint && <span className="mt-0.5 block text-[9px] font-normal text-brown-faint">{t.hint}</span>}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
           {meta.closingLabel && (
             <div>
               <p className="mb-1 text-xs font-extrabold text-brown">💬 {meta.closingLabel}</p>
@@ -494,13 +677,15 @@ export default function CardsStudioPage() {
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={resetCard}
-            className="rounded-full bg-paper px-3.5 py-1.5 text-[11px] font-bold text-wait"
-          >
-            ↩️ รีเซ็ตการ์ดนี้กลับค่าเริ่มต้นทั้งหมด
-          </button>
+          {meta.colors.length > 0 && (
+            <button
+              type="button"
+              onClick={resetCard}
+              className="rounded-full bg-paper px-3.5 py-1.5 text-[11px] font-bold text-wait"
+            >
+              ↩️ รีเซ็ตสี/ส่วนประกอบการ์ดนี้กลับค่าเริ่มต้น
+            </button>
+          )}
         </div>
 
         {/* ── พรีวิวสด ── */}
@@ -509,7 +694,7 @@ export default function CardsStudioPage() {
             👀 ตัวอย่างที่ลูกค้าจะเห็นใน LINE (อัปเดตสดตามที่แก้)
           </p>
           <div className="rounded-2xl bg-[#8cabd8] p-4">
-            <Preview meta={meta} st={st} />
+            <Preview meta={meta} st={st} texts={texts} />
           </div>
         </div>
       </div>

@@ -353,7 +353,7 @@ export async function PATCH(req: NextRequest) {
 
     if (paid.lineUserId) {
       const cfgRc = await getSiteConfig();
-      await pushLineMessage(paid.lineUserId, [
+      const receiptMsgs: object[] = [
         buildReceiptFlex({
           invoiceId: paid.id,
           customerName: paid.customerName,
@@ -367,7 +367,28 @@ export async function PATCH(req: NextRequest) {
                 ? "เงินสด"
                 : "โอนเงิน",
         }, cfgRc.cards?.receipt),
-      ]);
+      ];
+      // ใบเสร็จ + ขอรีวิว รวมใน push เดียว (LINE นับเป็น 1 ข้อความ — ประหยัดโควตา)
+      // ปิดได้จากหน้าปรับแต่งการ์ด (ใบเสร็จ → ติ๊กออก "แนบการ์ดขอรีวิว")
+      const bundleReview = cfgRc.cards?.receipt?.show?.reviewBundle !== false;
+      const reviewUrlRc = cfgRc.business.reviewUrl || cfgRc.business.maps;
+      if (bundleReview && reviewUrlRc) {
+        const hasGroomRc = (paid.items || []).some(
+          (it) =>
+            it.kind === "grooming" || /อาบน้ำ|กรูม|premium|malaseb/i.test(it.label)
+        );
+        const hasRoomRc = (paid.items || []).some((it) => /คืน|ห้อง/.test(it.label));
+        const msgRc = reviewMessageFor(hasGroomRc, hasRoomRc);
+        receiptMsgs.push(
+          buildReviewRequestFlex({
+            title: msgRc.title,
+            body: msgRc.body,
+            reviewUrl: reviewUrlRc,
+            reviewLabel: cfgRc.business.reviewButtonText,
+          }, cfgRc.cards?.review)
+        );
+      }
+      await pushLineMessage(paid.lineUserId, receiptMsgs);
 
       if (customer?.isMember) {
         await pushLineMessage(paid.lineUserId, [

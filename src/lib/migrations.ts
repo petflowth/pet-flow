@@ -144,6 +144,10 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     sql: "alter table customers add column if not exists postal_code text;",
   },
   {
+    name: "staff_users.table",
+    sql: "create table if not exists staff_users (id text primary key, name text not null, code text not null, menus jsonb not null default '[]'::jsonb, active boolean not null default true, created_at timestamptz not null default now());",
+  },
+  {
     name: "cats.color",
     sql: "alter table cats add column if not exists color text;",
   },

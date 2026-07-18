@@ -35,7 +35,7 @@ import { consumePackage } from "@/lib/packages-store";
 import { getBooking } from "@/lib/bookings-store";
 import { bookingScheduleText } from "@/lib/booking-reminders";
 import type { InvoiceRecord } from "@/lib/invoices-store";
-import type { SiteConfig } from "@/lib/config-types";
+import type { SiteConfig, CardStyleConfig } from "@/lib/config-types";
 
 type SummaryMode = "booking" | "deposit" | "full" | "remaining";
 
@@ -44,7 +44,8 @@ function summaryFlexFromInvoice(
   mode: SummaryMode,
   billing: SiteConfig["billing"],
   payment: { bankName: string; accountNumber: string; accountName: string },
-  scheduleText?: string
+  scheduleText?: string,
+  cardStyle?: CardStyleConfig
 ) {
   const deposit = inv.deposit || 0;
   const remaining = Math.max(0, inv.total - deposit);
@@ -72,7 +73,7 @@ function summaryFlexFromInvoice(
     bankName: payment.bankName,
     accountNumber: payment.accountNumber,
     accountName: payment.accountName,
-  });
+  }, cardStyle);
 }
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 
@@ -171,7 +172,8 @@ export async function POST(req: NextRequest) {
     } else {
       await adjustDepositCredit(body.customerId, amount);
     }
-    const msgs = (await getSiteConfig()).messages;
+    const cfgDep = await getSiteConfig();
+    const msgs = cfgDep.messages;
     const payment = await getPaymentConfig();
     const catName = customer.cats[0]?.name || "น้องแมว";
     const pctNum = Number(body.pct) || 0;
@@ -190,7 +192,7 @@ export async function POST(req: NextRequest) {
         accountName: payment.accountName,
         note: body.note ? String(body.note) : undefined,
         percentNote: body.percentNote ? String(body.percentNote) : undefined,
-      }),
+      }, cfgDep.cards?.depositRequest),
     ]);
     return NextResponse.json({ ok: true });
   }
@@ -259,9 +261,9 @@ export async function PATCH(req: NextRequest) {
     const deposit = inv.deposit || 0;
     // ถ้ามีมัดจำแล้ว → ส่งการ์ด "ยอดคงเหลือ" (ยอดค้างจริง) ไม่ใช่ยอดเต็มซ้ำ
     if (deposit > 0) {
-      const billing = (await getSiteConfig()).billing;
+      const cfgRem = await getSiteConfig();
       await pushLineMessage(inv.lineUserId, [
-        summaryFlexFromInvoice(inv, "remaining", billing, payment, scheduleText),
+        summaryFlexFromInvoice(inv, "remaining", cfgRem.billing, payment, scheduleText, cfgRem.cards?.billSummary),
       ]);
       await markInvoiceSent(id);
       return NextResponse.json({ ok: true, kind: "remaining" });
@@ -289,9 +291,9 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "no_line" }, { status: 400 });
     }
     const mode = (body.mode as SummaryMode) || "booking";
-    const billing = (await getSiteConfig()).billing;
+    const cfgSum = await getSiteConfig();
     await pushLineMessage(inv.lineUserId, [
-      summaryFlexFromInvoice(inv, mode, billing, payment, scheduleText),
+      summaryFlexFromInvoice(inv, mode, cfgSum.billing, payment, scheduleText, cfgSum.cards?.billSummary),
     ]);
     await markInvoiceSent(id);
     return NextResponse.json({ ok: true, kind: mode });
@@ -319,7 +321,7 @@ export async function PATCH(req: NextRequest) {
         body: msg.body,
         reviewUrl,
         reviewLabel: biz.reviewButtonText,
-      }),
+      }, cfg.cards?.review),
     ]);
     return NextResponse.json({ ok: true });
   }
@@ -350,6 +352,7 @@ export async function PATCH(req: NextRequest) {
     const customer = result.customer;
 
     if (paid.lineUserId) {
+      const cfgRc = await getSiteConfig();
       await pushLineMessage(paid.lineUserId, [
         buildReceiptFlex({
           invoiceId: paid.id,
@@ -363,7 +366,7 @@ export async function PATCH(req: NextRequest) {
               : paid.paymentMethod === "cash"
                 ? "เงินสด"
                 : "โอนเงิน",
-        }),
+        }, cfgRc.cards?.receipt),
       ]);
 
       if (customer?.isMember) {

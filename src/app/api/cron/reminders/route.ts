@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
             body: buildGroomInfoBody(b, cfg),
             url: url || undefined,
             label: "🩺 แจ้งประวัติน้อง",
-          });
+          }, cfg.cards?.groomInfo);
           await pushLineMessage(b.lineUserId, [groomFlex]);
           groomInfoCards++;
         }
@@ -214,7 +214,7 @@ export async function GET(req: NextRequest) {
           }),
           reviewUrl,
           reviewLabel: cfg.business.reviewButtonText,
-        });
+        }, cfg.cards?.review);
         try {
           await pushLineMessage(b.lineUserId, [flex]);
           reviewRequests++;

@@ -34,5 +34,5 @@ export async function buildBookingConfirmFlex(
     mapsUrl,
     location: `CatCha Hotel · ${location}`,
     businessName: config.business.name,
-  });
+  }, config.cards?.bookingConfirm);
 }

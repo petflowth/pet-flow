@@ -5,6 +5,7 @@
 
 import { formatBookingWhen, formatThaiDate } from "./format-thai-date";
 import { getLineCredentials } from "./line-config";
+import type { CardStyleConfig } from "./config-types";
 
 const BRAND_GREEN = "#5A8F5A";
 const BRAND_GREEN_DARK = "#4A7348";
@@ -131,7 +132,9 @@ export function buildAppointmentConfirmFlex(booking: {
   mapsUrl: string;
   location: string;
   businessName?: string;
-}) {
+}, style?: CardStyleConfig) {
+  const st = style || {};
+  const show = (k: string) => st.show?.[k] !== false;
   const isRoom = booking.service === "room";
   const serviceTitle = isRoom
     ? `ห้องพัก · ${booking.catName}`
@@ -166,13 +169,13 @@ export function buildAppointmentConfirmFlex(booking: {
       header: {
         type: "box",
         layout: "vertical",
-        backgroundColor: BRAND_GREEN,
+        backgroundColor: st.headerColor || BRAND_GREEN,
         paddingAll: "16px",
         contents: [
           {
             type: "text",
             text: "📅 กำหนดการนัด",
-            color: "#FFFFFF",
+            color: st.headerTextColor || "#FFFFFF",
             weight: "bold",
             size: "sm",
           },
@@ -188,7 +191,7 @@ export function buildAppointmentConfirmFlex(booking: {
             text: serviceTitle,
             weight: "bold",
             size: "lg",
-            color: "#5C4033",
+            color: st.accentColor || "#5C4033",
             wrap: true,
           },
           {
@@ -201,8 +204,10 @@ export function buildAppointmentConfirmFlex(booking: {
           },
           flexDetailRow("🗓️", "วันที่", dateText),
           flexDetailRow("⏰", "เวลา / รายละเอียด", timeText),
-          flexDetailRow("📍", "สถานที่", booking.location),
-          flexDetailRow("📝", "หมายเหตุ", noteText),
+          ...(show("location")
+            ? [flexDetailRow("📍", "สถานที่", booking.location)]
+            : []),
+          ...(show("notes") ? [flexDetailRow("📝", "หมายเหตุ", noteText)] : []),
         ],
       },
       footer: {
@@ -214,7 +219,7 @@ export function buildAppointmentConfirmFlex(booking: {
           {
             type: "button",
             style: "primary",
-            color: BRAND_GREEN_DARK,
+            color: st.buttonColor || BRAND_GREEN_DARK,
             height: "sm",
             action: {
               type: "uri",
@@ -222,16 +227,20 @@ export function buildAppointmentConfirmFlex(booking: {
               uri: booking.confirmUrl,
             },
           },
-          {
-            type: "button",
-            style: "link",
-            height: "sm",
-            action: {
-              type: "uri",
-              label: "🗺️ ดูแผนที่ / เส้นทาง",
-              uri: booking.mapsUrl,
-            },
-          },
+          ...(show("map")
+            ? [
+                {
+                  type: "button",
+                  style: "link",
+                  height: "sm",
+                  action: {
+                    type: "uri",
+                    label: "🗺️ ดูแผนที่ / เส้นทาง",
+                    uri: booking.mapsUrl,
+                  },
+                },
+              ]
+            : []),
         ],
       },
     },
@@ -612,7 +621,12 @@ export function buildBillSummaryFlex(data: {
   bankName?: string;
   accountNumber?: string;
   accountName?: string;
-}) {
+}, style?: CardStyleConfig) {
+  const st = style || {};
+  const show = (k: string) => st.show?.[k] !== false;
+  const titleColor = st.headerColor || "#5C4033";
+  const accent = st.accentColor || "#C4956A";
+  const closing = st.closing ?? data.closing;
   const icon =
     data.mode === "deposit"
       ? "💰"
@@ -620,6 +634,7 @@ export function buildBillSummaryFlex(data: {
         ? "💳"
         : "📋";
   const showBank =
+    show("bank") &&
     (data.mode === "deposit" ||
       data.mode === "full" ||
       data.mode === "remaining") &&
@@ -640,7 +655,7 @@ export function buildBillSummaryFlex(data: {
       text: `${icon} ${data.title}`,
       weight: "bold",
       size: "lg",
-      color: "#5C4033",
+      color: titleColor,
       wrap: true,
     },
     {
@@ -651,7 +666,7 @@ export function buildBillSummaryFlex(data: {
       margin: "sm",
       wrap: true,
     },
-    ...(data.scheduleText
+    ...(data.scheduleText && show("schedule")
       ? [
           {
             type: "text",
@@ -733,7 +748,7 @@ export function buildBillSummaryFlex(data: {
         text: money(data.total),
         weight: "bold",
         size: "lg",
-        color: "#C4956A",
+        color: accent,
         align: "end",
         flex: 4,
       },
@@ -741,7 +756,7 @@ export function buildBillSummaryFlex(data: {
   });
 
   // 🎁 ของแถมฟรี — โชว์ให้ลูกค้าเห็นว่าแถมอะไรบ้าง
-  if (freebieItems.length) {
+  if (freebieItems.length && show("freebies")) {
     body.push({
       type: "box",
       layout: "vertical",
@@ -867,10 +882,10 @@ export function buildBillSummaryFlex(data: {
     });
   }
 
-  if (data.closing) {
+  if (closing && show("closing")) {
     body.push({
       type: "text",
-      text: data.closing,
+      text: closing,
       size: "xs",
       color: "#A2907E",
       margin: "lg",
@@ -892,7 +907,7 @@ export function buildBillSummaryFlex(data: {
         {
           type: "button",
           style: "primary",
-          color: "#4A7348",
+          color: st.buttonColor || "#4A7348",
           height: "sm",
           action: {
             type: "clipboard",
@@ -1232,18 +1247,20 @@ export function buildGroomInfoFlex(data: {
   body: string;
   url?: string;
   label?: string;
-}) {
+}, style?: CardStyleConfig) {
+  const st = style || {};
+  const show = (k: string) => st.show?.[k] !== false;
   const contents: Record<string, unknown>[] = [
     {
       type: "text",
       text: `🐱 ${data.catName}`,
       weight: "bold",
       size: "lg",
-      color: "#5C4033",
+      color: st.accentColor || "#5C4033",
       wrap: true,
     },
   ];
-  if (data.dateText) {
+  if (data.dateText && show("date")) {
     contents.push({
       type: "text",
       text: data.dateText,
@@ -1262,19 +1279,23 @@ export function buildGroomInfoFlex(data: {
     wrap: true,
   });
 
+  if (st.closing) {
+    contents.push({ type: "text", text: st.closing, size: "xs", color: "#A2907E", margin: "md", wrap: true });
+  }
+
   const bubble: Record<string, unknown> = {
     type: "bubble",
     size: "mega",
     header: {
       type: "box",
       layout: "vertical",
-      backgroundColor: BRAND_GREEN,
+      backgroundColor: st.headerColor || BRAND_GREEN,
       paddingAll: "16px",
       contents: [
         {
           type: "text",
           text: "🩺 ประวัติน้องก่อนอาบน้ำ",
-          color: "#FFFFFF",
+          color: st.headerTextColor || "#FFFFFF",
           weight: "bold",
           size: "sm",
         },
@@ -1291,7 +1312,7 @@ export function buildGroomInfoFlex(data: {
         {
           type: "button",
           style: "primary",
-          color: BRAND_GREEN_DARK,
+          color: st.buttonColor || BRAND_GREEN_DARK,
           height: "sm",
           action: {
             type: "uri",
@@ -1319,12 +1340,14 @@ export function buildDepositRequestFlex(data: {
   accountName: string;
   note?: string;
   percentNote?: string;
-}) {
+}, style?: CardStyleConfig) {
+  const st = style || {};
+  const show = (k: string) => st.show?.[k] !== false;
   const body: Record<string, unknown>[] = [
-    { type: "text", text: data.title, weight: "bold", size: "lg", color: "#5C4033", wrap: true },
+    { type: "text", text: data.title, weight: "bold", size: "lg", color: st.headerColor || "#5C4033", wrap: true },
     { type: "text", text: data.body, size: "sm", color: "#4E3E32", margin: "md", wrap: true },
   ];
-  if (data.note) {
+  if (data.note && show("note")) {
     body.push({ type: "text", text: data.note, size: "xs", color: "#A2907E", margin: "sm", wrap: true });
   }
   body.push({
@@ -1342,7 +1365,7 @@ export function buildDepositRequestFlex(data: {
         text: `${data.amount.toLocaleString()} บาท`,
         weight: "bold",
         size: "3xl",
-        color: "#C4956A",
+        color: st.accentColor || "#C4956A",
         align: "center",
       },
       ...(data.percentNote
@@ -1358,20 +1381,25 @@ export function buildDepositRequestFlex(data: {
         : []),
     ],
   });
-  body.push({
-    type: "box",
-    layout: "vertical",
-    margin: "lg",
-    spacing: "xs",
-    paddingAll: "12px",
-    backgroundColor: "#F4ECE0",
-    cornerRadius: "10px",
-    contents: [
-      { type: "text", text: data.bankName, weight: "bold", size: "md", color: "#5C4033" },
-      { type: "text", text: data.accountNumber, weight: "bold", size: "xl", color: "#4A7348", wrap: true },
-      { type: "text", text: `ชื่อบัญชี: ${data.accountName}`, size: "sm", color: "#A2907E", wrap: true },
-    ],
-  });
+  if (show("bank")) {
+    body.push({
+      type: "box",
+      layout: "vertical",
+      margin: "lg",
+      spacing: "xs",
+      paddingAll: "12px",
+      backgroundColor: "#F4ECE0",
+      cornerRadius: "10px",
+      contents: [
+        { type: "text", text: data.bankName, weight: "bold", size: "md", color: "#5C4033" },
+        { type: "text", text: data.accountNumber, weight: "bold", size: "xl", color: "#4A7348", wrap: true },
+        { type: "text", text: `ชื่อบัญชี: ${data.accountName}`, size: "sm", color: "#A2907E", wrap: true },
+      ],
+    });
+  }
+  if (st.closing) {
+    body.push({ type: "text", text: st.closing, size: "xs", color: "#A2907E", margin: "lg", wrap: true });
+  }
 
   return {
     type: "flex",
@@ -1387,7 +1415,7 @@ export function buildDepositRequestFlex(data: {
           {
             type: "button",
             style: "primary",
-            color: "#4A7348",
+            color: st.buttonColor || "#4A7348",
             height: "sm",
             action: {
               type: "clipboard",
@@ -1508,18 +1536,20 @@ export function buildReceiptFlex(data: {
   total: number;
   pointsEarned: number;
   paymentMethod: string;
-}) {
+}, style?: CardStyleConfig) {
+  const st = style || {};
+  const show = (k: string) => st.show?.[k] !== false;
   const bubble: Record<string, unknown> = {
     type: "bubble",
     size: "mega",
     header: {
       type: "box",
       layout: "vertical",
-      backgroundColor: "#C4956A",
+      backgroundColor: st.headerColor || "#C4956A",
       paddingAll: "18px",
       contents: [
-        { type: "text", text: "🧾 ใบเสร็จรับเงิน", color: "#FFFFFF", weight: "bold", size: "lg" },
-        { type: "text", text: "CatCha Hotel", color: "#FFFFFF", size: "xs", margin: "xs" },
+        { type: "text", text: "🧾 ใบเสร็จรับเงิน", color: st.headerTextColor || "#FFFFFF", weight: "bold", size: "lg" },
+        { type: "text", text: "CatCha Hotel", color: st.headerTextColor || "#FFFFFF", size: "xs", margin: "xs" },
       ],
     },
     body: {
@@ -1528,7 +1558,7 @@ export function buildReceiptFlex(data: {
       paddingAll: "18px",
       contents: [
         flexDetailRow("🐱", "ลูกค้า", `${data.catName} · ${data.customerName}`),
-        flexDetailRow("🔖", "เลขที่", data.invoiceId),
+        ...(show("invoiceNo") ? [flexDetailRow("🔖", "เลขที่", data.invoiceId)] : []),
         { type: "separator", margin: "lg", color: "#EFE3D2" },
         {
           type: "box",
@@ -1545,7 +1575,7 @@ export function buildReceiptFlex(data: {
               text: `${data.total.toLocaleString()} บาท`,
               weight: "bold",
               size: "3xl",
-              color: "#4A7348",
+              color: st.accentColor || "#4A7348",
               align: "center",
             },
             {
@@ -1557,35 +1587,43 @@ export function buildReceiptFlex(data: {
             },
           ],
         },
-        {
-          type: "box",
-          layout: "horizontal",
-          margin: "lg",
-          paddingAll: "12px",
-          backgroundColor: "#F4ECE0",
-          cornerRadius: "10px",
-          contents: [
-            { type: "text", text: "🎁 แต้มสะสมที่ได้รับ", size: "sm", color: "#5C4033", flex: 3 },
-            {
-              type: "text",
-              text: `+${data.pointsEarned}`,
-              weight: "bold",
-              size: "md",
-              color: "#C4956A",
-              align: "end",
-              flex: 2,
-            },
-          ],
-        },
-        {
-          type: "text",
-          text: "ขอบคุณที่ไว้วางใจ CatCha Hotel นะคะ 🧡",
-          size: "xs",
-          color: "#A2907E",
-          margin: "lg",
-          align: "center",
-          wrap: true,
-        },
+        ...(show("points")
+          ? [
+              {
+                type: "box",
+                layout: "horizontal",
+                margin: "lg",
+                paddingAll: "12px",
+                backgroundColor: "#F4ECE0",
+                cornerRadius: "10px",
+                contents: [
+                  { type: "text", text: "🎁 แต้มสะสมที่ได้รับ", size: "sm", color: "#5C4033", flex: 3 },
+                  {
+                    type: "text",
+                    text: `+${data.pointsEarned}`,
+                    weight: "bold",
+                    size: "md",
+                    color: "#C4956A",
+                    align: "end",
+                    flex: 2,
+                  },
+                ],
+              },
+            ]
+          : []),
+        ...(show("closing")
+          ? [
+              {
+                type: "text",
+                text: st.closing || "ขอบคุณที่ไว้วางใจ CatCha Hotel นะคะ 🧡",
+                size: "xs",
+                color: "#A2907E",
+                margin: "lg",
+                align: "center",
+                wrap: true,
+              },
+            ]
+          : []),
       ],
     },
   };
@@ -1730,13 +1768,16 @@ export function buildReviewRequestFlex(data: {
   body: string;
   reviewUrl: string;
   reviewLabel?: string;
-}) {
+}, style?: CardStyleConfig) {
+  const st = style || {};
+  const show = (k: string) => st.show?.[k] !== false;
   // แยกข้อความเป็นบรรทัดตาม \n ที่คนพิมพ์ตั้งใจขึ้นบรรทัดใหม่ไว้อยู่แล้ว
   // แต่ละบรรทัดสั้นพอที่จะไม่ล้นแล้ววกกลับมาตัดคำ/อิโมจิแปลกๆ กลางประโยค
   const paragraphs = data.body
     .split(/\n+/)
     .map((p) => p.trim())
     .filter(Boolean);
+  if (st.closing) paragraphs.push(st.closing);
 
   return {
     type: "flex",
@@ -1747,23 +1788,27 @@ export function buildReviewRequestFlex(data: {
       header: {
         type: "box",
         layout: "vertical",
-        backgroundColor: "#FBF4E9",
+        backgroundColor: st.headerColor || "#FBF4E9",
         paddingAll: "20px",
         spacing: "xs",
         contents: [
-          {
-            type: "text",
-            text: "⭐ ⭐ ⭐ ⭐ ⭐",
-            size: "md",
-            align: "center",
-            color: "#C4956A",
-          },
+          ...(show("stars")
+            ? [
+                {
+                  type: "text",
+                  text: "⭐ ⭐ ⭐ ⭐ ⭐",
+                  size: "md",
+                  align: "center",
+                  color: st.accentColor || "#C4956A",
+                },
+              ]
+            : []),
           {
             type: "text",
             text: data.title,
             weight: "bold",
             size: "md",
-            color: "#5C4033",
+            color: st.headerTextColor || "#5C4033",
             align: "center",
             margin: "sm",
             wrap: true,
@@ -1793,7 +1838,7 @@ export function buildReviewRequestFlex(data: {
           {
             type: "button",
             style: "primary",
-            color: "#C4956A",
+            color: st.buttonColor || "#C4956A",
             height: "md",
             margin: "sm",
             action: {

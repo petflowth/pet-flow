@@ -121,6 +121,25 @@ export type AutomationConfig = {
   birthdayCouponAmount: number;
 };
 
+/**
+ * สไตล์การ์ด LINE ต่อใบ — ตั้งค่าจากหน้า "ปรับแต่งการ์ด LINE" (มีพรีวิวสด)
+ * ทุกฟิลด์ optional: ไม่ตั้ง = ใช้หน้าตาเดิมของระบบ
+ */
+export type CardStyleConfig = {
+  /** สีแถบหัวการ์ด */
+  headerColor?: string;
+  /** สีตัวหนังสือบนแถบหัว */
+  headerTextColor?: string;
+  /** สีปุ่มกดในการ์ด */
+  buttonColor?: string;
+  /** สีไฮไลท์ (ยอดเงิน/ตัวเลขเด่น) */
+  accentColor?: string;
+  /** ข้อความปิดท้ายการ์ด (แทนของเดิม) */
+  closing?: string;
+  /** เปิด/ปิดส่วนประกอบในการ์ด — key ตามการ์ดแต่ละใบ, ไม่ตั้ง = แสดง */
+  show?: Record<string, boolean>;
+};
+
 export type SiteConfig = {
   version: number;
   updatedAt: string;
@@ -175,4 +194,6 @@ export type SiteConfig = {
     /** รู้จักร้านจากไหน (referral) — หน้าลงทะเบียน */
     referralOptions: string[];
   };
+  /** สไตล์การ์ด LINE รายใบ — key: bookingConfirm | billSummary | depositRequest | receipt | review | groomInfo */
+  cards?: Record<string, CardStyleConfig>;
 };

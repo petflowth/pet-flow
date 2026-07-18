@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
-const TABS = [
+export const ADMIN_TABS = [
   { href: "/admin", label: "แดชบอร์ด", icon: "📊" },
   { href: "/admin/schedule", label: "ตารางนัด", icon: "🗓️" },
   { href: "/admin/bookings/new", label: "จองใหม่", icon: "➕" },
@@ -14,14 +14,35 @@ const TABS = [
   { href: "/admin/insights", label: "สรุปข้อมูล", icon: "📊" },
   { href: "/admin/promos", label: "โปร", icon: "✨" },
   { href: "/admin/coupons", label: "คูปอง", icon: "🎟️" },
+  { href: "/admin/cards", label: "ปรับแต่งการ์ด LINE", icon: "🎴" },
   { href: "/admin/settings", label: "ตั้งค่า", icon: "⚙️" },
   { href: "/admin/trash", label: "ถังขยะ", icon: "🗑️" },
   { href: "/admin/setup", label: "ติดตั้ง", icon: "🚀" },
 ] as const;
 
+const TABS = ADMIN_TABS;
+
 function isTabActive(pathname: string, href: string) {
   if (href === "/admin") return pathname === "/admin";
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/** เมนูที่ผู้ใช้ปัจจุบันเห็นได้ — null = เจ้าของ (เห็นทุกเมนู) */
+export function getAllowedMenus(): string[] | null {
+  if (typeof window === "undefined") return null;
+  if (sessionStorage.getItem("catcha-role") !== "staff") return null;
+  try {
+    const menus = JSON.parse(sessionStorage.getItem("catcha-menus") || "[]");
+    return Array.isArray(menus) ? menus : [];
+  } catch {
+    return [];
+  }
+}
+
+/** พนักงานเปิดหน้าที่ไม่มีสิทธิ์ได้ไหม — ใช้ทั้ง nav และ guard ใน layout */
+export function isPathAllowed(pathname: string, allowed: string[] | null) {
+  if (!allowed) return true;
+  return allowed.some((href) => isTabActive(pathname, href));
 }
 
 export function getActiveAdminTabLabel(pathname: string) {
@@ -106,6 +127,9 @@ export function AdminNav({
   setMenuOpen: (open: boolean) => void;
 }) {
   const pathname = usePathname();
+  // เมนูของพนักงานถูกกรองตามสิทธิ์ที่เจ้าของตั้งไว้ (เมนูเปิดหลัง mount เสมอ อ่าน sessionStorage ได้เลย)
+  const allowed = getAllowedMenus();
+  const visibleTabs = TABS.filter((t) => !allowed || allowed.includes(t.href));
 
   useEffect(() => {
     setMenuOpen(false);
@@ -142,7 +166,7 @@ export function AdminNav({
         aria-label="เมนูหลังบ้าน"
       >
         <ul className="mx-auto grid max-w-6xl gap-1 sm:grid-cols-2">
-          {TABS.map((tab) => (
+          {visibleTabs.map((tab) => (
             <li key={tab.href}>
               <NavLink
                 {...tab}

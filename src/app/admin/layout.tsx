@@ -8,6 +8,8 @@ import {
   AdminMenuButton,
   AdminNav,
   getActiveAdminTabLabel,
+  getAllowedMenus,
+  isPathAllowed,
 } from "@/components/AdminNav";
 import { Toaster } from "@/components/Toast";
 
@@ -25,6 +27,12 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     const token = sessionStorage.getItem("catcha-admin");
     if (!token) router.replace("/admin/login");
     else {
+      // พนักงาน — เข้าได้เฉพาะเมนูที่เจ้าของอนุญาต ถ้าหลุดมาหน้าอื่นเด้งกลับเมนูแรกที่มีสิทธิ์
+      const allowed = getAllowedMenus();
+      if (!isPathAllowed(pathname, allowed)) {
+        router.replace(allowed && allowed[0] ? allowed[0] : "/admin/login");
+        return;
+      }
       setOk(true);
       // อัปเดตฐานข้อมูลอัตโนมัติครั้งเดียวต่อ session (idempotent, ไม่บล็อก UI)
       if (!sessionStorage.getItem("catcha-migrated")) {

@@ -240,7 +240,7 @@ export async function PATCH(req: NextRequest) {
       body: buildGroomInfoBody(b, cfg),
       url: url || undefined,
       label: "🩺 แจ้งประวัติน้อง",
-    });
+    }, cfg.cards?.groomInfo);
     try {
       await pushLineMessage(to, [flex]);
       return NextResponse.json({ ok: true });
@@ -278,7 +278,7 @@ export async function PATCH(req: NextRequest) {
         bookings.length > 1
           ? `🩺 แจ้งประวัติน้อง (${bookings.length} ตัว)`
           : "🩺 แจ้งประวัติน้อง",
-    });
+    }, cfg.cards?.groomInfo);
     try {
       await pushLineMessage(to, [flex]);
       return NextResponse.json({ ok: true });

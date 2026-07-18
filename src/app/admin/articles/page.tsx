@@ -31,8 +31,11 @@ const EMPTY: Omit<Article, "id"> & { id?: string } = {
   datePublished: new Date().toISOString().slice(0, 10),
 };
 
+type BuiltinArticle = Omit<Article, "id"> & { builtin: true };
+
 export default function ArticlesAdminPage() {
   const [articles, setArticles] = useState<Article[]>([]);
+  const [builtins, setBuiltins] = useState<BuiltinArticle[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [form, setForm] = useState<typeof EMPTY | null>(null);
   const [coverDataUrl, setCoverDataUrl] = useState("");
@@ -47,6 +50,7 @@ export default function ArticlesAdminPage() {
     });
     const d = await res.json().catch(() => ({}));
     setArticles(d.articles || []);
+    setBuiltins(d.builtins || []);
     setLoaded(true);
   }, [adminCode]);
 
@@ -60,6 +64,21 @@ export default function ArticlesAdminPage() {
   };
   const startEdit = (a: Article) => {
     setForm({ ...a });
+    setCoverDataUrl("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  // แก้บทความ SEO เดิม = โหลดเข้าฟอร์ม (ยังไม่มี id) พอบันทึกจะสร้างฉบับแก้ในหลังบ้านที่แทนที่ของเดิม
+  const startEditBuiltin = (a: BuiltinArticle) => {
+    setForm({
+      slug: a.slug,
+      title: a.title,
+      description: a.description,
+      body: a.body,
+      coverUrl: a.coverUrl,
+      emoji: a.emoji,
+      published: a.published,
+      datePublished: a.datePublished,
+    });
     setCoverDataUrl("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -258,12 +277,12 @@ export default function ArticlesAdminPage() {
       )}
 
       <div className="space-y-2">
-        {articles.length === 0 && (
+        {articles.length === 0 && builtins.length === 0 && (
           <p className="rounded-catcha bg-card p-6 text-center text-sm text-brown-soft">
-            ยังไม่มีบทความที่เขียนเอง — กด &quot;เขียนบทความใหม่&quot; ได้เลย
-            (บทความ SEO ชุดเดิมยังโชว์ที่ /blog ตามปกติ)
+            ยังไม่มีบทความ — กด &quot;เขียนบทความใหม่&quot; ได้เลย
           </p>
         )}
+
         {articles.map((a) => (
           <div
             key={a.id}
@@ -302,6 +321,45 @@ export default function ArticlesAdminPage() {
               className="shrink-0 rounded-full bg-paper px-2.5 py-1 text-[10px] font-bold text-wait"
             >
               🗑️
+            </button>
+          </div>
+        ))}
+
+        {/* บทความ SEO เดิมของระบบ — แก้ได้ (กดแก้แล้วบันทึก = สร้างฉบับแก้ที่แทนที่ของเดิม) */}
+        {builtins.length > 0 && (
+          <p className="mt-4 pt-2 text-[11px] font-bold text-brown-soft">
+            📚 บทความ SEO เดิมของระบบ ({builtins.length}) — กดแก้ไขเพื่อปรับเนื้อหา/รูปได้เลย
+          </p>
+        )}
+        {builtins.map((a) => (
+          <div
+            key={a.slug}
+            className="flex items-center justify-between gap-3 rounded-catcha-sm border border-dashed border-latte/50 bg-paper/40 p-3"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold text-brown">
+                {a.emoji} {a.title}
+                <span className="ml-2 rounded-full bg-sage/15 px-2 py-0.5 text-[9px] font-bold text-ok">
+                  บทความระบบ
+                </span>
+              </p>
+              <p className="truncate text-[11px] text-brown-soft">
+                /blog/{a.slug} · {a.datePublished}
+              </p>
+            </div>
+            <a
+              href={`/blog/${a.slug}`}
+              target="_blank"
+              className="shrink-0 rounded-full bg-paper px-2.5 py-1 text-[10px] font-bold text-latte-deep"
+            >
+              👁️ ดู
+            </a>
+            <button
+              type="button"
+              onClick={() => startEditBuiltin(a)}
+              className="shrink-0 rounded-full bg-honey/25 px-2.5 py-1 text-[10px] font-bold text-catcha-chocolate"
+            >
+              ✏️ แก้ไข
             </button>
           </div>
         ))}

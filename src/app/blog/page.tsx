@@ -29,7 +29,9 @@ export const metadata: Metadata = {
 
 export default async function BlogIndexPage() {
   // รวมบทความจากหลังบ้าน (DB) + บทความ SEO เดิม (โค้ด) เรียงตามวันที่
+  // ถ้า slug ซ้ำ ให้ฉบับที่แก้ในหลังบ้าน (DB) แทนที่ของเดิมเสมอ — ไม่โชว์ซ้ำ
   const dbArticles = await listArticles();
+  const dbSlugs = new Set(dbArticles.map((a) => a.slug));
   const posts = [
     ...dbArticles.map((a) => ({
       slug: a.slug,
@@ -41,7 +43,7 @@ export default async function BlogIndexPage() {
       readMinutes: Math.max(1, Math.round(a.body.length / 1200)),
       datePublished: a.datePublished,
     })),
-    ...BLOG_POSTS.map((p) => ({
+    ...BLOG_POSTS.filter((p) => !dbSlugs.has(p.slug)).map((p) => ({
       slug: p.slug,
       title: p.title,
       description: p.description,

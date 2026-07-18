@@ -3,7 +3,9 @@ import {
   listArticles,
   saveArticle,
   deleteArticle,
+  blocksToText,
 } from "@/lib/articles-store";
+import { BLOG_POSTS } from "@/lib/blog-posts";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -12,11 +14,33 @@ const OWNER_CODE = process.env.NEXT_PUBLIC_ADMIN_CODE || "catcha2026";
 const isAdmin = (req: NextRequest) =>
   (req.headers.get("x-admin-code") || "") === OWNER_CODE;
 
-/** รายการบทความ — สาธารณะเห็นเฉพาะที่เผยแพร่ · แอดมิน (?all=1 + header) เห็นฉบับร่างด้วย */
+/**
+ * รายการบทความ — สาธารณะเห็นเฉพาะที่เผยแพร่
+ * แอดมิน (?all=1 + header) เห็นฉบับร่าง + บทความ SEO เดิม (ที่ฝังในโค้ด) เพื่อแก้ไข/นำเข้าได้
+ */
 export async function GET(req: NextRequest) {
   const wantAll = req.nextUrl.searchParams.get("all") === "1" && isAdmin(req);
   const articles = await listArticles(wantAll);
-  return NextResponse.json({ articles });
+
+  if (!wantAll) {
+    return NextResponse.json({ articles });
+  }
+
+  // บทความ SEO เดิมที่ยังไม่ถูกนำเข้ามาแก้ (slug ยังไม่มีใน DB) — แปลงเป็นข้อความให้แก้ได้เลย
+  const dbSlugs = new Set(articles.map((a) => a.slug));
+  const builtins = BLOG_POSTS.filter((p) => !dbSlugs.has(p.slug)).map((p) => ({
+    slug: p.slug,
+    title: p.title,
+    description: p.description,
+    body: blocksToText(p.blocks),
+    coverUrl: p.cover,
+    emoji: p.emoji,
+    published: true,
+    datePublished: p.datePublished,
+    builtin: true,
+  }));
+
+  return NextResponse.json({ articles, builtins });
 }
 
 /** เพิ่ม/แก้บทความ — เฉพาะแอดมิน */

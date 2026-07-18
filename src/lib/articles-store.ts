@@ -168,6 +168,17 @@ export async function deleteArticle(id: string) {
   return { ok: true as const };
 }
 
+/** แปลงบล็อก (บทความ SEO เดิม) → ข้อความธรรมดาให้แก้ในหลังบ้านได้ (ผกผันกับ articleBodyToBlocks) */
+export function blocksToText(blocks: BlogBlock[]): string {
+  return blocks
+    .map((b) => {
+      if (b.type === "h2") return `## ${b.text}`;
+      if (b.type === "ul") return b.items.map((i) => `- ${i}`).join("\n");
+      return b.text;
+    })
+    .join("\n\n");
+}
+
 /** แปลงเนื้อหาข้อความธรรมดา → บล็อกแบบเดียวกับบทความ SEO เดิม */
 export function articleBodyToBlocks(body: string): BlogBlock[] {
   const blocks: BlogBlock[] = [];

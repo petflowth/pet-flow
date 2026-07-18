@@ -9,29 +9,31 @@ import SiteFooter from "@/components/SiteFooter";
 // รองรับบทความที่เขียนเองจากหลังบ้าน (ไม่ได้ prerender) — อัปเดตทุก ~5 นาที
 export const revalidate = 300;
 
-/** หาบทความจากโค้ดก่อน ไม่เจอค่อยหาที่เขียนเองในหลังบ้าน */
+/** หาฉบับที่แก้ในหลังบ้าน (DB) ก่อน — ถ้าไม่มีค่อยใช้บทความ SEO เดิมในโค้ด */
 async function resolvePost(
   slug: string
 ): Promise<{ post: BlogPost; external: boolean } | null> {
+  const db = await getArticleBySlug(slug);
+  if (db) {
+    return {
+      external: true,
+      post: {
+        slug: db.slug,
+        title: db.title,
+        description: db.description,
+        keywords: [],
+        datePublished: db.datePublished,
+        readMinutes: Math.max(1, Math.round(db.body.length / 1200)),
+        emoji: db.emoji,
+        cover: db.coverUrl,
+        blocks: articleBodyToBlocks(db.body),
+        faqs: [],
+      },
+    };
+  }
   const builtin = getBlogPost(slug);
   if (builtin) return { post: builtin, external: false };
-  const db = await getArticleBySlug(slug);
-  if (!db) return null;
-  return {
-    external: true,
-    post: {
-      slug: db.slug,
-      title: db.title,
-      description: db.description,
-      keywords: [],
-      datePublished: db.datePublished,
-      readMinutes: Math.max(1, Math.round(db.body.length / 1200)),
-      emoji: db.emoji,
-      cover: db.coverUrl,
-      blocks: articleBodyToBlocks(db.body),
-      faqs: [],
-    },
-  };
+  return null;
 }
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catchahotel.com";

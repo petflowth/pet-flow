@@ -1392,6 +1392,7 @@ export default function BillingPage() {
                     : "groom"
                 }
                 invoiceDeposit={inv.deposit ?? 0}
+                invoiceStatus={inv.status}
                 onDone={load}
               />
             </div>

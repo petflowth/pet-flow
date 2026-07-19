@@ -15,6 +15,7 @@ export function CustomerSendButtons({
   invoiceId,
   service,
   invoiceDeposit = 0,
+  invoiceStatus,
   groomBookingIds,
   onDone,
 }: {
@@ -24,6 +25,8 @@ export function CustomerSendButtons({
   invoiceId?: string;
   service?: "room" | "groom";
   invoiceDeposit?: number;
+  /** สถานะบิลที่ส่งมาจากหน้าบิล — ใช้ล็อกไม่ให้ส่งใบเสร็จตอนยังไม่จ่าย */
+  invoiceStatus?: string;
   /** ถ้านัดนี้เป็นการ์ดรวมหลายตัว (จองทั้งบ้าน) — bookingId ของทุกตัว เอาไว้ส่งการ์ดสอบถามประวัติแยกให้ครบทุกตัว */
   groomBookingIds?: string[];
   onDone?: () => void;
@@ -34,6 +37,7 @@ export function CustomerSendButtons({
   // ถ้ามาจากการ์ดนัด (มี bookingId แต่ไม่มี invoiceId) → ไปหาบิลที่ผูกกับนัดนั้นเอง
   const [foundInvoiceId, setFoundInvoiceId] = useState<string | undefined>();
   const [foundDeposit, setFoundDeposit] = useState(0);
+  const [foundStatus, setFoundStatus] = useState<string | undefined>();
   useEffect(() => {
     if (invoiceId || !bookingId) return;
     let alive = true;
@@ -43,6 +47,7 @@ export function CustomerSendButtons({
         if (!alive || !d.invoice) return;
         setFoundInvoiceId(d.invoice.id);
         setFoundDeposit(d.invoice.deposit || 0);
+        setFoundStatus(d.invoice.status);
       })
       .catch(() => {});
     return () => {
@@ -52,6 +57,7 @@ export function CustomerSendButtons({
 
   const invId = invoiceId || foundInvoiceId;
   const depForBill = invoiceId ? invoiceDeposit : foundDeposit;
+  const billPaid = (invoiceId ? invoiceStatus : foundStatus) === "paid";
 
   const call = async (key: string, run: () => Promise<Response>, okMsg: string) => {
     setBusy(key);
@@ -195,6 +201,40 @@ export function CustomerSendButtons({
       return [...prev, p];
     });
 
+  /** ส่งการ์ดชุดใดก็ได้ผ่าน endpoint เดียว — ใช้ทั้งตัวเลือกชุดการ์ดและปุ่มเดี่ยวบางปุ่ม */
+  const sendBundleParts = async (
+    parts: string[],
+    okMsg: string,
+    busyKey = "bundle:receipt",
+    depositAmount?: number
+  ) => {
+    if (!bookingId || parts.length === 0) return;
+    setBusy(busyKey);
+    try {
+      const res = await fetch("/api/bookings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: bookingId,
+          action: "send_bundle",
+          parts,
+          depositAmount: depositAmount || undefined,
+          lineUserId,
+        }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast(okMsg, "success");
+        onDone?.();
+        return true;
+      }
+      toast(d.error ? `ส่งไม่สำเร็จ: ${d.error}` : "ส่งไม่สำเร็จ", "error");
+      return false;
+    } finally {
+      setBusy("");
+    }
+  };
+
   const sendBundle = async () => {
     if (!bookingId || bundleParts.length === 0) return;
     let depositAmount = 0;
@@ -253,12 +293,19 @@ export function CustomerSendButtons({
     { key: "checkin", label: "🧳 เลือกเวลาเช็คอิน", when: service === "room" },
     { key: "checkout", label: "🧳 เลือกเวลาเช็คเอาท์", when: service === "room" },
     { key: "deposit", label: "💰 เรียกเก็บมัดจำ", when: true },
+    {
+      key: "depositThanks",
+      label: "💚 ยืนยันรับมัดจำแล้ว",
+      when: !!invId && hasRemaining,
+    },
     { key: "summary", label: "🧾 สรุปการจอง", when: !!invId },
     {
       key: "payment",
       label: hasRemaining ? "💳 เก็บส่วนที่เหลือ" : "💳 แจ้งเก็บเงิน",
-      when: !!invId,
+      when: !!invId && !billPaid,
     },
+    // ใบเสร็จส่งได้เฉพาะบิลที่จ่ายแล้ว — กันส่งใบเสร็จของบิลที่ยังไม่ได้เงิน
+    { key: "receipt", label: "🧾 ใบเสร็จ", when: !!invId && billPaid },
     { key: "review", label: "⭐ ขอรีวิว", when: !!invId },
   ];
 
@@ -343,7 +390,15 @@ export function CustomerSendButtons({
           onClick={() => invoiceSummary("booking", "ส่งสรุปการจองแล้ว 🧾")}
         />
       )}
-      {invId && (
+      {/* จ่ายจบแล้วไม่ต้องทวงเงินอีก — สลับเป็นปุ่มส่งใบเสร็จซ้ำแทน */}
+      {invId && billPaid && bookingId && (
+        <Btn
+          k="bundle:receipt"
+          label="🧾 ส่งใบเสร็จอีกครั้ง"
+          onClick={() => sendBundleParts(["receipt"], "ส่งใบเสร็จแล้ว 🧾")}
+        />
+      )}
+      {invId && !billPaid && (
         <Btn
           k={hasRemaining ? "inv:remaining" : "inv:full"}
           label={hasRemaining ? "💳 เก็บส่วนที่เหลือ" : "💳 แจ้งเก็บเงิน"}

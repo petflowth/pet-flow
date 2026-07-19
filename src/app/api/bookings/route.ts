@@ -27,6 +27,8 @@ import {
   buildBillSummaryFlex,
   buildReviewRequestFlex,
   reviewMessageFor,
+  buildReceiptFlex,
+  buildDepositThanksFlex,
 } from "@/lib/line";
 import { buildBookingConfirmFlex } from "@/lib/booking-line-card";
 import {
@@ -329,7 +331,8 @@ export async function PATCH(req: NextRequest) {
 
   // ── 📦 ส่งชุดการ์ดที่เลือกเอง — หลายการ์ดใน push เดียว (LINE นับเป็น 1 ข้อความ) ──
   // parts: reminder | prestay | consent | groomInfo | checkin | checkout
-  //        | deposit(+depositAmount) | summary | payment | review
+  //        | deposit(+depositAmount) | depositThanks | summary | payment
+  //        | receipt (เฉพาะบิลที่จ่ายแล้ว) | review
   if (action === "send_bundle") {
     const to = await resolveRecipient(b, lineUserId);
     if (!to) {
@@ -386,6 +389,42 @@ export async function PATCH(req: NextRequest) {
             consentUrl: url || undefined,
           })
         );
+      } else if (part === "receipt" || part === "depositThanks") {
+        const all = await listInvoices();
+        const inv =
+          all.find((i) => i.bookingId === b.id && i.status === "paid") ||
+          all.find((i) => i.bookingId === b.id);
+        if (inv && part === "receipt" && inv.status === "paid") {
+          messages.push(
+            buildReceiptFlex({
+              invoiceId: inv.id,
+              customerName: inv.customerName,
+              catName: inv.catName,
+              total: inv.total,
+              pointsEarned: inv.pointsEarned || 0,
+              paymentMethod:
+                inv.paymentMethod === "member_credit"
+                  ? "Member Credit"
+                  : inv.paymentMethod === "cash"
+                    ? "เงินสด"
+                    : "โอนเงิน",
+            }, cfg.cards?.receipt)
+          );
+        }
+        if (inv && part === "depositThanks" && (inv.deposit || 0) > 0) {
+          messages.push(
+            buildDepositThanksFlex({
+              title: cfg.messages.depositThanksTitle,
+              body: renderTemplate(cfg.messages.depositThanksBody, {
+                name: inv.customerName,
+                cat: inv.catName,
+                amount: (inv.deposit || 0).toLocaleString(),
+              }),
+              terms: cfg.messages.depositTerms || [],
+              amount: inv.deposit || 0,
+            })
+          );
+        }
       } else if (part === "summary" || part === "review") {
         const all = await listInvoices();
         const inv =

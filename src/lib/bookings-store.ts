@@ -1,6 +1,7 @@
 import type { Booking, BookingStatus } from "./business";
 import { getSupabase } from "./supabase/server";
 import { uploadDataUrlToStorage } from "./supabase/storage";
+import { seedEnabled } from "./demo-seed";
 
 export type StoredBooking = Booking & {
   lineUserId?: string;
@@ -47,19 +48,21 @@ type BookingRow = {
   groom_health_info?: string | null;
 };
 
-const mem: StoredBooking[] = [
-  {
-    id: "B001",
-    customerName: "คุณมาย",
-    catName: "น้องส้ม",
-    service: "groom",
-    date: "2026-07-23",
-    time: "12:30",
-    status: "pending",
-    lineUserId: "dev-user",
-    createdAt: new Date().toISOString(),
-  },
-];
+const mem: StoredBooking[] = seedEnabled()
+  ? [
+      {
+        id: "B001",
+        customerName: "คุณมาย",
+        catName: "น้องส้ม",
+        service: "groom",
+        date: "2026-07-23",
+        time: "12:30",
+        status: "pending",
+        lineUserId: "dev-user",
+        createdAt: new Date().toISOString(),
+      },
+    ]
+  : [];
 
 function rowToStored(r: BookingRow): StoredBooking {
   return {

@@ -421,6 +421,7 @@ export async function PATCH(req: NextRequest) {
               catName: inv.catName,
               total: inv.total,
               pointsEarned: inv.pointsEarned || 0,
+              shopName: cfg.business.name,
               paymentMethod:
                 inv.paymentMethod === "member_credit"
                   ? "Member Credit"
@@ -480,7 +481,7 @@ export async function PATCH(req: NextRequest) {
                 /อาบน้ำ|กรูม|premium|malaseb/i.test(it.label)
             );
             const hasRoom = (inv.items || []).some((it) => /คืน|ห้อง/.test(it.label));
-            const msg = reviewMessageFor(hasGroom, hasRoom);
+            const msg = reviewMessageFor(hasGroom, hasRoom, cfg.business.name);
             messages.push(
               buildReviewRequestFlex({
                 title: msg.title,

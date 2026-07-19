@@ -341,7 +341,7 @@ export async function PATCH(req: NextRequest) {
         it.kind === "grooming" || /อาบน้ำ|กรูม|premium|malaseb/i.test(it.label)
     );
     const hasRoom = (inv.items || []).some((it) => /คืน|ห้อง/.test(it.label));
-    const msg = reviewMessageFor(hasGroom, hasRoom);
+    const msg = reviewMessageFor(hasGroom, hasRoom, biz.name);
     await pushLineMessage(inv.lineUserId, [
       buildReviewRequestFlex({
         title: msg.title,
@@ -388,6 +388,7 @@ export async function PATCH(req: NextRequest) {
           catName: paid.catName,
           total: paid.total,
           pointsEarned: paid.pointsEarned || 0,
+          shopName: cfgRc.business.name,
           paymentMethod:
             paid.paymentMethod === "member_credit"
               ? "Member Credit"
@@ -406,7 +407,7 @@ export async function PATCH(req: NextRequest) {
             it.kind === "grooming" || /อาบน้ำ|กรูม|premium|malaseb/i.test(it.label)
         );
         const hasRoomRc = (paid.items || []).some((it) => /คืน|ห้อง/.test(it.label));
-        const msgRc = reviewMessageFor(hasGroomRc, hasRoomRc);
+        const msgRc = reviewMessageFor(hasGroomRc, hasRoomRc, cfgRc.business.name);
         receiptMsgs.push(
           buildReviewRequestFlex({
             title: msgRc.title,

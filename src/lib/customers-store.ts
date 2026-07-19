@@ -8,6 +8,7 @@ import {
 import { listBookings } from "./bookings-store";
 import { getAccount, getPointsHistory } from "./points-store";
 import { getSupabase } from "./supabase/server";
+import { seedEnabled } from "./demo-seed";
 import { uploadDataUrlToStorage } from "./supabase/storage";
 import { getSiteConfig } from "./config-store";
 
@@ -198,6 +199,7 @@ const memServices: ServiceRecord[] = [];
 const memMemberTopups: MemberTopupRecord[] = [];
 
 function seedMem() {
+  if (!seedEnabled()) return;
   const c: CustomerRecord = {
     id: "C001",
     name: "คุณมาย",

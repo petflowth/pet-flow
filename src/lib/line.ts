@@ -129,8 +129,9 @@ export function buildAppointmentConfirmFlex(booking: {
   room?: string;
   notes?: string;
   confirmUrl: string;
-  mapsUrl: string;
-  location: string;
+  /** แผนที่/ที่อยู่ของร้าน — มาจาก config ไม่ใช่ค่าตายตัว ไม่มีก็ซ่อนแถวนั้นไป */
+  mapsUrl?: string;
+  location?: string;
   businessName?: string;
 }, style?: CardStyleConfig) {
   const st = style || {};
@@ -204,7 +205,7 @@ export function buildAppointmentConfirmFlex(booking: {
           },
           flexDetailRow("🗓️", "วันที่", dateText),
           flexDetailRow("⏰", "เวลา / รายละเอียด", timeText),
-          ...(show("location")
+          ...(show("location") && booking.location
             ? [flexDetailRow("📍", "สถานที่", booking.location)]
             : []),
           ...(show("notes") ? [flexDetailRow("📝", "หมายเหตุ", noteText)] : []),
@@ -227,7 +228,7 @@ export function buildAppointmentConfirmFlex(booking: {
               uri: booking.confirmUrl,
             },
           },
-          ...(show("map")
+          ...(show("map") && booking.mapsUrl
             ? [
                 {
                   type: "button",
@@ -370,12 +371,15 @@ export function buildReminderFlex(booking: {
   service: string;
   when: string;
   confirmUrl: string;
+  /** ข้อมูลร้านจาก config — ต้องส่งมา ไม่งั้นการ์ดจะไม่มีแผนที่/ที่อยู่ */
+  mapsUrl?: string;
+  location?: string;
 }, style?: CardStyleConfig) {
   return buildAppointmentConfirmFlex({
     ...booking,
     date: booking.when,
-    mapsUrl: "https://maps.app.goo.gl/u38pzVGa9LiEsLEK8",
-    location: "CatCha Hotel · บางนา เมกะ เทพารักษ์",
+    mapsUrl: booking.mapsUrl,
+    location: booking.location,
   }, style);
 }
 
@@ -507,7 +511,7 @@ export function buildPaymentFlex(data: {
 
   return {
     type: "flex",
-    altText: `ชำระเงิน ${data.total} บาท — CatCha Hotel`,
+    altText: `ชำระเงิน ${data.total} บาท`,
     contents: {
       type: "bubble",
       size: "mega",
@@ -1619,6 +1623,8 @@ export function buildReceiptFlex(data: {
   total: number;
   pointsEarned: number;
   paymentMethod: string;
+  /** ชื่อร้านจาก config — ไม่ส่งมาจะไม่ขึ้นบรรทัดชื่อร้าน (ดีกว่าโชว์ชื่อร้านอื่น) */
+  shopName?: string;
 }, style?: CardStyleConfig) {
   const st = style || {};
   const show = (k: string) => st.show?.[k] !== false;
@@ -1632,7 +1638,9 @@ export function buildReceiptFlex(data: {
       paddingAll: "18px",
       contents: [
         { type: "text", text: "🧾 ใบเสร็จรับเงิน", color: st.headerTextColor || "#FFFFFF", weight: "bold", size: st.titleSize || "lg" },
-        { type: "text", text: "CatCha Hotel", color: st.headerTextColor || "#FFFFFF", size: "xs", margin: "xs" },
+        ...(data.shopName
+          ? [{ type: "text", text: data.shopName, color: st.headerTextColor || "#FFFFFF", size: "xs", margin: "xs" }]
+          : []),
       ],
     },
     body: {
@@ -1698,7 +1706,7 @@ export function buildReceiptFlex(data: {
           ? [
               {
                 type: "text",
-                text: st.closing || "ขอบคุณที่ไว้วางใจ CatCha Hotel นะคะ 🧡",
+                text: st.closing || `ขอบคุณที่ไว้วางใจ${data.shopName ? ` ${data.shopName}` : "เรา"} นะคะ 🧡`,
                 size: "xs",
                 color: "#A2907E",
                 margin: "lg",
@@ -1713,7 +1721,7 @@ export function buildReceiptFlex(data: {
 
   return {
     type: "flex",
-    altText: `ใบเสร็จ ${data.total} บาท — CatCha Hotel`,
+    altText: `ใบเสร็จ ${data.total} บาท${data.shopName ? ` — ${data.shopName}` : ""}`,
     contents: bubble,
   };
 }
@@ -1827,25 +1835,31 @@ export function buildCouponOfferFlex(data: {
 }
 
 /** เลือกข้อความขอรีวิวให้ตรงกับบริการที่ใช้จริงในบิล — อาบน้ำ / เข้าพัก / ทั้งคู่ */
-export function reviewMessageFor(hasGroom: boolean, hasRoom: boolean): {
+export function reviewMessageFor(
+  hasGroom: boolean,
+  hasRoom: boolean,
+  /** ชื่อร้านจาก config — ไม่ส่งมาจะใช้คำว่า "เรา" แทน (ดีกว่าโฆษณาชื่อร้านอื่น) */
+  shopName?: string
+): {
   title: string;
   body: string;
 } {
+  const shop = shopName || "เรา";
   if (hasRoom && hasGroom) {
     return {
-      title: "🧡 ขอบคุณที่เลือก CatCha Hotel ดูแลน้องนะคะ",
+      title: `🧡 ขอบคุณที่เลือก${shopName ? ` ${shopName}` : ""} ดูแลน้องนะคะ`,
       body: "หวังว่าน้องจะกลับบ้านไปพร้อมความสุข และคุณพ่อคุณแม่จะอุ่นใจทุกครั้งที่ใช้บริการกับเรานะคะ 🐾\nถ้าประทับใจในการดูแลของเรา ฝากรีวิวให้ทีมงานสักนิดนะคะ\nทุกรีวิวมีความหมายกับพวกเรามาก และเป็นกำลังใจให้ตั้งใจดูแลน้อง ๆ ทุกตัวต่อไปค่ะ 🤍",
     };
   }
   if (hasRoom) {
     return {
-      title: "ขอบคุณที่ไว้วางใจ CatCha Hotel นะคะ 🧡",
-      body: "ตลอดช่วงที่น้องเข้าพัก พวกเราตั้งใจดูแลเหมือนเป็นหนึ่งในครอบครัว\nหวังว่าน้องจะกลับบ้านไปอย่างมีความสุขนะคะ 🐱✨\nหากประทับใจการเข้าพักของน้อง ฝากรีวิวให้ CatCha Hotel สัก 1 รีวิวนะคะ\nทุกรีวิวมีความหมายกับพวกเรามาก และเป็นกำลังใจให้ตั้งใจดูแลน้อง ๆ ทุกตัวต่อไปค่ะ",
+      title: `ขอบคุณที่ไว้วางใจ${shopName ? ` ${shopName}` : "เรา"} นะคะ 🧡`,
+      body: `ตลอดช่วงที่น้องเข้าพัก พวกเราตั้งใจดูแลเหมือนเป็นหนึ่งในครอบครัว\nหวังว่าน้องจะกลับบ้านไปอย่างมีความสุขนะคะ 🐱✨\nหากประทับใจการเข้าพักของน้อง ฝากรีวิวให้${shop} สัก 1 รีวิวนะคะ\nทุกรีวิวมีความหมายกับพวกเรามาก และเป็นกำลังใจให้ตั้งใจดูแลน้อง ๆ ทุกตัวต่อไปค่ะ`,
     };
   }
   // อาบน้ำล้วน (ค่าเริ่มต้นถ้าตรวจไม่พบรายการห้องพัก)
   return {
-    title: "ขอบคุณที่ไว้วางใจ CatCha Hotel นะคะ 🧡",
+    title: `ขอบคุณที่ไว้วางใจ${shopName ? ` ${shopName}` : "เรา"} นะคะ 🧡`,
     body: "หวังว่าน้องจะกลับบ้านไปตัวหอม นุ่มฟู และมีความสุขนะคะ 🐱✨\nถ้าประทับใจบริการของเรา ฝากรีวิวสั้น ๆ ให้ทีมงานหน่อยนะคะ\nรีวิวของคุณคือกำลังใจเล็ก ๆ\nที่ทำให้พวกเราตั้งใจดูแลน้องแมวทุกตัวให้ดีที่สุดเลยค่ะ 💕",
   };
 }

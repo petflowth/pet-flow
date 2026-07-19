@@ -32,7 +32,7 @@ export async function buildBookingConfirmFlex(
     ...booking,
     confirmUrl: await bookingConfirmUrl(booking.id),
     mapsUrl,
-    location: `CatCha Hotel · ${location}`,
+    location: [config.business.name, location].filter(Boolean).join(" · "),
     businessName: config.business.name,
   }, config.cards?.bookingConfirm);
 }

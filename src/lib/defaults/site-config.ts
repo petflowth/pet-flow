@@ -58,7 +58,8 @@ export function getDefaultSiteConfig(): SiteConfig {
       payment: {
         bankName: process.env.BANK_NAME || "กรุงไทย",
         accountNumber: process.env.BANK_ACCOUNT_NUMBER || "XXX-X-XXXXX-X",
-        accountName: process.env.BANK_ACCOUNT_NAME || "CatCha Hotel",
+        // ห้าม default เป็นชื่อร้านใดร้านหนึ่ง — ร้านที่ยังไม่ตั้งค่าจะโชว์ชื่อบัญชีคนอื่นบนการ์ดโอนเงิน
+        accountName: process.env.BANK_ACCOUNT_NAME || "",
       },
       billing: {
         summaryBookingTitle: "สรุปการจอง",

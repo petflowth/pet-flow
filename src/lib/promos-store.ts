@@ -6,6 +6,7 @@ import {
 } from "./customers-store";
 import { addPoints } from "./points-store";
 import { getSupabase } from "./supabase/server";
+import { seedEnabled } from "./demo-seed";
 
 export type PromoKind = "display" | "customer";
 export type PromoRestriction = "none" | "first_visit" | "calendar_month";
@@ -85,7 +86,7 @@ type PromoClaimRow = {
   created_at: string;
 };
 
-const mem: PromoRecord[] = [
+const DEMO_PROMOS: PromoRecord[] = [
   {
     id: "P1",
     title: { th: "สมาชิกใหม่ รับแต้ม x2", en: "New member double points" },
@@ -135,6 +136,9 @@ const mem: PromoRecord[] = [
     pointsBonus: 20,
   },
 ];
+
+// โปรตัวอย่างขึ้นเฉพาะตอนพัฒนา — เครื่องที่ยังไม่ต่อฐานข้อมูลจะได้เริ่มจากศูนย์จริง ๆ
+const mem: PromoRecord[] = seedEnabled() ? [...DEMO_PROMOS] : [];
 
 const memClaims: PromoClaimRecord[] = [];
 

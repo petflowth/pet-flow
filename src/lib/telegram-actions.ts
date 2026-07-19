@@ -285,6 +285,7 @@ export async function sendBookingConfirmFromTelegram(query: string) {
       ? `${b.checkin || b.date}${b.checkout ? ` → ${b.checkout}` : ""}`
       : `${b.date || b.checkin}${b.time ? ` ${b.time}` : ""}`;
 
+  const cfgTa = await getSiteConfig();
   await pushLineMessage(b.lineUserId, [
     buildReminderFlex({
       id: b.id,
@@ -293,7 +294,12 @@ export async function sendBookingConfirmFromTelegram(query: string) {
       service: b.service,
       when,
       confirmUrl,
-    }, (await getSiteConfig()).cards?.bookingConfirm),
+      // ต้องส่งข้อมูลร้านจาก config เข้าไป ไม่งั้นการ์ดจะกลับไปใช้แผนที่/ชื่อของ CatCha
+      mapsUrl: cfgTa.business.maps,
+      location: [cfgTa.business.name, cfgTa.business.location.th]
+        .filter(Boolean)
+        .join(" · "),
+    }, cfgTa.cards?.bookingConfirm),
   ]);
 
   return {

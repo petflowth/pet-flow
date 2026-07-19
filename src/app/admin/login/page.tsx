@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Logo } from "@/components/Logo";
-
-// รหัสเริ่มต้นของเจ้าของ — เปลี่ยนใน env ตอน deploy
-const DEFAULT_CODE = process.env.NEXT_PUBLIC_ADMIN_CODE || "catcha2026";
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const params = useSearchParams();
   const [code, setCode] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -16,40 +14,30 @@ export default function AdminLoginPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr("");
-
-    // เจ้าของ — เช็คได้ทันทีไม่ต้องรอเซิร์ฟเวอร์
-    if (code === DEFAULT_CODE) {
-      sessionStorage.setItem("catcha-admin", code);
-      sessionStorage.setItem("catcha-role", "owner");
-      sessionStorage.removeItem("catcha-menus");
-      sessionStorage.setItem("catcha-staff-name", "เจ้าของร้าน");
-      router.push("/admin");
-      return;
-    }
-
-    // พนักงาน — เช็ครหัสกับระบบ
     setBusy(true);
+    // ตรวจรหัสที่เซิร์ฟเวอร์เสมอ แล้วรับคุกกี้ที่เซ็นชื่อกลับมา
+    // (เมื่อก่อนเทียบรหัสในเบราว์เซอร์ = รหัสจริงติดไปกับไฟล์ JS ให้ใครก็เปิดดูได้)
     try {
-      const res = await fetch("/api/admin/staff", {
+      const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "login", code }),
+        body: JSON.stringify({ code }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {
-        sessionStorage.setItem("catcha-admin", code);
+        // เก็บไว้แค่ให้หน้าจอรู้ว่าจะโชว์เมนูไหน — สิทธิ์จริงอยู่ที่คุกกี้ฝั่งเซิร์ฟเวอร์
         sessionStorage.setItem("catcha-role", data.role);
         sessionStorage.setItem("catcha-staff-name", data.name || "พนักงาน");
+        const next = params.get("next");
         if (data.role === "staff") {
           sessionStorage.setItem("catcha-menus", JSON.stringify(data.menus || []));
-          const first = (data.menus || [])[0] || "/admin";
-          router.push(first);
+          router.push(next || (data.menus || [])[0] || "/admin");
         } else {
           sessionStorage.removeItem("catcha-menus");
-          router.push("/admin");
+          router.push(next || "/admin");
         }
       } else {
-        setErr("รหัสไม่ถูกต้อง");
+        setErr(data.error || "รหัสไม่ถูกต้อง");
       }
     } catch {
       setErr("เชื่อมต่อไม่สำเร็จ — ลองใหม่อีกครั้ง");

@@ -6,18 +6,21 @@ import {
   deleteStaff,
   verifyStaffCode,
 } from "@/lib/staff-store";
+import { getOwnerCode, getSessionFrom } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-const OWNER_CODE = process.env.NEXT_PUBLIC_ADMIN_CODE || "catcha2026";
+// รหัสเจ้าของอ่านฝั่งเซิร์ฟเวอร์เท่านั้น (ห้ามใช้ NEXT_PUBLIC_ เพราะจะติดไปกับไฟล์ JS)
+const OWNER_CODE = getOwnerCode();
 
-function isOwner(req: NextRequest) {
-  return (req.headers.get("x-admin-code") || "") === OWNER_CODE;
+async function isOwner(req: NextRequest) {
+  // จัดการบัญชีพนักงานได้เฉพาะ "เจ้าของร้าน" เท่านั้น พนักงานตั้งสิทธิ์ให้ตัวเองไม่ได้
+  return (await getSessionFrom(req))?.role === "owner";
 }
 
 /** รายชื่อพนักงาน — เฉพาะเจ้าของ (มีรหัสเข้าใช้ของแต่ละคนอยู่ในผลลัพธ์) */
 export async function GET(req: NextRequest) {
-  if (!isOwner(req)) {
+  if (!(await isOwner(req))) {
     return NextResponse.json({ error: "owner_only" }, { status: 403 });
   }
   return NextResponse.json({ staff: await listStaff() });
@@ -47,7 +50,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  if (!isOwner(req)) {
+  if (!(await isOwner(req))) {
     return NextResponse.json({ error: "owner_only" }, { status: 403 });
   }
 
@@ -76,7 +79,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  if (!isOwner(req)) {
+  if (!(await isOwner(req))) {
     return NextResponse.json({ error: "owner_only" }, { status: 403 });
   }
   const body = await req.json().catch(() => ({}));
@@ -93,7 +96,7 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  if (!isOwner(req)) {
+  if (!(await isOwner(req))) {
     return NextResponse.json({ error: "owner_only" }, { status: 403 });
   }
   const id = req.nextUrl.searchParams.get("id") || "";

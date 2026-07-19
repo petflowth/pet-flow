@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSessionFrom } from "@/lib/auth";
 import { getSecrets, saveLineSecrets } from "@/lib/secrets-store";
 import {
   getAppUrlFromEnv,
@@ -14,9 +15,10 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function checkAdmin(body: { adminCode?: string }) {
-  const secret = process.env.NEXT_PUBLIC_ADMIN_CODE;
-  return !secret || body.adminCode === secret;
+// สิทธิ์ถูกตรวจที่ middleware ด้วยคุกกี้ที่เซ็นชื่อแล้ว — ตรวจซ้ำที่นี่กันพลาด
+// (ของเดิมเทียบกับ NEXT_PUBLIC_ADMIN_CODE ซึ่งถูกฝังไปในไฟล์ JS ฝั่งเบราว์เซอร์)
+async function checkAdmin(req: NextRequest) {
+  return !!(await getSessionFrom(req));
 }
 
 export async function GET() {
@@ -50,7 +52,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  if (!checkAdmin(body)) {
+  if (!(await checkAdmin(req))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

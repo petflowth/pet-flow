@@ -15,6 +15,7 @@ import {
   type StoredBooking,
 } from "@/lib/bookings-store";
 import { bookingMatchesCustomer } from "@/lib/booking-customer-match";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { listCustomers, resolveCustomerForBooking } from "@/lib/customers-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import {
@@ -81,8 +82,17 @@ async function resolveRecipient(
 const NO_LINE_ERROR =
   "ยังไม่มี LINE User ID — ให้ลูกค้าเปิดแอปจาก LINE หรือผูกในโปรไฟล์ลูกค้า";
 
+/** ล็อกอินหลังบ้านอยู่ไหม — route นี้ใช้ร่วมกันทั้งแอปลูกค้าและหลังบ้าน */
+async function isAdmin(req: NextRequest) {
+  return !!(await verifySession(req.cookies.get(SESSION_COOKIE)?.value));
+}
+
 export async function GET(req: NextRequest) {
   const lineUserId = req.nextUrl.searchParams.get("lineUserId") || undefined;
+  // ไม่ได้ล็อกอิน = แอปลูกค้า → ดูได้เฉพาะนัดของตัวเอง ห้ามดึงทั้งร้าน
+  if (!lineUserId && !(await isAdmin(req))) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   const allCustomers = lineUserId ? [] : await listCustomers();
   const items = (await listBookings(lineUserId)).map((b) => {
     const customer = allCustomers.find((c) => bookingMatchesCustomer(b, c));
@@ -172,6 +182,15 @@ export async function PATCH(req: NextRequest) {
   const { id, action, lineUserId, checkinTime } = body;
   const b = await getBooking(id);
   if (!b) return NextResponse.json({ error: "not found" }, { status: 404 });
+
+  // ลูกค้าใน LINE ทำได้อย่างเดียวคือกดยืนยันนัด "ของตัวเอง"
+  // การกระทำอื่นทั้งหมด (ยกเลิก แก้ไข ส่งการ์ด เรียกเก็บเงิน) ต้องล็อกอินหลังบ้าน
+  if (!(await isAdmin(req))) {
+    const ownsBooking = !!lineUserId && b.lineUserId === lineUserId;
+    if (action !== "confirm" || !ownsBooking) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+  }
 
   if (action === "confirm") {
     await updateBooking(id, { status: "confirmed", checkinTime });

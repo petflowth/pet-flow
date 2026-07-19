@@ -24,9 +24,27 @@ function AdminShell({ children }: { children: React.ReactNode }) {
       setOk(true);
       return;
     }
-    const token = sessionStorage.getItem("catcha-admin");
-    if (!token) router.replace("/admin/login");
-    else {
+    // สิทธิ์จริงถูกตรวจที่ middleware แล้ว (คุกกี้เซ็นชื่อ) — ตรงนี้แค่ยืนยันกับเซิร์ฟเวอร์
+    // ว่ายังล็อกอินอยู่ไหม แล้วซิงก์บทบาท/เมนูให้ตรงกับของจริง
+    let alive = true;
+    (async () => {
+      const res = await fetch("/api/auth/login").catch(() => null);
+      if (!alive) return;
+      if (!res || !res.ok) {
+        sessionStorage.removeItem("catcha-role");
+        sessionStorage.removeItem("catcha-menus");
+        router.replace(`/admin/login?next=${encodeURIComponent(pathname)}`);
+        return;
+      }
+      const me = await res.json().catch(() => null);
+      if (!alive || !me?.ok) return;
+      sessionStorage.setItem("catcha-role", me.role);
+      sessionStorage.setItem("catcha-staff-name", me.name || "พนักงาน");
+      if (me.role === "staff") {
+        sessionStorage.setItem("catcha-menus", JSON.stringify(me.menus || []));
+      } else {
+        sessionStorage.removeItem("catcha-menus");
+      }
       // พนักงาน — เข้าได้เฉพาะเมนูที่เจ้าของอนุญาต ถ้าหลุดมาหน้าอื่นเด้งกลับเมนูแรกที่มีสิทธิ์
       const allowed = getAllowedMenus();
       if (!isPathAllowed(pathname, allowed)) {
@@ -39,7 +57,10 @@ function AdminShell({ children }: { children: React.ReactNode }) {
         sessionStorage.setItem("catcha-migrated", "1");
         fetch("/api/admin/migrate", { method: "POST" }).catch(() => {});
       }
-    }
+    })();
+    return () => {
+      alive = false;
+    };
   }, [pathname, router]);
 
   if (!ok) return null;
@@ -71,8 +92,10 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               />
               <button
                 type="button"
-                onClick={() => {
-                  sessionStorage.removeItem("catcha-admin");
+                onClick={async () => {
+                  // ต้องล้างคุกกี้ที่เซิร์ฟเวอร์ด้วย ไม่ใช่แค่ล้างใน sessionStorage
+                  await fetch("/api/auth/login", { method: "DELETE" }).catch(() => {});
+                  sessionStorage.clear();
                   router.push("/admin/login");
                 }}
                 className="rounded-catcha-sm px-2 py-1.5 text-xs font-bold text-brown-faint hover:bg-honey/15 lg:text-sm"

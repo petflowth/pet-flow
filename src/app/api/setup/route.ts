@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSessionFrom } from "@/lib/auth";
 import {
   bootstrapDatabase,
   checkSetupStatus,
@@ -32,7 +33,8 @@ export async function POST(req: NextRequest) {
   const secret = process.env.SETUP_SECRET || process.env.CRON_SECRET;
   const auth = req.headers.get("authorization");
 
-  if (secret && auth !== `Bearer ${secret}` && body.adminCode !== process.env.NEXT_PUBLIC_ADMIN_CODE) {
+  // เรียกจากสคริปต์ภายนอกด้วย Bearer หรือจากหลังบ้านที่ล็อกอินแล้ว
+  if (secret && auth !== `Bearer ${secret}` && !(await getSessionFrom(req))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSessionFrom } from "@/lib/auth";
 import { BUSINESS } from "@/lib/business";
 import { storeBroadcastImage } from "@/lib/broadcast-image-store";
 import {
@@ -16,9 +17,10 @@ import { getLineCredentials, getAppUrlFromEnv } from "@/lib/line-config";
 import { TIER_LABELS } from "@/lib/customer-tier";
 import { getSiteConfig } from "@/lib/config-store";
 
-function checkAdmin(body: { adminCode?: string }) {
-  const secret = process.env.NEXT_PUBLIC_ADMIN_CODE;
-  return !secret || body.adminCode === secret;
+// สิทธิ์ถูกตรวจที่ middleware ด้วยคุกกี้ที่เซ็นชื่อแล้ว — ตรวจซ้ำที่นี่กันพลาด
+// (ของเดิมเทียบกับ NEXT_PUBLIC_ADMIN_CODE ซึ่งถูกฝังไปในไฟล์ JS ฝั่งเบราว์เซอร์)
+async function checkAdmin(req: NextRequest) {
+  return !!(await getSessionFrom(req));
 }
 
 async function resolveLineImageUrl(body: {
@@ -39,7 +41,7 @@ async function resolveLineImageUrl(body: {
 /** ส่งโปรโมชั่น / ข้อความไปยังกลุ่มลูกค้าตามระดับ */
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  if (!checkAdmin(body)) {
+  if (!(await checkAdmin(req))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

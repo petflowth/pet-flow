@@ -6,20 +6,20 @@ import {
   blocksToText,
 } from "@/lib/articles-store";
 import { BLOG_POSTS } from "@/lib/blog-posts";
+import { getSessionFrom } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const OWNER_CODE = process.env.NEXT_PUBLIC_ADMIN_CODE || "catcha2026";
-const isAdmin = (req: NextRequest) =>
-  (req.headers.get("x-admin-code") || "") === OWNER_CODE;
+// เขียน/แก้บทความได้เฉพาะคนที่ล็อกอินหลังบ้าน (ตรวจจากคุกกี้ที่เซ็นชื่อ)
+const isAdmin = async (req: NextRequest) => !!(await getSessionFrom(req));
 
 /**
  * รายการบทความ — สาธารณะเห็นเฉพาะที่เผยแพร่
  * แอดมิน (?all=1 + header) เห็นฉบับร่าง + บทความ SEO เดิม (ที่ฝังในโค้ด) เพื่อแก้ไข/นำเข้าได้
  */
 export async function GET(req: NextRequest) {
-  const wantAll = req.nextUrl.searchParams.get("all") === "1" && isAdmin(req);
+  const wantAll = req.nextUrl.searchParams.get("all") === "1" && (await isAdmin(req));
   const articles = await listArticles(wantAll);
 
   if (!wantAll) {
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 
 /** เพิ่ม/แก้บทความ — เฉพาะแอดมิน */
 export async function POST(req: NextRequest) {
-  if (!isAdmin(req)) {
+  if (!(await isAdmin(req))) {
     return NextResponse.json({ error: "admin_only" }, { status: 403 });
   }
   const body = await req.json().catch(() => ({}));
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  if (!isAdmin(req)) {
+  if (!(await isAdmin(req))) {
     return NextResponse.json({ error: "admin_only" }, { status: 403 });
   }
   const id = req.nextUrl.searchParams.get("id") || "";

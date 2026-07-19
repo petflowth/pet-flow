@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
-import { listCustomers } from "@/lib/customers-store";
+import {
+  listCustomers,
+  listAllServiceRecords,
+  listAllMemberTopups,
+} from "@/lib/customers-store";
 import { listFinance } from "@/lib/finance-store";
 import { listBookings } from "@/lib/bookings-store";
 import { listInvoices } from "@/lib/invoices-store";
 import { getAllPointsMap } from "@/lib/points-store";
 import { listPromos, listPromoClaims } from "@/lib/promos-store";
+import { listStaff } from "@/lib/staff-store";
 import { getSiteConfig } from "@/lib/config-store";
 
 export const dynamic = "force-dynamic";
@@ -17,26 +22,44 @@ export const runtime = "nodejs";
  * (เช่น รายการในบิลกลายเป็นข้อความบรรทัดเดียว) เอากลับมาใส่ระบบต้องพิมพ์ใหม่
  * ไฟล์นี้เก็บข้อมูลครบทุกฟิลด์ตามโครงจริง — เอาไปกู้คืนได้
  *
+ * ครอบคลุม staff_users / member_topups / service_records ด้วย — เดิมขาด 3 ตารางนี้:
+ * รหัสพนักงานหายต้องออกใหม่ทุกคน, log การเติมเครดิตแต่ละครั้งหาย (เหลือแค่ยอดรวม),
+ * และประวัติใช้บริการละเอียดหาย (แม้ยอดรวมยังอยู่ใน invoices ก็ตาม)
+ *
  * middleware กันไว้แล้วว่าต้องล็อกอินหลังบ้านก่อน
  */
 export async function GET() {
-  const [customers, finance, bookings, invoices, points, promos, promoClaims, config] =
-    await Promise.all([
-      listCustomers(),
-      listFinance(),
-      listBookings(),
-      listInvoices(),
-      getAllPointsMap(),
-      listPromos(),
-      listPromoClaims(),
-      getSiteConfig(),
-    ]);
+  const [
+    customers,
+    finance,
+    bookings,
+    invoices,
+    points,
+    promos,
+    promoClaims,
+    staff,
+    serviceRecords,
+    memberTopups,
+    config,
+  ] = await Promise.all([
+    listCustomers(),
+    listFinance(),
+    listBookings(),
+    listInvoices(),
+    getAllPointsMap(),
+    listPromos(),
+    listPromoClaims(),
+    listStaff(),
+    listAllServiceRecords(),
+    listAllMemberTopups(),
+    getSiteConfig(),
+  ]);
 
   const snapshot = {
     _meta: {
       exportedAt: new Date().toISOString(),
       shop: config.business?.name || "",
-      note: "สำรองข้อมูลทั้งระบบ — เก็บไฟล์นี้ไว้ในที่ปลอดภัย มีข้อมูลส่วนตัวของลูกค้า",
+      note: "สำรองข้อมูลทั้งระบบ — เก็บไฟล์นี้ไว้ในที่ปลอดภัย มีข้อมูลส่วนตัวของลูกค้าและรหัสพนักงาน",
       counts: {
         customers: customers.length,
         cats: customers.reduce((n, c) => n + (c.cats?.length || 0), 0),
@@ -45,6 +68,9 @@ export async function GET() {
         finance: finance.length,
         points: Object.keys(points).length,
         promos: promos.length,
+        staff: staff.length,
+        serviceRecords: serviceRecords.length,
+        memberTopups: memberTopups.length,
       },
     },
     customers,
@@ -54,6 +80,9 @@ export async function GET() {
     points,
     promos,
     promoClaims,
+    staff,
+    serviceRecords,
+    memberTopups,
     config,
   };
 

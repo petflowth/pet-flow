@@ -1391,6 +1391,30 @@ export async function deleteServiceRecord(id: string) {
   return { ok: true as const };
 }
 
+/** ทุกรายการ ทุกลูกค้า — ใช้สำหรับสำรองข้อมูลทั้งร้าน */
+export async function listAllServiceRecords(): Promise<ServiceRecord[]> {
+  const sb = getSupabase();
+  if (sb) {
+    const { data } = await sb
+      .from("service_records")
+      .select("*")
+      .order("created_at", { ascending: false });
+    return ((data as ServiceRow[] | null) || []).map((r) => ({
+      id: r.id,
+      customerId: r.customer_id,
+      catName: r.cat_name,
+      service: r.service,
+      date: r.date,
+      time: r.time || undefined,
+      amount: r.amount != null ? Number(r.amount) : undefined,
+      invoiceId: r.invoice_id || undefined,
+      bookingId: r.booking_id || undefined,
+      at: r.created_at,
+    }));
+  }
+  return [...memServices];
+}
+
 async function listServiceRecords(customerId: string) {
   const sb = getSupabase();
   if (sb) {
@@ -1414,6 +1438,29 @@ async function listServiceRecords(customerId: string) {
     }));
   }
   return memServices.filter((s) => s.customerId === customerId);
+}
+
+/** ทุกรายการเติมเครดิต ทุกลูกค้า — ใช้สำหรับสำรองข้อมูลทั้งร้าน */
+export async function listAllMemberTopups(): Promise<MemberTopupRecord[]> {
+  const sb = getSupabase();
+  if (sb) {
+    const { data } = await sb
+      .from("member_topups")
+      .select("*")
+      .order("created_at", { ascending: false });
+    return ((data as MemberTopupRow[] | null) || []).map((r) => ({
+      id: r.id,
+      customerId: r.customer_id,
+      paidAmount: Number(r.paid_amount),
+      bonusAmount: Number(r.bonus_amount),
+      creditAdded: Number(r.credit_added),
+      balanceAfter: Number(r.balance_after),
+      note: r.note ?? undefined,
+      createdAt: r.created_at,
+      isLegacy: r.is_legacy ?? false,
+    }));
+  }
+  return [...memMemberTopups];
 }
 
 async function listMemberTopups(customerId: string): Promise<MemberTopupRecord[]> {

@@ -179,6 +179,11 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     name: "package_orders.status_idx",
     sql: "create index if not exists package_orders_status_idx on package_orders(status);",
   },
+  {
+    // คอร์สที่บิลนี้หักไป 1 ครั้ง — ใช้โชว์ประวัติการใช้คอร์ส + คืนครั้งตอนยกเลิกบิล
+    name: "invoices.package_id",
+    sql: "alter table invoices add column if not exists package_id text;",
+  },
 ];
 
 export type MigrateResult = {

@@ -1588,6 +1588,31 @@ async function listMemberCreditUsage(customerId: string): Promise<MemberCreditUs
     .sort((a, b) => b.at.localeCompare(a.at));
 }
 
+/** ครั้งที่ลูกค้าใช้คอร์สไป — อ่านจากบิลที่จ่ายแล้วและผูกคอร์สไว้ */
+export type PackageUsageRecord = {
+  invoiceId: string;
+  packageId: string;
+  description: string;
+  date: string;
+  at: string;
+};
+
+async function listPackageUsage(customerId: string): Promise<PackageUsageRecord[]> {
+  const { listInvoices } = await import("./invoices-store");
+  const { summarizeInvoiceItems } = await import("./invoice-item-label");
+  const invoices = await listInvoices(customerId);
+  return invoices
+    .filter((i) => i.packageId && i.status === "paid" && i.paidAt)
+    .map((i) => ({
+      invoiceId: i.id,
+      packageId: i.packageId!,
+      description: `${i.catName} · ${summarizeInvoiceItems(i.items)}`,
+      date: i.paidAt!.slice(0, 10),
+      at: i.paidAt!,
+    }))
+    .sort((a, b) => b.at.localeCompare(a.at));
+}
+
 export async function getCustomerHistory(customerId: string) {
   const c = await getCustomer(customerId);
   const allBookings = await listBookings();
@@ -1600,6 +1625,7 @@ export async function getCustomerHistory(customerId: string) {
   const points = c?.lineUserId ? await getPointsHistory(c.lineUserId) : [];
   const memberTopups = await listMemberTopups(customerId);
   const memberCreditUsage = await listMemberCreditUsage(customerId);
+  const packageUsage = await listPackageUsage(customerId);
   return {
     bookings,
     upcomingBookings,
@@ -1608,6 +1634,7 @@ export async function getCustomerHistory(customerId: string) {
     points,
     memberTopups,
     memberCreditUsage,
+    packageUsage,
   };
 }
 

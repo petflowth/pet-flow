@@ -54,6 +54,8 @@ export type InvoiceRecord = {
   paidAt?: string;
   pointsEarned?: number;
   bookingId?: string;
+  /** คอร์สที่บิลนี้หักไป 1 ครั้ง — ไว้โชว์ประวัติการใช้ + คืนครั้งให้ตอนยกเลิกบิล */
+  packageId?: string;
   sentAt?: string;
   createdAt: string;
   /** เวลาที่กด "รับมัดจำแล้ว" (ต้องรัน migration ก่อน) */
@@ -80,6 +82,7 @@ type InvoiceRow = {
   paid_at: string | null;
   points_earned: number | null;
   booking_id: string | null;
+  package_id?: string | null;
   sent_at: string | null;
   created_at: string;
   deposit_received_at?: string | null;
@@ -107,6 +110,7 @@ function rowToInvoice(r: InvoiceRow): InvoiceRecord {
     paidAt: r.paid_at || undefined,
     pointsEarned: r.points_earned ?? undefined,
     bookingId: r.booking_id || undefined,
+    packageId: r.package_id || undefined,
     sentAt: r.sent_at || undefined,
     createdAt: r.created_at,
     depositReceivedAt: r.deposit_received_at ?? undefined,
@@ -234,6 +238,8 @@ export async function createInvoice(data: {
   extraDiscount?: number;
   deposit?: number;
   bookingId?: string;
+  /** คอร์สที่บิลนี้หัก 1 ครั้ง — เก็บไว้เพื่อโชว์ประวัติการใช้ + คืนครั้งตอนยกเลิกบิล */
+  packageId?: string;
 }) {
   // บังคับให้ทุกยอดเป็นตัวเลขจำนวนเต็มก่อนคิด — กันค่าที่ไม่ใช่ตัวเลขทำบิลพัง
   // (เมื่อก่อน amount ที่เป็น string จะถูกต่อสตริง เช่น 0 + "abc" = "0abc" แล้ว total กลายเป็น null
@@ -292,12 +298,26 @@ export async function createInvoice(data: {
     total,
     status: "pending",
     bookingId: data.bookingId,
+    packageId: data.packageId,
     createdAt: new Date().toISOString(),
   };
 
   const sb = getSupabase();
   if (sb) {
     await sb.from("invoices").insert(invoiceToRow(invoice));
+    // package_id เพิ่งเพิ่มมาทีหลัง — เขียนแยกและกลืน error ไว้
+    // เครื่องที่ยังไม่ได้อัปเดตฐานข้อมูลจะได้ไม่พังทั้งการออกบิล
+    if (invoice.packageId) {
+      try {
+        await sb
+          .from("invoices")
+          .update({ package_id: invoice.packageId })
+          .eq("id", invoice.id)
+          .eq("tenant_id", requireTenantId());
+      } catch {
+        /* ยังไม่มีคอลัมน์ — ประวัติการใช้คอร์สจะยังไม่ขึ้นจนกว่าจะอัปเดตฐานข้อมูล */
+      }
+    }
   } else {
     mem.unshift(invoice);
   }
@@ -432,6 +452,11 @@ export async function deleteInvoice(id: string) {
   const inv = await getInvoice(id);
   if (!inv) return { ok: false as const, error: "not_found" };
   await deleteFinanceByInvoice(id);
+  // ลบบิลที่หักคอร์สไป → คืนครั้งให้ลูกค้าด้วย ไม่งั้นสิทธิ์หายไปเฉยๆ
+  if (inv.packageId && inv.status === "paid") {
+    const { refundPackageUse } = await import("./packages-store");
+    await refundPackageUse(inv.packageId);
+  }
   const now = new Date().toISOString();
   const sb = getSupabase();
   if (sb) {
@@ -624,6 +649,12 @@ export async function revertInvoicePaid(id: string) {
 
   // ลบประวัติบริการ (กันจำนวนครั้งเกินจริง)
   await deleteServiceRecordByInvoice(id);
+
+  // คืนครั้งที่หักจากคอร์สไป — ไม่งั้นยกเลิกบิลแล้วลูกค้าเสียสิทธิ์ฟรีๆ
+  if (inv.packageId) {
+    const { refundPackageUse } = await import("./packages-store");
+    await refundPackageUse(inv.packageId);
+  }
 
   inv.status = "pending";
   inv.paymentMethod = undefined;

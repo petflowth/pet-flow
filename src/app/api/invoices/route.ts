@@ -138,6 +138,22 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
 
   if (body.action === "create") {
+    // หักคอร์สก่อนออกบิล — ต้องรู้ให้แน่ว่าหักได้จริงถึงจะผูกคอร์สกับบิลใบนี้
+    // consumePackage คืนผลลัพธ์ ไม่ได้ throw ถ้าคอร์สหมด ถ้าเช็คแค่ try/catch
+    // คอร์สที่ใช้ครบแล้วจะยังออกบิลฟรีให้ได้อยู่
+    let consumedPackageId: string | undefined;
+    if (body.packageId) {
+      try {
+        const used = await consumePackage(String(body.packageId));
+        if (used.ok) consumedPackageId = String(body.packageId);
+      } catch {
+        /* คอร์สไม่เจอ — ออกบิลต่อได้ แต่ไม่ผูกคอร์ส */
+      }
+      if (!consumedPackageId) {
+        return NextResponse.json({ error: "package_unavailable" }, { status: 400 });
+      }
+    }
+
     const invoice = await createInvoice({
       customerId: body.customerId,
       lineUserId: body.lineUserId,
@@ -148,6 +164,7 @@ export async function POST(req: NextRequest) {
       extraDiscount: body.extraDiscount,
       deposit: body.deposit,
       bookingId: body.bookingId,
+      packageId: consumedPackageId,
     });
     // ใช้คูปอง — mark used + ผูกกับบิลนี้ (ส่วนลดรวมใน extraDiscount แล้ว)
     if (body.couponId) {
@@ -155,14 +172,6 @@ export async function POST(req: NextRequest) {
         await redeemCoupon(String(body.couponId), invoice.id);
       } catch {
         /* คูปองใช้ไม่ได้/ไม่เจอ — ไม่ทำให้บิลพัง */
-      }
-    }
-    // หักคอร์ส 1 ครั้ง (จ่ายไปแล้วตอนซื้อ — บิลนี้ไม่บันทึกรายรับเพิ่ม)
-    if (body.packageId) {
-      try {
-        await consumePackage(String(body.packageId));
-      } catch {
-        /* คอร์สหมด/ไม่เจอ — ไม่ทำให้บิลพัง */
       }
     }
     if (invoice.autoAppliedCredit > 0) {

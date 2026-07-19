@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import type { CatRecord, CustomerRecord, MemberCreditUsageRecord, MemberTopupRecord } from "@/lib/customers-store";
+import type { CatRecord, CustomerRecord, MemberCreditUsageRecord, MemberTopupRecord, PackageUsageRecord } from "@/lib/customers-store";
 import type { CustomerTier } from "@/lib/customer-tier";
 import { toJpegDataUrl } from "@/lib/image-convert";
 import { CatMediaGallery } from "@/components/CatMediaGallery";
@@ -35,6 +35,7 @@ type Summary = {
     points: PointsHistoryEntry[];
     memberTopups: MemberTopupRecord[];
     memberCreditUsage: MemberCreditUsageRecord[];
+    packageUsage: PackageUsageRecord[];
   };
 };
 
@@ -338,6 +339,296 @@ function MemberTopupSection({
       {msg && (
         <p className="mt-2 text-center text-[10px] font-bold text-brown">{msg}</p>
       )}
+    </section>
+  );
+}
+
+/**
+ * ประวัติใช้บริการ — รวมรายการที่บันทึกไว้กับนัดที่ผ่านมาเป็นไทม์ไลน์เดียว เรียงใหม่ก่อน
+ *
+ * ลูกค้าเก่าบางรายมีเป็นร้อยแถวและส่วนใหญ่เป็นนัดที่ยกเลิก เลยพับนัดที่ยกเลิก
+ * ไว้ต่างหาก และโชว์แค่ 8 แถวแรกก่อน กดดูทั้งหมดได้
+ */
+function ServiceHistorySection({
+  customerId,
+  services,
+  pastBookings,
+  onChanged,
+}: {
+  customerId: string;
+  services: { id: string; service: string; date: string; amount?: number; catName: string }[];
+  pastBookings: EditableBooking[];
+  onChanged: () => void;
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const [showCancelled, setShowCancelled] = useState(false);
+
+  const remove = async (label: string, req: () => Promise<unknown>) => {
+    if (!confirm(label)) return;
+    await req();
+    onChanged();
+  };
+
+  type Row = { key: string; date: string; text: string; onDelete: () => void };
+
+  const serviceRows: Row[] = services.map((s) => ({
+    key: `s${s.id}`,
+    date: s.date,
+    text: `${s.catName} · ${s.service}${s.amount ? ` · ${s.amount} บาท` : ""}`,
+    onDelete: () =>
+      remove("ลบรายการนี้ออกจากประวัติ? กู้คืนไม่ได้", () =>
+        fetch("/api/customers", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: customerId,
+            action: "delete_service_record",
+            serviceId: s.id,
+          }),
+        })
+      ),
+  }));
+
+  const bookingRow = (b: EditableBooking): Row => ({
+    key: `b${b.id}`,
+    date: b.date,
+    text: `${b.catName} · ${b.service === "room" ? "ห้องพัก" : "อาบน้ำ"} · ${statusLabel(
+      b.status
+    )}`,
+    onDelete: () =>
+      remove("ลบนัดนี้ทิ้งถาวร? กู้คืนไม่ได้", () =>
+        fetch("/api/bookings", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: b.id, action: "delete" }),
+        })
+      ),
+  });
+
+  const byDateDesc = (a: Row, b: Row) => b.date.localeCompare(a.date);
+  const cancelledRows = pastBookings
+    .filter((b) => b.status === "cancelled")
+    .map(bookingRow)
+    .sort(byDateDesc);
+  const rows = [
+    ...serviceRows,
+    ...pastBookings.filter((b) => b.status !== "cancelled").map(bookingRow),
+  ].sort(byDateDesc);
+
+  const visible = showAll ? rows : rows.slice(0, 8);
+
+  const rowList = (list: Row[]) => (
+    <ul className="space-y-1.5 text-xs text-brown-soft">
+      {list.map((r) => (
+        <li
+          key={r.key}
+          className="flex items-center justify-between gap-2 rounded-petflow-sm bg-paper/60 px-2.5 py-1.5"
+        >
+          <span className="min-w-0">
+            <span className="text-brown-faint">{r.date}</span> · {r.text}
+          </span>
+          <button
+            type="button"
+            onClick={r.onDelete}
+            className="shrink-0 text-[11px] font-bold text-wait"
+            aria-label="ลบรายการนี้"
+          >
+            🗑️
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+
+  return (
+    <section className="mb-4 rounded-petflow bg-card p-4">
+      <div className="mb-2 flex items-baseline justify-between gap-2">
+        <h2 className="text-sm font-extrabold">📋 ประวัติใช้บริการ</h2>
+        {rows.length > 0 && (
+          <span className="text-[10px] font-bold text-brown-faint">
+            {rows.length} รายการ
+          </span>
+        )}
+      </div>
+
+      {rows.length === 0 ? (
+        <p className="text-xs text-brown-faint">ยังไม่มีประวัติ</p>
+      ) : (
+        <>
+          {rowList(visible)}
+          {rows.length > visible.length && (
+            <button
+              type="button"
+              onClick={() => setShowAll(true)}
+              className="mt-2 w-full rounded-petflow-sm bg-latte/20 py-1.5 text-[11px] font-extrabold text-petflow-chocolate"
+            >
+              ดูทั้งหมดอีก {rows.length - visible.length} รายการ
+            </button>
+          )}
+        </>
+      )}
+
+      {cancelledRows.length > 0 && (
+        <div className="mt-3 border-t border-petflow-line pt-2">
+          <button
+            type="button"
+            onClick={() => setShowCancelled((v) => !v)}
+            className="w-full text-left text-[11px] font-bold text-brown-faint"
+          >
+            {showCancelled ? "▾" : "▸"} นัดที่ยกเลิก ({cancelledRows.length})
+          </button>
+          {showCancelled && <div className="mt-2">{rowList(cancelledRows)}</div>}
+        </div>
+      )}
+
+      <p className="mt-2 text-[10px] text-brown-faint">
+        ลงข้อมูลผิด? ลบรายการนั้นออกได้ — จะหายจากประวัติที่ลูกค้าเห็นในแอปด้วย
+      </p>
+    </section>
+  );
+}
+
+/**
+ * ประวัติคอร์ส — ซื้อเมื่อไหร่ ใช้ไปครั้งไหนบ้าง
+ *
+ * ยกเลิกการซื้อ = คอร์สหายไปทั้งใบ · ยกเลิกการใช้ = ถอนบิลใบนั้นออกจากสถานะจ่ายแล้ว
+ * แล้วครั้งที่หักไปจะเด้งกลับเข้าคอร์สให้เอง (ดู revertInvoicePaid)
+ */
+function PackageHistorySection({
+  customerId,
+  usage,
+  onChanged,
+}: {
+  customerId: string;
+  usage: PackageUsageRecord[];
+  onChanged: () => void;
+}) {
+  const [packages, setPackages] = useState<
+    {
+      id: string;
+      name: string;
+      totalUses: number;
+      usedUses: number;
+      price?: number;
+      status: string;
+      createdAt?: string;
+    }[]
+  >([]);
+  const [busy, setBusy] = useState("");
+
+  const load = useCallback(() => {
+    fetch(`/api/packages?customerId=${customerId}`)
+      .then((r) => r.json())
+      .then((d) => setPackages(d.packages || []))
+      .catch(() => {});
+  }, [customerId]);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // ไม่เคยมีคอร์สเลยก็ไม่ต้องโชว์ช่องเปล่าให้รก
+  if (!packages.length && !usage.length) return null;
+
+  const cancelPurchase = async (id: string, name: string) => {
+    if (!confirm(`ยกเลิกคอร์ส "${name}"? ลูกค้าจะใช้ครั้งที่เหลือไม่ได้อีก`)) return;
+    setBusy(id);
+    try {
+      await fetch("/api/packages", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action: "cancel" }),
+      });
+      load();
+      onChanged();
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const cancelUse = async (invoiceId: string) => {
+    if (
+      !confirm(
+        "ยกเลิกการใช้ครั้งนี้?\nบิลใบนี้จะกลับไปเป็น 'ยังไม่จ่าย' และครั้งที่หักไปจะคืนเข้าคอร์สให้ค่ะ"
+      )
+    )
+      return;
+    setBusy(invoiceId);
+    try {
+      await fetch("/api/invoices", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: invoiceId, action: "unmark_paid" }),
+      });
+      load();
+      onChanged();
+    } finally {
+      setBusy("");
+    }
+  };
+
+  return (
+    <section className="mb-4 rounded-petflow bg-card p-4">
+      <h2 className="mb-2 text-sm font-extrabold">🎫 ประวัติคอร์ส / แพ็กเกจ</h2>
+
+      <p className="mb-1.5 text-[10px] font-bold text-brown-faint">การซื้อ</p>
+      <ul className="mb-3 space-y-1.5 text-xs text-brown-soft">
+        {packages.map((p) => {
+          const cancelled = p.status === "cancelled";
+          return (
+            <li
+              key={p.id}
+              className={`flex items-center justify-between gap-2 rounded-petflow-sm px-2.5 py-1.5 ${
+                cancelled ? "bg-paper/60 line-through opacity-60" : "bg-sage/10"
+              }`}
+            >
+              <span className="min-w-0">
+                <b className="text-brown">{p.name}</b>{" "}
+                <span className="text-brown-faint">
+                  ({p.usedUses}/{p.totalUses} ครั้ง)
+                </span>
+                <span className="block text-[10px] text-brown-faint">
+                  {p.createdAt ? p.createdAt.slice(0, 10) : "—"}
+                  {p.price ? ` · ${p.price.toLocaleString()} บาท` : ""}
+                </span>
+              </span>
+              {!cancelled && (
+                <button
+                  type="button"
+                  disabled={busy === p.id}
+                  onClick={() => cancelPurchase(p.id, p.name)}
+                  className="shrink-0 text-[11px] font-bold text-wait disabled:opacity-40"
+                >
+                  ยกเลิก
+                </button>
+              )}
+            </li>
+          );
+        })}
+        {!packages.length && <li className="text-brown-faint">ยังไม่เคยซื้อคอร์ส</li>}
+      </ul>
+
+      <p className="mb-1.5 text-[10px] font-bold text-brown-faint">การใช้</p>
+      <ul className="space-y-1.5 text-xs text-brown-soft">
+        {usage.map((u) => (
+          <li
+            key={u.invoiceId}
+            className="flex items-center justify-between gap-2 rounded-petflow-sm bg-paper/70 px-2.5 py-1.5"
+          >
+            <span className="min-w-0">
+              {u.date} · {u.description}
+            </span>
+            <button
+              type="button"
+              disabled={busy === u.invoiceId}
+              onClick={() => cancelUse(u.invoiceId)}
+              className="shrink-0 text-[11px] font-bold text-wait disabled:opacity-40"
+            >
+              คืนครั้ง
+            </button>
+          </li>
+        ))}
+        {!usage.length && <li className="text-brown-faint">ยังไม่เคยหักครั้งจากคอร์ส</li>}
+      </ul>
     </section>
   );
 }
@@ -1635,6 +1926,12 @@ export default function CustomersPage() {
           ))}
         </section>
 
+        <PackageHistorySection
+          customerId={c.id}
+          usage={selected.history.packageUsage || []}
+          onChanged={() => open(c.id)}
+        />
+
         <MemberTopupSection
           customerId={c.id}
           memberCredit={c.memberCredit}
@@ -1654,68 +1951,12 @@ export default function CustomersPage() {
           onRefresh={() => open(c.id)}
         />
 
-        <section className="mb-4 rounded-petflow bg-card p-4">
-          <h2 className="mb-2 text-sm font-extrabold">📋 ประวัติใช้บริการ</h2>
-          <p className="mb-2 text-[10px] text-brown-faint">
-            ลงข้อมูลผิด? ลบรายการนั้นออกได้ — จะหายจากประวัติที่ลูกค้าเห็นในแอปด้วย
-          </p>
-          <ul className="space-y-2 text-xs text-brown-soft">
-            {selected.history.services.map((s) => (
-              <li key={s.id} className="flex items-center justify-between gap-2">
-                <span>
-                  {s.date} · {s.catName} · {s.service}
-                  {s.amount ? ` · ${s.amount} บาท` : ""}
-                </span>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!confirm("ลบรายการนี้ออกจากประวัติ? กู้คืนไม่ได้")) return;
-                    await fetch("/api/customers", {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        id: c.id,
-                        action: "delete_service_record",
-                        serviceId: s.id,
-                      }),
-                    });
-                    open(c.id);
-                  }}
-                  className="shrink-0 text-[11px] font-bold text-wait"
-                  aria-label="ลบรายการนี้"
-                >
-                  🗑️
-                </button>
-              </li>
-            ))}
-            {(selected.history.pastBookings || []).map((b) => (
-              <li key={b.id} className="flex items-center justify-between gap-2">
-                <span>
-                  {b.date} · {b.catName} · {b.service === "room" ? "ห้องพัก" : "อาบน้ำ"} ·{" "}
-                  {statusLabel(b.status)}
-                </span>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!confirm("ลบนัดนี้ทิ้งถาวร? กู้คืนไม่ได้")) return;
-                    await fetch("/api/bookings", {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ id: b.id, action: "delete" }),
-                    });
-                    open(c.id);
-                  }}
-                  className="shrink-0 text-[11px] font-bold text-wait"
-                  aria-label="ลบนัดนี้"
-                >
-                  🗑️
-                </button>
-              </li>
-            ))}
-            {!selected.history.services.length &&
-              !(selected.history.pastBookings || []).length && <li>ยังไม่มีประวัติ</li>}
-          </ul>
-        </section>
+        <ServiceHistorySection
+          customerId={c.id}
+          services={selected.history.services}
+          pastBookings={selected.history.pastBookings || []}
+          onChanged={() => open(c.id)}
+        />
 
         <section className="rounded-petflow bg-card p-4">
           <h2 className="mb-2 text-sm font-extrabold">🎁 ประวัติแลกแต้ม</h2>

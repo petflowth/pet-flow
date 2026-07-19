@@ -44,7 +44,9 @@ export async function POST(req: NextRequest) {
         }
       )
     );
-    if (amount > 0) {
+    // ปกติเงียบ ๆ — เพิ่มแต้มหลังบ้านไม่ต้องรบกวนลูกค้า (และไม่เสียโควตาข้อความ)
+    // จะแจ้งก็ต่อเมื่อกดติ๊ก "แจ้งลูกค้าทาง LINE" ในหน้าหลังบ้าน
+    if (amount > 0 && body.notify === true) {
       try {
         await pushLineMessage(uid, [
           {

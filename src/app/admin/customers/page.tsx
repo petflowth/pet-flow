@@ -420,6 +420,8 @@ function CustomerSummaryCard({
   const [addAmt, setAddAmt] = useState("");
   const [addReason, setAddReason] = useState("");
   const [addBusy, setAddBusy] = useState(false);
+  /** ค่าเริ่มต้น = ไม่แจ้ง — เพิ่มแต้มหลังบ้านไม่ต้องรบกวนลูกค้า */
+  const [addNotify, setAddNotify] = useState(false);
 
   const addBonusPoints = async () => {
     const n = Math.round(Number(addAmt) || 0);
@@ -436,10 +438,14 @@ function CustomerSummaryCard({
           amount: n,
           reason,
           displayName: customer.name,
+          notify: addNotify,
         }),
       });
       if (res.ok) {
-        setMsg(`✅ ${n > 0 ? "เพิ่ม" : "ปรับ"} ${n} แต้มแล้ว (${reason})`);
+        setMsg(
+          `✅ ${n > 0 ? "เพิ่ม" : "ปรับ"} ${n} แต้มแล้ว (${reason})` +
+            (n > 0 && !addNotify ? " · ไม่ได้แจ้งลูกค้า" : "")
+        );
         setAddAmt("");
         setAddReason("");
         onSaved();
@@ -724,8 +730,18 @@ function CustomerSummaryCard({
                 {addBusy ? "…" : "➕ เพิ่ม"}
               </button>
             </div>
+            <label className="mt-2 flex items-center gap-2 text-[11px] font-bold text-brown-soft">
+              <input
+                type="checkbox"
+                checked={addNotify}
+                onChange={(e) => setAddNotify(e.target.checked)}
+                className="h-3.5 w-3.5 accent-latte-deep"
+              />
+              แจ้งลูกค้าทาง LINE ด้วย (เสียโควตา 1 ข้อความ)
+            </label>
             <p className="mt-1 text-[10px] text-brown-faint">
-              บันทึกในประวัติแต้มของลูกค้า (มีเหตุผลกำกับ) + แจ้งเตือนร้าน และแจ้งลูกค้าทาง LINE
+              บันทึกในประวัติแต้มของลูกค้า (มีเหตุผลกำกับ) + แจ้งเตือนร้านเสมอ ·
+              ปกติจะ<b>ไม่</b>ส่งข้อความหาลูกค้า ถ้าอยากแจ้งค่อยติ๊กช่องด้านบน
             </p>
           </>
         ) : (

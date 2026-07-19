@@ -7,6 +7,7 @@ import { CustomerSendButtons } from "@/components/CustomerSendButtons";
 import { InvoiceActionButtons } from "@/components/InvoiceActionButtons";
 import { bookingOnDate } from "@/lib/booking-customer-match";
 import { toast } from "@/components/Toast";
+import { groupBookings } from "@/lib/booking-group";
 
 type CalendarDay = EditableBooking & {
   customerId?: string;
@@ -96,28 +97,7 @@ function BillButton({
   );
 }
 
-/** กลุ่มบ้านเดียวกัน + นัดเดียวกัน (บริการ/วัน/เวลาตรงกัน) — เอาไว้รวมการ์ดหลายตัวในบ้านเดียวกัน */
-function groupKey(b: CalendarDay) {
-  return [
-    b.customerId || b.customerName,
-    b.service,
-    b.date || "",
-    b.time || "",
-    b.checkin || "",
-    b.checkout || "",
-  ].join("|");
-}
 
-function groupDayBookings(list: CalendarDay[]) {
-  const groups = new Map<string, CalendarDay[]>();
-  for (const b of list) {
-    const k = groupKey(b);
-    const arr = groups.get(k);
-    if (arr) arr.push(b);
-    else groups.set(k, [b]);
-  }
-  return Array.from(groups.values());
-}
 
 function formatThaiDate(iso: string) {
   const [y, m, d] = iso.split("-").map(Number);
@@ -335,7 +315,7 @@ export function BookingCalendar() {
               </Link>
             </li>
           ) : (
-            groupDayBookings(dayBookings).map((group) => {
+            groupBookings(dayBookings).map((group) => {
               const b = group[0];
               const allConfirmed = group.every((x) => x.status === "confirmed");
               const catNames = group.map((x) => x.catName).join(", ");

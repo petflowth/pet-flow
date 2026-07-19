@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SERVICE_PRESETS, type ServicePreset } from "@/lib/service-presets";
 import { CustomerSendButtons } from "@/components/CustomerSendButtons";
 import { toast } from "@/components/Toast";
+import { groupBookings, groupCatNames } from "@/lib/booking-group";
 import { formatThaiDateShort } from "@/lib/format-thai-date";
 import {
   GROOM_PROGRAMS,
@@ -311,7 +312,9 @@ export default function BillingPage() {
     // นัดห้องพัก ต้องรอ rooms โหลดก่อน ไม่งั้น match ราคาไม่เจอ → ยอด 0
     if (bk.service === "room" && rooms.length === 0) return;
     autoPicked.current = true;
-    pickBooking(bk);
+    // กดปุ่ม "ออกบิล" จากตารางนัดส่งมาแค่ id เดียว — ดึงทั้งบ้านมาด้วย
+    const group = groupBookings(bookings).find((g) => g.some((x) => x.id === bId));
+    pickBooking(group || [bk]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookings, rooms]);
 
@@ -344,6 +347,8 @@ export default function BillingPage() {
     };
   }, [customerId]);
 
+  // บ้านเดียวกัน + นัดเดียวกัน = 1 รายการในลิสต์ ออกบิลใบเดียว
+  const bookingGroups = groupBookings(bookings);
   const lines = items.map(computeLine);
   const subtotal = lines.reduce((s, l) => s + l.amount, 0);
   const selectedPromo = promos.find((p) => p.id === promoId);
@@ -515,7 +520,12 @@ export default function BillingPage() {
     return n > 0 ? n : 1;
   };
 
-  const pickBooking = async (bk: Booking) => {
+  /**
+   * ดึงนัดมาออกบิล — บ้านเดียวกัน วันเดียวกัน ออกเป็นบิลใบเดียว
+   * (แมวแต่ละตัวเป็นคนละแถวในระบบ แต่เจ้าของคนเดียว จ่ายทีเดียว)
+   */
+  const pickBooking = async (group: Booking[]) => {
+    const bk = group[0];
     setBookingId(bk.id);
     setShowBookings(false);
     const cust = customers.find((c) => c.id === bk.customerId);
@@ -524,7 +534,9 @@ export default function BillingPage() {
 
     // นัดนี้เคยออกบิลไปแล้วหรือยัง — 1 นัดออกได้แค่ 1 บิลเท่านั้น
     // มีบิลค้างอยู่แล้ว → เปิดมาแก้ไขบิลเดิมแทนสร้างซ้ำ, จ่ายจบแล้ว → ห้ามออกซ้ำ
-    const matches = invoices.filter((i) => i.bookingId === bk.id);
+    // เช็คทุกตัวในกลุ่ม เพราะบิลเก่าอาจผูกกับตัวไหนก็ได้
+    const ids = new Set(group.map((g) => g.id));
+    const matches = invoices.filter((i) => i.bookingId && ids.has(i.bookingId));
     const existing = matches.find((i) => i.status !== "paid") || matches[0];
     if (existing) {
       if (existing.status === "paid") {
@@ -536,22 +548,33 @@ export default function BillingPage() {
       return;
     }
 
+    // ตั้งชื่อน้องให้แต่ละบรรทัดเมื่อมาหลายตัว จะได้รู้ว่าตัวไหนใช้บริการอะไร
+    const many = group.length > 1;
     if (bk.service === "room") {
-      // นัดเก็บ room เป็น id → จับคู่กับ id ก่อน แล้วค่อย fallback เป็นชื่อ
-      const matched =
-        rooms.find((r) => bk.room && r.id === bk.room) ||
-        rooms.find((r) => bk.room && r.label.includes(bk.room));
-      setItems([
-        {
-          ...newGrooming(),
-          kind: "room",
-          roomLabel: matched?.label || rooms[0]?.label || (bk.room ? `ห้อง ${bk.room}` : "ห้องพัก"),
-          roomPrice: matched?.amount ?? rooms[0]?.amount ?? 0,
-          nights: nightsBetween(bk.checkin, bk.checkout),
-        },
-      ]);
+      setItems(
+        group.map((g) => {
+          // นัดเก็บ room เป็น id → จับคู่กับ id ก่อน แล้วค่อย fallback เป็นชื่อ
+          const matched =
+            rooms.find((r) => g.room && r.id === g.room) ||
+            rooms.find((r) => g.room && r.label.includes(g.room));
+          return {
+            ...newGrooming(),
+            kind: "room" as const,
+            roomLabel:
+              matched?.label || rooms[0]?.label || (g.room ? `ห้อง ${g.room}` : "ห้องพัก"),
+            roomPrice: matched?.amount ?? rooms[0]?.amount ?? 0,
+            nights: nightsBetween(g.checkin, g.checkout),
+            catName: many ? g.catName : undefined,
+          };
+        })
+      );
     } else {
-      setItems([newGrooming()]);
+      setItems(
+        group.map((g) => ({ ...newGrooming(), catName: many ? g.catName : undefined }))
+      );
+    }
+    if (many) {
+      toast(`ดึงนัดบ้านนี้มาแล้ว ${group.length} ตัว — ออกบิลใบเดียว 🧾`, "success");
     }
   };
 
@@ -778,28 +801,38 @@ export default function BillingPage() {
               onClick={() => setShowBookings((v) => !v)}
               className="w-full rounded-petflow-sm border border-dashed border-latte/60 bg-latte/10 py-2 text-xs font-extrabold text-latte-deep"
             >
-              📅 ดึงจากนัด ({bookings.length}) {showBookings ? "▲" : "▼"}
+              📅 ดึงจากนัด ({bookingGroups.length}) {showBookings ? "▲" : "▼"}
             </button>
             {showBookings && (
               <ul className="mt-2 max-h-52 space-y-1 overflow-y-auto">
-                {bookings.map((bk) => (
-                  <li key={bk.id}>
-                    <button
-                      type="button"
-                      onClick={() => pickBooking(bk)}
-                      className="block w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-left text-xs"
-                    >
-                      <span className="font-bold text-brown">
-                        {bk.service === "room" ? "🏠" : "🛁"} {bk.catName} · {bk.customerName}
-                      </span>
-                      <span className="block text-[10px] text-brown-faint">
-                        {bk.service === "room"
-                          ? `${bk.checkin || "?"} → ${bk.checkout || "?"}${bk.room ? ` · ${bk.room}` : ""}`
-                          : bk.date || ""}
-                      </span>
-                    </button>
-                  </li>
-                ))}
+<<<<<<< HEAD
+                {bookingGroups.map((group) => {
+                  const bk = group[0];
+                  return (
+                    <li key={group.map((g) => g.id).join(",")}>
+                      <button
+                        type="button"
+                        onClick={() => pickBooking(group)}
+                        className="block w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-left text-xs"
+                      >
+                        <span className="font-bold text-brown">
+                          {bk.service === "room" ? "🏠" : "🛁"} {groupCatNames(group)} ·{" "}
+                          {bk.customerName}
+                          {group.length > 1 && (
+                            <span className="ml-1 rounded-full bg-latte/25 px-1.5 py-0.5 text-[10px] font-extrabold text-latte-deep">
+                              {group.length} ตัว · บิลใบเดียว
+                            </span>
+                          )}
+                        </span>
+                        <span className="block text-[10px] text-brown-faint">
+                          {bk.service === "room"
+                            ? `${bk.checkin || "?"} → ${bk.checkout || "?"}${bk.room ? ` · ${bk.room}` : ""}`
+                            : bk.date || ""}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
@@ -1062,7 +1095,7 @@ export default function BillingPage() {
                         onClick={() =>
                           updateItem(i, { qty: Math.max(1, (item.qty || 1) - 1) })
                         }
-                        className="h-8 w-8 shrink-0 rounded-lg border border-catcha-line bg-card text-sm font-extrabold text-brown disabled:opacity-40"
+                        className="h-8 w-8 shrink-0 rounded-lg border border-petflow-line bg-card text-sm font-extrabold text-brown disabled:opacity-40"
                         disabled={(item.qty || 1) <= 1}
                         aria-label="ลดจำนวน"
                       >
@@ -1078,12 +1111,12 @@ export default function BillingPage() {
                             qty: Math.max(1, Math.round(Number(e.target.value) || 1)),
                           })
                         }
-                        className="w-14 rounded-lg border border-catcha-line bg-paper px-2 py-1.5 text-center text-sm font-bold"
+                        className="w-14 rounded-lg border border-petflow-line bg-paper px-2 py-1.5 text-center text-sm font-bold"
                       />
                       <button
                         type="button"
                         onClick={() => updateItem(i, { qty: (item.qty || 1) + 1 })}
-                        className="h-8 w-8 shrink-0 rounded-lg border border-catcha-line bg-card text-sm font-extrabold text-brown"
+                        className="h-8 w-8 shrink-0 rounded-lg border border-petflow-line bg-card text-sm font-extrabold text-brown"
                         aria-label="เพิ่มจำนวน"
                       >
                         +

@@ -171,6 +171,8 @@ function MemberTopupSection({
   const [msg, setMsg] = useState("");
   // ยอดยกมาจากระบบเก่า — เติมเครดิตให้ลูกค้าจริง แต่ไม่ใช่เงินที่รับเข้าร้านเดือนนี้
   const [isLegacy, setIsLegacy] = useState(false);
+  /** ค่าเริ่มต้น = ไม่แจ้ง — ยกยอดเก่าเข้าระบบทีละหลายคนไม่ควรไปกวนลูกค้า */
+  const [notify, setNotify] = useState(false);
 
   const paidNum = Math.max(0, Number(paid) || 0);
   const bonusNum = Math.max(0, Number(bonus) || 0);
@@ -199,6 +201,7 @@ function MemberTopupSection({
         bonusAmount: bonusNum,
         note: note.trim() || undefined,
         isLegacy,
+        notify,
       }),
     });
     const data = await res.json();
@@ -208,9 +211,16 @@ function MemberTopupSection({
       setBonus("");
       setNote("");
       setIsLegacy(false);
+      setNotify(false);
       setMsg(
         `✅ เติมสำเร็จ +${total.toLocaleString()} บาท (คงเหลือ ${data.customer.memberCredit.toLocaleString()} บาท)` +
-          (isLegacy ? " · ยอดยกมา ไม่นับรายรับเดือนนี้" : "")
+          (isLegacy ? " · ยอดยกมา ไม่นับรายรับเดือนนี้" : "") +
+          // เงินลงเรียบร้อยเสมอ — ถ้าส่ง LINE ไม่ได้ต้องบอกตรงๆ ไม่ใช่บอกว่าแจ้งแล้ว
+          (notify
+            ? data.notifyError
+              ? ` · ⚠️ ส่ง LINE ไม่ได้: ${data.notifyError}`
+              : " · แจ้งลูกค้าแล้ว 💬"
+            : "")
       );
       onDone();
     } else {
@@ -293,6 +303,21 @@ function MemberTopupSection({
           🕰️ ยอดยกมาจากระบบเก่า
           <span className="block font-normal text-brown-faint">
             เติมเครดิตให้ลูกค้าตามปกติ แต่จะ<b>ไม่นับเป็นรายรับ</b>ของร้านเดือนนี้
+          </span>
+        </span>
+      </label>
+
+      <label className="mb-3 flex items-start gap-2 rounded-catcha-sm bg-paper/60 px-3 py-2 text-[11px] font-bold text-brown-soft">
+        <input
+          type="checkbox"
+          checked={notify}
+          onChange={(e) => setNotify(e.target.checked)}
+          className="mt-0.5 h-3.5 w-3.5 accent-latte-deep"
+        />
+        <span>
+          💬 แจ้งลูกค้าทาง LINE ด้วย
+          <span className="block font-normal text-brown-faint">
+            ส่งการ์ดยอดคงเหลือให้ลูกค้า (เสียโควตา 1 ข้อความ) · ไม่ติ๊ก = เติมเงียบๆ
           </span>
         </span>
       </label>
@@ -495,6 +520,9 @@ function CustomerSummaryCard({
   const [pkgUses, setPkgUses] = useState("");
   const [pkgPrice, setPkgPrice] = useState("");
   const [pkgBusy, setPkgBusy] = useState(false);
+  /** ค่าเริ่มต้น = ไม่แจ้ง / ไม่ใช่ยอดยกมา — เหมือนฝั่งเติมเครดิต Member */
+  const [pkgNotify, setPkgNotify] = useState(false);
+  const [pkgLegacy, setPkgLegacy] = useState(false);
 
   /** ครั้งที่ยังใช้ได้รวมทุกคอร์ส (ไม่นับที่ยกเลิก/ใช้หมดแล้ว) */
   const packageUsesLeft = packages
@@ -520,13 +548,31 @@ function CustomerSummaryCard({
       const res = await fetch("/api/packages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customerId: customer.id, name: pkgName.trim(), totalUses: uses, price }),
+        body: JSON.stringify({
+          customerId: customer.id,
+          name: pkgName.trim(),
+          totalUses: uses,
+          price,
+          isLegacy: pkgLegacy,
+          notify: pkgNotify,
+        }),
       });
+      const pkgData = await res.json().catch(() => ({}));
       if (res.ok) {
-        setMsg(`✅ ขายคอร์ส "${pkgName.trim()}" แล้ว`);
+        setMsg(
+          `✅ ${pkgLegacy ? "ยกคอร์ส" : "ขายคอร์ส"} "${pkgName.trim()}" แล้ว` +
+            (pkgLegacy ? " · ไม่นับรายรับเดือนนี้" : "") +
+            (pkgNotify
+              ? pkgData.notifyError
+                ? ` · ⚠️ ส่ง LINE ไม่ได้: ${pkgData.notifyError}`
+                : " · แจ้งลูกค้าแล้ว 💬"
+              : "")
+        );
         setPkgName("");
         setPkgUses("");
         setPkgPrice("");
+        setPkgLegacy(false);
+        setPkgNotify(false);
         loadPackages();
         setTimeout(() => setMsg(""), 2500);
       }
@@ -855,11 +901,42 @@ function CustomerSummaryCard({
             onClick={sellPackage}
             className="shrink-0 rounded-petflow-sm bg-sage px-3 py-2 text-sm font-extrabold text-card disabled:opacity-40"
           >
-            ขายคอร์ส
+            {pkgLegacy ? "ยกคอร์สมา" : "ขายคอร์ส"}
           </button>
         </div>
-        <p className="mt-1 text-[10px] text-brown-faint">
-          ขายแล้วลงรายรับทันที · เวลาลูกค้ามาใช้ กดหักที่หน้าคิดเงิน (บิลนั้นฟรี)
+
+        <label className="mt-2 flex items-start gap-2 text-[11px] font-bold text-brown-soft">
+          <input
+            type="checkbox"
+            checked={pkgLegacy}
+            onChange={(e) => setPkgLegacy(e.target.checked)}
+            className="mt-0.5 h-3.5 w-3.5 accent-latte-deep"
+          />
+          <span>
+            🕰️ ยกมาจากระบบเก่า
+            <span className="block font-normal text-brown-faint">
+              ลูกค้าได้ครั้งครบตามปกติ แต่จะ<b>ไม่นับเป็นรายรับ</b>ของร้านเดือนนี้
+            </span>
+          </span>
+        </label>
+
+        <label className="mt-1.5 flex items-start gap-2 text-[11px] font-bold text-brown-soft">
+          <input
+            type="checkbox"
+            checked={pkgNotify}
+            onChange={(e) => setPkgNotify(e.target.checked)}
+            className="mt-0.5 h-3.5 w-3.5 accent-latte-deep"
+          />
+          <span>
+            💬 แจ้งลูกค้าทาง LINE ด้วย
+            <span className="block font-normal text-brown-faint">
+              ส่งการ์ดบอกจำนวนครั้งคงเหลือ (เสียโควตา 1 ข้อความ) · ไม่ติ๊ก = บันทึกเงียบๆ
+            </span>
+          </span>
+        </label>
+
+        <p className="mt-1.5 text-[10px] text-brown-faint">
+          เวลาลูกค้ามาใช้ กดหักที่หน้าคิดเงิน (บิลนั้นฟรี) · ลูกค้าดูครั้งคงเหลือเองได้ในแอป
         </p>
       </div>
 

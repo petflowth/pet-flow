@@ -2095,3 +2095,80 @@ export function buildMemberBalanceFlex(data: {
     },
   };
 }
+
+/** การ์ดแจ้งคอร์สที่ลูกค้าซื้อ/ได้รับ — บอกจำนวนครั้งคงเหลือให้ชัด */
+export function buildPackageFlex(data: {
+  customerName: string;
+  packageName: string;
+  totalUses: number;
+  usedUses?: number;
+  price?: number;
+  shopName?: string;
+}, style?: CardStyleConfig) {
+  const left = Math.max(0, data.totalUses - (data.usedUses || 0));
+  const contents: Record<string, unknown>[] = [
+    {
+      type: "text",
+      text: style?.texts?.title || "🎫 คอร์สของคุณ",
+      weight: "bold",
+      size: style?.titleSize || "lg",
+      color: style?.headerColor || "#5C4033",
+      wrap: true,
+    },
+    {
+      type: "text",
+      text: data.customerName,
+      size: "sm",
+      color: "#A2907E",
+      margin: "md",
+      wrap: true,
+    },
+    {
+      type: "text",
+      text: data.packageName,
+      weight: "bold",
+      size: "md",
+      color: "#4E3E32",
+      margin: "lg",
+      wrap: true,
+    },
+    {
+      type: "box",
+      layout: "vertical",
+      margin: "lg",
+      paddingAll: "14px",
+      backgroundColor: "#FBF4E9",
+      cornerRadius: "12px",
+      contents: [
+        { type: "text", text: "ใช้ได้อีก", size: "xs", color: "#A2907E", align: "center" },
+        {
+          type: "text",
+          text: `${left} / ${data.totalUses} ครั้ง`,
+          weight: "bold",
+          size: "xxl",
+          color: style?.accentColor || "#C4956A",
+          align: "center",
+        },
+      ],
+    },
+    {
+      type: "text",
+      text:
+        style?.closing ||
+        "แจ้งร้านได้เลยตอนมาใช้บริการว่าจะหักจากคอร์สนะคะ 🧡",
+      size: "xs",
+      color: "#A2907E",
+      margin: "lg",
+      wrap: true,
+    },
+  ];
+
+  return {
+    type: "flex",
+    altText: `คอร์ส ${data.packageName} — ใช้ได้อีก ${left} ครั้ง`,
+    contents: {
+      type: "bubble",
+      body: { type: "box", layout: "vertical", contents },
+    },
+  };
+}

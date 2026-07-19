@@ -46,6 +46,8 @@ export async function sellPackage(data: {
   name: string;
   totalUses: number;
   price: number;
+  /** คอร์สที่ยกมาจากระบบเก่า — ลูกค้าได้สิทธิ์ตามปกติ แต่ไม่ใช่รายรับของร้านเดือนนี้ */
+  isLegacy?: boolean;
 }): Promise<CustomerPackage> {
   const pkg: CustomerPackage = {
     id: `PKG${Date.now()}${Math.floor(Math.random() * 1000)}`,
@@ -75,7 +77,9 @@ export async function sellPackage(data: {
     mem.unshift(pkg);
   }
 
-  if (pkg.price > 0) {
+  // ยกมาจากระบบเก่า: ลูกค้าได้ครั้งครบ แต่เงินรับไปตั้งแต่ระบบเดิมแล้ว
+  // ไม่ลงรายรับซ้ำ กันยอดขายเดือนนี้บวมจากเงินที่ไม่ได้รับจริง
+  if (pkg.price > 0 && !data.isLegacy) {
     await addFinanceEntry({
       type: "income",
       amount: pkg.price,

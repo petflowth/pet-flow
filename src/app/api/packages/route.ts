@@ -7,6 +7,8 @@ import {
   cancelPackage,
 } from "@/lib/packages-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
+import { pushLineMessage, buildPackageFlex } from "@/lib/line";
+import { getSiteConfig } from "@/lib/config-store";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 
 /** ล็อกอินหลังบ้านอยู่ไหม — route นี้ใช้ร่วมกันทั้งแอปลูกค้าและหลังบ้าน */
@@ -48,22 +50,52 @@ export async function POST(req: NextRequest) {
   const name = String(body.name || "").trim();
   const totalUses = Math.round(Number(body.totalUses) || 0);
   const price = Math.round(Number(body.price) || 0);
+  const isLegacy = Boolean(body.isLegacy);
+  const notify = body.notify === true;
   if (!customerId || !name || totalUses <= 0) {
     return NextResponse.json({ error: "customerId + name + totalUses required" }, { status: 400 });
   }
   const cust = await getCustomer(customerId);
   if (!cust) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  const pkg = await sellPackage({ customerId, customerName: cust.name, name, totalUses, price });
+  const pkg = await sellPackage({
+    customerId,
+    customerName: cust.name,
+    name,
+    totalUses,
+    price,
+    isLegacy,
+  });
   await sendTelegram(
-    formatBookingTelegram("🎫 ขายคอร์สให้ลูกค้า", {
+    formatBookingTelegram(isLegacy ? "🕰️ ยกคอร์สมาจากระบบเก่า" : "🎫 ขายคอร์สให้ลูกค้า", {
       ลูกค้า: cust.name,
       คอร์ส: name,
       จำนวน: `${totalUses} ครั้ง`,
       ราคา: `${price} บาท`,
+      ...(isLegacy ? { หมายเหตุ: "ยอดยกมา — ไม่นับเป็นรายรับเดือนนี้" } : {}),
     })
   );
-  return NextResponse.json({ ok: true, package: pkg });
+
+  // แจ้งลูกค้าเฉพาะตอนติ๊กเท่านั้น — ยกคอร์สเก่าเข้าระบบทีละหลายคนไม่ควรไปกวนลูกค้า
+  let notifyError: string | undefined;
+  if (notify && cust.lineUserId) {
+    const cfg = await getSiteConfig();
+    try {
+      await pushLineMessage(cust.lineUserId, [
+        buildPackageFlex({
+          customerName: cust.name,
+          packageName: pkg.name,
+          totalUses: pkg.totalUses,
+          usedUses: pkg.usedUses,
+          price: pkg.price,
+          shopName: cfg.business?.name,
+        }, cfg.cards?.packageCard),
+      ]);
+    } catch (e) {
+      notifyError = e instanceof Error ? e.message : String(e);
+    }
+  }
+  return NextResponse.json({ ok: true, package: pkg, notifyError });
 }
 
 export async function PATCH(req: NextRequest) {

@@ -141,6 +141,8 @@ export type CardStyleConfig = {
   titleSize?: "sm" | "md" | "lg" | "xl";
   /** เปิด/ปิดส่วนประกอบในการ์ด — key ตามการ์ดแต่ละใบ, ไม่ตั้ง = แสดง */
   show?: Record<string, boolean>;
+  /** ข้อความในการ์ดที่แก้เองได้ — key ตามการ์ดแต่ละใบ, ไม่ตั้ง = ใช้ข้อความเดิม */
+  texts?: Record<string, string>;
 };
 
 export type SiteConfig = {

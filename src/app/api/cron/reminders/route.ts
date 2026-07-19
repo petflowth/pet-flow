@@ -162,7 +162,7 @@ export async function GET(req: NextRequest) {
         buildPrestayFlex({
           ...buildPrestayFlexData(b, cfg),
           consentUrl: consentUrl || undefined,
-        }),
+        }, cfg.cards?.prestay),
       ];
       // มีบิลค้าง + มัดจำแล้ว → แนบการ์ดยอดคงเหลือที่ต้องโอนก่อนเข้าพัก
       const pendingInv = allInvoices.find(
@@ -198,7 +198,7 @@ export async function GET(req: NextRequest) {
           body: buildCheckinBodyText(b, cfg),
           url: checkinUrl || undefined,
           label: "🕒 เลือกเวลาส่งน้อง",
-        })
+        }, cfg.cards?.timePicker)
       );
       try {
         await pushLineMessage(b.lineUserId, prestayBundle);
@@ -217,7 +217,7 @@ export async function GET(req: NextRequest) {
         body: buildCheckinBodyText(b, cfg),
         url: url || undefined,
         label: "🕒 เลือกเวลาส่งน้อง",
-      });
+      }, cfg.cards?.timePicker);
       try {
         await pushLineMessage(b.lineUserId, [flex]);
         checkinReminders++;
@@ -239,7 +239,7 @@ export async function GET(req: NextRequest) {
         body: buildCheckoutBodyText(b, cfg),
         url: url || undefined,
         label: "🕒 เลือกเวลารับน้อง",
-      });
+      }, cfg.cards?.timePicker);
       try {
         await pushLineMessage(b.lineUserId, [flex]);
         checkoutReminders++;

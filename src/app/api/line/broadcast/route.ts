@@ -14,6 +14,7 @@ import {
 import { buildPromoFlex, multicastLineMessage } from "@/lib/line";
 import { getLineCredentials, getAppUrlFromEnv } from "@/lib/line-config";
 import { TIER_LABELS } from "@/lib/customer-tier";
+import { getSiteConfig } from "@/lib/config-store";
 
 function checkAdmin(body: { adminCode?: string }) {
   const secret = process.env.NEXT_PUBLIC_ADMIN_CODE;
@@ -93,7 +94,7 @@ export async function POST(req: NextRequest) {
       promoUrl,
       discountLabel,
       buttons: buttons.length ? buttons : undefined,
-    });
+    }, (await getSiteConfig()).cards?.promo);
     const result = await multicastLineMessage(lineIds, [flex]);
     return NextResponse.json({
       ok: true,

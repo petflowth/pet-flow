@@ -28,6 +28,9 @@ type TextMeta = {
   hint?: string;
 };
 
+/** ข้อความที่เก็บไว้ในตัวการ์ดเอง (cards.<key>.texts.<key>) — ไม่ต้องพึ่ง messages.* */
+type StyleTextMeta = { key: string; label: string; placeholder: string };
+
 type CardMeta = {
   key: string;
   name: string;
@@ -35,6 +38,8 @@ type CardMeta = {
   colors: ColorRole[];
   fields: FieldMeta[];
   texts: TextMeta[];
+  /** ช่องแก้ข้อความที่เก็บใน cards.<key>.texts */
+  styleTexts?: StyleTextMeta[];
   closingLabel?: string;
   hasTitleSize?: boolean;
 };
@@ -170,6 +175,142 @@ const CARDS: CardMeta[] = [
     hasTitleSize: true,
   },
   {
+    key: "prestay",
+    name: "🏠 เตรียมตัวก่อนเข้าพัก",
+    desc: "การ์ดใหญ่ก่อนวันเข้าพัก — วันที่ ห้อง ของที่ต้องเตรียม + ปุ่มเซ็นข้อตกลง",
+    colors: [
+      { key: "headerColor", label: "สีแถบหัว", fallback: "#5A8F5A" },
+      { key: "headerTextColor", label: "สีตัวหนังสือหัว", fallback: "#FFFFFF" },
+      { key: "accentColor", label: "สีชื่อน้อง", fallback: "#5C4033" },
+      { key: "buttonColor", label: "สีปุ่มยืนยันเข้าพัก", fallback: "#4A7348" },
+    ],
+    fields: [
+      { key: "dates", label: "📅 กล่องวันเข้าพัก" },
+      { key: "room", label: "🏠 ห้องพัก" },
+      { key: "prep", label: "🧳 รายการของที่ต้องเตรียม" },
+      { key: "litter", label: "⚠️ แจ้งเตรียมทราย (กรณีไม่แถมฟรี)" },
+      { key: "care", label: "💗 ชวนแจ้งการดูแลพิเศษ" },
+    ],
+    texts: [],
+    styleTexts: [
+      { key: "header", label: "ข้อความบนแถบหัว", placeholder: "🏠 เตรียมตัวก่อนเข้าพัก" },
+      { key: "prepTitle", label: "หัวข้อรายการของที่ต้องเตรียม", placeholder: "🧳 สิ่งที่ต้องเตรียมมาด้วย" },
+    ],
+    closingLabel: "ข้อความปิดท้ายการ์ด (ไม่บังคับ)",
+    hasTitleSize: true,
+  },
+  {
+    key: "timePicker",
+    name: "🕒 เลือกเวลาเช็คอิน / เช็คเอาท์",
+    desc: "การ์ดให้ลูกค้ากดเลือกเวลามาส่ง-รับน้อง",
+    colors: [
+      { key: "headerColor", label: "สีแถบหัว", fallback: "#5A8F5A" },
+      { key: "headerTextColor", label: "สีตัวหนังสือหัว", fallback: "#FFFFFF" },
+      { key: "buttonColor", label: "สีปุ่มเลือกเวลา", fallback: "#4A7348" },
+    ],
+    fields: [],
+    texts: [],
+    styleTexts: [
+      { key: "button", label: "คำในปุ่ม (ว่าง = ใช้คำเดิมของแต่ละแบบ)", placeholder: "🕒 เลือกเวลาส่งน้อง" },
+    ],
+    closingLabel: "ข้อความปิดท้ายการ์ด (ไม่บังคับ)",
+    hasTitleSize: true,
+  },
+  {
+    key: "depositThanks",
+    name: "💚 ขอบคุณ (รับมัดจำแล้ว)",
+    desc: "ส่งหลังรับเงินมัดจำ — ยืนยันยอด + เงื่อนไขมัดจำ",
+    colors: [
+      { key: "headerColor", label: "สีหัวข้อ", fallback: "#5C4033" },
+      { key: "accentColor", label: "สียอดมัดจำ", fallback: "#4A7348" },
+    ],
+    fields: [
+      { key: "percent", label: "🔢 บรรทัดบอกเปอร์เซ็นต์" },
+      { key: "note", label: "📝 โน้ตเพิ่มเติม" },
+      { key: "terms", label: "🐾 เงื่อนไขมัดจำ" },
+    ],
+    texts: [],
+    styleTexts: [
+      { key: "amountLabel", label: "คำนำหน้ายอด", placeholder: "มัดจำที่รับ" },
+      { key: "termsTitle", label: "หัวข้อเงื่อนไข", placeholder: "🐾 เงื่อนไขมัดจำ" },
+    ],
+    closingLabel: "ข้อความปิดท้ายการ์ด (ไม่บังคับ)",
+    hasTitleSize: true,
+  },
+  {
+    key: "memberBalance",
+    name: "💎 ยอด Member คงเหลือ",
+    desc: "แนบท้ายใบเสร็จให้ลูกค้า Member — แจ้งเครดิตคงเหลือ",
+    colors: [
+      { key: "headerColor", label: "สีหัวข้อ", fallback: "#5C4033" },
+      { key: "accentColor", label: "สียอดคงเหลือ", fallback: "#C4956A" },
+    ],
+    fields: [
+      { key: "customerName", label: "👤 ชื่อลูกค้า" },
+      { key: "usedToday", label: "💸 บรรทัด “ใช้วันนี้ … บาท”" },
+    ],
+    texts: [],
+    styleTexts: [
+      { key: "title", label: "หัวข้อการ์ด", placeholder: "💎 สรุปยอด Member" },
+      { key: "balanceLabel", label: "คำนำหน้ายอดคงเหลือ", placeholder: "คงเหลือ" },
+    ],
+    closingLabel: "ข้อความปิดท้ายการ์ด (ไม่บังคับ)",
+    hasTitleSize: true,
+  },
+  {
+    key: "payment",
+    name: "💳 แจ้งชำระเงิน (จากบิล)",
+    desc: "ส่งจากหน้าบิล — รายการ + ยอดรวม + บัญชีโอน",
+    colors: [
+      { key: "headerColor", label: "สีหัวข้อ", fallback: "#5C4033" },
+      { key: "accentColor", label: "สียอดรวม", fallback: "#C4956A" },
+      { key: "buttonColor", label: "สีปุ่มคัดลอกบัญชี", fallback: "#4A7348" },
+    ],
+    fields: [
+      { key: "items", label: "🧾 รายการสินค้า/บริการ" },
+      { key: "bank", label: "🏦 กล่องเลขบัญชี + ปุ่มคัดลอก" },
+    ],
+    texts: [],
+    styleTexts: [{ key: "title", label: "หัวข้อการ์ด", placeholder: "💳 แจ้งชำระเงิน" }],
+    closingLabel: "ข้อความปิดท้ายการ์ด (ไม่บังคับ)",
+    hasTitleSize: true,
+  },
+  {
+    key: "coupon",
+    name: "🎟️ คูปองส่วนลด",
+    desc: "ยิงแคมเปญคูปองให้ลูกค้ากดรับ",
+    colors: [
+      { key: "headerColor", label: "สีแถบหัว", fallback: "#5A8F5A" },
+      { key: "headerTextColor", label: "สีตัวหนังสือหัว", fallback: "#FFFFFF" },
+      { key: "accentColor", label: "สีตัวเลขส่วนลด", fallback: "#C4956A" },
+      { key: "buttonColor", label: "สีปุ่มกดรับคูปอง", fallback: "#4A7348" },
+    ],
+    fields: [],
+    texts: [],
+    styleTexts: [
+      { key: "header", label: "ข้อความบนแถบหัว", placeholder: "🎟️ คูปองส่วนลดพิเศษ" },
+      { key: "button", label: "คำในปุ่ม", placeholder: "🎟️ กดรับคูปอง" },
+    ],
+    closingLabel: "ข้อความอธิบายวิธีใช้ (ไม่บังคับ)",
+    hasTitleSize: true,
+  },
+  {
+    key: "promo",
+    name: "✨ โปรโมชั่น (บรอดแคสต์)",
+    desc: "การ์ดโปรที่ยิงหาลูกค้าหลายคนพร้อมกัน",
+    colors: [
+      { key: "headerColor", label: "สีแถบหัว (เมื่อไม่ใส่รูป)", fallback: "#5A8F5A" },
+      { key: "headerTextColor", label: "สีตัวหนังสือหัว", fallback: "#FFFFFF" },
+      { key: "accentColor", label: "สีหัวข้อโปร", fallback: "#5C4033" },
+      { key: "buttonColor", label: "สีปุ่มหลัก", fallback: "#4A7348" },
+    ],
+    fields: [],
+    texts: [],
+    styleTexts: [{ key: "header", label: "ข้อความบนแถบหัว", placeholder: "✨ โปรโมชั่น CatCha" }],
+    closingLabel: "ข้อความปิดท้ายการ์ด (ไม่บังคับ)",
+    hasTitleSize: true,
+  },
+  {
     key: "groomFormFields",
     name: "🩺 ฟอร์มถามประวัติน้อง",
     desc: "คำถามที่ลูกค้าเห็นในฟอร์มก่อนอาบน้ำ — เปิด/ปิด แก้คำถาม เพิ่ม-ลบตัวเลือกเองได้",
@@ -229,6 +370,8 @@ function Preview({
 }) {
   const show = (k: string) => st.show?.[k] !== false;
   const c = (role: ColorRole["key"], fb: string) => st[role] || fb;
+  /** ข้อความที่เก็บในตัวการ์ดเอง (cards.<key>.texts) — ว่าง = ใช้ค่าเริ่มต้น */
+  const t = (k: string, fb: string) => st.texts?.[k] || fb;
   const titleCls = SIZE_PREVIEW[st.titleSize || ""] || "text-sm";
 
   const bubble = "overflow-hidden rounded-2xl border border-[#e8e0d0] bg-white shadow-lg";
@@ -398,6 +541,187 @@ function Preview({
           </div>
         </div>
         {btn("#4A7348", "📋 อ่าน + เซ็นยอมรับข้อตกลง")}
+      </div>
+    );
+  }
+
+  if (meta.key === "prestay") {
+    return (
+      <div className={bubble}>
+        <div className="px-4 py-3" style={{ background: c("headerColor", "#5A8F5A") }}>
+          <p className="text-xs font-extrabold" style={{ color: c("headerTextColor", "#FFFFFF") }}>
+            {t("header", "🏠 เตรียมตัวก่อนเข้าพัก")}
+          </p>
+        </div>
+        <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
+          <p className={`${titleCls} font-extrabold`} style={{ color: c("accentColor", "#5C4033") }}>🐱 เรเนล</p>
+          <p className="text-[10px] text-[#A2907E]">CatCha Hotel</p>
+          <p>สวัสดีค่ะ 🧡 อีก 3 วันน้องจะได้มาพักกับเราแล้วนะคะ</p>
+          {(show("dates") || show("room")) && (
+            <div className="space-y-1.5 rounded-xl bg-[#F4ECE0] px-3 py-2.5">
+              {show("dates") && (
+                <p>📅 <span className="text-[9px] text-[#9B8B7E]">วันเข้าพัก</span> <b className="text-[#4A7348]">20 → 26 ก.ค. 2569</b></p>
+              )}
+              {show("room") && (
+                <p>🏠 <span className="text-[9px] text-[#9B8B7E]">ห้องพัก</span> <b>Mid Cozy</b></p>
+              )}
+            </div>
+          )}
+          {show("prep") && (
+            <>
+              <p className="pt-1 text-xs font-extrabold" style={{ color: c("headerColor", "#5C4033") }}>
+                {t("prepTitle", "🧳 สิ่งที่ต้องเตรียมมาด้วย")}
+              </p>
+              <div className="space-y-1 rounded-lg bg-[#FBF7F0] px-2.5 py-2 text-[10px]">
+                <p>🍽️ อาหารที่น้องกินประจำ</p>
+                <p>💊 ยาประจำตัว (ถ้ามี)</p>
+              </div>
+            </>
+          )}
+          {show("litter") && (
+            <p className="rounded-lg bg-[#FBEEE0] px-2.5 py-1.5 text-[10px] text-[#B4553B]">⚠️ ห้องนี้พักไม่ถึง 3 วัน รบกวนเตรียมทรายมาด้วยนะคะ</p>
+          )}
+          {show("care") && (
+            <p className="rounded-lg bg-[#FBF0F1] px-2.5 py-1.5 text-[10px] text-[#7A6A5A]">💗 มีอะไรที่ต้องดูแลพิเศษ แจ้งได้เลยนะคะ</p>
+          )}
+          {st.closing && <p className="text-[10px] text-[#A2907E]">{st.closing}</p>}
+        </div>
+        {btn(c("buttonColor", "#4A7348"), "🧡 อ่านรายละเอียด & ยืนยันการเข้าพัก")}
+      </div>
+    );
+  }
+
+  if (meta.key === "timePicker") {
+    return (
+      <div className={bubble}>
+        <div className="px-4 py-3" style={{ background: c("headerColor", "#5A8F5A") }}>
+          <p className={`${titleCls} font-extrabold`} style={{ color: c("headerTextColor", "#FFFFFF") }}>🕒 เลือกเวลาเข้าพัก</p>
+        </div>
+        <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
+          <p>น้องเรเนลเข้าพัก 20 ก.ค. นะคะ 🐾{"\n"}รบกวนเลือกเวลาที่สะดวกมาส่งน้องด้วยค่ะ</p>
+          {st.closing && <p className="text-[10px] text-[#A2907E]">{st.closing}</p>}
+        </div>
+        {btn(c("buttonColor", "#4A7348"), t("button", "🕒 เลือกเวลาส่งน้อง"))}
+      </div>
+    );
+  }
+
+  if (meta.key === "depositThanks") {
+    return (
+      <div className={bubble}>
+        <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
+          <p className={`${titleCls} font-extrabold`} style={{ color: c("headerColor", "#5C4033") }}>
+            💚 รับมัดจำเรียบร้อยแล้วค่ะ
+          </p>
+          <p>ขอบคุณคุณตาลที่ล็อกคิวให้น้อง Soju นะคะ คิวยืนยันเรียบร้อยแล้วค่ะ 🧡</p>
+          <div className="space-y-1 rounded-lg bg-[#F4ECE0] px-2.5 py-2">
+            <div className="flex justify-between">
+              <span>{t("amountLabel", "มัดจำที่รับ")}</span>
+              <b className="text-sm" style={{ color: c("accentColor", "#4A7348") }}>200 บาท</b>
+            </div>
+            {show("percent") && <p className="text-right text-[9px] text-[#A2907E]">(30% ของยอดรวม)</p>}
+            {show("note") && <p className="text-[10px] text-[#A2907E]">จองคิววันเสาร์</p>}
+          </div>
+          {show("terms") && (
+            <>
+              <hr className="border-[#eee3d2]" />
+              <p className="text-[10px] font-extrabold" style={{ color: c("headerColor", "#5C4033") }}>
+                {t("termsTitle", "🐾 เงื่อนไขมัดจำ")}
+              </p>
+              <p className="text-[10px] text-[#7A6A5A]">• มัดจำใช้หักจากยอดรวมในวันรับบริการ</p>
+              <p className="text-[10px] text-[#7A6A5A]">• เลื่อนนัดล่วงหน้า 24 ชม. ได้โดยไม่เสียมัดจำ</p>
+            </>
+          )}
+          {st.closing && <p className="text-[10px] text-[#A2907E]">{st.closing}</p>}
+        </div>
+      </div>
+    );
+  }
+
+  if (meta.key === "memberBalance") {
+    return (
+      <div className={bubble}>
+        <div className="space-y-1 px-4 py-4 text-[11px] text-[#4E3E32]">
+          <p className={`${titleCls} font-extrabold`} style={{ color: c("headerColor", "#5C4033") }}>
+            {t("title", "💎 สรุปยอด Member")}
+          </p>
+          {show("customerName") && <p className="pt-1 text-[10px] text-[#A2907E]">คุณตาล</p>}
+          <p className="pt-1.5 text-lg font-extrabold" style={{ color: c("accentColor", "#C4956A") }}>
+            {t("balanceLabel", "คงเหลือ")} 1,500 บาท
+          </p>
+          {show("usedToday") && <p className="pt-1 text-[10px]">ใช้วันนี้ 550 บาท · Soju</p>}
+          {st.closing && <p className="pt-2 text-[10px] text-[#A2907E]">{st.closing}</p>}
+        </div>
+      </div>
+    );
+  }
+
+  if (meta.key === "payment") {
+    return (
+      <div className={bubble}>
+        <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
+          <p className={`${titleCls} font-extrabold`} style={{ color: c("headerColor", "#5C4033") }}>
+            {t("title", "💳 แจ้งชำระเงิน")}
+          </p>
+          <p className="text-[10px] text-[#A2907E]">Soju · ตาล</p>
+          {show("items") && (
+            <p className="text-[10px]">Catcha Premium · แมวไทย M 900 บาท{"\n"}ส่วนลด -45 บาท</p>
+          )}
+          <hr className="border-[#eee3d2]" />
+          <p className="text-base font-extrabold" style={{ color: c("accentColor", "#C4956A") }}>รวม 855 บาท</p>
+          {show("bank") && (
+            <div className="rounded-lg bg-[#F4ECE0] px-2.5 py-2">
+              <p className="font-extrabold">กรุงไทย</p>
+              <p className="text-sm font-extrabold text-[#4A7348]">664-4-43446-0</p>
+              <p className="text-[10px] text-[#A2907E]">ชื่อบัญชี: CatCha Hotel</p>
+            </div>
+          )}
+          {st.closing && <p className="text-[10px] text-[#A2907E]">{st.closing}</p>}
+        </div>
+        {show("bank") && btn(c("buttonColor", "#4A7348"), "📋 คัดลอกเลขบัญชี")}
+      </div>
+    );
+  }
+
+  if (meta.key === "coupon") {
+    return (
+      <div className={bubble}>
+        <div className="px-4 py-3" style={{ background: c("headerColor", "#5A8F5A") }}>
+          <p className="text-xs font-extrabold" style={{ color: c("headerTextColor", "#FFFFFF") }}>
+            {t("header", "🎟️ คูปองส่วนลดพิเศษ")}
+          </p>
+        </div>
+        <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
+          <p className={`${titleCls} font-extrabold`} style={{ color: c("accentColor", "#5C4033") }}>คิดถึงน้องจัง กลับมาหาเราหน่อยนะ 🧡</p>
+          <div className="rounded-xl bg-[#FBF4E9] px-3 py-3 text-center">
+            <p className="text-[10px] text-[#A2907E]">ส่วนลด</p>
+            <p className="text-2xl font-extrabold" style={{ color: c("accentColor", "#C4956A") }}>100 บาท</p>
+          </div>
+          <p className="text-[10px] text-[#A2907E]">
+            {st.closing || "กดรับแล้วเก็บไว้ในกระเป๋าคูปอง ใช้เป็นส่วนลดได้เลย"} (ใช้ได้ 30 วัน) 🧡
+          </p>
+        </div>
+        {btn(c("buttonColor", "#4A7348"), t("button", "🎟️ กดรับคูปอง"))}
+      </div>
+    );
+  }
+
+  if (meta.key === "promo") {
+    return (
+      <div className={bubble}>
+        <div className="px-4 py-5" style={{ background: c("headerColor", "#5A8F5A") }}>
+          <p className="text-sm font-extrabold" style={{ color: c("headerTextColor", "#FFFFFF") }}>
+            {t("header", "✨ โปรโมชั่น CatCha")}
+          </p>
+          <p className="text-[9px]" style={{ color: c("headerTextColor", "#FFFFFF") }}>(ถ้าใส่รูปโปร รูปจะแทนแถบนี้)</p>
+        </div>
+        <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
+          <p className={`${titleCls} font-extrabold`} style={{ color: c("accentColor", "#5C4033") }}>โปรเดือนกรกฎา อาบน้ำลด 15%</p>
+          <p className="text-[10px] font-extrabold" style={{ color: c("buttonColor", "#4A7348") }}>ลด 15%</p>
+          <p>จองคิวภายในสิ้นเดือนนี้ รับส่วนลดทันทีนะคะ 🐾</p>
+          {st.closing && <p className="text-[10px] text-[#A2907E]">{st.closing}</p>}
+        </div>
+        {btn(c("buttonColor", "#4A7348"), "ดูรายละเอียด")}
       </div>
     );
   }
@@ -810,6 +1134,29 @@ export default function CardsStudioPage() {
                       />
                     )}
                     {t.hint && <span className="mt-0.5 block text-[9px] font-normal text-brown-faint">{t.hint}</span>}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!!meta.styleTexts?.length && (
+            <div>
+              <p className="mb-2 text-xs font-extrabold text-brown">📝 ข้อความในการ์ด (เขียนเองได้)</p>
+              <div className="space-y-2.5">
+                {meta.styleTexts.map((sx) => (
+                  <label key={sx.key} className="block text-[11px] font-bold text-brown-soft">
+                    {sx.label}
+                    <input
+                      value={st.texts?.[sx.key] || ""}
+                      onChange={(e) => {
+                        const next = { ...st.texts, [sx.key]: e.target.value };
+                        if (!e.target.value) delete next[sx.key];
+                        patch({ texts: Object.keys(next).length ? next : undefined });
+                      }}
+                      placeholder={sx.placeholder}
+                      className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs font-normal"
+                    />
                   </label>
                 ))}
               </div>

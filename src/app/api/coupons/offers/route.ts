@@ -12,6 +12,7 @@ import type { CustomerTier } from "@/lib/customer-tier";
 import { multicastLineMessage, buildCouponOfferFlex } from "@/lib/line";
 import { getLineCredentials } from "@/lib/line-config";
 import { buildClaimCouponUrl } from "@/lib/liff-urls";
+import { getSiteConfig } from "@/lib/config-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 
 /** หลังบ้าน: รายการแคมเปญ + คูปองทั้งหมด (พร้อมชื่อลูกค้า) */
@@ -84,7 +85,7 @@ export async function PATCH(req: NextRequest) {
       body: offer.reason && offer.reason !== offer.title ? offer.reason : undefined,
       url: buildClaimCouponUrl(liffId, offer.id),
       validDays: offer.validDays,
-    });
+    }, (await getSiteConfig()).cards?.coupon);
     let sent = 0;
     if (lineIds.length) {
       const r = await multicastLineMessage(lineIds, [flex]);

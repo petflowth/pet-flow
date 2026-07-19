@@ -218,7 +218,8 @@ export async function POST(req: NextRequest) {
       })
     );
     if (customer?.lineUserId) {
-      const msgs = (await getSiteConfig()).messages;
+      const cfgDt = await getSiteConfig();
+      const msgs = cfgDt.messages;
       const catName = customer.cats[0]?.name || "น้องแมว";
       await pushLineMessage(customer.lineUserId, [
         buildDepositThanksFlex({
@@ -232,7 +233,7 @@ export async function POST(req: NextRequest) {
           amount: res.amount,
           note: body.note ? String(body.note) : undefined,
           percentNote: body.percentNote ? String(body.percentNote) : undefined,
-        }),
+        }, cfgDt.cards?.depositThanks),
       ]);
     }
     return NextResponse.json({ ok: true, balance: res.balance, needSql: res.needSql });
@@ -280,7 +281,7 @@ export async function PATCH(req: NextRequest) {
         bankName: payment.bankName,
         accountNumber: payment.accountNumber,
         accountName: payment.accountName,
-      }),
+      }, (await getSiteConfig()).cards?.payment),
     ]);
     await markInvoiceSent(id);
     return NextResponse.json({ ok: true, payUrl });
@@ -397,7 +398,7 @@ export async function PATCH(req: NextRequest) {
             usedToday:
               paid.paymentMethod === "member_credit" ? paid.total : undefined,
             catName: paid.catName,
-          })
+          }, cfgRc.cards?.memberBalance)
         );
       }
       await pushLineMessage(paid.lineUserId, receiptMsgs);
@@ -478,7 +479,7 @@ export async function PATCH(req: NextRequest) {
       buildMemberBalanceFlex({
         customerName: customer.name,
         memberCredit: customer.memberCredit,
-      }),
+      }, (await getSiteConfig()).cards?.memberBalance),
     ]);
     return NextResponse.json({ ok: true });
   }
@@ -499,7 +500,8 @@ export async function PATCH(req: NextRequest) {
     );
     // ส่งการ์ดขอบคุณ + เงื่อนไข ให้ลูกค้า
     if (inv.lineUserId) {
-      const msgs = (await getSiteConfig()).messages;
+      const cfgRd = await getSiteConfig();
+      const msgs = cfgRd.messages;
       await pushLineMessage(inv.lineUserId, [
         buildDepositThanksFlex({
           title: msgs.depositThanksTitle,
@@ -510,7 +512,7 @@ export async function PATCH(req: NextRequest) {
           }),
           terms: msgs.depositTerms || [],
           amount: res.deposit,
-        }),
+        }, cfgRd.cards?.depositThanks),
       ]);
     }
     return NextResponse.json({ ok: true, deposit: res.deposit, remaining: res.remaining });

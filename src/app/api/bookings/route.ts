@@ -313,13 +313,13 @@ export async function PATCH(req: NextRequest) {
             body: buildCheckinBodyText(b, cfg),
             url: url || undefined,
             label: "🕒 เลือกเวลาส่งน้อง",
-          })
+          }, cfg.cards?.timePicker)
         : buildTimePickerFlex({
             title: "🕒 เลือกเวลารับน้อง",
             body: buildCheckoutBodyText(b, cfg),
             url: url || undefined,
             label: "🕒 เลือกเวลารับน้อง",
-          });
+          }, cfg.cards?.timePicker);
     try {
       await pushLineMessage(to, [flex]);
       return NextResponse.json({ ok: true });
@@ -387,7 +387,7 @@ export async function PATCH(req: NextRequest) {
           buildPrestayFlex({
             ...buildPrestayFlexData(b, cfg),
             consentUrl: url || undefined,
-          })
+          }, cfg.cards?.prestay)
         );
       } else if (part === "receipt" || part === "depositThanks") {
         const all = await listInvoices();
@@ -422,7 +422,7 @@ export async function PATCH(req: NextRequest) {
               }),
               terms: cfg.messages.depositTerms || [],
               amount: inv.deposit || 0,
-            })
+            }, cfg.cards?.depositThanks)
           );
         }
       } else if (part === "summary" || part === "review") {
@@ -494,13 +494,13 @@ export async function PATCH(req: NextRequest) {
                 body: buildCheckinBodyText(b, cfg),
                 url: url || undefined,
                 label: "🕒 เลือกเวลาส่งน้อง",
-              })
+              }, cfg.cards?.timePicker)
             : buildTimePickerFlex({
                 title: "🕒 เลือกเวลารับน้อง",
                 body: buildCheckoutBodyText(b, cfg),
                 url: url || undefined,
                 label: "🕒 เลือกเวลารับน้อง",
-              })
+              }, cfg.cards?.timePicker)
         );
       } else if (part === "deposit") {
         const amount = Math.round(Number(body.depositAmount) || 0);
@@ -631,7 +631,7 @@ export async function PATCH(req: NextRequest) {
       const flex = buildPrestayFlex({
         ...buildPrestayFlexData(b, cfg),
         consentUrl: url || undefined,
-      });
+      }, cfg.cards?.prestay);
       try {
         await pushLineMessage(to, [flex]);
         return NextResponse.json({ ok: true });

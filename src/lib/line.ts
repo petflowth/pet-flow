@@ -370,13 +370,13 @@ export function buildReminderFlex(booking: {
   service: string;
   when: string;
   confirmUrl: string;
-}) {
+}, style?: CardStyleConfig) {
   return buildAppointmentConfirmFlex({
     ...booking,
     date: booking.when,
     mapsUrl: "https://maps.app.goo.gl/u38pzVGa9LiEsLEK8",
     location: "CatCha Hotel · บางนา เมกะ เทพารักษ์",
-  });
+  }, style);
 }
 
 export function buildPromoFlex(data: {
@@ -386,7 +386,7 @@ export function buildPromoFlex(data: {
   promoUrl: string;
   discountLabel?: string;
   buttons?: { label: string; uri: string }[];
-}) {
+}, style?: CardStyleConfig) {
   const hero = data.imageUrl
     ? {
         type: "image" as const,
@@ -398,15 +398,16 @@ export function buildPromoFlex(data: {
     : {
         type: "box" as const,
         layout: "vertical" as const,
-        backgroundColor: BRAND_GREEN,
+        backgroundColor: style?.headerColor || BRAND_GREEN,
         paddingAll: "20px",
         contents: [
           {
             type: "text" as const,
-            text: "✨ โปรโมชั่น CatCha",
-            color: "#FFFFFF",
+            text: style?.texts?.header || "✨ โปรโมชั่น CatCha",
+            color: style?.headerTextColor || "#FFFFFF",
             weight: "bold" as const,
             size: "md" as const,
+            wrap: true,
           },
         ],
       };
@@ -427,8 +428,8 @@ export function buildPromoFlex(data: {
             type: "text",
             text: data.title,
             weight: "bold",
-            size: "lg",
-            color: "#5C4033",
+            size: style?.titleSize || "lg",
+            color: style?.accentColor || "#5C4033",
             wrap: true,
           },
           ...(data.discountLabel
@@ -437,7 +438,7 @@ export function buildPromoFlex(data: {
                   type: "text" as const,
                   text: data.discountLabel,
                   size: "sm" as const,
-                  color: BRAND_GREEN_DARK,
+                  color: style?.buttonColor || BRAND_GREEN_DARK,
                   weight: "bold" as const,
                   margin: "md" as const,
                 },
@@ -451,6 +452,18 @@ export function buildPromoFlex(data: {
             margin: "md",
             wrap: true,
           },
+          ...(style?.closing
+            ? [
+                {
+                  type: "text" as const,
+                  text: style.closing,
+                  size: "xs" as const,
+                  color: "#A2907E",
+                  margin: "lg" as const,
+                  wrap: true,
+                },
+              ]
+            : []),
         ],
       },
       footer: {
@@ -463,7 +476,7 @@ export function buildPromoFlex(data: {
         ).map((btn, i) => ({
           type: "button" as const,
           style: (i === 0 ? "primary" : "secondary") as "primary" | "secondary",
-          color: i === 0 ? BRAND_GREEN_DARK : undefined,
+          color: i === 0 ? style?.buttonColor || BRAND_GREEN_DARK : undefined,
           height: "sm" as const,
           action: {
             type: "uri" as const,
@@ -486,7 +499,8 @@ export function buildPaymentFlex(data: {
   bankName: string;
   accountNumber: string;
   accountName: string;
-}) {
+}, style?: CardStyleConfig) {
+  const show = (k: string) => style?.show?.[k] !== false;
   const lines = data.items
     .map((i) => `${i.label} ${i.amount.toLocaleString()} บาท`)
     .join("\n");
@@ -503,10 +517,11 @@ export function buildPaymentFlex(data: {
         contents: [
           {
             type: "text",
-            text: "💳 แจ้งชำระเงิน",
+            text: style?.texts?.title || "💳 แจ้งชำระเงิน",
             weight: "bold",
-            size: "lg",
-            color: "#5C4033",
+            size: style?.titleSize || "lg",
+            color: style?.headerColor || "#5C4033",
+            wrap: true,
           },
           {
             type: "text",
@@ -516,14 +531,18 @@ export function buildPaymentFlex(data: {
             margin: "md",
             wrap: true,
           },
-          {
-            type: "text",
-            text: lines,
-            size: "xs",
-            color: "#4E3E32",
-            margin: "md",
-            wrap: true,
-          },
+          ...(show("items")
+            ? [
+                {
+                  type: "text" as const,
+                  text: lines,
+                  size: "xs" as const,
+                  color: "#4E3E32",
+                  margin: "md" as const,
+                  wrap: true,
+                },
+              ]
+            : []),
           {
             type: "separator",
             margin: "lg",
@@ -533,42 +552,58 @@ export function buildPaymentFlex(data: {
             text: `รวม ${data.total.toLocaleString()} บาท`,
             weight: "bold",
             size: "xl",
-            color: "#C4956A",
+            color: style?.accentColor || "#C4956A",
             margin: "lg",
           },
-          {
-            type: "box",
-            layout: "vertical",
-            margin: "lg",
-            spacing: "xs",
-            paddingAll: "12px",
-            backgroundColor: "#F4ECE0",
-            cornerRadius: "10px",
-            contents: [
-              {
-                type: "text",
-                text: data.bankName,
-                weight: "bold",
-                size: "md",
-                color: "#5C4033",
-              },
-              {
-                type: "text",
-                text: data.accountNumber,
-                weight: "bold",
-                size: "xl",
-                color: "#4A7348",
-                wrap: true,
-              },
-              {
-                type: "text",
-                text: `ชื่อบัญชี: ${data.accountName}`,
-                size: "sm",
-                color: "#A2907E",
-                wrap: true,
-              },
-            ],
-          },
+          ...(show("bank")
+            ? [
+                {
+                  type: "box" as const,
+                  layout: "vertical" as const,
+                  margin: "lg" as const,
+                  spacing: "xs" as const,
+                  paddingAll: "12px",
+                  backgroundColor: "#F4ECE0",
+                  cornerRadius: "10px",
+                  contents: [
+                    {
+                      type: "text",
+                      text: data.bankName,
+                      weight: "bold",
+                      size: "md",
+                      color: "#5C4033",
+                    },
+                    {
+                      type: "text",
+                      text: data.accountNumber,
+                      weight: "bold",
+                      size: "xl",
+                      color: "#4A7348",
+                      wrap: true,
+                    },
+                    {
+                      type: "text",
+                      text: `ชื่อบัญชี: ${data.accountName}`,
+                      size: "sm",
+                      color: "#A2907E",
+                      wrap: true,
+                    },
+                  ],
+                },
+              ]
+            : []),
+          ...(style?.closing
+            ? [
+                {
+                  type: "text" as const,
+                  text: style.closing,
+                  size: "xs" as const,
+                  color: "#A2907E",
+                  margin: "lg" as const,
+                  wrap: true,
+                },
+              ]
+            : []),
         ],
       },
       footer: {
@@ -576,17 +611,21 @@ export function buildPaymentFlex(data: {
         layout: "vertical",
         spacing: "sm",
         contents: [
-          {
-            type: "button",
-            style: "primary",
-            color: "#4A7348",
-            height: "sm",
-            action: {
-              type: "clipboard",
-              label: "📋 คัดลอกเลขบัญชี",
-              clipboardText: data.accountNumber,
-            },
-          },
+          ...(show("bank")
+            ? [
+                {
+                  type: "button" as const,
+                  style: "primary" as const,
+                  color: style?.buttonColor || "#4A7348",
+                  height: "sm" as const,
+                  action: {
+                    type: "clipboard" as const,
+                    label: "📋 คัดลอกเลขบัญชี",
+                    clipboardText: data.accountNumber,
+                  },
+                },
+              ]
+            : []),
           {
             type: "button",
             style: "secondary",
@@ -940,15 +979,16 @@ export function buildPrestayFlex(data: {
   litterNote?: string;
   consentUrl?: string;
   consentLabel?: string;
-}) {
+}, style?: CardStyleConfig) {
+  const show = (k: string) => style?.show?.[k] !== false;
   const body: Record<string, unknown>[] = [
     // ชื่อน้อง + ร้าน
     {
       type: "text",
       text: `🐱 ${data.catName}`,
       weight: "bold",
-      size: "xl",
-      color: "#5C4033",
+      size: style?.titleSize || "xl",
+      color: style?.accentColor || "#5C4033",
       wrap: true,
     },
     {
@@ -971,7 +1011,7 @@ export function buildPrestayFlex(data: {
 
   // กล่องไฮไลต์วันเข้าพัก + ห้อง
   const dateBox: Record<string, unknown>[] = [];
-  if (data.dateText) {
+  if (data.dateText && show("dates")) {
     dateBox.push({
       type: "box",
       layout: "horizontal",
@@ -997,11 +1037,11 @@ export function buildPrestayFlex(data: {
       ],
     });
   }
-  if (data.room) {
+  if (data.room && show("room")) {
     dateBox.push({
       type: "box",
       layout: "horizontal",
-      margin: data.dateText ? "md" : "none",
+      margin: dateBox.length ? "md" : "none",
       contents: [
         { type: "text", text: "🏠", size: "sm", flex: 0 },
         {
@@ -1038,15 +1078,15 @@ export function buildPrestayFlex(data: {
   }
 
   // หัวข้อ + เกริ่นของที่ต้องเตรียม
-  const prep = data.prepItems.filter(Boolean);
+  const prep = show("prep") ? data.prepItems.filter(Boolean) : [];
   if (prep.length) {
     body.push({ type: "separator", margin: "xl" });
     body.push({
       type: "text",
-      text: "🧳 สิ่งที่ต้องเตรียมมาด้วย",
+      text: style?.texts?.prepTitle || "🧳 สิ่งที่ต้องเตรียมมาด้วย",
       weight: "bold",
       size: "md",
-      color: "#5C4033",
+      color: style?.headerColor || "#5C4033",
       margin: "lg",
     });
     if (data.prepIntro) {
@@ -1078,7 +1118,7 @@ export function buildPrestayFlex(data: {
   }
 
   // แจ้งเตรียมทราย (ถ้าเข้าพักไม่ถึงเกณฑ์แถมฟรี) — โทนส้มเตือน
-  if (data.litterNote) {
+  if (data.litterNote && show("litter")) {
     body.push({
       type: "box",
       layout: "vertical",
@@ -1099,7 +1139,7 @@ export function buildPrestayFlex(data: {
   }
 
   // ปิดท้าย — ชวนแจ้งการดูแลพิเศษ (โทนอบอุ่น)
-  if (data.careNote) {
+  if (data.careNote && show("care")) {
     body.push({
       type: "box",
       layout: "vertical",
@@ -1119,21 +1159,33 @@ export function buildPrestayFlex(data: {
     });
   }
 
+  if (style?.closing) {
+    body.push({
+      type: "text",
+      text: style.closing,
+      size: "xs",
+      color: "#A2907E",
+      margin: "lg",
+      wrap: true,
+    });
+  }
+
   const bubble: Record<string, unknown> = {
     type: "bubble",
     size: "mega",
     header: {
       type: "box",
       layout: "vertical",
-      backgroundColor: BRAND_GREEN,
+      backgroundColor: style?.headerColor || BRAND_GREEN,
       paddingAll: "16px",
       contents: [
         {
           type: "text",
-          text: "🏠 เตรียมตัวก่อนเข้าพัก",
-          color: "#FFFFFF",
+          text: style?.texts?.header || "🏠 เตรียมตัวก่อนเข้าพัก",
+          color: style?.headerTextColor || "#FFFFFF",
           weight: "bold",
           size: "sm",
+          wrap: true,
         },
       ],
     },
@@ -1154,7 +1206,7 @@ export function buildPrestayFlex(data: {
         {
           type: "button",
           style: "primary",
-          color: BRAND_GREEN_DARK,
+          color: style?.buttonColor || BRAND_GREEN_DARK,
           height: "sm",
           action: {
             type: "uri",
@@ -1179,22 +1231,42 @@ export function buildTimePickerFlex(data: {
   body: string;
   url?: string;
   label?: string;
-}) {
+}, style?: CardStyleConfig) {
+  const bodyContents: Record<string, unknown>[] = [
+    {
+      type: "text",
+      text: data.body,
+      size: "sm",
+      color: "#4E3E32",
+      wrap: true,
+    },
+  ];
+  if (style?.closing) {
+    bodyContents.push({
+      type: "text",
+      text: style.closing,
+      size: "xs",
+      color: "#A2907E",
+      margin: "lg",
+      wrap: true,
+    });
+  }
   const bubble: Record<string, unknown> = {
     type: "bubble",
     size: "mega",
     header: {
       type: "box",
       layout: "vertical",
-      backgroundColor: BRAND_GREEN,
+      backgroundColor: style?.headerColor || BRAND_GREEN,
       paddingAll: "16px",
       contents: [
         {
           type: "text",
           text: data.title,
-          color: "#FFFFFF",
+          color: style?.headerTextColor || "#FFFFFF",
           weight: "bold",
-          size: "sm",
+          size: style?.titleSize || "sm",
+          wrap: true,
         },
       ],
     },
@@ -1202,15 +1274,7 @@ export function buildTimePickerFlex(data: {
       type: "box",
       layout: "vertical",
       paddingAll: "16px",
-      contents: [
-        {
-          type: "text",
-          text: data.body,
-          size: "sm",
-          color: "#4E3E32",
-          wrap: true,
-        },
-      ],
+      contents: bodyContents,
     },
   };
   if (data.url) {
@@ -1222,11 +1286,11 @@ export function buildTimePickerFlex(data: {
         {
           type: "button",
           style: "primary",
-          color: BRAND_GREEN_DARK,
+          color: style?.buttonColor || BRAND_GREEN_DARK,
           height: "sm",
           action: {
             type: "uri",
-            label: data.label || "🕒 เลือกเวลา",
+            label: style?.texts?.button || data.label || "🕒 เลือกเวลา",
             uri: data.url,
           },
         },
@@ -1437,26 +1501,27 @@ export function buildDepositThanksFlex(data: {
   amount: number;
   note?: string;
   percentNote?: string;
-}) {
+}, style?: CardStyleConfig) {
+  const show = (k: string) => style?.show?.[k] !== false;
   const boxContents: Record<string, unknown>[] = [
     {
       type: "box",
       layout: "horizontal",
       contents: [
-        { type: "text", text: "มัดจำที่รับ", size: "sm", color: "#4E3E32", flex: 3 },
+        { type: "text", text: style?.texts?.amountLabel || "มัดจำที่รับ", size: "sm", color: "#4E3E32", flex: 3 },
         {
           type: "text",
           text: `${data.amount.toLocaleString()} บาท`,
           size: "md",
           weight: "bold",
-          color: "#4A7348",
+          color: style?.accentColor || "#4A7348",
           align: "end",
           flex: 4,
         },
       ],
     },
   ];
-  if (data.percentNote) {
+  if (data.percentNote && show("percent")) {
     boxContents.push({
       type: "text",
       text: data.percentNote,
@@ -1466,7 +1531,7 @@ export function buildDepositThanksFlex(data: {
       align: "end",
     });
   }
-  if (data.note) {
+  if (data.note && show("note")) {
     boxContents.push({
       type: "text",
       text: data.note,
@@ -1478,7 +1543,14 @@ export function buildDepositThanksFlex(data: {
   }
 
   const contents: Record<string, unknown>[] = [
-    { type: "text", text: data.title, weight: "bold", size: "lg", color: "#5C4033", wrap: true },
+    {
+      type: "text",
+      text: data.title,
+      weight: "bold",
+      size: style?.titleSize || "lg",
+      color: style?.headerColor || "#5C4033",
+      wrap: true,
+    },
     { type: "text", text: data.body, size: "sm", color: "#4E3E32", margin: "md", wrap: true },
     {
       type: "box",
@@ -1491,14 +1563,14 @@ export function buildDepositThanksFlex(data: {
     },
   ];
 
-  if (data.terms.length > 0) {
+  if (data.terms.length > 0 && show("terms")) {
     contents.push({ type: "separator", margin: "lg" });
     contents.push({
       type: "text",
-      text: "🐾 เงื่อนไขมัดจำ",
+      text: style?.texts?.termsTitle || "🐾 เงื่อนไขมัดจำ",
       weight: "bold",
       size: "xs",
-      color: "#5C4033",
+      color: style?.headerColor || "#5C4033",
       margin: "lg",
     });
     contents.push({
@@ -1515,6 +1587,17 @@ export function buildDepositThanksFlex(data: {
           { type: "text", text: t, size: "xs", color: "#7A6A5A", wrap: true, flex: 1 },
         ],
       })),
+    });
+  }
+
+  if (style?.closing) {
+    contents.push({
+      type: "text",
+      text: style.closing,
+      size: "xs",
+      color: "#A2907E",
+      margin: "lg",
+      wrap: true,
     });
   }
 
@@ -1642,7 +1725,7 @@ export function buildCouponOfferFlex(data: {
   body?: string;
   url: string;
   validDays?: number;
-}) {
+}, style?: CardStyleConfig) {
   return {
     type: "flex",
     altText: `🎟️ คูปองส่วนลด ${data.amount} บาท — ${data.title}`,
@@ -1652,15 +1735,16 @@ export function buildCouponOfferFlex(data: {
       header: {
         type: "box",
         layout: "vertical",
-        backgroundColor: BRAND_GREEN,
+        backgroundColor: style?.headerColor || BRAND_GREEN,
         paddingAll: "16px",
         contents: [
           {
             type: "text",
-            text: "🎟️ คูปองส่วนลดพิเศษ",
-            color: "#FFFFFF",
+            text: style?.texts?.header || "🎟️ คูปองส่วนลดพิเศษ",
+            color: style?.headerTextColor || "#FFFFFF",
             weight: "bold",
             size: "sm",
+            wrap: true,
           },
         ],
       },
@@ -1673,8 +1757,8 @@ export function buildCouponOfferFlex(data: {
             type: "text",
             text: data.title,
             weight: "bold",
-            size: "lg",
-            color: "#5C4033",
+            size: style?.titleSize || "lg",
+            color: style?.accentColor || "#5C4033",
             wrap: true,
           },
           {
@@ -1691,7 +1775,7 @@ export function buildCouponOfferFlex(data: {
                 text: `${data.amount.toLocaleString()} บาท`,
                 weight: "bold",
                 size: "3xl",
-                color: "#C4956A",
+                color: style?.accentColor || "#C4956A",
                 align: "center",
               },
             ],
@@ -1710,7 +1794,7 @@ export function buildCouponOfferFlex(data: {
             : []),
           {
             type: "text",
-            text: `กดรับแล้วเก็บไว้ในกระเป๋าคูปอง ใช้เป็นส่วนลดได้เลย${
+            text: `${style?.closing || "กดรับแล้วเก็บไว้ในกระเป๋าคูปอง ใช้เป็นส่วนลดได้เลย"}${
               data.validDays ? ` (ใช้ได้ ${data.validDays} วัน)` : ""
             } 🧡`,
             size: "xs",
@@ -1728,9 +1812,13 @@ export function buildCouponOfferFlex(data: {
           {
             type: "button",
             style: "primary",
-            color: BRAND_GREEN_DARK,
+            color: style?.buttonColor || BRAND_GREEN_DARK,
             height: "sm",
-            action: { type: "uri", label: "🎟️ กดรับคูปอง", uri: data.url },
+            action: {
+              type: "uri",
+              label: style?.texts?.button || "🎟️ กดรับคูปอง",
+              uri: data.url,
+            },
           },
         ],
       },
@@ -1858,51 +1946,64 @@ export function buildMemberBalanceFlex(data: {
   memberCredit: number;
   usedToday?: number;
   catName?: string;
-}) {
+}, style?: CardStyleConfig) {
+  const show = (k: string) => style?.show?.[k] !== false;
+  const contents: Record<string, unknown>[] = [
+    {
+      type: "text",
+      text: style?.texts?.title || "💎 สรุปยอด Member",
+      weight: "bold",
+      size: style?.titleSize || "lg",
+      color: style?.headerColor || "#5C4033",
+      wrap: true,
+    },
+  ];
+  if (show("customerName")) {
+    contents.push({
+      type: "text",
+      text: data.customerName,
+      size: "sm",
+      color: "#A2907E",
+      margin: "md",
+      wrap: true,
+    });
+  }
+  contents.push({
+    type: "text",
+    text: `${style?.texts?.balanceLabel || "คงเหลือ"} ${data.memberCredit.toLocaleString()} บาท`,
+    weight: "bold",
+    size: "xl",
+    color: style?.accentColor || "#C4956A",
+    margin: "lg",
+    wrap: true,
+  });
+  if (show("usedToday") && data.usedToday) {
+    contents.push({
+      type: "text",
+      text: `ใช้วันนี้ ${data.usedToday.toLocaleString()} บาท${data.catName ? ` · ${data.catName}` : ""}`,
+      size: "xs",
+      color: "#4E3E32",
+      margin: "md",
+      wrap: true,
+    });
+  }
+  if (style?.closing) {
+    contents.push({
+      type: "text",
+      text: style.closing,
+      size: "xs",
+      color: "#A2907E",
+      margin: "lg",
+      wrap: true,
+    });
+  }
+
   return {
     type: "flex",
     altText: `ยอด Member ${data.memberCredit} บาท`,
     contents: {
       type: "bubble",
-      body: {
-        type: "box",
-        layout: "vertical",
-        contents: [
-          {
-            type: "text",
-            text: "💎 สรุปยอด Member",
-            weight: "bold",
-            size: "lg",
-            color: "#5C4033",
-          },
-          {
-            type: "text",
-            text: data.customerName,
-            size: "sm",
-            color: "#A2907E",
-            margin: "md",
-          },
-          {
-            type: "text",
-            text: `คงเหลือ ${data.memberCredit.toLocaleString()} บาท`,
-            weight: "bold",
-            size: "xl",
-            color: "#C4956A",
-            margin: "lg",
-          },
-          ...(data.usedToday
-            ? [
-                {
-                  type: "text" as const,
-                  text: `ใช้วันนี้ ${data.usedToday.toLocaleString()} บาท${data.catName ? ` · ${data.catName}` : ""}`,
-                  size: "xs" as const,
-                  color: "#4E3E32",
-                  margin: "md" as const,
-                },
-              ]
-            : []),
-        ],
-      },
+      body: { type: "box", layout: "vertical", contents },
     },
   };
 }

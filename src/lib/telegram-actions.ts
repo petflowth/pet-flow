@@ -9,6 +9,7 @@ import {
 import { TIER_LABELS } from "./customer-tier";
 import { listInvoices } from "./invoices-store";
 import { pushLineMessage, buildReminderFlex } from "./line";
+import { getSiteConfig } from "./config-store";
 import { formatBookingTelegram, sendTelegram } from "./telegram";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -292,7 +293,7 @@ export async function sendBookingConfirmFromTelegram(query: string) {
       service: b.service,
       when,
       confirmUrl,
-    }),
+    }, (await getSiteConfig()).cards?.bookingConfirm),
   ]);
 
   return {

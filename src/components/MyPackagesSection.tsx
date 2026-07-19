@@ -15,7 +15,12 @@ type CustomerPackage = {
  * คอร์ส/แพ็กเกจที่ลูกค้าซื้อไว้ — ลูกค้าจ่ายเงินล่วงหน้าแล้ว ต้องเปิดดูเองได้ว่าเหลือกี่ครั้ง
  * ไม่มีคอร์ส = ซ่อนทั้งช่อง (ไม่ต้องรกหน้าแรก)
  */
-export function MyPackagesSection() {
+export function MyPackagesSection({
+  onChecked,
+}: {
+  /** บอกหน้าแม่ว่าเช็คเสร็จแล้วและมีคอร์สไหม — ใช้ตัดสินใจว่าจะโชว์ช่องแต้มไหม */
+  onChecked?: (hasPackages: boolean) => void;
+}) {
   const { profile } = useLiff();
   const [packages, setPackages] = useState<CustomerPackage[]>([]);
 
@@ -25,18 +30,25 @@ export function MyPackagesSection() {
     fetch(`/api/packages?lineUserId=${encodeURIComponent(profile.lineUserId)}&active=1`)
       .then((r) => r.json())
       .then((d) => {
-        if (alive) setPackages(d.packages || []);
+        if (!alive) return;
+        const list = d.packages || [];
+        setPackages(list);
+        onChecked?.(list.length > 0);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (alive) onChecked?.(false);
+      });
     return () => {
       alive = false;
     };
+    // onChecked ตั้งใจไม่ใส่ใน deps — หน้าแม่ส่ง setState มาตรงๆ ใส่แล้วจะวนไม่จบ
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.lineUserId]);
 
   if (packages.length === 0) return null;
 
   return (
-    <section className="mb-4 rounded-petflow border-2 border-latte/50 bg-gradient-to-br from-latte/20 via-card to-honey/10 p-4 shadow-catcha">
+    <section className="mb-4 rounded-petflow border-2 border-latte/50 bg-gradient-to-br from-latte/20 via-card to-honey/10 p-4 shadow-petflow">
       <p className="mb-2 text-sm font-extrabold text-petflow-chocolate">
         🎫 คอร์สของฉัน
       </p>

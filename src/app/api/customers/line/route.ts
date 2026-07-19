@@ -83,6 +83,9 @@ async function handleGet(req: NextRequest) {
       phone: customer.phone,
       cats: catsForCustomer(customer.cats),
       tier: customer.tier,
+      // ต้องส่งเหมือนตอน sync (POST) ไม่งั้นพอ refreshCustomer แล้วเครดิตจะหายไปจากหน้าจอ
+      isMember: customer.isMember,
+      memberCredit: customer.memberCredit,
     },
   });
 }

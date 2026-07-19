@@ -12,6 +12,9 @@ type LineCustomer = {
   phone?: string;
   cats: { id: string; name: string }[];
   tier: CustomerTier;
+  /** สถานะ Member + เครดิตคงเหลือ — API ส่งมาอยู่แล้ว ใช้โชว์ในหน้าแรกของลูกค้า */
+  isMember?: boolean;
+  memberCredit?: number;
 };
 
 type LiffCtx = {

@@ -15,6 +15,7 @@ import { LangSwitch } from "@/components/LangSwitch";
 import { CustomerExclusivePromos } from "@/components/CustomerExclusivePromos";
 import { MyCatsSection } from "@/components/MyCatsSection";
 import { MyPackagesSection } from "@/components/MyPackagesSection";
+import { MyMemberCreditSection } from "@/components/MyMemberCreditSection";
 
 export default function CustomerHome() {
   const { locale } = useLocale();
@@ -24,6 +25,14 @@ export default function CustomerHome() {
   const [nextBooking, setNextBooking] = useState<Booking | null>(null);
   const [hasPromos, setHasPromos] = useState(false);
   const [couponCount, setCouponCount] = useState(0);
+  // เครดิต Member / คอร์ส — โชว์เฉพาะคนที่มีจริง
+  // ถ้ามีอย่างใดอย่างหนึ่ง ก็ไม่ต้องโชว์ช่องแต้มซ้ำ (เมนูแต้มอยู่ด้านล่างแล้ว)
+  // ถ้าไม่มีทั้งคู่ ค่อยโชว์ช่องแต้มไว้ ไม่งั้นหน้าแรกจะโล่ง
+  // เก็บเป็น null = ยังเช็คไม่เสร็จ กันช่องแต้มกะพริบขึ้นมาแล้วหายไป
+  const [hasCredit, setHasCredit] = useState<boolean | null>(null);
+  const [hasPackages, setHasPackages] = useState<boolean | null>(null);
+  const extrasChecked = hasCredit !== null && hasPackages !== null;
+  const showPoints = !profile?.lineUserId || (extrasChecked && !hasCredit && !hasPackages);
 
   useEffect(() => {
     if (!profile?.lineUserId) return;
@@ -104,33 +113,29 @@ export default function CustomerHome() {
         </p>
       )}
 
-      {/* คะแนนสะสม */}
-      <section className="mb-4 overflow-hidden rounded-petflow bg-gradient-to-br from-honey/45 via-card to-latte/15 p-5 shadow-petflow">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-bold text-brown-soft">{m.yourPoints}</p>
-            <p className="mt-1 text-4xl font-extrabold text-latte-deep">
-              {points}
-              <span className="ml-1 text-sm font-bold text-brown-faint">
-                {locale === "th" ? "แต้ม" : "pts"}
-              </span>
-            </p>
-            <p className="mt-1 text-[10px] text-brown-faint">
-              {t(locale).points.rate} · {config.business.pointsRate}{" "}
-              {locale === "th" ? "บาท" : "THB"}
-            </p>
-          </div>
-          <Link
-            href="/app/points"
-            className="shrink-0 rounded-full bg-card/80 px-3 py-1.5 text-[10px] font-bold text-petflow-chocolate shadow-petflow-sm"
-          >
-            {m.pointsHistory} →
-          </Link>
-        </div>
-      </section>
+      {/* เครดิต Member — โชว์เฉพาะคนที่เติมไว้ */}
+      <MyMemberCreditSection onChecked={setHasCredit} />
 
       {/* คอร์สที่ซื้อไว้ — จ่ายเงินล่วงหน้าแล้ว ต้องเห็นว่าเหลือกี่ครั้ง */}
-      <MyPackagesSection />
+      <MyPackagesSection onChecked={setHasPackages} />
+
+      {/* แต้มสะสม — โชว์เมื่อไม่มีเครดิต/คอร์ส เพื่อไม่ให้หน้าแรกโล่ง
+          (ไม่มีปุ่มประวัติแต้ม เพราะเมนูแต้มด้านล่างพาไปหน้าเดียวกันอยู่แล้ว) */}
+      {showPoints && (
+        <section className="mb-4 overflow-hidden rounded-petflow bg-gradient-to-br from-honey/45 via-card to-latte/15 p-5 shadow-petflow">
+          <p className="text-xs font-bold text-brown-soft">{m.yourPoints}</p>
+          <p className="mt-1 text-4xl font-extrabold text-latte-deep">
+            {points}
+            <span className="ml-1 text-sm font-bold text-brown-faint">
+              {locale === "th" ? "แต้ม" : "pts"}
+            </span>
+          </p>
+          <p className="mt-1 text-[10px] text-brown-faint">
+            {t(locale).points.rate} · {config.business.pointsRate}{" "}
+            {locale === "th" ? "บาท" : "THB"}
+          </p>
+        </section>
+      )}
 
       {/* แมวของฉัน — อัป/แก้รูปเองได้ */}
       <MyCatsSection />

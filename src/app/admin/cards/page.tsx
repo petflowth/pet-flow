@@ -65,6 +65,7 @@ const CARDS: CardMeta[] = [
       { key: "notes", label: "📝 หมายเหตุ" },
       { key: "map", label: "🗺️ ปุ่มดูแผนที่" },
       { key: "groomPrep", label: "🧺 เตือนพกขนม + ให้อยู่ในตะกร้า (เฉพาะนัดอาบน้ำ)" },
+      { key: "roomPrep", label: "🧺 เตือนให้อยู่ในตะกร้า (เฉพาะเข้าพักโรงแรม)" },
     ],
     texts: [],
     styleTexts: [
@@ -73,6 +74,12 @@ const CARDS: CardMeta[] = [
         label: "ข้อความเตือนพกขนม/ตะกร้า (เฉพาะนัดอาบน้ำ)",
         placeholder:
           "🍬 อย่าลืมพกขนม/แมวเลียมาด้วยอย่างน้อย 1-2 ซองนะคะ\n🧺 และให้น้องอยู่ในตะกร้า/กระเป๋าทุกครั้งที่มาใช้บริการด้วยค่ะ",
+        multiline: true,
+      },
+      {
+        key: "roomPrepNote",
+        label: "ข้อความเตือนตะกร้า/กระเป๋า (เฉพาะเข้าพักโรงแรม)",
+        placeholder: "🧺 รบกวนพาน้องใส่ตะกร้า/กระเป๋าทุกครั้งที่มาใช้บริการด้วยนะคะ",
         multiline: true,
       },
     ],
@@ -414,12 +421,30 @@ function Preview({
           {show("location") && <p>📍 <b>สถานที่</b> — PetFlow · เทพารักษ์ บางนา</p>}
           {show("notes") && <p>📝 <b>หมายเหตุ</b> — แจ้งในแชทได้เลยนะคะ</p>}
           {show("groomPrep") && (
-            <p className="whitespace-pre-line rounded-lg bg-[#FBEEE0] px-2.5 py-2 text-[10px] font-bold text-[#B4553B]">
-              {t(
-                "groomPrepNote",
-                "🍬 อย่าลืมพกขนม/แมวเลียมาด้วยอย่างน้อย 1-2 ซองนะคะ\n🧺 และให้น้องอยู่ในตะกร้า/กระเป๋าทุกครั้งที่มาใช้บริการด้วยค่ะ"
-              )}
-            </p>
+            <div>
+              <p className="whitespace-pre-line rounded-lg bg-[#FBEEE0] px-2.5 py-2 text-[10px] font-bold text-[#B4553B]">
+                {t(
+                  "groomPrepNote",
+                  "🍬 อย่าลืมพกขนม/แมวเลียมาด้วยอย่างน้อย 1-2 ซองนะคะ\n🧺 และให้น้องอยู่ในตะกร้า/กระเป๋าทุกครั้งที่มาใช้บริการด้วยค่ะ"
+                )}
+              </p>
+              <p className="mt-0.5 text-[9px] italic text-[#A2907E]">
+                ↑ ขึ้นเฉพาะการ์ดนัดอาบน้ำ
+              </p>
+            </div>
+          )}
+          {show("roomPrep") && (
+            <div>
+              <p className="whitespace-pre-line rounded-lg bg-[#FBEEE0] px-2.5 py-2 text-[10px] font-bold text-[#B4553B]">
+                {t(
+                  "roomPrepNote",
+                  "🧺 รบกวนพาน้องใส่ตะกร้า/กระเป๋าทุกครั้งที่มาใช้บริการด้วยนะคะ"
+                )}
+              </p>
+              <p className="mt-0.5 text-[9px] italic text-[#A2907E]">
+                ↑ ขึ้นเฉพาะการ์ดนัดเข้าพักโรงแรม
+              </p>
+            </div>
           )}
         </div>
         {btn(c("buttonColor", "#4A7348"), "🐾 ยืนยันนัด")}

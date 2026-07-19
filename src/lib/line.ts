@@ -234,6 +234,31 @@ export function buildAppointmentConfirmFlex(booking: {
                 },
               ]
             : []),
+          // เฉพาะเข้าพักโรงแรม — เตือนเรื่องตะกร้า/กระเป๋าเช่นกัน (คนละข้อความกับนัดอาบน้ำ ไม่พูดเรื่องขนม)
+          ...(isRoom && show("roomPrep")
+            ? [
+                {
+                  type: "box" as const,
+                  layout: "vertical" as const,
+                  margin: "lg" as const,
+                  paddingAll: "12px",
+                  backgroundColor: "#FBEEE0",
+                  cornerRadius: "10px",
+                  contents: [
+                    {
+                      type: "text" as const,
+                      text:
+                        st.texts?.roomPrepNote ||
+                        "🧺 รบกวนพาน้องใส่ตะกร้า/กระเป๋าทุกครั้งที่มาใช้บริการด้วยนะคะ",
+                      size: "xs" as const,
+                      color: "#B4553B",
+                      weight: "bold" as const,
+                      wrap: true,
+                    },
+                  ],
+                },
+              ]
+            : []),
         ],
       },
       footer: {

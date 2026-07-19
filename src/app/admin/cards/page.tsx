@@ -210,6 +210,7 @@ const CARDS: CardMeta[] = [
       { key: "dates", label: "📅 กล่องวันเข้าพัก" },
       { key: "room", label: "🏠 ห้องพัก" },
       { key: "prep", label: "🧳 รายการของที่ต้องเตรียม" },
+      { key: "carrier", label: "🧺 เตือนให้อยู่ในตะกร้า/กระเป๋า" },
       { key: "litter", label: "⚠️ แจ้งเตรียมทราย (กรณีไม่แถมฟรี)" },
       { key: "care", label: "💗 ชวนแจ้งการดูแลพิเศษ" },
     ],
@@ -217,6 +218,12 @@ const CARDS: CardMeta[] = [
     styleTexts: [
       { key: "header", label: "ข้อความบนแถบหัว", placeholder: "🏠 เตรียมตัวก่อนเข้าพัก" },
       { key: "prepTitle", label: "หัวข้อรายการของที่ต้องเตรียม", placeholder: "🧳 สิ่งที่ต้องเตรียมมาด้วย" },
+      {
+        key: "carrierNote",
+        label: "ข้อความเตือนตะกร้า/กระเป๋า",
+        placeholder: "🧺 รบกวนพาน้องใส่ตะกร้า/กระเป๋าทุกครั้งที่มาใช้บริการด้วยนะคะ",
+        multiline: true,
+      },
     ],
     closingLabel: "ข้อความปิดท้ายการ์ด (ไม่บังคับ)",
     hasTitleSize: true,
@@ -650,6 +657,14 @@ function Preview({
                 <p>💊 ยาประจำตัว (ถ้ามี)</p>
               </div>
             </>
+          )}
+          {show("carrier") && (
+            <p className="whitespace-pre-line rounded-lg bg-[#FBEEE0] px-2.5 py-1.5 text-[10px] font-bold text-[#B4553B]">
+              {t(
+                "carrierNote",
+                "🧺 รบกวนพาน้องใส่ตะกร้า/กระเป๋าทุกครั้งที่มาใช้บริการด้วยนะคะ"
+              )}
+            </p>
           )}
           {show("litter") && (
             <p className="rounded-lg bg-[#FBEEE0] px-2.5 py-1.5 text-[10px] text-[#B4553B]">⚠️ ห้องนี้พักไม่ถึง 3 วัน รบกวนเตรียมทรายมาด้วยนะคะ</p>

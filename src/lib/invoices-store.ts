@@ -410,6 +410,22 @@ export async function updateInvoice(
   return { ok: true as const, invoice: inv };
 }
 
+/**
+ * ผูกบิลเข้ากับนัดด้วยมือ — ใช้ตอนบิลไม่มีนัดผูกอยู่ (เช่นบิลเก่าก่อนมีระบบผูกอัตโนมัติ
+ * หรือพิมพ์บิลเองไม่ได้ดึงจากนัด) ทำให้ปุ่มส่งการ์ดที่ต้องอิงนัด (แจ้งเตือนนัด/ส่งชุดการ์ด)
+ * กลับมาใช้ได้ ไม่แตะยอดเงิน จึงทำได้แม้บิลจะปิดจ่ายแล้วก็ตาม
+ */
+export async function linkInvoiceToBooking(id: string, bookingId: string) {
+  const inv = await getInvoice(id);
+  if (!inv) return { ok: false as const, error: "not_found" };
+  inv.bookingId = bookingId;
+  const sb = getSupabase();
+  if (sb) {
+    await sb.from("invoices").update({ booking_id: bookingId }).eq("id", id);
+  }
+  return { ok: true as const, invoice: inv };
+}
+
 /** ลบบิล + รายการบัญชีที่ผูกกับบิลนั้น (ไม่ให้ยอดค้าง) */
 /** ลบบิล (ย้ายลงถังขยะ กู้คืนได้) + ลบรายการบัญชีที่ผูก (กู้คืนตอน restore) */
 export async function deleteInvoice(id: string) {

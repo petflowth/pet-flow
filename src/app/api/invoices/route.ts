@@ -13,6 +13,7 @@ import {
   deleteInvoice,
   restoreInvoice,
   listTrashedInvoices,
+  linkInvoiceToBooking,
 } from "@/lib/invoices-store";
 import { getCustomer, adjustDepositCredit } from "@/lib/customers-store";
 import { issueCoupon, listCustomerCoupons } from "@/lib/coupons-store";
@@ -559,6 +560,19 @@ export async function PATCH(req: NextRequest) {
       extraDiscount: body.extraDiscount,
       promoId: body.promoId,
     });
+    if (!res.ok) {
+      return NextResponse.json({ error: res.error }, { status: 400 });
+    }
+    return NextResponse.json({ ok: true, invoice: res.invoice });
+  }
+
+  // ผูกบิลเข้ากับนัดด้วยมือ — ใช้ตอนปุ่มส่งการ์ดหาย เพราะบิลไม่มีนัดผูกอยู่
+  if (action === "link_booking") {
+    const bookingId = String(body.bookingId || "").trim();
+    if (!bookingId) {
+      return NextResponse.json({ error: "bookingId required" }, { status: 400 });
+    }
+    const res = await linkInvoiceToBooking(id, bookingId);
     if (!res.ok) {
       return NextResponse.json({ error: res.error }, { status: 400 });
     }

@@ -1171,6 +1171,30 @@ export function buildPrestayFlex(data: {
     });
   }
 
+  // เตือนพาน้องมาในตะกร้า/กระเป๋า — โทนส้มเดียวกับแจ้งเตรียมทราย ให้เห็นเด่นเหมือนกัน
+  if (show("carrier")) {
+    body.push({
+      type: "box",
+      layout: "vertical",
+      margin: "md",
+      paddingAll: "12px",
+      backgroundColor: "#FBEEE0",
+      cornerRadius: "10px",
+      contents: [
+        {
+          type: "text",
+          text:
+            style?.texts?.carrierNote ||
+            "🧺 รบกวนพาน้องใส่ตะกร้า/กระเป๋าทุกครั้งที่มาใช้บริการด้วยนะคะ",
+          size: "xs",
+          color: "#B4553B",
+          weight: "bold",
+          wrap: true,
+        },
+      ],
+    });
+  }
+
   // แจ้งเตรียมทราย (ถ้าเข้าพักไม่ถึงเกณฑ์แถมฟรี) — โทนส้มเตือน
   if (data.litterNote && show("litter")) {
     body.push({

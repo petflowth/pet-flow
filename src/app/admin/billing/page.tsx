@@ -736,6 +736,29 @@ export default function BillingPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  /**
+   * ผูกบิลเข้ากับนัดด้วยมือ — ใช้ตอนบิลไม่มีนัดผูกอยู่ (เช่นบิลเก่า/พิมพ์เองไม่ได้ดึงจากนัด)
+   * ปุ่มส่งการ์ดที่ต้องอิงนัด (แจ้งเตือนนัด/ส่งชุดการ์ด) จะกลับมาใช้ได้หลังผูกแล้ว
+   */
+  const linkInvoiceToBooking = async (invId: string, bookingId: string) => {
+    setInvoiceBusy(`${invId}:link_booking`);
+    try {
+      const res = await fetch("/api/invoices", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: invId, action: "link_booking", bookingId }),
+      });
+      if (res.ok) {
+        toast("ผูกนัดให้บิลแล้ว — ปุ่มส่งการ์ดกลับมาแล้ว 🔗", "success");
+        load();
+      } else {
+        toast("ผูกนัดไม่สำเร็จ", "error");
+      }
+    } finally {
+      setInvoiceBusy("");
+    }
+  };
+
   const invoiceAction = async (
     id: string,
     action: string,
@@ -1608,6 +1631,36 @@ export default function BillingPage() {
                 invoiceStatus={inv.status}
                 onDone={load}
               />
+              {/* บิลนี้ไม่มีนัดผูกอยู่ — ปุ่มแจ้งเตือนนัด/ส่งชุดการ์ดข้างบนเลยหายไปหมด
+                  ให้เลือกผูกนัดของลูกค้าคนนี้เองได้ ไม่ต้องแก้ที่ไหนเพิ่ม */}
+              {!inv.bookingId && !linkedBk && (
+                <div className="mt-2 rounded-catcha-sm border border-dashed border-latte/60 bg-latte/10 px-2.5 py-2">
+                  <p className="mb-1.5 text-[10px] font-bold text-brown-soft">
+                    ⚠️ บิลนี้ไม่มีนัดผูกอยู่ — ปุ่มแจ้งเตือนนัด/ส่งชุดการ์ดเลยไม่ขึ้น
+                    เลือกผูกนัดได้ที่นี่:
+                  </p>
+                  <select
+                    disabled={invoiceBusy === `${inv.id}:link_booking`}
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) linkInvoiceToBooking(inv.id, e.target.value);
+                    }}
+                    className="w-full rounded-lg border border-catcha-line bg-paper px-2.5 py-1.5 text-xs"
+                  >
+                    <option value="">🔗 เลือกนัดของ {inv.customerName}...</option>
+                    {bookings
+                      .filter((b) => b.customerId === inv.customerId)
+                      .map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.service === "room" ? "🏠" : "🛁"} {b.catName} ·{" "}
+                          {b.service === "room"
+                            ? `${b.checkin || "?"} → ${b.checkout || "?"}`
+                            : b.date || ""}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             {inv.status === "pending" && (

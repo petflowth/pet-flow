@@ -283,7 +283,10 @@ export default function NewBookingPage() {
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+    // เก็บ element ไว้ก่อน — React เคลียร์ currentTarget ทิ้งหลัง await
+    // (เมื่อก่อนบรรทัด form.reset() ท้ายฟังก์ชันพังทุกครั้งที่บันทึกสำเร็จ)
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     const cats = catNames.length > 0 ? catNames : catInput.trim() ? [catInput.trim()] : [];
     if (cats.length === 0) {
       toast("กรอกชื่อน้องแมวอย่างน้อย 1 ชื่อ (หรือกด “ยังไม่ทราบตัว”)", "error");
@@ -350,7 +353,7 @@ export default function NewBookingPage() {
       setCatInput("");
       setLineUserId("");
       setFreebies([]);
-      e.currentTarget.reset();
+      form.reset();
       setTimeout(() => setSaved(false), 2500);
     }
     if (failed > 0) {

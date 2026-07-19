@@ -42,13 +42,23 @@ export default function AdminCouponsPage() {
   const [stats, setStats] = useState<Stats | null>(null);
 
   const load = useCallback(async () => {
+    // ทุก fetch ต้องไม่ทำให้หน้าค้าง "กำลังโหลด…" หรือจอขาว ถ้า API พัง
+    const safe = async (url: string) => {
+      try {
+        const r = await fetch(url);
+        return r.ok ? await r.json() : null;
+      } catch {
+        return null;
+      }
+    };
     const [d, s] = await Promise.all([
-      fetch("/api/coupons/offers").then((r) => r.json()),
-      fetch("/api/coupons/stats").then((r) => r.json()),
+      safe("/api/coupons/offers"),
+      safe("/api/coupons/stats"),
     ]);
-    setOffers(d.offers || []);
-    setCoupons(d.coupons || []);
-    setStats(s);
+    setOffers(d?.offers || []);
+    setCoupons(d?.coupons || []);
+    // ต้องมีโครงครบจริงเท่านั้น — ของเดิมรับ {error} เข้ามาแล้วไปพังตอนอ่าน .couponSummary
+    setStats(s?.couponSummary ? s : null);
   }, []);
 
   useEffect(() => {

@@ -1164,9 +1164,18 @@ export default function CustomersPage() {
   }, []);
 
   const open = useCallback(async (id: string) => {
-    const res = await fetch(`/api/customers?id=${id}`);
-    const data = await res.json();
-    setSelected(data);
+    // ลูกค้าถูกลบไปแล้ว / ลิงก์เก่า → เมื่อก่อน setSelected({error}) แล้วจอขาวทั้งหน้า
+    try {
+      const res = await fetch(`/api/customers?id=${id}`);
+      const data = await res.json();
+      if (!res.ok || !data?.customer) {
+        toast("ไม่พบข้อมูลลูกค้ารายนี้ (อาจถูกลบไปแล้ว)", "error");
+        return;
+      }
+      setSelected(data);
+    } catch {
+      toast("โหลดข้อมูลลูกค้าไม่สำเร็จ ลองใหม่อีกครั้งนะคะ", "error");
+    }
   }, []);
 
   const deleteCustomerRow = async (c: CustomerListItem) => {

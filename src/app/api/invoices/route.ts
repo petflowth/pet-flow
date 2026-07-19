@@ -39,6 +39,26 @@ import type { SiteConfig, CardStyleConfig } from "@/lib/config-types";
 
 type SummaryMode = "booking" | "deposit" | "full" | "remaining";
 
+/**
+ * ส่งการ์ดให้ลูกค้าแบบ "ส่งไม่ได้ก็ไม่ล้มรายการเงิน"
+ *
+ * เมื่อก่อนถ้ายังไม่ได้ตั้ง LINE (หรือ LINE ล่ม) การ push จะ throw ออกไปเป็น 500
+ * ทั้งที่เงินถูกบันทึกไปแล้ว → ร้านเห็น error เลยกดซ้ำ กลายเป็นรับเงิน/หักเครดิตซ้ำ
+ * ตอนนี้คืน error กลับไปเป็นข้อความเตือนแทน รายการเงินยังสำเร็จเสมอ
+ */
+async function notifyCustomer(
+  lineUserId: string | undefined | null,
+  messages: object[]
+): Promise<string | undefined> {
+  if (!lineUserId) return undefined;
+  try {
+    await pushLineMessage(lineUserId, messages);
+    return undefined;
+  } catch (e) {
+    return e instanceof Error ? e.message : String(e);
+  }
+}
+
 function summaryFlexFromInvoice(
   inv: InvoiceRecord,
   mode: SummaryMode,
@@ -177,7 +197,7 @@ export async function POST(req: NextRequest) {
     const payment = await getPaymentConfig();
     const catName = customer.cats[0]?.name || "น้องแมว";
     const pctNum = Number(body.pct) || 0;
-    await pushLineMessage(customer.lineUserId, [
+    const notifyErr = await notifyCustomer(customer.lineUserId, [
       buildDepositRequestFlex({
         title: msgs.depositRequestTitle,
         body: renderTemplate(msgs.depositRequestBody, {
@@ -194,7 +214,7 @@ export async function POST(req: NextRequest) {
         percentNote: body.percentNote ? String(body.percentNote) : undefined,
       }, cfgDep.cards?.depositRequest),
     ]);
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, notifyError: notifyErr });
   }
 
   if (body.action === "receive_deposit_credit") {
@@ -217,11 +237,12 @@ export async function POST(req: NextRequest) {
         ...(body.note ? { หมายเหตุ: String(body.note) } : {}),
       })
     );
+    let dtNotifyErr: string | undefined;
     if (customer?.lineUserId) {
       const cfgDt = await getSiteConfig();
       const msgs = cfgDt.messages;
       const catName = customer.cats[0]?.name || "น้องแมว";
-      await pushLineMessage(customer.lineUserId, [
+      dtNotifyErr = await notifyCustomer(customer.lineUserId, [
         buildDepositThanksFlex({
           title: msgs.depositThanksTitle,
           body: renderTemplate(msgs.depositThanksBody, {
@@ -236,7 +257,12 @@ export async function POST(req: NextRequest) {
         }, cfgDt.cards?.depositThanks),
       ]);
     }
-    return NextResponse.json({ ok: true, balance: res.balance, needSql: res.needSql });
+    return NextResponse.json({
+      ok: true,
+      balance: res.balance,
+      needSql: res.needSql,
+      notifyError: dtNotifyErr,
+    });
   }
 
   return NextResponse.json({ error: "unknown action" }, { status: 400 });
@@ -351,6 +377,7 @@ export async function PATCH(req: NextRequest) {
 
     const paid = result.invoice!;
     const customer = result.customer;
+    let paidNotifyErr: string | undefined;
 
     if (paid.lineUserId) {
       const cfgRc = await getSiteConfig();
@@ -401,7 +428,7 @@ export async function PATCH(req: NextRequest) {
           }, cfgRc.cards?.memberBalance)
         );
       }
-      await pushLineMessage(paid.lineUserId, receiptMsgs);
+      paidNotifyErr = await notifyCustomer(paid.lineUserId, receiptMsgs);
     }
 
     const gotDeposit = (result.alreadyReceived || 0) > 0;
@@ -467,7 +494,7 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true, invoice: paid });
+    return NextResponse.json({ ok: true, invoice: paid, notifyError: paidNotifyErr });
   }
 
   if (action === "send_member_balance") {
@@ -499,10 +526,11 @@ export async function PATCH(req: NextRequest) {
       })
     );
     // ส่งการ์ดขอบคุณ + เงื่อนไข ให้ลูกค้า
+    let rdNotifyErr: string | undefined;
     if (inv.lineUserId) {
       const cfgRd = await getSiteConfig();
       const msgs = cfgRd.messages;
-      await pushLineMessage(inv.lineUserId, [
+      rdNotifyErr = await notifyCustomer(inv.lineUserId, [
         buildDepositThanksFlex({
           title: msgs.depositThanksTitle,
           body: renderTemplate(msgs.depositThanksBody, {
@@ -515,7 +543,12 @@ export async function PATCH(req: NextRequest) {
         }, cfgRd.cards?.depositThanks),
       ]);
     }
-    return NextResponse.json({ ok: true, deposit: res.deposit, remaining: res.remaining });
+    return NextResponse.json({
+      ok: true,
+      deposit: res.deposit,
+      remaining: res.remaining,
+      notifyError: rdNotifyErr,
+    });
   }
 
   if (action === "update") {

@@ -671,17 +671,37 @@ export default function BillingPage() {
     id: string,
     method: "transfer" | "member_credit" | "cash"
   ) => {
-    const res = await fetch("/api/invoices", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, action: "mark_paid", paymentMethod: method }),
-    });
-    if (res.ok) {
-      toast("รับชำระแล้ว — ลงบัญชี + ส่งใบเสร็จ + แต้ม 🧾", "success");
-      load();
-    } else {
-      const err = await res.json();
-      toast(err.error === "insufficient_credit" ? "เครดิต Member ไม่พอ" : "ไม่สำเร็จ", "error");
+    // กันกดรัว — ปุ่มนี้เมื่อก่อนไม่มีตัวล็อก กดสองทีเสี่ยงลงบัญชีซ้ำ
+    if (invoiceBusy) return;
+    setInvoiceBusy(`${id}:mark_paid`);
+    try {
+      const res = await fetch("/api/invoices", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action: "mark_paid", paymentMethod: method }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        // เงินลงบัญชีแล้วเสมอ — แต่ถ้าส่งการ์ดไม่ได้ต้องบอกให้ร้านรู้ จะได้ไม่เข้าใจผิดว่าลูกค้าได้ใบเสร็จ
+        if (data.notifyError) {
+          toast(
+            `รับชำระ + ลงบัญชีแล้ว 🧾 แต่ส่งใบเสร็จเข้า LINE ไม่ได้: ${data.notifyError}`,
+            "error"
+          );
+        } else {
+          toast("รับชำระแล้ว — ลงบัญชี + ส่งใบเสร็จ + แต้ม 🧾", "success");
+        }
+        load();
+      } else if (data.error === "insufficient_credit") {
+        toast("เครดิต Member ไม่พอ", "error");
+      } else if (data.error === "invalid" || data.error === "already_paid") {
+        toast("บิลนี้ปิดไปแล้ว (อาจกดซ้ำ) — รีเฟรชให้แล้วนะคะ", "error");
+        load();
+      } else {
+        toast("ไม่สำเร็จ", "error");
+      }
+    } finally {
+      setInvoiceBusy("");
     }
   };
 
@@ -1417,24 +1437,27 @@ export default function BillingPage() {
                 )}
                 <button
                   type="button"
+                  disabled={!!invoiceBusy}
                   onClick={() => markPaid(inv.id, "transfer")}
-                  className="rounded-full bg-sage/20 px-3 py-1.5 text-xs font-bold text-ok"
+                  className="rounded-full bg-sage/20 px-3 py-1.5 text-xs font-bold text-ok disabled:opacity-50"
                 >
                   ✅ {(inv.deposit ?? 0) > 0 ? "รับเงินที่เหลือ (ปิดบิล)" : "รับเงินแล้ว"}
                 </button>
                 {customers.find((c) => c.id === inv.customerId)?.isMember && (
                   <button
                     type="button"
+                    disabled={!!invoiceBusy}
                     onClick={() => markPaid(inv.id, "member_credit")}
-                    className="rounded-full bg-honey/30 px-3 py-1.5 text-xs font-bold"
+                    className="rounded-full bg-honey/30 px-3 py-1.5 text-xs font-bold disabled:opacity-50"
                   >
                     💎 หัก Member
                   </button>
                 )}
                 <button
                   type="button"
+                  disabled={!!invoiceBusy}
                   onClick={() => markPaid(inv.id, "cash")}
-                  className="rounded-full bg-paper px-3 py-1.5 text-xs font-bold"
+                  className="rounded-full bg-paper px-3 py-1.5 text-xs font-bold disabled:opacity-50"
                 >
                   💵 เงินสด
                 </button>

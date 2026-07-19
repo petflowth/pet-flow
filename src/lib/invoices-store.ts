@@ -215,7 +215,14 @@ export async function createInvoice(data: {
   deposit?: number;
   bookingId?: string;
 }) {
-  const subtotal = data.items.reduce((s, i) => s + i.amount, 0);
+  // บังคับให้ทุกยอดเป็นตัวเลขจำนวนเต็มก่อนคิด — กันค่าที่ไม่ใช่ตัวเลขทำบิลพัง
+  // (เมื่อก่อน amount ที่เป็น string จะถูกต่อสตริง เช่น 0 + "abc" = "0abc" แล้ว total กลายเป็น null
+  //  ส่วนทศนิยมก็โผล่เป็น 0.30000000000000004 บนบิลลูกค้า)
+  const items = (data.items || []).map((i) => ({
+    ...i,
+    amount: Math.round(Number(i.amount) || 0),
+  }));
+  const subtotal = items.reduce((s, i) => s + i.amount, 0);
   const { discount: promoDiscount, label } = await calcPromoDiscount(
     data.promoId,
     subtotal
@@ -241,12 +248,13 @@ export async function createInvoice(data: {
   }
 
   const invoice: InvoiceRecord = {
-    id: `INV${Date.now()}`,
+    // สุ่มต่อท้ายด้วย — ออกบิล 2 ใบในมิลลิวินาทีเดียวกันเคยได้ id ชนกัน
+    id: `INV${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
     customerId: data.customerId,
     lineUserId: data.lineUserId,
     customerName: data.customerName,
     catName: data.catName,
-    items: data.items,
+    items,
     subtotal,
     discount,
     deposit,
@@ -441,7 +449,10 @@ export async function markInvoicePaid(
 
   const sb = getSupabase();
   if (sb) {
-    await sb
+    // ปิดบิลแบบมีเงื่อนไข: อัปเดตได้เฉพาะตอนที่ยัง "ไม่ paid" เท่านั้น
+    // ถ้าอีกคลิกหนึ่ง (หรืออีกเครื่อง) ปิดไปก่อนแล้ว จะไม่มีแถวถูกแก้ → หยุดตรงนี้
+    // ไม่งั้นจะลงรายรับซ้ำ / ให้แต้มซ้ำ / หักเครดิต Member ซ้ำ
+    const { data: claimed } = await sb
       .from("invoices")
       .update({
         status: inv.status,
@@ -449,7 +460,16 @@ export async function markInvoicePaid(
         paid_at: inv.paidAt,
         points_earned: inv.pointsEarned,
       })
-      .eq("id", id);
+      .eq("id", id)
+      .neq("status", "paid")
+      .select("id");
+    if (!claimed || claimed.length === 0) {
+      // แพ้การแข่ง — คืนเครดิต Member ที่เพิ่งหักไป แล้วรายงานว่าปิดไปแล้ว
+      if (paymentMethod === "member_credit" && settleAmount > 0) {
+        await addMemberCredit(inv.customerId, settleAmount);
+      }
+      return { ok: false as const, error: "already_paid" };
+    }
   }
 
   if (inv.lineUserId && inv.pointsEarned > 0) {

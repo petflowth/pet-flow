@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import type { Booking } from "@/lib/business";
+import { AUTO_MESSAGE_TOPICS } from "@/lib/auto-messages";
 
 export type EditableBooking = Booking & {
   lineUserId?: string;
   room?: string;
   checkin?: string;
   notes?: string;
+  /** หัวข้อข้อความอัตโนมัติที่นัดนี้ปิดไว้ */
+  autoOff?: string[];
 };
 
 function EditField({
@@ -62,6 +65,12 @@ export function BookingEditModal({
     booking.service || (booking.roomType || booking.checkin ? "room" : "groom")
   );
   const [saving, setSaving] = useState(false);
+  // ปิดข้อความอัตโนมัติเฉพาะนัดนี้ (คนละเรื่องกับปิดทั้งร้านในหน้าตั้งค่า)
+  const [autoOff, setAutoOff] = useState<string[]>(booking.autoOff || []);
+  const toggleAuto = (id: string) =>
+    setAutoOff((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -77,6 +86,7 @@ export function BookingEditModal({
             date: String(fd.get("date") || ""),
             time: String(fd.get("time") || "") || undefined,
             notes: String(fd.get("notes") || "") || undefined,
+            autoOff,
           }
         : {
             action: "update",
@@ -88,6 +98,7 @@ export function BookingEditModal({
             checkout: String(fd.get("checkout") || ""),
             date: String(fd.get("checkin") || ""),
             notes: String(fd.get("notes") || "") || undefined,
+            autoOff,
           };
 
     const res = await fetch("/api/bookings", {
@@ -182,6 +193,34 @@ export function BookingEditModal({
             </>
           )}
           <EditField label="โน้ต" name="notes" defaultValue={booking.notes || ""} textarea />
+
+          {/* ปิดข้อความอัตโนมัติเฉพาะเคสนี้ — เช่น ลูกค้าประจำที่คุยกันทางแชทอยู่แล้ว */}
+          <div className="rounded-catcha-sm border border-catcha-line bg-paper/50 p-3">
+            <p className="text-xs font-extrabold text-catcha-chocolate">
+              🔕 ไม่ต้องส่งอัตโนมัติ (เฉพาะนัดนี้)
+            </p>
+            <p className="mb-2 mt-0.5 text-[10px] text-brown-faint">
+              ติ๊กหัวข้อที่ไม่อยากให้ระบบส่งหาลูกค้ารายนี้ · ไม่กระทบนัดอื่น
+            </p>
+            <div className="space-y-1.5">
+              {AUTO_MESSAGE_TOPICS.map((t) => (
+                <label key={t.id} className="flex items-center gap-2 text-[11px] font-bold text-brown-soft">
+                  <input
+                    type="checkbox"
+                    checked={autoOff.includes(t.id)}
+                    onChange={() => toggleAuto(t.id)}
+                    className="h-3.5 w-3.5 accent-latte-deep"
+                  />
+                  {t.label}
+                </label>
+              ))}
+            </div>
+            {autoOff.length > 0 && (
+              <p className="mt-2 rounded bg-honey/20 px-2 py-1 text-[10px] font-bold text-catcha-chocolate">
+                ปิดอยู่ {autoOff.length} หัวข้อ — ส่งเองด้วยปุ่มส่งการ์ดได้ตามปกติ
+              </p>
+            )}
+          </div>
           <div className="flex gap-2 pt-2">
             <button
               type="button"

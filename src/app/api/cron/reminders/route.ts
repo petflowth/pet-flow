@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listBookings } from "@/lib/bookings-store";
+import { autoMuted } from "@/lib/auto-messages";
 import { listInvoices } from "@/lib/invoices-store";
 import { getSiteConfig } from "@/lib/config-store";
 import { buildBookingConfirmFlex } from "@/lib/booking-line-card";
@@ -65,6 +66,7 @@ export async function GET(req: NextRequest) {
           (b) =>
             b.lineUserId &&
             b.status !== "cancelled" &&
+            !autoMuted(b, "confirm") &&
             (b.checkin || b.date) === confirmDate
         );
   for (const b of confirmList) {
@@ -87,7 +89,11 @@ export async function GET(req: NextRequest) {
       ];
 
       // นัดอาบน้ำ: เคยกรอกประวัติแล้ว → บรีฟให้ร้าน · ยังไม่เคย → แนบการ์ดกรอกไปในข้อความเดียวกัน
-      if (auto?.groomInfoEnabled !== false && b.service === "groom") {
+      if (
+        auto?.groomInfoEnabled !== false &&
+        b.service === "groom" &&
+        !autoMuted(b, "groomInfo")
+      ) {
         const info = parseGroomInfo(await getCatGroomInfo(b.lineUserId, b.catName));
         if (info) {
           await sendTelegram(
@@ -137,7 +143,11 @@ export async function GET(req: NextRequest) {
     if (b.service !== "room" || !b.lineUserId || b.status === "cancelled") continue;
 
     // #1 — แจ้งยอดคงเหลือ N วันก่อนเข้าพัก (ถ้ามีมัดจำ + ยังค้าง)
-    if (auto?.depositReminderEnabled !== false && b.checkin === in7) {
+    if (
+      auto?.depositReminderEnabled !== false &&
+      !autoMuted(b, "deposit") &&
+      b.checkin === in7
+    ) {
       const inv = allInvoices.find(
         (i) => i.bookingId === b.id && i.status === "pending" && (i.deposit || 0) > 0
       );
@@ -156,7 +166,11 @@ export async function GET(req: NextRequest) {
 
     // #4 — ชุดก่อนเข้าพัก N วัน: เตรียมตัว+เงื่อนไข + ยอดคงเหลือ (ถ้ามี) + เลือกเวลาเช็คอิน
     // รวมทั้งหมดใน push เดียว = นับ 1 ข้อความ LINE — ลิงก์ยอมรับชี้ที่นัดนี้เท่านั้น
-    if (auto?.prestayReminderEnabled !== false && b.checkin === in3) {
+    if (
+      auto?.prestayReminderEnabled !== false &&
+      !autoMuted(b, "prestay") &&
+      b.checkin === in3
+    ) {
       const consentUrl = await getConsentUrl(b.id);
       const prestayBundle: object[] = [
         buildPrestayFlex({
@@ -210,7 +224,12 @@ export async function GET(req: NextRequest) {
 
     // เตือนเช็คอิน N วันก่อนเข้าพัก → การ์ดให้ลูกค้าเลือกเวลามาส่งน้อง
     // (ข้ามถ้าลูกค้าเลือกเวลาแล้วจากชุดก่อนเข้าพัก — ไม่ถามซ้ำ)
-    if (auto?.checkinReminderEnabled !== false && b.checkin === inCheckin && !b.arrivalTime) {
+    if (
+      auto?.checkinReminderEnabled !== false &&
+      !autoMuted(b, "checkin") &&
+      b.checkin === inCheckin &&
+      !b.arrivalTime
+    ) {
       const url = await getBookingTimeUrl(b.id, "checkin");
       const flex = buildTimePickerFlex({
         title: "🕒 เลือกเวลาเข้าพัก",
@@ -229,6 +248,7 @@ export async function GET(req: NextRequest) {
     // เตือนเช็คเอาท์ N วันก่อนออก → การ์ดให้ลูกค้าเลือกเวลามารับน้อง
     if (
       auto?.checkoutReminderEnabled !== false &&
+      !autoMuted(b, "checkout") &&
       b.checkout &&
       b.checkout === inCheckout &&
       !b.pickupTime
@@ -251,6 +271,7 @@ export async function GET(req: NextRequest) {
     // ⭐ ขอรีวิว หลังเช็คเอาท์ (แยกจากใบเสร็จ — ลูกค้าใช้บริการจริงแล้ว)
     if (
       auto?.reviewRequestEnabled !== false &&
+      !autoMuted(b, "review") &&
       b.checkout &&
       b.checkout === afterCheckoutReview
     ) {

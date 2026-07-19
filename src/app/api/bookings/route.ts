@@ -14,6 +14,7 @@ import {
   updateBooking,
   type StoredBooking,
 } from "@/lib/bookings-store";
+import { AUTO_MESSAGE_TOPICS } from "@/lib/auto-messages";
 import { bookingMatchesCustomer } from "@/lib/booking-customer-match";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { listCustomers, resolveCustomerForBooking } from "@/lib/customers-store";
@@ -36,6 +37,7 @@ import {
   findCustomerForBooking,
   recalculateCustomerTier,
   adjustDepositCredit,
+  getCatGroomInfo,
 } from "@/lib/customers-store";
 import { getSiteConfig } from "@/lib/config-store";
 import { DEFAULT_MESSAGES, renderTemplate } from "@/lib/messages";
@@ -110,6 +112,7 @@ export async function GET(req: NextRequest) {
       arrivalTime: b.arrivalTime,
       pickupTime: b.pickupTime,
       groomHealthInfo: b.groomHealthInfo,
+      autoOff: b.autoOff || [],
       customerId: customer?.id,
     };
   });
@@ -365,6 +368,8 @@ export async function PATCH(req: NextRequest) {
     }
     const cfg = await getSiteConfig();
     const messages: object[] = [];
+    /** การ์ดที่ระบบข้ามให้ พร้อมเหตุผล — ส่งกลับไปบอกพนักงานที่หน้าจอ */
+    const skipped: string[] = [];
 
     for (const part of parts) {
       if (part === "reminder") {
@@ -493,18 +498,27 @@ export async function PATCH(req: NextRequest) {
           }
         }
       } else if (part === "groomInfo") {
-        const url = await getGroomInfoUrl(b.id);
-        messages.push(
-          buildGroomInfoFlex({
-            catName: String(b.catName),
-            dateText: b.date
-              ? `📅 นัดอาบน้ำ: ${b.date}${b.time ? ` ${b.time}` : ""}`
-              : undefined,
-            body: buildGroomInfoBody(b, cfg),
-            url: url || undefined,
-            label: "🩺 แจ้งประวัติน้อง",
-          }, cfg.cards?.groomInfo)
-        );
+        // เคยกรอกประวัติไว้แล้ว → ไม่ถามซ้ำ (ประวัติผูกกับตัวแมว ข้ามนัดก็ยังจำได้)
+        // ถ้าอยากถามใหม่จริง ๆ ให้ใช้ปุ่มส่งเดี่ยว "ขอประวัติ" แทน
+        const existing = to
+          ? await getCatGroomInfo(to, String(b.catName))
+          : undefined;
+        if (existing) {
+          skipped.push(`${b.catName}: เคยกรอกประวัติแล้ว ไม่ขอซ้ำ`);
+        } else {
+          const url = await getGroomInfoUrl(b.id);
+          messages.push(
+            buildGroomInfoFlex({
+              catName: String(b.catName),
+              dateText: b.date
+                ? `📅 นัดอาบน้ำ: ${b.date}${b.time ? ` ${b.time}` : ""}`
+                : undefined,
+              body: buildGroomInfoBody(b, cfg),
+              url: url || undefined,
+              label: "🩺 แจ้งประวัติน้อง",
+            }, cfg.cards?.groomInfo)
+          );
+        }
       } else if (part === "checkin" || part === "checkout") {
         const url = await getBookingTimeUrl(b.id, part);
         messages.push(
@@ -590,13 +604,17 @@ export async function PATCH(req: NextRequest) {
 
     if (messages.length === 0) {
       return NextResponse.json(
-        { error: "สร้างการ์ดไม่ได้สักใบ — เช็คว่ามีบิล/ตั้งค่า LIFF แล้ว" },
+        {
+          error: skipped.length
+            ? `ไม่มีการ์ดให้ส่ง — ${skipped.join(", ")}`
+            : "สร้างการ์ดไม่ได้สักใบ — เช็คว่ามีบิล/ตั้งค่า LIFF แล้ว",
+        },
         { status: 400 }
       );
     }
     try {
       await pushLineMessage(to, messages);
-      return NextResponse.json({ ok: true, sent: messages.length });
+      return NextResponse.json({ ok: true, sent: messages.length, skipped });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       return NextResponse.json({ error: message }, { status: 500 });
@@ -704,6 +722,11 @@ export async function PATCH(req: NextRequest) {
     if (body.room != null) patch.room = String(body.room) || undefined;
     if (body.notes != null) patch.notes = String(body.notes) || undefined;
     if (body.status != null) patch.status = body.status;
+    // หัวข้อข้อความอัตโนมัติที่นัดนี้ไม่ต้องส่ง
+    if (Array.isArray(body.autoOff)) {
+      const valid = new Set(AUTO_MESSAGE_TOPICS.map((t) => t.id));
+      patch.autoOff = body.autoOff.map(String).filter((t: string) => valid.has(t));
+    }
 
     const updated = await updateBooking(id, patch);
     if (!updated) return NextResponse.json({ error: "not found" }, { status: 404 });

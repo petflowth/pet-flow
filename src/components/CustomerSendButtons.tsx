@@ -224,7 +224,9 @@ export function CustomerSendButtons({
       });
       const d = await res.json().catch(() => ({}));
       if (res.ok) {
-        toast(okMsg, "success");
+        // ระบบข้ามการ์ดบางใบให้ (เช่น เคยกรอกประวัติแล้ว) — ต้องบอกให้รู้ ไม่ใช่เงียบ
+        const note = d.skipped?.length ? ` · ข้ามให้: ${d.skipped.join(", ")}` : "";
+        toast(okMsg + note, "success");
         onDone?.();
         return true;
       }
@@ -265,7 +267,11 @@ export function CustomerSendButtons({
       });
       const d = await res.json().catch(() => ({}));
       if (res.ok) {
-        toast(`ส่งชุดการ์ด ${d.sent} ใบใน 1 ข้อความแล้ว 📦`, "success");
+        toast(
+          `ส่งชุดการ์ด ${d.sent} ใบใน 1 ข้อความแล้ว 📦` +
+            (d.skipped?.length ? ` · ข้ามให้: ${d.skipped.join(", ")}` : ""),
+          "success"
+        );
         setBundleOpen(false);
         setBundleParts([]);
         onDone?.();

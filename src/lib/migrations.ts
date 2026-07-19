@@ -155,6 +155,11 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     name: "cats.color",
     sql: "alter table cats add column if not exists color text;",
   },
+  {
+    // รายชื่อข้อความอัตโนมัติที่ "นัดนี้" ไม่ต้องส่ง (ปิดเป็นรายเคส ไม่ใช่ปิดทั้งร้าน)
+    name: "bookings.auto_off",
+    sql: "alter table bookings add column if not exists auto_off text[] not null default array[]::text[];",
+  },
 ];
 
 export type MigrateResult = {

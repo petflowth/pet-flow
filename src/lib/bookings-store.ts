@@ -23,7 +23,14 @@ export type StoredBooking = Booking & {
   pickupTime?: string;
   /** ประวัติน้องก่อนอาบน้ำ (JSON string) ที่ลูกค้ากรอกมา */
   groomHealthInfo?: string;
+  /**
+   * ข้อความอัตโนมัติที่ "นัดนี้" ไม่ต้องส่ง (ปิดเป็นรายเคส คนละเรื่องกับปิดทั้งร้านในตั้งค่า)
+   * ค่าที่ใช้ได้: ดู AUTO_MESSAGE_TOPICS
+   */
+  autoOff?: string[];
 };
+
+export { AUTO_MESSAGE_TOPICS, autoMuted } from "./auto-messages";
 
 type BookingRow = {
   id: string;
@@ -47,6 +54,7 @@ type BookingRow = {
   arrival_time?: string | null;
   pickup_time?: string | null;
   groom_health_info?: string | null;
+  auto_off?: string[] | null;
 };
 
 const mem: StoredBooking[] = seedEnabled()
@@ -88,6 +96,7 @@ function rowToStored(r: BookingRow): StoredBooking {
     arrivalTime: r.arrival_time || undefined,
     pickupTime: r.pickup_time || undefined,
     groomHealthInfo: r.groom_health_info || undefined,
+    autoOff: r.auto_off || undefined,
   };
 }
 
@@ -305,6 +314,7 @@ export async function updateBooking(
       | "room"
       | "notes"
       | "lineUserId"
+      | "autoOff"
     >
   >
 ) {
@@ -334,6 +344,19 @@ export async function updateBooking(
       })
       .eq("id", id)
       .eq("tenant_id", requireTenantId());
+    // คอลัมน์ auto_off เพิ่มมาทีหลัง — เขียนแยกและกลืน error ไว้
+    // เครื่องที่ยังไม่ได้รัน migration จะได้ไม่พังทั้งการบันทึกนัด
+    if (patch.autoOff !== undefined) {
+      try {
+        await sb
+          .from("bookings")
+          .update({ auto_off: merged.autoOff || [] })
+          .eq("id", id)
+          .eq("tenant_id", requireTenantId());
+      } catch {
+        /* ยังไม่มีคอลัมน์ — ข้ามไป ฟีเจอร์จะทำงานเมื่ออัปเดตฐานข้อมูลแล้ว */
+      }
+    }
     return getBooking(id);
   }
 

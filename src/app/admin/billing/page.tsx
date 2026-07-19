@@ -19,7 +19,7 @@ type Customer = {
   name: string;
   phone?: string;
   lineUserId?: string;
-  cats: { name: string }[];
+  cats: { id?: string; name: string }[];
   isMember: boolean;
   memberCredit: number;
   /** มัดจำล่วงหน้าคงเหลือ — หักบิลนี้อัตโนมัติ */
@@ -48,7 +48,14 @@ type Invoice = {
   bookingId?: string;
   depositReceivedAt?: string;
   createdAt?: string;
-  items?: { label: string; amount: number; kind?: string }[];
+  items?: {
+    label: string;
+    amount: number;
+    kind?: string;
+    catName?: string;
+    qty?: number;
+    unitAmount?: number;
+  }[];
 };
 
 type Booking = {
@@ -76,6 +83,10 @@ type Item = {
   nights: number;
   label: string;
   amount: number;
+  /** น้องแมวตัวไหน — บ้านที่มีหลายตัวจะได้รู้ว่าตัวไหนอาบโปรแกรมอะไร */
+  catName?: string;
+  /** จำนวนชิ้น (ห้องพักใช้ "คืน" แทน) */
+  qty?: number;
 };
 
 function newGrooming(): Item {
@@ -93,25 +104,59 @@ function newGrooming(): Item {
   };
 }
 
-function computeLine(it: Item): { label: string; amount: number } {
+function computeLine(it: Item): {
+  label: string;
+  amount: number;
+  catName?: string;
+  qty: number;
+  unitAmount: number;
+} {
+  const cat = it.catName?.trim() || undefined;
+  /** ใส่ชื่อน้องนำหน้า ให้เจ้าของอ่านบิลแล้วรู้ทันทีว่าตัวไหนใช้อะไร */
+  const withCat = (label: string) => (cat ? `🐱 ${cat} · ${label}` : label);
+  const qty = Math.max(1, Math.round(it.qty || 1));
+
   if (it.kind === "grooming") {
     const prog = groomProgram(it.program);
+    const unit = groomPrice(it.program, it.breed, it.size);
+    const base = `${prog?.name || "อาบน้ำ"} · ${it.breed} · ${groomSizeLabel(it.size)}`;
     return {
-      label: `${prog?.name || "อาบน้ำ"} · ${it.breed} · ${groomSizeLabel(it.size)}`,
-      amount: groomPrice(it.program, it.breed, it.size),
+      label: withCat(qty > 1 ? `${base} × ${qty}` : base),
+      amount: unit * qty,
+      catName: cat,
+      qty,
+      unitAmount: unit,
     };
   }
   if (it.kind === "room") {
+    // ห้องพักคิดเป็น "คืน" อยู่แล้ว จึงไม่ใช้ qty ซ้ำ
     const n = Math.max(1, it.nights || 1);
+    const unit = it.roomPrice || 0;
     return {
-      label: `${it.roomLabel || "ห้องพัก"} × ${n} คืน`,
-      amount: (it.roomPrice || 0) * n,
+      label: withCat(`${it.roomLabel || "ห้องพัก"} × ${n} คืน`),
+      amount: unit * n,
+      catName: cat,
+      qty: n,
+      unitAmount: unit,
     };
   }
   if (it.kind === "freebie") {
-    return { label: `🎁 ${it.label || "ของแถม"} (ฟรี)`, amount: 0 };
+    return {
+      label: withCat(`🎁 ${it.label || "ของแถม"} (ฟรี)`),
+      amount: 0,
+      catName: cat,
+      qty: 1,
+      unitAmount: 0,
+    };
   }
-  return { label: it.label, amount: it.amount || 0 };
+  const unit = it.amount || 0;
+  return {
+    label: withCat(qty > 1 ? `${it.label} × ${qty}` : it.label),
+    amount: unit * qty,
+    catName: cat,
+    qty,
+    unitAmount: unit,
+  };
 }
 
 /** สรุปการจอง (วัน/เวลา) จากนัดที่ผูกกับบิล — โชว์ในบิล + การ์ดสรุปให้ลูกค้า */
@@ -626,12 +671,23 @@ export default function BillingPage() {
     if (inv.customerId) setCustomerId(inv.customerId);
     // โหลดรายการเป็นแบบ "พิมพ์เอง" (แก้ยอด/ชื่อได้) — เก็บของแถมฟรีด้วย
     setItems(
-      (inv.items || []).map((it) => ({
-        ...newGrooming(),
-        kind: it.amount > 0 ? ("custom" as const) : ("freebie" as const),
-        label: it.label.replace(/^🎁 /, "").replace(/ \(ฟรี\)$/, ""),
-        amount: it.amount,
-      }))
+      (inv.items || []).map((it) => {
+        const qty = Math.max(1, Math.round(it.qty || 1));
+        return {
+          ...newGrooming(),
+          kind: it.amount > 0 ? ("custom" as const) : ("freebie" as const),
+          // ถอดคำนำหน้าชื่อน้อง/ตัวคูณออก แล้วเก็บกลับเป็นฟิลด์ — กันชื่อน้องซ้อนกันตอนบันทึกใหม่
+          label: it.label
+            .replace(/^🐱 .+? · /, "")
+            .replace(/ × \d+$/, "")
+            .replace(/^🎁 /, "")
+            .replace(/ \(ฟรี\)$/, ""),
+          catName: it.catName,
+          qty,
+          // ช่องราคาของรายการ "พิมพ์เอง" คือราคาต่อหน่วย
+          amount: it.unitAmount ?? Math.round(it.amount / qty),
+        };
+      })
     );
     setBillDeposit(inv.deposit ? String(inv.deposit) : "");
     setBillDepPct(null);
@@ -854,6 +910,25 @@ export default function BillingPage() {
                     )}
                   </div>
 
+                  {/* บ้านที่มีแมวหลายตัว — ระบุว่ารายการนี้ของน้องตัวไหน
+                      โชว์เฉพาะตอนที่ลูกค้ามีแมวมากกว่า 1 ตัว จะได้ไม่รกโดยไม่จำเป็น */}
+                  {(selected?.cats.length || 0) > 1 && item.kind !== "freebie" && (
+                    <select
+                      value={item.catName || ""}
+                      onChange={(e) =>
+                        updateItem(i, { catName: e.target.value || undefined })
+                      }
+                      className={sub}
+                    >
+                      <option value="">🐱 รายการนี้ของน้องตัวไหน (ไม่ระบุก็ได้)</option>
+                      {selected?.cats.map((c) => (
+                        <option key={c.id || c.name} value={c.name}>
+                          🐱 {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
                   {item.kind === "grooming" && (
                     <>
                       <select
@@ -975,6 +1050,50 @@ export default function BillingPage() {
                         ))}
                       </datalist>
                     </>
+                  )}
+
+                  {/* จำนวนชิ้น — ซื้อหลายอันไม่ต้องเพิ่มทีละบรรทัด
+                      ห้องพักไม่มีช่องนี้ เพราะคิดเป็น "คืน" อยู่แล้ว */}
+                  {item.kind !== "room" && item.kind !== "freebie" && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold text-brown-soft">จำนวน</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateItem(i, { qty: Math.max(1, (item.qty || 1) - 1) })
+                        }
+                        className="h-8 w-8 shrink-0 rounded-lg border border-catcha-line bg-card text-sm font-extrabold text-brown disabled:opacity-40"
+                        disabled={(item.qty || 1) <= 1}
+                        aria-label="ลดจำนวน"
+                      >
+                        −
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        inputMode="numeric"
+                        value={item.qty || 1}
+                        onChange={(e) =>
+                          updateItem(i, {
+                            qty: Math.max(1, Math.round(Number(e.target.value) || 1)),
+                          })
+                        }
+                        className="w-14 rounded-lg border border-catcha-line bg-paper px-2 py-1.5 text-center text-sm font-bold"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => updateItem(i, { qty: (item.qty || 1) + 1 })}
+                        className="h-8 w-8 shrink-0 rounded-lg border border-catcha-line bg-card text-sm font-extrabold text-brown"
+                        aria-label="เพิ่มจำนวน"
+                      >
+                        +
+                      </button>
+                      {(item.qty || 1) > 1 && (
+                        <span className="text-[11px] text-brown-faint">
+                          {line.unitAmount.toLocaleString()} ฿ × {line.qty}
+                        </span>
+                      )}
+                    </div>
                   )}
 
                   <div className="flex items-center justify-between gap-2">

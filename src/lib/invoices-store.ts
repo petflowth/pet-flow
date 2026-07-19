@@ -22,9 +22,16 @@ import { requireTenantId } from "./tenant-context";
 
 export type InvoiceItem = {
   label: string;
+  /** ยอดรวมของรายการนี้แล้ว (คูณจำนวนแล้ว) */
   amount: number;
   /** ประเภทรายการ — ใช้เช็คว่าบิลนี้มีอาบน้ำ/กรูมรวมอยู่ไหม (แม่นกว่าเดารูปแบบข้อความ) */
   kind?: "grooming" | "room" | "service" | "custom" | "freebie";
+  /** น้องแมวตัวไหน — บิลบ้านที่มีหลายตัวจะได้รู้ว่าตัวไหนอาบโปรแกรมอะไร */
+  catName?: string;
+  /** จำนวนชิ้น (ไม่ใส่ = 1) — ซื้อหลายชิ้นไม่ต้องเพิ่มทีละบรรทัด */
+  qty?: number;
+  /** ราคาต่อหน่วย (ไม่ใส่ = เท่ากับ amount) — เก็บไว้ให้บิลย้อนหลังอ่านออก */
+  unitAmount?: number;
 };
 
 export type InvoiceRecord = {
@@ -230,10 +237,19 @@ export async function createInvoice(data: {
   // บังคับให้ทุกยอดเป็นตัวเลขจำนวนเต็มก่อนคิด — กันค่าที่ไม่ใช่ตัวเลขทำบิลพัง
   // (เมื่อก่อน amount ที่เป็น string จะถูกต่อสตริง เช่น 0 + "abc" = "0abc" แล้ว total กลายเป็น null
   //  ส่วนทศนิยมก็โผล่เป็น 0.30000000000000004 บนบิลลูกค้า)
-  const items = (data.items || []).map((i) => ({
-    ...i,
-    amount: Math.round(Number(i.amount) || 0),
-  }));
+  const items = (data.items || []).map((i) => {
+    const qty = Math.max(1, Math.round(Number(i.qty) || 1));
+    // ราคาต่อหน่วย: ถ้าไม่ได้ส่งมา ให้ถอดจากยอดรวม เพื่อให้บิลเก่า (ที่ไม่มี qty) ยังถูกต้อง
+    const unit = Math.round(
+      Number(i.unitAmount ?? (Number(i.amount) || 0) / qty) || 0
+    );
+    return {
+      ...i,
+      qty,
+      unitAmount: unit,
+      amount: unit * qty,
+    };
+  });
   const subtotal = items.reduce((s, i) => s + i.amount, 0);
   const { discount: promoDiscount, label } = await calcPromoDiscount(
     data.promoId,

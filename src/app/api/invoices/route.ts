@@ -15,7 +15,11 @@ import {
   listTrashedInvoices,
   linkInvoiceToBooking,
 } from "@/lib/invoices-store";
-import { getCustomer, adjustDepositCredit } from "@/lib/customers-store";
+import {
+  getCustomer,
+  adjustDepositCredit,
+  findCustomerForBooking,
+} from "@/lib/customers-store";
 import { issueCoupon, listCustomerCoupons } from "@/lib/coupons-store";
 import { getPaymentConfig } from "@/lib/payment-config";
 import { getSiteConfig } from "@/lib/config-store";
@@ -571,6 +575,20 @@ export async function PATCH(req: NextRequest) {
     const bookingId = String(body.bookingId || "").trim();
     if (!bookingId) {
       return NextResponse.json({ error: "bookingId required" }, { status: 400 });
+    }
+    // กันกดผิดคน — ผูกได้เฉพาะนัดของลูกค้าเจ้าของบิลเท่านั้น
+    // ถ้าผูกข้ามคน การ์ด/ข้อความจะถูกส่งไปหาลูกค้าผิดคนทันที
+    const targetBooking = await getBooking(bookingId);
+    if (!targetBooking) {
+      return NextResponse.json({ error: "booking_not_found" }, { status: 404 });
+    }
+    const bookingCustomer = await findCustomerForBooking(targetBooking);
+    if (
+      inv.customerId &&
+      bookingCustomer?.id &&
+      bookingCustomer.id !== inv.customerId
+    ) {
+      return NextResponse.json({ error: "customer_mismatch" }, { status: 400 });
     }
     const res = await linkInvoiceToBooking(id, bookingId);
     if (!res.ok) {

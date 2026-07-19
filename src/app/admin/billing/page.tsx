@@ -362,13 +362,29 @@ export default function BillingPage() {
   }, [customerId]);
 
   // บ้านเดียวกัน + นัดเดียวกัน = 1 รายการในลิสต์ ออกบิลใบเดียว
-  // ตัดกลุ่มที่จบเคสแล้ว (มีบิลจ่ายแล้วผูกกับตัวใดตัวหนึ่งในกลุ่ม) ออกจากลิสต์ให้ดึงมาออกบิลซ้ำ
-  const paidBookingIds = new Set(
-    invoices.filter((i) => i.status === "paid" && i.bookingId).map((i) => i.bookingId)
-  );
-  const bookingGroups = groupBookings(bookings).filter(
-    (group) => !group.some((b) => paidBookingIds.has(b.id))
-  );
+  //
+  // บิลของบ้านรวมผูกกับ "นัดตัวแรก" ตัวเดียว ถ้าตัดทั้งกลุ่มเมื่อเจอบิลที่จ่ายแล้ว
+  // บ้านที่ออกบิลไปแค่บางตัว (พนักงานลบบางแถวออก) จะหายทั้งกลุ่ม อีกหลายตัวออกบิลไม่ได้เลย
+  // จึงดูจาก "ชื่อน้องที่ถูกออกบิลไปแล้ว" แทน แล้วเหลือเฉพาะตัวที่ยังไม่ได้ออกบิล
+  const bookingGroups = groupBookings(bookings)
+    .map((group) => {
+      const groupIds = new Set(group.map((b) => b.id));
+      const paidForGroup = invoices.filter(
+        (i) => i.status === "paid" && i.bookingId && groupIds.has(i.bookingId)
+      );
+      if (paidForGroup.length === 0) return group;
+      // บิลเก่าที่ยังไม่มีชื่อน้องรายรายการ → ถือว่าคุมแค่น้องหลักของบิลนั้น (ปลอดภัยกว่าซ่อนเกิน)
+      const billedCats = new Set(
+        paidForGroup.flatMap((i) => {
+          const perItem = (i.items || [])
+            .map((it) => it.catName)
+            .filter((n): n is string => !!n);
+          return perItem.length ? perItem : [i.catName];
+        })
+      );
+      return group.filter((b) => !billedCats.has(b.catName));
+    })
+    .filter((group) => group.length > 0);
   const lines = items.map(computeLine);
   const subtotal = lines.reduce((s, l) => s + l.amount, 0);
   const selectedPromo = promos.find((p) => p.id === promoId);
@@ -760,9 +776,12 @@ export default function BillingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: invId, action: "link_booking", bookingId }),
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
         toast("ผูกนัดให้บิลแล้ว — ปุ่มส่งการ์ดกลับมาแล้ว 🔗", "success");
         load();
+      } else if (data.error === "customer_mismatch") {
+        toast("นัดนี้เป็นของลูกค้าคนอื่น — ผูกไม่ได้ (กันส่งการ์ดผิดคน)", "error");
       } else {
         toast("ผูกนัดไม่สำเร็จ", "error");
       }

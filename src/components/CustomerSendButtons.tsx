@@ -326,18 +326,20 @@ export function CustomerSendButtons({
   const hasRemaining = depForBill > 0;
 
   // ครบทุกหัวข้อเท่ากับปุ่มเดี่ยวด้านบน — เลือกผสมได้อิสระ ส่งใน 1 ข้อความ
+  // บิลที่มีทั้งอาบน้ำและเข้าพัก (service = "both") ต้องเห็นการ์ดฝั่งเข้าพักด้วย
+  const hasRoomStay = service === "room" || service === "both";
   const BUNDLE_OPTIONS: { key: string; label: string; when: boolean }[] = [
     { key: "reminder", label: "📨 แจ้งเตือนนัด", when: !!bookingId },
-    { key: "prestay", label: "🏠 แจ้งเข้าพัก + เงื่อนไข", when: service === "room" },
-    { key: "consent", label: "📋 เงื่อนไข + ลายเซ็น", when: service === "room" },
+    { key: "prestay", label: "🏠 แจ้งเข้าพัก + เงื่อนไข", when: hasRoomStay },
+    { key: "consent", label: "📋 เงื่อนไข + ลายเซ็น", when: hasRoomStay },
     {
       // เข้าพักก็ขอประวัติได้ — เคสพักพร้อมอาบน้ำ หรือมาเพิ่มอาบน้ำระหว่างเข้าพัก
       key: "groomInfo",
       label: "🩺 ขอประวัติก่อนอาบน้ำ",
       when: !!bookingId,
     },
-    { key: "checkin", label: "🧳 เลือกเวลาเช็คอิน", when: service === "room" },
-    { key: "checkout", label: "🧳 เลือกเวลาเช็คเอาท์", when: service === "room" },
+    { key: "checkin", label: "🧳 เลือกเวลาเช็คอิน", when: hasRoomStay },
+    { key: "checkout", label: "🧳 เลือกเวลาเช็คเอาท์", when: hasRoomStay },
     { key: "deposit", label: "💰 เรียกเก็บมัดจำ", when: true },
     {
       key: "depositThanks",
@@ -379,7 +381,7 @@ export function CustomerSendButtons({
           onClick={() => bookingSend("send_reminder", "ส่งแจ้งเตือนนัดแล้ว 📨")}
         />
       )}
-      {bookingId && service === "room" && (
+      {bookingId && hasRoomStay && (
         <Btn
           k="send_prestay"
           label="🏠 แจ้งเข้าพัก + เงื่อนไข"
@@ -398,7 +400,7 @@ export function CustomerSendButtons({
           onClick={sendGroomInfoAll}
         />
       )}
-      {bookingId && service === "room" && (
+      {bookingId && hasRoomStay && (
         <Btn
           k="send_checkin_reminder"
           label="🧳 เตือนเช็คอิน + เลือกเวลา"
@@ -407,7 +409,7 @@ export function CustomerSendButtons({
           }
         />
       )}
-      {bookingId && service === "room" && (
+      {bookingId && hasRoomStay && (
         <Btn
           k="send_checkout_reminder"
           label="🧳 เตือนเช็คเอาท์ + เลือกเวลา"

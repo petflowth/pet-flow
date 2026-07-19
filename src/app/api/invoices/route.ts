@@ -388,19 +388,19 @@ export async function PATCH(req: NextRequest) {
           }, cfgRc.cards?.review)
         );
       }
-      await pushLineMessage(paid.lineUserId, receiptMsgs);
-
+      // ยอด Member ก็แนบไปในข้อความเดียวกัน — เมื่อก่อนยิงแยกทำให้เสียโควตาเพิ่มอีก 1
       if (customer?.isMember) {
-        await pushLineMessage(paid.lineUserId, [
+        receiptMsgs.push(
           buildMemberBalanceFlex({
             customerName: customer.name,
             memberCredit: customer.memberCredit,
             usedToday:
               paid.paymentMethod === "member_credit" ? paid.total : undefined,
             catName: paid.catName,
-          }),
-        ]);
+          })
+        );
       }
+      await pushLineMessage(paid.lineUserId, receiptMsgs);
     }
 
     const gotDeposit = (result.alreadyReceived || 0) > 0;

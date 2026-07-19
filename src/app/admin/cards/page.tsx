@@ -395,6 +395,8 @@ function Preview({
   /** ข้อความที่เก็บในตัวการ์ดเอง (cards.<key>.texts) — ว่าง = ใช้ค่าเริ่มต้น */
   const t = (k: string, fb: string) => st.texts?.[k] || fb;
   const titleCls = SIZE_PREVIEW[st.titleSize || ""] || "text-sm";
+  // การ์ด "ยืนยันนัด" หน้าตาต่างกันระหว่างนัดอาบน้ำกับเข้าพัก — ให้เลือกดูได้ทั้งสองแบบ
+  const [confirmVariant, setConfirmVariant] = useState<"groom" | "room">("groom");
 
   const bubble = "overflow-hidden rounded-2xl border border-[#e8e0d0] bg-white shadow-lg";
   const btn = (color: string, label: string) => (
@@ -406,49 +408,72 @@ function Preview({
   );
 
   if (meta.key === "bookingConfirm") {
+    const isRoomPreview = confirmVariant === "room";
     return (
-      <div className={bubble}>
-        <div className="px-4 py-3" style={{ background: c("headerColor", "#5A8F5A") }}>
-          <p className="text-xs font-extrabold" style={{ color: c("headerTextColor", "#FFFFFF") }}>📅 กำหนดการนัด</p>
+      <div>
+        {/* หน้าตาการ์ดต่างกันระหว่างนัดอาบน้ำกับเข้าพัก — สลับดูได้ทั้งสองแบบ */}
+        <div className="mb-2 flex overflow-hidden rounded-full border border-[#e8e0d0] text-[11px] font-bold">
+          <button
+            type="button"
+            onClick={() => setConfirmVariant("groom")}
+            className={`flex-1 py-1.5 transition ${
+              !isRoomPreview ? "bg-latte-deep text-white" : "bg-white text-brown-soft"
+            }`}
+          >
+            🛁 นัดอาบน้ำ
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmVariant("room")}
+            className={`flex-1 py-1.5 transition ${
+              isRoomPreview ? "bg-latte-deep text-white" : "bg-white text-brown-soft"
+            }`}
+          >
+            🏠 เข้าพักโรงแรม
+          </button>
         </div>
-        <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
-          <p className={`${titleCls} font-extrabold`} style={{ color: c("accentColor", "#5C4033") }}>
-            อาบน้ำ &amp; กรูมมิ่ง · Soju
-          </p>
-          <p className="text-[10px] text-[#A2907E]">แจ้งกำหนดการนัด 🗓️ คุณตาล</p>
-          <p>🗓️ <b>วันที่</b> — 24 ก.ค. 2569</p>
-          <p>⏰ <b>เวลา</b> — 12:30 น.</p>
-          {show("location") && <p>📍 <b>สถานที่</b> — PetFlow · เทพารักษ์ บางนา</p>}
-          {show("notes") && <p>📝 <b>หมายเหตุ</b> — แจ้งในแชทได้เลยนะคะ</p>}
-          {show("groomPrep") && (
-            <div>
+        <div className={bubble}>
+          <div className="px-4 py-3" style={{ background: c("headerColor", "#5A8F5A") }}>
+            <p className="text-xs font-extrabold" style={{ color: c("headerTextColor", "#FFFFFF") }}>📅 กำหนดการนัด</p>
+          </div>
+          <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
+            <p className={`${titleCls} font-extrabold`} style={{ color: c("accentColor", "#5C4033") }}>
+              {isRoomPreview ? "ห้องพัก · Soju" : "อาบน้ำ & กรูมมิ่ง · Soju"}
+            </p>
+            <p className="text-[10px] text-[#A2907E]">แจ้งกำหนดการนัด 🗓️ คุณตาล</p>
+            {isRoomPreview ? (
+              <>
+                <p>🗓️ <b>วันที่</b> — 24 ก.ค. 2569 → 26 ก.ค. 2569</p>
+                <p>⏰ <b>เวลา / รายละเอียด</b> — ห้อง Mid Cozy</p>
+              </>
+            ) : (
+              <>
+                <p>🗓️ <b>วันที่</b> — 24 ก.ค. 2569</p>
+                <p>⏰ <b>เวลา</b> — 12:30 น.</p>
+              </>
+            )}
+            {show("location") && <p>📍 <b>สถานที่</b> — PetFlow · เทพารักษ์ บางนา</p>}
+            {show("notes") && <p>📝 <b>หมายเหตุ</b> — แจ้งในแชทได้เลยนะคะ</p>}
+            {!isRoomPreview && show("groomPrep") && (
               <p className="whitespace-pre-line rounded-lg bg-[#FBEEE0] px-2.5 py-2 text-[10px] font-bold text-[#B4553B]">
                 {t(
                   "groomPrepNote",
                   "🍬 อย่าลืมพกขนม/แมวเลียมาด้วยอย่างน้อย 1-2 ซองนะคะ\n🧺 และให้น้องอยู่ในตะกร้า/กระเป๋าทุกครั้งที่มาใช้บริการด้วยค่ะ"
                 )}
               </p>
-              <p className="mt-0.5 text-[9px] italic text-[#A2907E]">
-                ↑ ขึ้นเฉพาะการ์ดนัดอาบน้ำ
-              </p>
-            </div>
-          )}
-          {show("roomPrep") && (
-            <div>
+            )}
+            {isRoomPreview && show("roomPrep") && (
               <p className="whitespace-pre-line rounded-lg bg-[#FBEEE0] px-2.5 py-2 text-[10px] font-bold text-[#B4553B]">
                 {t(
                   "roomPrepNote",
                   "🧺 รบกวนพาน้องใส่ตะกร้า/กระเป๋าทุกครั้งที่มาใช้บริการด้วยนะคะ"
                 )}
               </p>
-              <p className="mt-0.5 text-[9px] italic text-[#A2907E]">
-                ↑ ขึ้นเฉพาะการ์ดนัดเข้าพักโรงแรม
-              </p>
-            </div>
-          )}
+            )}
+          </div>
+          {btn(c("buttonColor", "#4A7348"), "🐾 ยืนยันนัด")}
+          {show("map") && <p className="pb-3 text-center text-[10px] font-bold text-[#3E6990]">🗺️ ดูแผนที่ / เส้นทาง</p>}
         </div>
-        {btn(c("buttonColor", "#4A7348"), "🐾 ยืนยันนัด")}
-        {show("map") && <p className="pb-3 text-center text-[10px] font-bold text-[#3E6990]">🗺️ ดูแผนที่ / เส้นทาง</p>}
       </div>
     );
   }

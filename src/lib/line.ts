@@ -209,6 +209,31 @@ export function buildAppointmentConfirmFlex(booking: {
             ? [flexDetailRow("📍", "สถานที่", booking.location)]
             : []),
           ...(show("notes") ? [flexDetailRow("📝", "หมายเหตุ", noteText)] : []),
+          // เฉพาะนัดอาบน้ำ — เตือนเรื่องขนมกับตะกร้า ให้เห็นเด่นแยกจากหมายเหตุทั่วไป
+          ...(!isRoom && show("groomPrep")
+            ? [
+                {
+                  type: "box" as const,
+                  layout: "vertical" as const,
+                  margin: "lg" as const,
+                  paddingAll: "12px",
+                  backgroundColor: "#FBEEE0",
+                  cornerRadius: "10px",
+                  contents: [
+                    {
+                      type: "text" as const,
+                      text:
+                        st.texts?.groomPrepNote ||
+                        "🍬 อย่าลืมพกขนม/แมวเลียมาด้วยอย่างน้อย 1-2 ซองนะคะ\n🧺 และให้น้องอยู่ในตะกร้า/กระเป๋าทุกครั้งที่มาใช้บริการด้วยค่ะ",
+                      size: "xs" as const,
+                      color: "#B4553B",
+                      weight: "bold" as const,
+                      wrap: true,
+                    },
+                  ],
+                },
+              ]
+            : []),
         ],
       },
       footer: {

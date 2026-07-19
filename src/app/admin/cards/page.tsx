@@ -29,7 +29,12 @@ type TextMeta = {
 };
 
 /** ข้อความที่เก็บไว้ในตัวการ์ดเอง (cards.<key>.texts.<key>) — ไม่ต้องพึ่ง messages.* */
-type StyleTextMeta = { key: string; label: string; placeholder: string };
+type StyleTextMeta = {
+  key: string;
+  label: string;
+  placeholder: string;
+  multiline?: boolean;
+};
 
 type CardMeta = {
   key: string;
@@ -59,8 +64,18 @@ const CARDS: CardMeta[] = [
       { key: "location", label: "📍 สถานที่ร้าน" },
       { key: "notes", label: "📝 หมายเหตุ" },
       { key: "map", label: "🗺️ ปุ่มดูแผนที่" },
+      { key: "groomPrep", label: "🧺 เตือนพกขนม + ให้อยู่ในตะกร้า (เฉพาะนัดอาบน้ำ)" },
     ],
     texts: [],
+    styleTexts: [
+      {
+        key: "groomPrepNote",
+        label: "ข้อความเตือนพกขนม/ตะกร้า (เฉพาะนัดอาบน้ำ)",
+        placeholder:
+          "🍬 อย่าลืมพกขนม/แมวเลียมาด้วยอย่างน้อย 1-2 ซองนะคะ\n🧺 และให้น้องอยู่ในตะกร้า/กระเป๋าทุกครั้งที่มาใช้บริการด้วยค่ะ",
+        multiline: true,
+      },
+    ],
     hasTitleSize: true,
   },
   {
@@ -398,6 +413,14 @@ function Preview({
           <p>⏰ <b>เวลา</b> — 12:30 น.</p>
           {show("location") && <p>📍 <b>สถานที่</b> — PetFlow · เทพารักษ์ บางนา</p>}
           {show("notes") && <p>📝 <b>หมายเหตุ</b> — แจ้งในแชทได้เลยนะคะ</p>}
+          {show("groomPrep") && (
+            <p className="whitespace-pre-line rounded-lg bg-[#FBEEE0] px-2.5 py-2 text-[10px] font-bold text-[#B4553B]">
+              {t(
+                "groomPrepNote",
+                "🍬 อย่าลืมพกขนม/แมวเลียมาด้วยอย่างน้อย 1-2 ซองนะคะ\n🧺 และให้น้องอยู่ในตะกร้า/กระเป๋าทุกครั้งที่มาใช้บริการด้วยค่ะ"
+              )}
+            </p>
+          )}
         </div>
         {btn(c("buttonColor", "#4A7348"), "🐾 ยืนยันนัด")}
         {show("map") && <p className="pb-3 text-center text-[10px] font-bold text-[#3E6990]">🗺️ ดูแผนที่ / เส้นทาง</p>}
@@ -1144,21 +1167,35 @@ export default function CardsStudioPage() {
             <div>
               <p className="mb-2 text-xs font-extrabold text-brown">📝 ข้อความในการ์ด (เขียนเองได้)</p>
               <div className="space-y-2.5">
-                {meta.styleTexts.map((sx) => (
-                  <label key={sx.key} className="block text-[11px] font-bold text-brown-soft">
-                    {sx.label}
-                    <input
-                      value={st.texts?.[sx.key] || ""}
-                      onChange={(e) => {
-                        const next = { ...st.texts, [sx.key]: e.target.value };
-                        if (!e.target.value) delete next[sx.key];
-                        patch({ texts: Object.keys(next).length ? next : undefined });
-                      }}
-                      placeholder={sx.placeholder}
-                      className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs font-normal"
-                    />
-                  </label>
-                ))}
+                {meta.styleTexts.map((sx) => {
+                  const val = st.texts?.[sx.key] || "";
+                  const onChange = (v: string) => {
+                    const next = { ...st.texts, [sx.key]: v };
+                    if (!v) delete next[sx.key];
+                    patch({ texts: Object.keys(next).length ? next : undefined });
+                  };
+                  return (
+                    <label key={sx.key} className="block text-[11px] font-bold text-brown-soft">
+                      {sx.label}
+                      {sx.multiline ? (
+                        <textarea
+                          value={val}
+                          onChange={(e) => onChange(e.target.value)}
+                          placeholder={sx.placeholder}
+                          rows={3}
+                          className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs font-normal"
+                        />
+                      ) : (
+                        <input
+                          value={val}
+                          onChange={(e) => onChange(e.target.value)}
+                          placeholder={sx.placeholder}
+                          className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs font-normal"
+                        />
+                      )}
+                    </label>
+                  );
+                })}
               </div>
             </div>
           )}

@@ -44,8 +44,12 @@ export async function POST(req: NextRequest) {
     vaccinated:
       info.vaccinated === "yes" ? "yes" : info.vaccinated === "no" ? "no" : "",
     weight: info.weight === "unknown" ? "unknown" : String(info.weight || "").trim(),
-    dryMethod:
-      info.dryMethod === "dryer" || info.dryMethod === "cabinet" ? info.dryMethod : "",
+    // เลือกได้หลายวิธี — รองรับข้อมูลเก่าที่เคยเก็บเป็น string เดี่ยว
+    dryMethod: Array.isArray(info.dryMethod)
+      ? info.dryMethod.filter((d: string) => d === "dryer" || d === "cabinet")
+      : info.dryMethod === "dryer" || info.dryMethod === "cabinet"
+        ? [info.dryMethod]
+        : [],
     allergy: String(info.allergy || "").trim(),
     note: String(info.note || "").trim(),
     submittedAt: new Date().toISOString(),

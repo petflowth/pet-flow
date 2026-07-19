@@ -32,12 +32,12 @@ export type GroomHealthInfo = {
   health?: string[];
   allergy?: string;
   note?: string;
-  /** ได้รับวัคซีนแล้วหรือไม่ */
+  /** ได้รับวัคซีนครบหรือยัง */
   vaccinated?: string;
   /** น้ำหนักตัว (โดยประมาณ) — ค่า "unknown" แปลว่าลูกค้าติ๊กไม่ทราบ */
   weight?: string;
-  /** วิธีการอาบน้ำที่เคยใช้ */
-  dryMethod?: string;
+  /** วิธีเป่าขนที่เคยใช้ — เลือกได้หลายวิธี (ข้อมูลเก่าอาจเป็น string เดี่ยว) */
+  dryMethod?: string[] | string;
   submittedAt?: string;
 };
 
@@ -64,10 +64,18 @@ export function groomInfoSummary(info: GroomHealthInfo): Record<string, string> 
       "-",
     สุขภาพ:
       (info.health || []).map((h) => GROOM_HEALTH_LABELS[h] || h).join(", ") || "-",
-    ได้รับวัคซีนแล้ว:
-      info.vaccinated === "yes" ? "ใช่" : info.vaccinated === "no" ? "ไม่" : "-",
+    ได้รับวัคซีนครบ:
+      info.vaccinated === "yes" ? "ครบแล้ว" : info.vaccinated === "no" ? "ยังไม่ครบ" : "-",
     น้ำหนักตัว: info.weight === "unknown" ? "ไม่ทราบ" : info.weight || "-",
-    วิธีอาบน้ำที่เคยใช้: info.dryMethod ? GROOM_DRY_METHOD_LABELS[info.dryMethod] || info.dryMethod : "-",
+    วิธีอาบน้ำที่เคยใช้:
+      (Array.isArray(info.dryMethod)
+        ? info.dryMethod
+        : info.dryMethod
+          ? [info.dryMethod]
+          : []
+      )
+        .map((d) => GROOM_DRY_METHOD_LABELS[d] || d)
+        .join(", ") || "-",
     แพ้: info.allergy || "-",
     เพิ่มเติม: info.note || "-",
   };

@@ -14,7 +14,7 @@ type CatForm = {
   vaccinated: string;
   weight: string;
   weightUnknown: boolean;
-  dryMethod: string;
+  dryMethod: string[];
   allergy: string;
   note: string;
 };
@@ -84,7 +84,11 @@ function GroomInfoContent() {
             vaccinated: d.info?.vaccinated || "",
             weight: d.info?.weight === "unknown" ? "" : d.info?.weight || "",
             weightUnknown: d.info?.weight === "unknown",
-            dryMethod: d.info?.dryMethod || "",
+            dryMethod: Array.isArray(d.info?.dryMethod)
+              ? d.info.dryMethod
+              : d.info?.dryMethod
+                ? [d.info.dryMethod]
+                : [],
             allergy: d.info?.allergy || "",
             note: d.info?.note || "",
           });
@@ -98,7 +102,11 @@ function GroomInfoContent() {
   const patch = (idx: number, p: Partial<CatForm>) =>
     setForms((prev) => prev.map((f, i) => (i === idx ? { ...f, ...p } : f)));
 
-  const toggle = (idx: number, field: "temperament" | "health", key: string) =>
+  const toggle = (
+    idx: number,
+    field: "temperament" | "health" | "dryMethod",
+    key: string
+  ) =>
     setForms((prev) =>
       prev.map((f, i) => {
         if (i !== idx) return f;
@@ -115,7 +123,7 @@ function GroomInfoContent() {
     temperament: f.temperament.length === 0,
     health: f.health.length === 0,
     vaccinated: !f.vaccinated,
-    dryMethod: !f.dryMethod,
+    dryMethod: f.dryMethod.length === 0,
   });
 
   const submit = async () => {
@@ -312,18 +320,18 @@ function GroomInfoContent() {
                   attempted && missing.vaccinated ? "text-wait" : "text-brown-soft"
                 }`}
               >
-                ได้รับวัคซีนแล้วหรือยังคะ *
+                ได้รับวัคซีนครบหรือยังคะ *
                 {attempted && missing.vaccinated && " — กรุณาเลือก"}
               </p>
               <div className="flex gap-2">
                 <Chip
                   active={f.vaccinated === "yes"}
-                  label="✅ ได้รับแล้ว"
+                  label="✅ ครบแล้ว"
                   onClick={() => patch(idx, { vaccinated: "yes" })}
                 />
                 <Chip
                   active={f.vaccinated === "no"}
-                  label="❌ ยังไม่ได้รับ"
+                  label="❌ ยังไม่ครบ"
                   onClick={() => patch(idx, { vaccinated: "no" })}
                 />
               </div>
@@ -359,16 +367,16 @@ function GroomInfoContent() {
                   attempted && missing.dryMethod ? "text-wait" : "text-brown-soft"
                 }`}
               >
-                เคยใช้วิธีเป่าขนแบบไหนคะ *
-                {attempted && missing.dryMethod && " — กรุณาเลือก"}
+                เคยใช้วิธีเป่าขนแบบไหนคะ (เลือกได้หลายข้อ) *
+                {attempted && missing.dryMethod && " — กรุณาเลือกอย่างน้อย 1 ข้อ"}
               </p>
               <div className="flex gap-2">
                 {DRY_METHODS.map((d) => (
                   <Chip
                     key={d.key}
-                    active={f.dryMethod === d.key}
+                    active={f.dryMethod.includes(d.key)}
                     label={d.label}
-                    onClick={() => patch(idx, { dryMethod: d.key })}
+                    onClick={() => toggle(idx, "dryMethod", d.key)}
                   />
                 ))}
               </div>

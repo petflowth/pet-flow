@@ -60,8 +60,6 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [birthday, setBirthday] = useState("");
   const [referral, setReferral] = useState("");
-  const [address, setAddress] = useState("");
-  const [addressMapUrl, setAddressMapUrl] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [consent, setConsent] = useState(true);
   const [cats, setCats] = useState<CatInput[]>([emptyCat()]);
@@ -117,8 +115,6 @@ export default function RegisterPage() {
           birthday,
           referralSource: referral,
           referralCode: referralCode || undefined,
-          address: address || undefined,
-          addressMapUrl: addressMapUrl || undefined,
           postalCode: postalCode || undefined,
           marketingConsent: consent,
           cats: cats
@@ -247,6 +243,22 @@ export default function RegisterPage() {
             />
           </label>
         </div>
+
+        <label className="block">
+          <span className="mb-1 block text-xs font-bold text-brown">
+            รหัสไปรษณีย์{" "}
+            <span className="font-normal text-brown-faint">(ไม่บังคับ)</span>
+          </span>
+          <input
+            value={postalCode}
+            onChange={(e) =>
+              setPostalCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 5))
+            }
+            inputMode="numeric"
+            placeholder="เช่น 10540"
+            className={fieldClass}
+          />
+        </label>
 
         {/* ── น้องแมว ── */}
         <div>
@@ -423,36 +435,6 @@ export default function RegisterPage() {
             <span className="text-lg">🐱</span> เพิ่มน้องแมวอีกตัว
             <span className="text-lg">🐾</span>
           </button>
-        </div>
-
-        {/* ── ที่อยู่บ้าน (สำหรับบริการรับ-ส่ง) ── */}
-        <div>
-          <span className="mb-1 block text-xs font-bold text-brown">
-            📍 ที่อยู่บ้าน{" "}
-            <span className="font-normal text-brown-faint">
-              (ไม่บังคับ — ไว้ใช้ตอนขอบริการรับ-ส่ง จะได้ไม่ต้องพิมพ์ซ้ำ)
-            </span>
-          </span>
-          <textarea
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="เช่น บ้านเลขที่ ซอย ถนน แขวง/ตำบล เขต/อำเภอ"
-            rows={2}
-            className={fieldClass}
-          />
-          <input
-            value={addressMapUrl}
-            onChange={(e) => setAddressMapUrl(e.target.value)}
-            placeholder="ลิงก์ Google Maps (ถ้ามี) — เปิด Maps แล้วกดแชร์ลิงก์มาวางตรงนี้"
-            className={`${fieldClass} mt-2`}
-          />
-          <input
-            value={postalCode}
-            onChange={(e) => setPostalCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 5))}
-            inputMode="numeric"
-            placeholder="รหัสไปรษณีย์ (ไม่บังคับ)"
-            className={`${fieldClass} mt-2`}
-          />
         </div>
 
         {/* ── รู้จักเราจากทางไหน ── */}

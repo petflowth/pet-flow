@@ -39,7 +39,7 @@ const PUBLIC_GET = ["/api/config", "/api/articles", "/api/promos"];
  * ใช้ร่วมกันทั้งลูกค้าและหลังบ้าน — ปล่อยผ่านด่านนี้ แล้วให้ตัว route
  * ตรวจเองว่าคนที่ไม่ได้ล็อกอินทำอะไรได้บ้าง (ดู requireAdmin ใน route)
  */
-const SHARED_API = ["/api/bookings", "/api/packages"];
+const SHARED_API = ["/api/bookings", "/api/packages", "/api/package-shop"];
 
 function matches(path: string, list: string[]) {
   return list.some((p) => path === p || path.startsWith(`${p}/`));

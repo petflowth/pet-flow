@@ -165,6 +165,20 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     name: "member_topups.is_legacy",
     sql: "alter table member_topups add column if not exists is_legacy boolean not null default false;",
   },
+  {
+    // แพ็กเกจที่เปิดขายในแอปลูกค้า (ร้านตั้งเองว่าจะขายอะไรบ้าง)
+    name: "package_offers.table",
+    sql: "create table if not exists package_offers (id text primary key, name text, total_uses integer not null default 0, price numeric not null default 0, description text, active boolean not null default true, created_at timestamptz not null default now());",
+  },
+  {
+    // ออร์เดอร์ที่ลูกค้ากดซื้อ — รอร้านยืนยันรับเงินก่อนถึงจะกลายเป็นคอร์สจริง
+    name: "package_orders.table",
+    sql: "create table if not exists package_orders (id text primary key, customer_id text, customer_name text, line_user_id text, offer_id text, name text, total_uses integer not null default 0, price numeric not null default 0, status text not null default 'pending', slip_url text, package_id text, created_at timestamptz not null default now(), paid_at timestamptz);",
+  },
+  {
+    name: "package_orders.status_idx",
+    sql: "create index if not exists package_orders_status_idx on package_orders(status);",
+  },
 ];
 
 export type MigrateResult = {

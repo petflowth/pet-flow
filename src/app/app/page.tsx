@@ -16,6 +16,7 @@ import { CustomerExclusivePromos } from "@/components/CustomerExclusivePromos";
 import { MyCatsSection } from "@/components/MyCatsSection";
 import { MyPackagesSection } from "@/components/MyPackagesSection";
 import { MyMemberCreditSection } from "@/components/MyMemberCreditSection";
+import { PackageShopSection } from "@/components/PackageShopSection";
 
 export default function CustomerHome() {
   const { locale } = useLocale();
@@ -136,6 +137,9 @@ export default function CustomerHome() {
           </p>
         </section>
       )}
+
+      {/* คอร์สที่เปิดขาย — ซื้อ โอน แนบสลิป ได้ในที่เดียว */}
+      <PackageShopSection />
 
       {/* แมวของฉัน — อัป/แก้รูปเองได้ */}
       <MyCatsSection />

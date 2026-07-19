@@ -972,7 +972,7 @@ function AdvancedTab({
       <a
         href="/api/admin/backup"
         download
-        className="block w-full rounded-catcha-sm bg-latte/20 py-2.5 text-center text-xs font-extrabold text-latte-deep"
+        className="block w-full rounded-petflow-sm bg-latte/20 py-2.5 text-center text-xs font-extrabold text-latte-deep"
       >
         💾 ดาวน์โหลดสำรองข้อมูลทั้งหมด (.json)
       </a>

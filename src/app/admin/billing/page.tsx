@@ -876,7 +876,6 @@ export default function BillingPage() {
             </button>
             {showBookings && (
               <ul className="mt-2 max-h-52 space-y-1 overflow-y-auto">
-<<<<<<< HEAD
                 {bookingGroups.map((group) => {
                   const bk = group[0];
                   return (
@@ -1272,7 +1271,7 @@ export default function BillingPage() {
                 placeholder="0"
                 className={`min-w-0 flex-1 ${field}`}
               />
-              <div className="flex shrink-0 overflow-hidden rounded-catcha-sm border border-catcha-line">
+              <div className="flex shrink-0 overflow-hidden rounded-petflow-sm border border-petflow-line">
                 {(["baht", "percent"] as const).map((m) => (
                   <button
                     key={m}
@@ -1662,7 +1661,7 @@ export default function BillingPage() {
               {/* บิลนี้ไม่มีนัดผูกอยู่ — ปุ่มแจ้งเตือนนัด/ส่งชุดการ์ดข้างบนเลยหายไปหมด
                   ให้เลือกผูกนัดของลูกค้าคนนี้เองได้ ไม่ต้องแก้ที่ไหนเพิ่ม */}
               {!inv.bookingId && !linkedBk && (
-                <div className="mt-2 rounded-catcha-sm border border-dashed border-latte/60 bg-latte/10 px-2.5 py-2">
+                <div className="mt-2 rounded-petflow-sm border border-dashed border-latte/60 bg-latte/10 px-2.5 py-2">
                   <p className="mb-1.5 text-[10px] font-bold text-brown-soft">
                     ⚠️ บิลนี้ไม่มีนัดผูกอยู่ — ปุ่มแจ้งเตือนนัด/ส่งชุดการ์ดเลยไม่ขึ้น
                     เลือกผูกนัดได้ที่นี่:
@@ -1673,7 +1672,7 @@ export default function BillingPage() {
                     onChange={(e) => {
                       if (e.target.value) linkInvoiceToBooking(inv.id, e.target.value);
                     }}
-                    className="w-full rounded-lg border border-catcha-line bg-paper px-2.5 py-1.5 text-xs"
+                    className="w-full rounded-lg border border-petflow-line bg-paper px-2.5 py-1.5 text-xs"
                   >
                     <option value="">🔗 เลือกนัดของ {inv.customerName}...</option>
                     {bookings

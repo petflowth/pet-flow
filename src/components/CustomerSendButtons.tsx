@@ -526,7 +526,7 @@ export function CustomerSendButtons({
         </button>
       )}
       {autoOffOpen && bookingId && (
-        <div className="w-full rounded-catcha-sm border border-wait/30 bg-card p-2.5">
+        <div className="w-full rounded-petflow-sm border border-wait/30 bg-card p-2.5">
           <p className="mb-1.5 text-[10px] font-bold text-brown-soft">
             ติ๊กหัวข้อที่ไม่อยากให้ระบบส่งอัตโนมัติหานัดนี้ (นัดอื่นไม่กระทบ):
           </p>

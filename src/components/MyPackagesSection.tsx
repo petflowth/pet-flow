@@ -36,8 +36,8 @@ export function MyPackagesSection() {
   if (packages.length === 0) return null;
 
   return (
-    <section className="mb-4 rounded-catcha border-2 border-latte/50 bg-gradient-to-br from-latte/20 via-card to-honey/10 p-4 shadow-catcha">
-      <p className="mb-2 text-sm font-extrabold text-catcha-chocolate">
+    <section className="mb-4 rounded-petflow border-2 border-latte/50 bg-gradient-to-br from-latte/20 via-card to-honey/10 p-4 shadow-catcha">
+      <p className="mb-2 text-sm font-extrabold text-petflow-chocolate">
         🎫 คอร์สของฉัน
       </p>
       <div className="space-y-2">
@@ -45,7 +45,7 @@ export function MyPackagesSection() {
           const left = Math.max(0, p.totalUses - p.usedUses);
           const usedPct = p.totalUses > 0 ? (p.usedUses / p.totalUses) * 100 : 0;
           return (
-            <div key={p.id} className="rounded-catcha-sm bg-card/80 px-3 py-2.5">
+            <div key={p.id} className="rounded-petflow-sm bg-card/80 px-3 py-2.5">
               <div className="flex items-baseline justify-between gap-2">
                 <p className="min-w-0 truncate text-xs font-bold text-brown">{p.name}</p>
                 <p className="shrink-0 text-xs font-extrabold text-latte-deep">

@@ -195,8 +195,8 @@ export function BookingEditModal({
           <EditField label="โน้ต" name="notes" defaultValue={booking.notes || ""} textarea />
 
           {/* ปิดข้อความอัตโนมัติเฉพาะเคสนี้ — เช่น ลูกค้าประจำที่คุยกันทางแชทอยู่แล้ว */}
-          <div className="rounded-catcha-sm border border-catcha-line bg-paper/50 p-3">
-            <p className="text-xs font-extrabold text-catcha-chocolate">
+          <div className="rounded-petflow-sm border border-petflow-line bg-paper/50 p-3">
+            <p className="text-xs font-extrabold text-petflow-chocolate">
               🔕 ไม่ต้องส่งอัตโนมัติ (เฉพาะนัดนี้)
             </p>
             <p className="mb-2 mt-0.5 text-[10px] text-brown-faint">
@@ -216,7 +216,7 @@ export function BookingEditModal({
               ))}
             </div>
             {autoOff.length > 0 && (
-              <p className="mt-2 rounded bg-honey/20 px-2 py-1 text-[10px] font-bold text-catcha-chocolate">
+              <p className="mt-2 rounded bg-honey/20 px-2 py-1 text-[10px] font-bold text-petflow-chocolate">
                 ปิดอยู่ {autoOff.length} หัวข้อ — ส่งเองด้วยปุ่มส่งการ์ดได้ตามปกติ
               </p>
             )}

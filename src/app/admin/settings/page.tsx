@@ -964,7 +964,21 @@ function AdvancedTab({
       <MigratePhotosSection />
       <ExportSheetsButton />
       <p className="text-[10px] text-brown-faint">
-        ส่งออกแท็บ ลูกค้า + รายรับรายจ่าย ไป Google Sheet เดียว (ต้องตั้ง GOOGLE_SPREADSHEET_ID)
+        ส่งออก 5 แท็บ: ลูกค้า+น้องแมว · การจอง · บิล · รายรับรายจ่าย · แต้มสะสม
+        ไป Google Sheet เดียว (ต้องตั้ง GOOGLE_SPREADSHEET_ID) · ระบบทำให้อัตโนมัติทุกคืนอยู่แล้ว
+      </p>
+
+      {/* สำรองแบบครบทุกฟิลด์ — เอาไว้กู้คืนจริง ต่างจาก Sheets ที่ยุบข้อมูลให้อ่านง่าย */}
+      <a
+        href="/api/admin/backup"
+        download
+        className="block w-full rounded-catcha-sm bg-latte/20 py-2.5 text-center text-xs font-extrabold text-latte-deep"
+      >
+        💾 ดาวน์โหลดสำรองข้อมูลทั้งหมด (.json)
+      </a>
+      <p className="text-[10px] text-brown-faint">
+        ไฟล์เดียวครบทุกอย่าง ลูกค้า แมว นัด บิล บัญชี แต้ม โปร และการตั้งค่า —
+        เก็บไว้กู้คืนได้จริง ⚠️ มีข้อมูลส่วนตัวลูกค้า เก็บในที่ปลอดภัย
       </p>
       <p className="text-xs text-brown-soft">
         แก้ตารางราคากรูมมิ่ง หรือสำรอง/กู้คืน config ทั้งหมด (สำหรับผู้ดูแลระบบ)

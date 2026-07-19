@@ -248,6 +248,8 @@ export default function BillingPage() {
     | "due-desc"
   >("issued-desc");
   const [items, setItems] = useState<Item[]>([newGrooming()]);
+  // ส่วนลดกรอกได้ทั้งบาทและเปอร์เซ็นต์ — ร้านคิดโปรเป็น % บ่อย จะได้ไม่ต้องกดเครื่องคิดเลขเอง
+  const [discountMode, setDiscountMode] = useState<"baht" | "percent">("baht");
   const [creating, setCreating] = useState(false);
   const [pay, setPay] = useState({ bankName: "", accountNumber: "", accountName: "" });
   const [shopName, setShopName] = useState("PetFlow");
@@ -363,7 +365,15 @@ export default function BillingPage() {
         )
       )
     : 0;
-  const manualDiscount = Math.max(0, Number(discount) || 0);
+  const discountInput = Math.max(0, Number(discount) || 0);
+  const manualDiscount =
+    discountMode === "percent"
+      ? // คิด % จากยอดรวมหลังหักโปรแล้ว และไม่ให้เกินยอดที่เหลือ
+        Math.min(
+          Math.max(0, subtotal - promoDiscount),
+          Math.round(((subtotal - promoDiscount) * Math.min(100, discountInput)) / 100)
+        )
+      : discountInput;
   const couponAmount = customerCoupons.find((c) => c.id === couponId)?.amount || 0;
   // คอร์ส: หัก 1 ครั้ง → คลุมยอดที่เหลือทั้งบิลให้เป็น 0 (จ่ายไปแล้วตอนซื้อคอร์ส)
   const packageCovers = packageId
@@ -614,6 +624,7 @@ export default function BillingPage() {
   const resetForm = () => {
     setItems([newGrooming()]);
     setDiscount("");
+    setDiscountMode("baht");
     setBillDeposit("");
     setBillDepPct(null);
     setBookingId(undefined);
@@ -1189,16 +1200,40 @@ export default function BillingPage() {
             </select>
           </label>
           <label className="block text-xs font-bold text-brown-soft">
-            ส่วนลดเพิ่ม (บาท)
-            <input
-              type="number"
-              min="0"
-              inputMode="numeric"
-              value={discount}
-              onChange={(e) => setDiscount(e.target.value)}
-              placeholder="0"
-              className={`mt-1 ${field}`}
-            />
+            ส่วนลดเพิ่ม
+            <div className="mt-1 flex gap-1.5">
+              <input
+                type="number"
+                min="0"
+                max={discountMode === "percent" ? 100 : undefined}
+                inputMode="numeric"
+                value={discount}
+                onChange={(e) => setDiscount(e.target.value)}
+                placeholder="0"
+                className={`min-w-0 flex-1 ${field}`}
+              />
+              <div className="flex shrink-0 overflow-hidden rounded-catcha-sm border border-catcha-line">
+                {(["baht", "percent"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setDiscountMode(m)}
+                    className={`px-3 py-2 text-xs font-extrabold transition ${
+                      discountMode === m
+                        ? "bg-latte-deep text-white"
+                        : "bg-paper text-brown-soft"
+                    }`}
+                  >
+                    {m === "baht" ? "฿" : "%"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {discountMode === "percent" && discountInput > 0 && (
+              <span className="mt-1 block text-[10px] font-normal text-brown-faint">
+                ลด {Math.min(100, discountInput)}% = {manualDiscount.toLocaleString()} บาท
+              </span>
+            )}
           </label>
 
           {customerCoupons.length > 0 && (

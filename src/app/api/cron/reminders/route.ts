@@ -27,6 +27,7 @@ import {
 import { listCustomers, getCatGroomInfo } from "@/lib/customers-store";
 import { issueCoupon, listCustomerCoupons } from "@/lib/coupons-store";
 import { parseGroomInfo, groomInfoSummary } from "@/lib/groom-info";
+import { resolveGroomForm } from "@/lib/groom-form";
 import { renderTemplate } from "@/lib/messages";
 import { buildTomorrowPrepMessage } from "@/lib/telegram-commands";
 
@@ -93,7 +94,7 @@ export async function GET(req: NextRequest) {
             formatBookingTelegram(`🩺 บรีฟก่อนอาบน้ำ: ${b.catName}`, {
               ลูกค้า: b.customerName,
               วันนัด: `${b.date || ""}${b.time ? ` ${b.time}` : ""}`,
-              ...groomInfoSummary(info),
+              ...groomInfoSummary(info, resolveGroomForm(cfg.groomForm)),
             })
           );
           groomBriefs++;

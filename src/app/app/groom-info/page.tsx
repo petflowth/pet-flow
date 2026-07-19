@@ -1,48 +1,43 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useLiff } from "@/components/LiffProvider";
+import { useConfig } from "@/components/ConfigProvider";
+import { resolveGroomForm, type GroomField } from "@/lib/groom-form";
+
+type Answers = Record<string, string | string[]>;
 
 type CatForm = {
   id: string;
   catName: string;
-  bathedBefore: string;
-  temperament: string[];
-  health: string[];
-  vaccinated: string;
-  weight: string;
+  answers: Answers;
+  /** ติ๊ก "ไม่ทราบน้ำหนัก" */
   weightUnknown: boolean;
-  dryMethod: string[];
-  allergy: string;
-  note: string;
 };
 
-const TEMPERAMENT = [
-  { key: "normal", label: "🙂 ปกติ" },
-  { key: "playful", label: "😸 ขี้เล่น" },
-  { key: "clingy", label: "🥰 ขี้อ้อน" },
-  { key: "stressed", label: "😿 เครียดง่าย" },
-  { key: "gentle", label: "😌 ใจดี ให้จับง่าย" },
-  { key: "fearful", label: "🙀 ขี้กลัว/ตกใจง่าย" },
-  { key: "struggle", label: "🌀 ดิ้น" },
-  { key: "aggressive", label: "😾 ดุ/กัด/ข่วน" },
-  { key: "strangerShy", label: "🙈 ไม่ชอบคนแปลกหน้า" },
-  { key: "other", label: "➕ อื่นๆ" },
-];
-const HEALTH = [
-  { key: "healthy", label: "💪 แข็งแรงดี" },
-  { key: "heart", label: "❤️ โรคหัวใจ" },
-  { key: "skin", label: "🩹 โรคผิวหนัง" },
-  { key: "seizure", label: "⚡ ลมชัก/ชัก" },
-  { key: "senior", label: "👵 สูงอายุ" },
-  { key: "other", label: "➕ อื่นๆ" },
-];
-const DRY_METHODS = [
-  { key: "dryer", label: "💨 ไดร์เป่าขน" },
-  { key: "cabinet", label: "📦 ตู้เป่าขน" },
-];
+function emptyAnswers(fields: GroomField[]): Answers {
+  const a: Answers = {};
+  for (const f of fields) a[f.key] = f.type === "multi" ? [] : "";
+  return a;
+}
+
+/** แปลงค่าที่เคยบันทึกไว้ให้ตรงชนิดของคำถาม (รองรับข้อมูลเก่าที่เป็น string เดี่ยว) */
+function loadAnswers(fields: GroomField[], info: Record<string, unknown> | null): Answers {
+  const a = emptyAnswers(fields);
+  if (!info) return a;
+  for (const f of fields) {
+    const v = info[f.key];
+    if (v == null) continue;
+    if (f.type === "multi") {
+      a[f.key] = Array.isArray(v) ? (v as string[]) : v ? [String(v)] : [];
+    } else {
+      a[f.key] = Array.isArray(v) ? String(v[0] ?? "") : String(v);
+    }
+  }
+  return a;
+}
 
 function GroomInfoContent() {
   const params = useSearchParams();
@@ -51,6 +46,13 @@ function GroomInfoContent() {
     .map((s) => s.trim())
     .filter(Boolean);
   const { profile } = useLiff();
+  const { config } = useConfig();
+
+  // คำถามทั้งหมด — ตามที่ร้านตั้งไว้ในหลังบ้าน (ไม่ตั้ง = ค่าเริ่มต้นของระบบ)
+  const fields = useMemo(
+    () => resolveGroomForm(config.groomForm),
+    [config.groomForm]
+  );
 
   const [forms, setForms] = useState<CatForm[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,66 +77,60 @@ function GroomInfoContent() {
         const loaded: CatForm[] = [];
         results.forEach((d, i) => {
           if (!d?.found) return;
+          const info = d.info || null;
           loaded.push({
             id: ids[i],
             catName: d.booking?.catName || "น้อง",
-            bathedBefore: d.info?.bathedBefore || "",
-            temperament: d.info?.temperament || [],
-            health: d.info?.health || [],
-            vaccinated: d.info?.vaccinated || "",
-            weight: d.info?.weight === "unknown" ? "" : d.info?.weight || "",
-            weightUnknown: d.info?.weight === "unknown",
-            dryMethod: Array.isArray(d.info?.dryMethod)
-              ? d.info.dryMethod
-              : d.info?.dryMethod
-                ? [d.info.dryMethod]
-                : [],
-            allergy: d.info?.allergy || "",
-            note: d.info?.note || "",
+            answers: loadAnswers(fields, info),
+            weightUnknown: info?.weight === "unknown",
           });
         });
         setForms(loaded);
       })
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.toString()]);
+  }, [params.toString(), fields]);
 
-  const patch = (idx: number, p: Partial<CatForm>) =>
-    setForms((prev) => prev.map((f, i) => (i === idx ? { ...f, ...p } : f)));
+  const setAnswer = (idx: number, key: string, value: string | string[]) =>
+    setForms((prev) =>
+      prev.map((f, i) =>
+        i === idx ? { ...f, answers: { ...f.answers, [key]: value } } : f
+      )
+    );
 
-  const toggle = (
-    idx: number,
-    field: "temperament" | "health" | "dryMethod",
-    key: string
-  ) =>
+  const toggleOption = (idx: number, key: string, optKey: string) =>
     setForms((prev) =>
       prev.map((f, i) => {
         if (i !== idx) return f;
-        const arr = f[field];
+        const cur = (f.answers[key] as string[]) || [];
         return {
           ...f,
-          [field]: arr.includes(key) ? arr.filter((x) => x !== key) : [...arr, key],
+          answers: {
+            ...f.answers,
+            [key]: cur.includes(optKey)
+              ? cur.filter((x) => x !== optKey)
+              : [...cur, optKey],
+          },
         };
       })
     );
 
-  const isMissing = (f: CatForm) => ({
-    bathedBefore: !f.bathedBefore,
-    temperament: f.temperament.length === 0,
-    health: f.health.length === 0,
-    vaccinated: !f.vaccinated,
-    dryMethod: f.dryMethod.length === 0,
-  });
+  /** คำถามที่บังคับตอบแล้วยังว่างอยู่ */
+  const missingKeys = (f: CatForm) =>
+    fields
+      .filter((fd) => {
+        if (!fd.required) return false;
+        if (fd.key === "weight" && f.weightUnknown) return false;
+        const v = f.answers[fd.key];
+        return Array.isArray(v) ? v.length === 0 : !String(v || "").trim();
+      })
+      .map((fd) => fd.key);
 
   const submit = async () => {
     if (forms.length === 0) return;
     setAttempted(true);
-    const hasMissing = forms.some((f) => {
-      const m = isMissing(f);
-      return m.bathedBefore || m.temperament || m.health || m.vaccinated || m.dryMethod;
-    });
-    if (hasMissing) {
-      setSaveError("กรุณาตอบให้ครบทุกข้อ (ช่องที่ติ๊กเลือก) ก่อนส่งข้อมูลนะคะ 🙏");
+    if (forms.some((f) => missingKeys(f).length > 0)) {
+      setSaveError("กรุณาตอบให้ครบทุกข้อที่มีเครื่องหมาย * ก่อนส่งข้อมูลนะคะ 🙏");
       return;
     }
     setSaving(true);
@@ -149,14 +145,8 @@ function GroomInfoContent() {
               bookingId: f.id,
               lineUserId: profile?.lineUserId,
               info: {
-                bathedBefore: f.bathedBefore,
-                temperament: f.temperament,
-                health: f.health,
-                vaccinated: f.vaccinated,
-                weight: f.weightUnknown ? "unknown" : f.weight,
-                dryMethod: f.dryMethod,
-                allergy: f.allergy,
-                note: f.note,
+                ...f.answers,
+                weight: f.weightUnknown ? "unknown" : f.answers.weight || "",
               },
             }),
           }).then((r) => r.ok)
@@ -219,6 +209,9 @@ function GroomInfoContent() {
     );
   }
 
+  const inputClass =
+    "w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm";
+
   return (
     <div className="px-4 pb-10 pt-5">
       <Link href="/app" className="mb-3 inline-block text-xs font-bold text-brown-soft">
@@ -243,165 +236,110 @@ function GroomInfoContent() {
           )}
 
           {forms.map((f, idx) => {
-            const missing = isMissing(f);
+            const missing = missingKeys(f);
             return (
-            <div
-              key={f.id}
-              className="mt-4 rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm"
-            >
-              <p className="text-sm font-extrabold text-brown">🐱 {f.catName}</p>
-              {forms.length === 1 && (
-                <p className="mt-1 text-xs text-brown-soft">
-                  เพื่อความปลอดภัยของน้อง 🧡 รบกวนแจ้งข้อมูลสั้นๆ ให้เราเตรียมดูแลน้องได้ถูกวิธีนะคะ
-                </p>
-              )}
-
-              <p
-                className={`mt-3 mb-1.5 text-xs font-bold ${
-                  attempted && missing.bathedBefore ? "text-wait" : "text-brown-soft"
-                }`}
+              <div
+                key={f.id}
+                className="mt-4 rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm"
               >
-                เคยอาบน้ำที่อื่นมาก่อนไหมคะ หรือว่าครั้งแรก *
-                {attempted && missing.bathedBefore && " — กรุณาเลือก"}
-              </p>
-              <div className="flex gap-2">
-                <Chip
-                  active={f.bathedBefore === "yes"}
-                  label="✅ เคยอาบที่อื่นแล้ว"
-                  onClick={() => patch(idx, { bathedBefore: "yes" })}
-                />
-                <Chip
-                  active={f.bathedBefore === "no"}
-                  label="🆕 ครั้งแรก"
-                  onClick={() => patch(idx, { bathedBefore: "no" })}
-                />
+                <p className="text-sm font-extrabold text-brown">🐱 {f.catName}</p>
+                {forms.length === 1 && (
+                  <p className="mt-1 text-xs text-brown-soft">
+                    เพื่อความปลอดภัยของน้อง 🧡 รบกวนแจ้งข้อมูลสั้นๆ ให้เราเตรียมดูแลน้องได้ถูกวิธีนะคะ
+                  </p>
+                )}
+
+                {fields.map((fd) => {
+                  const isMissing = attempted && missing.includes(fd.key);
+                  const value = f.answers[fd.key];
+                  return (
+                    <div key={fd.key}>
+                      <p
+                        className={`mt-3 mb-1.5 text-xs font-bold ${
+                          isMissing ? "text-wait" : "text-brown-soft"
+                        }`}
+                      >
+                        {fd.label}
+                        {fd.required && " *"}
+                        {isMissing &&
+                          (fd.type === "multi"
+                            ? " — กรุณาเลือกอย่างน้อย 1 ข้อ"
+                            : fd.type === "single"
+                              ? " — กรุณาเลือก"
+                              : " — กรุณากรอก")}
+                      </p>
+
+                      {fd.type === "single" && (
+                        <div className="flex flex-wrap gap-2">
+                          {fd.options.map((o) => (
+                            <Chip
+                              key={o.key}
+                              active={value === o.key}
+                              label={o.label}
+                              onClick={() => setAnswer(idx, fd.key, o.key)}
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {fd.type === "multi" && (
+                        <div className="flex flex-wrap gap-2">
+                          {fd.options.map((o) => (
+                            <Chip
+                              key={o.key}
+                              active={((value as string[]) || []).includes(o.key)}
+                              label={o.label}
+                              onClick={() => toggleOption(idx, fd.key, o.key)}
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {fd.type === "text" && (
+                        <>
+                          <input
+                            value={f.weightUnknown && fd.hasUnknownToggle ? "" : String(value || "")}
+                            onChange={(e) => setAnswer(idx, fd.key, e.target.value)}
+                            disabled={fd.hasUnknownToggle && f.weightUnknown}
+                            placeholder={fd.placeholder}
+                            inputMode={fd.key === "weight" ? "decimal" : undefined}
+                            className={`${inputClass} disabled:bg-paper/50 disabled:text-brown-faint`}
+                          />
+                          {fd.hasUnknownToggle && (
+                            <label className="mt-1.5 flex items-center gap-2 text-[11px] font-bold text-brown-soft">
+                              <input
+                                type="checkbox"
+                                checked={f.weightUnknown}
+                                onChange={(e) =>
+                                  setForms((prev) =>
+                                    prev.map((x, i) =>
+                                      i === idx
+                                        ? { ...x, weightUnknown: e.target.checked }
+                                        : x
+                                    )
+                                  )
+                                }
+                                className="h-4 w-4 accent-[#4A7348]"
+                              />
+                              ไม่ทราบน้ำหนัก
+                            </label>
+                          )}
+                        </>
+                      )}
+
+                      {fd.type === "textarea" && (
+                        <textarea
+                          value={String(value || "")}
+                          onChange={(e) => setAnswer(idx, fd.key, e.target.value)}
+                          placeholder={fd.placeholder}
+                          rows={2}
+                          className={inputClass}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-
-              <p
-                className={`mt-3 mb-1.5 text-xs font-bold ${
-                  attempted && missing.temperament ? "text-wait" : "text-brown-soft"
-                }`}
-              >
-                นิสัยตอนถูกจับ/อาบน้ำ (เลือกได้หลายข้อ) *
-                {attempted && missing.temperament && " — กรุณาเลือกอย่างน้อย 1 ข้อ"}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {TEMPERAMENT.map((t) => (
-                  <Chip
-                    key={t.key}
-                    active={f.temperament.includes(t.key)}
-                    label={t.label}
-                    onClick={() => toggle(idx, "temperament", t.key)}
-                  />
-                ))}
-              </div>
-
-              <p
-                className={`mt-3 mb-1.5 text-xs font-bold ${
-                  attempted && missing.health ? "text-wait" : "text-brown-soft"
-                }`}
-              >
-                สุขภาพ (เลือกได้หลายข้อ) *
-                {attempted && missing.health && " — กรุณาเลือกอย่างน้อย 1 ข้อ"}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {HEALTH.map((h) => (
-                  <Chip
-                    key={h.key}
-                    active={f.health.includes(h.key)}
-                    label={h.label}
-                    onClick={() => toggle(idx, "health", h.key)}
-                  />
-                ))}
-              </div>
-
-              <p
-                className={`mt-3 mb-1.5 text-xs font-bold ${
-                  attempted && missing.vaccinated ? "text-wait" : "text-brown-soft"
-                }`}
-              >
-                ได้รับวัคซีนครบหรือยังคะ *
-                {attempted && missing.vaccinated && " — กรุณาเลือก"}
-              </p>
-              <div className="flex gap-2">
-                <Chip
-                  active={f.vaccinated === "yes"}
-                  label="✅ ครบแล้ว"
-                  onClick={() => patch(idx, { vaccinated: "yes" })}
-                />
-                <Chip
-                  active={f.vaccinated === "no"}
-                  label="❌ ยังไม่ครบ"
-                  onClick={() => patch(idx, { vaccinated: "no" })}
-                />
-              </div>
-
-              <p className="mt-3 mb-1 text-xs font-bold text-brown-soft">
-                น้ำหนักตัวน้อง (กก.) — บอกคร่าวๆ ได้
-              </p>
-              <input
-                value={f.weight}
-                onChange={(e) => patch(idx, { weight: e.target.value })}
-                disabled={f.weightUnknown}
-                placeholder="เช่น 4.5"
-                inputMode="decimal"
-                className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm disabled:opacity-50"
-              />
-              <label className="mt-1.5 flex items-center gap-1.5 text-[11px] text-brown-soft">
-                <input
-                  type="checkbox"
-                  checked={f.weightUnknown}
-                  onChange={(e) =>
-                    patch(idx, {
-                      weightUnknown: e.target.checked,
-                      weight: e.target.checked ? "" : f.weight,
-                    })
-                  }
-                  className="h-3.5 w-3.5"
-                />
-                ไม่ทราบน้ำหนัก
-              </label>
-
-              <p
-                className={`mt-3 mb-1.5 text-xs font-bold ${
-                  attempted && missing.dryMethod ? "text-wait" : "text-brown-soft"
-                }`}
-              >
-                เคยใช้วิธีเป่าขนแบบไหนคะ (เลือกได้หลายข้อ) *
-                {attempted && missing.dryMethod && " — กรุณาเลือกอย่างน้อย 1 ข้อ"}
-              </p>
-              <div className="flex gap-2">
-                {DRY_METHODS.map((d) => (
-                  <Chip
-                    key={d.key}
-                    active={f.dryMethod.includes(d.key)}
-                    label={d.label}
-                    onClick={() => toggle(idx, "dryMethod", d.key)}
-                  />
-                ))}
-              </div>
-
-              <p className="mt-3 mb-1 text-xs font-bold text-brown-soft">
-                แพ้อะไรไหมคะ (แชมพู/ยา) — ถ้าไม่มีเว้นว่างได้
-              </p>
-              <input
-                value={f.allergy}
-                onChange={(e) => patch(idx, { allergy: e.target.value })}
-                placeholder="เช่น แพ้แชมพูบางชนิด"
-                className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
-              />
-
-              <p className="mt-3 mb-1 text-xs font-bold text-brown-soft">
-                อยากให้เราดูแล/ระวังเป็นพิเศษเรื่องอะไรไหมคะ
-              </p>
-              <textarea
-                value={f.note}
-                onChange={(e) => patch(idx, { note: e.target.value })}
-                placeholder="เช่น ไม่ชอบเป่าขนแรง, กลัวเสียงดัง"
-                rows={2}
-                className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
-              />
-            </div>
             );
           })}
 

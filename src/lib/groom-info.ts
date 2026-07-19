@@ -50,33 +50,58 @@ export function parseGroomInfo(json?: string | null): GroomHealthInfo | null {
   }
 }
 
-/** สรุปประวัติน้องเป็น key→value (ใช้ส่ง Telegram brief ให้ร้านก่อนถึงวันนัด) */
-export function groomInfoSummary(info: GroomHealthInfo): Record<string, string> {
+/**
+ * สรุปประวัติน้องเป็น key→value (ใช้ส่ง Telegram brief ให้ร้าน / โชว์ในหน้าลูกค้า)
+ * ส่ง fields (จาก resolveGroomForm) มาด้วยได้ — จะใช้หัวข้อ/ตัวเลือกที่ร้านตั้งเองแทนค่าเริ่มต้น
+ */
+export function groomInfoSummary(
+  info: GroomHealthInfo | Record<string, unknown>,
+  fields?: {
+    key: string;
+    type: string;
+    label: string;
+    options: { key: string; label: string }[];
+  }[]
+): Record<string, string> {
+  const val = (k: string) => (info as Record<string, unknown>)[k];
+  const asList = (v: unknown): string[] =>
+    Array.isArray(v) ? (v as string[]) : v ? [String(v)] : [];
+
+  // ร้านตั้งคำถามเอง → ใช้หัวข้อ + ป้ายตัวเลือกของร้าน
+  if (fields?.length) {
+    const out: Record<string, string> = {};
+    for (const f of fields) {
+      const raw = val(f.key);
+      if (f.type === "multi" || f.type === "single") {
+        const label = (k: string) =>
+          f.options.find((o) => o.key === k)?.label || k;
+        out[f.label] = asList(raw).map(label).join(", ") || "-";
+      } else {
+        const s = String(raw ?? "").trim();
+        out[f.label] = s === "unknown" ? "ไม่ทราบ" : s || "-";
+      }
+    }
+    return out;
+  }
+
+  // ค่าเริ่มต้นของระบบ (ไม่ได้ส่ง fields มา)
+  const g = info as GroomHealthInfo;
   return {
     เคยอาบน้ำที่อื่นมาก่อน:
-      info.bathedBefore === "yes"
-        ? "เคย"
-        : info.bathedBefore === "no"
-          ? "ครั้งแรก"
-          : "-",
+      g.bathedBefore === "yes" ? "เคย" : g.bathedBefore === "no" ? "ครั้งแรก" : "-",
     นิสัย:
-      (info.temperament || []).map((t) => GROOM_TEMPERAMENT_LABELS[t] || t).join(", ") ||
+      (g.temperament || []).map((t) => GROOM_TEMPERAMENT_LABELS[t] || t).join(", ") ||
       "-",
     สุขภาพ:
-      (info.health || []).map((h) => GROOM_HEALTH_LABELS[h] || h).join(", ") || "-",
+      (g.health || []).map((h) => GROOM_HEALTH_LABELS[h] || h).join(", ") || "-",
     ได้รับวัคซีนครบ:
-      info.vaccinated === "yes" ? "ครบแล้ว" : info.vaccinated === "no" ? "ยังไม่ครบ" : "-",
-    น้ำหนักตัว: info.weight === "unknown" ? "ไม่ทราบ" : info.weight || "-",
+      g.vaccinated === "yes" ? "ครบแล้ว" : g.vaccinated === "no" ? "ยังไม่ครบ" : "-",
+    น้ำหนักตัว: g.weight === "unknown" ? "ไม่ทราบ" : g.weight || "-",
     วิธีอาบน้ำที่เคยใช้:
-      (Array.isArray(info.dryMethod)
-        ? info.dryMethod
-        : info.dryMethod
-          ? [info.dryMethod]
-          : []
-      )
+      asList(g.dryMethod)
         .map((d) => GROOM_DRY_METHOD_LABELS[d] || d)
         .join(", ") || "-",
-    แพ้: info.allergy || "-",
-    เพิ่มเติม: info.note || "-",
+    แพ้: g.allergy || "-",
+    เพิ่มเติม: g.note || "-",
   };
 }

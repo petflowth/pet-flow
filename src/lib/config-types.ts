@@ -1,4 +1,5 @@
 import type { RoomType } from "./business";
+import type { GroomFormConfig } from "./groom-form";
 
 export type LocalizedLines = { th: string[]; en: string[] };
 
@@ -198,4 +199,6 @@ export type SiteConfig = {
   };
   /** สไตล์การ์ด LINE รายใบ — key: bookingConfirm | billSummary | depositRequest | receipt | review | groomInfo */
   cards?: Record<string, CardStyleConfig>;
+  /** คำถาม/ตัวเลือกในฟอร์มประวัติน้องก่อนอาบน้ำ — แก้เองได้ในหลังบ้าน */
+  groomForm?: GroomFormConfig;
 };

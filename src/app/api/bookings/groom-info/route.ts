@@ -3,6 +3,8 @@ import { getBooking } from "@/lib/bookings-store";
 import { getCatGroomInfo, setCatGroomInfo } from "@/lib/customers-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import { parseGroomInfo, groomInfoSummary } from "@/lib/groom-info";
+import { getSiteConfig } from "@/lib/config-store";
+import { resolveGroomForm } from "@/lib/groom-form";
 
 /** ดึงข้อมูลนัดอาบน้ำ + ประวัติที่เคยกรอกไว้ (เก็บถาวรที่แมว) */
 export async function GET(req: NextRequest) {
@@ -36,24 +38,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "no_line" }, { status: 400 });
   }
 
-  const payload = {
-    bathedBefore:
-      info.bathedBefore === "yes" ? "yes" : info.bathedBefore === "no" ? "no" : "",
-    temperament: Array.isArray(info.temperament) ? info.temperament : [],
-    health: Array.isArray(info.health) ? info.health : [],
-    vaccinated:
-      info.vaccinated === "yes" ? "yes" : info.vaccinated === "no" ? "no" : "",
-    weight: info.weight === "unknown" ? "unknown" : String(info.weight || "").trim(),
-    // เลือกได้หลายวิธี — รองรับข้อมูลเก่าที่เคยเก็บเป็น string เดี่ยว
-    dryMethod: Array.isArray(info.dryMethod)
-      ? info.dryMethod.filter((d: string) => d === "dryer" || d === "cabinet")
-      : info.dryMethod === "dryer" || info.dryMethod === "cabinet"
-        ? [info.dryMethod]
-        : [],
-    allergy: String(info.allergy || "").trim(),
-    note: String(info.note || "").trim(),
-    submittedAt: new Date().toISOString(),
-  };
+  // เก็บตามคำถามที่ร้านตั้งไว้จริง (ร้านเพิ่ม/แก้ตัวเลือกเองได้) — sanitize ตามชนิดของคำถาม
+  const cfg = await getSiteConfig();
+  const fields = resolveGroomForm(cfg.groomForm);
+  const payload: Record<string, unknown> = { submittedAt: new Date().toISOString() };
+  for (const f of fields) {
+    const raw = (info as Record<string, unknown>)[f.key];
+    if (f.type === "multi") {
+      payload[f.key] = Array.isArray(raw)
+        ? raw.map((v) => String(v).slice(0, 120))
+        : raw
+          ? [String(raw).slice(0, 120)] // ข้อมูลเก่าที่เคยเก็บเป็น string เดี่ยว
+          : [];
+    } else {
+      payload[f.key] = String(raw ?? "").trim().slice(0, 500);
+    }
+  }
 
   const res = await setCatGroomInfo(lineUserId, b.catName, JSON.stringify(payload));
   if (!res.ok && res.error === "not_found") {
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     formatBookingTelegram("🩺 ประวัติน้องก่อนอาบน้ำ (ลูกค้ากรอก)", {
       น้องแมว: b.catName,
       ลูกค้า: b.customerName,
-      ...groomInfoSummary(payload),
+      ...groomInfoSummary(payload, fields),
     })
   );
 

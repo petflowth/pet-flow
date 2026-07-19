@@ -3,8 +3,8 @@
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { BREED_OPTIONS } from "@/lib/cat-breeds";
+import { promoRewardLabel } from "@/lib/promo-format";
 import {
-  promoRewardLabel,
   type CustomerTier,
   type PromoKind,
   type PromoRestriction,

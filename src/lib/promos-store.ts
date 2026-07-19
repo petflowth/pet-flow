@@ -221,18 +221,7 @@ function claimToRow(c: PromoClaimRecord) {
   };
 }
 
-export function promoRewardLabel(p: Pick<PromoRecord, "rewardType" | "discountPercent" | "discountAmount" | "pointsBonus" | "pointsMultiplier">) {
-  const parts: string[] = [];
-  if (p.rewardType === "discount" || p.rewardType === "both") {
-    if (p.discountPercent) parts.push(`${p.discountPercent}%`);
-    if (p.discountAmount) parts.push(`-${p.discountAmount}฿`);
-  }
-  if (p.rewardType === "points" || p.rewardType === "both") {
-    if (p.pointsBonus) parts.push(`+${p.pointsBonus} แต้ม`);
-    if (p.pointsMultiplier && p.pointsMultiplier > 1) parts.push(`แต้ม x${p.pointsMultiplier}`);
-  }
-  return parts.join(" · ");
-}
+export { promoRewardLabel } from "./promo-format";
 
 function currentMonth(now = new Date()) {
   return now.toISOString().slice(0, 7);

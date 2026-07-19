@@ -1,82 +1,52 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { BUSINESS, ROOMS } from "@/lib/business";
 import { BLOG_POSTS } from "@/lib/blog-posts";
+import { Logo } from "@/components/Logo";
 import SiteFooter, { SocialLinks } from "@/components/SiteFooter";
 
 /**
- * หน้าเว็บหลัก (SEO Landing Page) — โรงแรมแมว บางนา เทพารักษ์ สมุทรปราการ
- * เป้าหมาย: ติดอันดับ Google คำค้นท้องถิ่น เช่น "โรงแรมแมว บางนา", "รับฝากแมว เทพารักษ์"
+ * หน้าเว็บหลัก (SEO Landing Page) — เทมเพลตกลาง ไม่ผูกกับพื้นที่ใดพื้นที่หนึ่ง
+ * ร้านจริงแก้ชื่อ/ที่อยู่/คำค้นได้ที่ src/lib/business.ts หรือหลังบ้าน
  * หน้านี้เป็น Server Component ล้วน (static) — บอทอ่านเนื้อหาได้ครบ
- * หมายเหตุ: ร้านมีบริการ "อาบน้ำแมว" เท่านั้น ไม่มีบริการตัดขน
  */
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://petflow.example.com";
 const PHONE_MAIN = BUSINESS.phones[0];
-const LINE_URL = "https://line.me/R/ti/p/@petflow";
+const LINE_URL = BUSINESS.social.line;
 const MAPS_URL = BUSINESS.maps;
+const LOCATION = BUSINESS.location.th;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title:
-    "โรงแรมแมว บางนา–เทพารักษ์ | รับฝากแมว อาบน้ำแมว | PetFlow สมุทรปราการ",
-  description:
-    "PetFlow โรงแรมแมวย่านบางนา เทพารักษ์ หนามแดง ใกล้เมกาบางนา ศรีนครินทร์ — รับฝากแมวห้องแอร์ มี CCTV ดูน้องได้ 24 ชม. รายงานเช้า-เย็นทุกวัน พร้อมบริการอาบน้ำแมวโดยพี่เลี้ยงใจดี เริ่มคืนละ 350.-",
+  title: `${BUSINESS.name} — โรงแรมแมว & อาบน้ำแมว ${LOCATION}`,
+  description: `${BUSINESS.name} รับฝากแมวห้องแอร์ มี CCTV ดูน้องได้ 24 ชม. รายงานเช้า-เย็นทุกวัน พร้อมบริการอาบน้ำแมวโดยพี่เลี้ยงใจดี เริ่มคืนละ ${ROOMS[0]?.price ?? 350}.-`,
   keywords: [
-    "โรงแรมแมว บางนา",
-    "โรงแรมแมว เทพารักษ์",
-    "โรงแรมแมว สมุทรปราการ",
-    "รับฝากแมว บางนา",
-    "ฝากแมว เทพารักษ์",
+    `โรงแรมแมว ${LOCATION}`,
+    `รับฝากแมว ${LOCATION}`,
     "ฝากเลี้ยงแมว ใกล้ฉัน",
-    "อาบน้ำแมว บางนา",
-    "อาบน้ำแมว เทพารักษ์",
-    "อาบน้ำแมว สมุทรปราการ",
-    "โรงแรมแมว เมกาบางนา",
-    "โรงแรมแมว ศรีนครินทร์",
-    "โรงแรมแมว หนามแดง",
-    "โรงแรมแมว พัฒนาการ",
-    "รับฝากแมว พัฒนาการ",
+    `อาบน้ำแมว ${LOCATION}`,
   ],
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     locale: "th_TH",
     url: SITE_URL,
-    siteName: "PetFlow",
-    title: "PetFlow — โรงแรมแมว & อาบน้ำแมว บางนา เทพารักษ์",
-    description:
-      "รับฝากแมวห้องแอร์ CCTV 24 ชม. รายงานเช้า-เย็น + อาบน้ำแมว ย่านบางนา เทพารักษ์ ใกล้เมกาบางนา เริ่มคืนละ 350.-",
-    images: [{ url: "/info/welcome.jpg", width: 1200, height: 1200, alt: "PetFlow โรงแรมแมว บางนา" }],
+    siteName: BUSINESS.name,
+    title: `${BUSINESS.name} — โรงแรมแมว & อาบน้ำแมว ${LOCATION}`,
+    description: `รับฝากแมวห้องแอร์ CCTV 24 ชม. รายงานเช้า-เย็น + อาบน้ำแมว เริ่มคืนละ ${ROOMS[0]?.price ?? 350}.-`,
   },
   robots: { index: true, follow: true },
 };
 
-const AREAS = [
-  "บางนา",
-  "เทพารักษ์",
-  "หนามแดง",
-  "ศรีนครินทร์",
-  "เมกาบางนา",
-  "พัฒนาการ",
-  "แบริ่ง",
-  "ลาซาล",
-  "อุดมสุข",
-  "สำโรง",
-  "บางพลี",
-  "บางแก้ว",
-  "สมุทรปราการ",
-];
-
 const FAQS = [
   {
-    q: "โรงแรมแมว PetFlow อยู่ตรงไหน?",
-    a: "ร้านอยู่ย่านหนามแดง–เทพารักษ์ สมุทรปราการ ใกล้บางนาและเมกาบางนา เดินทางสะดวกจากศรีนครินทร์ แบริ่ง ลาซาล อุดมสุข และสำโรง มีที่จอดรถหน้าร้าน",
+    q: `โรงแรมแมว ${BUSINESS.name} อยู่ตรงไหน?`,
+    a: `ร้านอยู่แถว ${LOCATION}${BUSINESS.address ? ` (${BUSINESS.address})` : ""} — ทักไลน์สอบถามเส้นทางได้เลยค่ะ`,
   },
   {
     q: "ราคาฝากแมวเริ่มต้นเท่าไหร่?",
-    a: "ห้องพักแมวเริ่มต้นคืนละ 350 บาท (ห้อง MiNi Meow) มีหลายขนาดจนถึงห้องวิวหน้าต่าง Catflix & Chill คืนละ 750 บาท ทุกห้องเป็นห้องแอร์ พร้อมพี่เลี้ยงดูแลและทำความสะอาดทุกวัน",
+    a: `ห้องพักแมวเริ่มต้นคืนละ ${ROOMS[0]?.price ?? 350} บาท มีหลายขนาดจนถึงห้องวิวหน้าต่าง ทุกห้องเป็นห้องแอร์ พร้อมพี่เลี้ยงดูแลและทำความสะอาดทุกวัน`,
   },
   {
     q: "ดูน้องแมวระหว่างฝากได้ไหม?",
@@ -84,19 +54,19 @@ const FAQS = [
   },
   {
     q: "รับอาบน้ำแมวไหม ราคาเท่าไหร่?",
-    a: "รับค่ะ อาบน้ำ-เป่าขนเริ่มต้น 400 บาท (ตามพันธุ์และขนาด) มีโปรแกรมขจัดคราบมัน และ PetFlow Premium ครบเซ็ต โดยพี่เลี้ยงที่จับแมวนุ่มนวล ใจเย็นกับน้องขี้กลัวเป็นพิเศษ (ทางร้านไม่มีบริการตัดขนนะคะ)",
+    a: "รับค่ะ อาบน้ำ-เป่าขนเริ่มต้น 400 บาท (ตามพันธุ์และขนาด) โดยพี่เลี้ยงที่จับแมวนุ่มนวล ใจเย็นกับน้องขี้กลัวเป็นพิเศษ",
   },
   {
     q: "ต้องเตรียมอะไรมาบ้างตอนฝากแมว?",
-    a: "เตรียมอาหารที่น้องกินประจำ ยาประจำตัว (ถ้ามี) และสมุดวัคซีน น้องควรได้รับวัคซีนพื้นฐานและหยดยาป้องกันเห็บหมัดก่อนเข้าพัก พัก 3 คืนขึ้นไปมีทรายแมวฟรี",
+    a: "เตรียมอาหารที่น้องกินประจำ ยาประจำตัว (ถ้ามี) และสมุดวัคซีน น้องควรได้รับวัคซีนพื้นฐานและหยดยาป้องกันเห็บหมัดก่อนเข้าพัก",
   },
   {
     q: "จองคิวยังไง?",
-    a: "ทักไลน์ @petflow หรือโทร 02-123-4567 ได้เลยค่ะ จองผ่านระบบสมาชิกในไลน์ได้ตลอด 24 ชม. มีระบบสะสมแต้มและคูปองส่วนลดสำหรับสมาชิก",
+    a: `ทักไลน์ ${BUSINESS.lineOa} หรือโทร ${PHONE_MAIN} ได้เลยค่ะ จองผ่านระบบสมาชิกในไลน์ได้ตลอด 24 ชม. มีระบบสะสมแต้มและคูปองส่วนลดสำหรับสมาชิก`,
   },
 ];
 
-/** Schema.org JSON-LD — ให้ Google เข้าใจว่าเป็นธุรกิจท้องถิ่น (พิกัด+เบอร์+เวลา) */
+/** Schema.org JSON-LD — ให้ Google เข้าใจว่าเป็นธุรกิจท้องถิ่น (เฉพาะที่ตั้งค่าไว้จริง) */
 function jsonLd() {
   return {
     "@context": "https://schema.org",
@@ -104,31 +74,19 @@ function jsonLd() {
       {
         "@type": "LocalBusiness",
         "@id": `${SITE_URL}#business`,
-        name: "PetFlow โรงแรมแมว อาบน้ำแมว",
-        alternateName: "PetFlow",
-        description:
-          "โรงแรมแมวและอาบน้ำแมว ย่านบางนา เทพารักษ์ หนามแดง สมุทรปราการ ห้องแอร์ CCTV รายงานเช้า-เย็น",
+        name: `${BUSINESS.name} โรงแรมแมว อาบน้ำแมว`,
+        alternateName: BUSINESS.name,
+        description: `โรงแรมแมวและอาบน้ำแมว ${LOCATION} ห้องแอร์ CCTV รายงานเช้า-เย็น`,
         url: SITE_URL,
-        telephone: "+6621234567",
-        priceRange: "฿350-฿1,450",
-        image: `${SITE_URL}/logo.jpg`,
-        address: {
-          "@type": "PostalAddress",
-          addressLocality: "หนามแดง เทพารักษ์",
-          addressRegion: "สมุทรปราการ",
-          addressCountry: "TH",
-        },
-        geo: { "@type": "GeoCoordinates", latitude: 13.7563, longitude: 100.5018 },
+        telephone: PHONE_MAIN,
+        priceRange: `฿${ROOMS[0]?.price ?? 350}+`,
+        ...(BUSINESS.address
+          ? { address: { "@type": "PostalAddress", addressLocality: LOCATION, addressCountry: "TH" } }
+          : {}),
         hasMap: MAPS_URL,
-        sameAs: [
-          MAPS_URL,
-          BUSINESS.social.facebook,
-          BUSINESS.social.instagram,
-          BUSINESS.social.tiktok,
-        ],
-        areaServed: AREAS.map((a) => ({ "@type": "Place", name: a })),
+        sameAs: [MAPS_URL, BUSINESS.social.facebook, BUSINESS.social.instagram, BUSINESS.social.tiktok],
         makesOffer: [
-          { "@type": "Offer", name: "รับฝากแมว ห้องพักแมวห้องแอร์", price: "350", priceCurrency: "THB" },
+          { "@type": "Offer", name: "รับฝากแมว ห้องพักแมวห้องแอร์", price: String(ROOMS[0]?.price ?? 350), priceCurrency: "THB" },
           { "@type": "Offer", name: "อาบน้ำแมว เป่าขน", price: "400", priceCurrency: "THB" },
         ],
       },
@@ -146,40 +104,17 @@ function jsonLd() {
 
 const singleRooms = ROOMS.filter((r) => r.count).slice(0, 3);
 
-/** การ์ดรูปอินโฟกราฟิก — คลิกเปิดดูรูปเต็มได้ */
-function InfoCard({
-  src,
-  alt,
-  caption,
-  priority,
-}: {
-  src: string;
-  alt: string;
-  caption?: string;
-  priority?: boolean;
-}) {
+/** การ์ดข้อมูลแบบข้อความ — ใช้แทนรูปอินโฟกราฟิก จนกว่าร้านจะอัปโหลดรูปของตัวเอง */
+function InfoCard({ title, lines }: { title: string; lines: string[] }) {
   return (
-    <a
-      href={src}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group block overflow-hidden rounded-petflow border border-petflow-line bg-card shadow-petflow-sm transition hover:-translate-y-0.5 hover:shadow-petflow"
-    >
-      <Image
-        src={src}
-        alt={alt}
-        width={800}
-        height={900}
-        priority={priority}
-        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-        className="h-auto w-full"
-      />
-      {caption && (
-        <p className="px-3 py-2 text-center text-[11px] font-bold text-brown-soft">
-          {caption} <span className="text-latte-deep">· แตะเพื่อขยาย</span>
-        </p>
-      )}
-    </a>
+    <div className="rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm">
+      <p className="text-sm font-extrabold text-petflow-chocolate">{title}</p>
+      <ul className="mt-2 space-y-1 text-[12px] leading-relaxed text-brown-soft">
+        {lines.map((l) => (
+          <li key={l}>• {l}</li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -195,32 +130,24 @@ export default function HomePage() {
       <header className="bg-gradient-to-b from-honey/30 via-paper to-transparent">
         <div className="mx-auto grid max-w-5xl items-center gap-8 px-5 pb-12 pt-10 md:grid-cols-2 md:pb-16">
           <div className="text-center md:text-left">
-            <Image
-              src="/logo.jpg"
-              alt="PetFlow โรงแรมแมว บางนา เทพารักษ์"
-              width={88}
-              height={88}
-              className="mx-auto rounded-full border-4 border-honey/50 shadow-petflow md:mx-0"
-              priority
-            />
+            <div className="mx-auto md:mx-0">
+              <Logo size={88} />
+            </div>
             <h1 className="mt-5 text-[26px] font-extrabold leading-tight text-petflow-chocolate sm:text-3xl md:text-4xl">
               โรงแรมแมว & อาบน้ำแมว
-              <span className="mt-1 block text-latte-deep">
-                บางนา · เทพารักษ์ · สมุทรปราการ
-              </span>
+              <span className="mt-1 block text-latte-deep">{LOCATION}</span>
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-brown-soft md:mx-0 md:text-[15px]">
-              PetFlow รับฝากแมว<b className="text-petflow-chocolate">ห้องแอร์ส่วนตัว</b>ใกล้เมกาบางนา
-              ศรีนครินทร์ หนามแดง — มี CCTV ดูน้องได้ตลอด
-              พี่เลี้ยงรายงานรูปเช้า-เย็นทุกวัน พร้อมบริการอาบน้ำแมวโดยพี่เลี้ยงใจดี
-              <b className="text-latte-deep"> เริ่มต้นคืนละ 350.-</b>
+              {BUSINESS.name} รับฝากแมว<b className="text-petflow-chocolate">ห้องแอร์ส่วนตัว</b> —
+              มี CCTV ดูน้องได้ตลอด พี่เลี้ยงรายงานรูปเช้า-เย็นทุกวัน พร้อมบริการอาบน้ำแมวโดยพี่เลี้ยงใจดี
+              <b className="text-latte-deep"> เริ่มต้นคืนละ {ROOMS[0]?.price ?? 350}.-</b>
             </p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center md:justify-start">
               <a
                 href={LINE_URL}
                 className="rounded-petflow-sm bg-[#06C755] px-6 py-3.5 text-center text-sm font-extrabold text-white shadow-petflow-sm active:scale-[0.98]"
               >
-                💬 จองผ่าน LINE @petflow
+                💬 จองผ่าน LINE {BUSINESS.lineOa}
               </a>
               <a
                 href={`tel:${PHONE_MAIN.replace(/-/g, "")}`}
@@ -241,16 +168,8 @@ export default function HomePage() {
               <SocialLinks />
             </div>
           </div>
-          <div className="mx-auto w-full max-w-sm md:max-w-none">
-            <Image
-              src="/info/welcome.jpg"
-              alt="ยินดีต้อนรับสู่ PetFlow โรงแรมแมวระบบปิด ดูแลใกล้ชิด อบอุ่นเหมือนอยู่บ้าน"
-              width={900}
-              height={900}
-              priority
-              sizes="(max-width: 768px) 100vw, 50vw"
-              className="h-auto w-full rounded-petflow border border-honey/40 shadow-petflow"
-            />
+          <div className="mx-auto flex aspect-square w-full max-w-sm items-center justify-center rounded-petflow border border-honey/40 bg-gradient-to-br from-honey/40 via-card to-latte/20 text-7xl shadow-petflow md:max-w-none">
+            🐱🧡
           </div>
         </div>
       </header>
@@ -259,7 +178,7 @@ export default function HomePage() {
         {/* ── จุดเด่น ── */}
         <section className="mt-2">
           <h2 className="text-center text-xl font-extrabold text-petflow-chocolate">
-            ทำไมทาสแมวย่านบางนา–เทพารักษ์ ไว้ใจ PetFlow 🧡
+            ทำไมทาสแมวไว้ใจ {BUSINESS.name} 🧡
           </h2>
           <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
             {[
@@ -283,10 +202,10 @@ export default function HomePage() {
         {/* ── ห้องพัก + ราคา ── */}
         <section className="mt-14">
           <h2 className="text-center text-xl font-extrabold text-petflow-chocolate">
-            🏨 ห้องพักแมว เริ่มต้นคืนละ 350.-
+            🏨 ห้องพักแมว เริ่มต้นคืนละ {ROOMS[0]?.price ?? 350}.-
           </h2>
           <p className="mt-2 text-center text-xs text-brown-soft">
-            ทั้งหมด 13 ห้อง · พัก 3 คืนขึ้นไปฟรีทรายแมว · พัก 7 คืนขึ้นไปฟรีกล้อง CCTV ส่วนตัว
+            พัก 3 คืนขึ้นไปฟรีทรายแมว · พัก 7 คืนขึ้นไปฟรีกล้อง CCTV ส่วนตัว
           </p>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             {singleRooms.map((r, i) => (
@@ -323,7 +242,7 @@ export default function HomePage() {
               href="/cat-hotel"
               className="inline-block rounded-petflow-sm bg-latte/25 px-6 py-3 text-sm font-extrabold text-petflow-chocolate shadow-petflow-sm"
             >
-              📷 ดูรูปห้องจริง + ราคาทุกห้อง →
+              📷 ดูรายละเอียด + ราคาทุกห้อง →
             </Link>
           </div>
         </section>
@@ -331,18 +250,16 @@ export default function HomePage() {
         {/* ── จองยังไง + เวลาทำการ ── */}
         <section className="mt-14">
           <h2 className="text-center text-xl font-extrabold text-petflow-chocolate">
-            📅 จองง่ายๆ 4 ขั้นตอน + เวลาให้บริการ
+            📅 จองง่ายๆ + เวลาให้บริการ
           </h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <InfoCard
-              src="/info/booking-steps.jpg"
-              alt="วิธีจองห้องพักโรงแรมแมว PetFlow ง่ายๆ 4 ขั้นตอน แจ้งวัน ส่งข้อมูลน้องแมว ชำระมัดจำ รับ Booking Confirmation"
-              caption="วิธีจองห้องพัก 4 ขั้นตอน"
+              title="วิธีจองห้องพัก"
+              lines={["แจ้งวันที่ + จำนวนแมวทางไลน์", "ส่งข้อมูลน้องแมว (พันธุ์/น้ำหนัก/นิสัย)", "ชำระมัดจำ", "รับ Booking Confirmation"]}
             />
             <InfoCard
-              src="/info/hours.jpg"
-              alt="เวลาให้บริการ PetFlow 09:00-19:00 ทุกวัน เช็กอิน 09:00-18:00 เช็กเอาต์ 09:00-19:00"
-              caption="เวลาให้บริการ · เช็กอิน-เช็กเอาต์"
+              title="เวลาให้บริการ"
+              lines={["เปิดทุกวัน 09:00–19:00", "เช็กอิน 09:00–18:00", "เช็กเอาต์ 09:00–19:00"]}
             />
           </div>
         </section>
@@ -359,7 +276,7 @@ export default function HomePage() {
             {[
               ["อาบน้ำ – เป่าขน", "เริ่ม 400.-", "อาบสะอาด เป่าแห้งสนิท ตัดเล็บ เช็ดหู"],
               ["อาบน้ำ + ขจัดคราบมัน", "เริ่ม 500.-", "สำหรับน้องขนมัน คราบเหนียว ขนกลับมาฟู"],
-              ["PetFlow Premium", "เริ่ม 700.-", "จัดเต็มครบเซ็ต บำรุงขน แนะนำสำหรับขนยาว"],
+              [`${BUSINESS.name} Premium`, "เริ่ม 700.-", "จัดเต็มครบเซ็ต บำรุงขน แนะนำสำหรับขนยาว"],
             ].map(([name, price, desc]) => (
               <div
                 key={name}
@@ -373,20 +290,16 @@ export default function HomePage() {
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <InfoCard
-              src="/info/bath-info.jpg"
-              alt="ข้อมูลก่อนพาน้องแมวมาอาบน้ำที่ PetFlow งดอาหารก่อนอาบ 2-3 ชั่วโมง แจ้งโรคประจำตัว พามาในกระเป๋าหรือกรง"
-              caption="ข้อมูลก่อนพาน้องมาอาบน้ำ"
+              title="ก่อนพาน้องมาอาบน้ำ"
+              lines={["งดอาหารก่อนอาบ 2-3 ชั่วโมง", "แจ้งโรคประจำตัว (ถ้ามี)", "พามาในกระเป๋าหรือกรง"]}
             />
             <InfoCard
-              src="/info/bath-booking.jpg"
-              alt="เงื่อนไขการจองคิวอาบน้ำแมว PetFlow มัดจำ 200 บาท นำไปหักค่าอาบน้ำ"
-              caption="เงื่อนไขการจองคิวอาบน้ำ"
+              title="เงื่อนไขการจองคิวอาบน้ำ"
+              lines={["มัดจำ 200 บาท", "นำไปหักค่าอาบน้ำ", "ยกเลิกล่วงหน้าได้ตามเงื่อนไขร้าน"]}
             />
           </div>
           <p className="mt-4 text-center text-xs text-brown-soft">
             ราคาตามพันธุ์และน้ำหนัก · ถามประวัติน้องก่อนอาบทุกครั้ง เพื่อความปลอดภัยของน้องขี้กลัว/มีโรคประจำตัว
-            <br />
-            <span className="font-bold">หมายเหตุ: ทางร้านไม่มีบริการตัดขนนะคะ 🙏</span>
           </p>
           <div className="mt-4 text-center">
             <Link
@@ -405,19 +318,16 @@ export default function HomePage() {
           </h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <InfoCard
-              src="/info/prepare-checkin.jpg"
-              alt="สิ่งที่ต้องเตรียมมาวันเข้าพักโรงแรมแมว สมุดวัคซีน อาหาร ทรายแมว ของใช้ประจำตัว กระเป๋าหรือกรง"
-              caption="สิ่งที่ต้องเตรียมมาวันเข้าพัก"
+              title="สิ่งที่ต้องเตรียมมาวันเข้าพัก"
+              lines={["สมุดวัคซีน", "อาหาร + ทรายแมวที่ใช้ประจำ", "ของใช้ประจำตัว", "กระเป๋าหรือกรง"]}
             />
             <InfoCard
-              src="/info/before-stay.jpg"
-              alt="ก่อนเข้าพักโรงแรมแมว วัคซีนครบตามกำหนด หยดยาเห็บหมัดภายใน 1 เดือน ส่งหลักฐานก่อนเข้าพัก"
-              caption="วัคซีน + ยาเห็บหมัด ก่อนเข้าพัก"
+              title="วัคซีน + ยาเห็บหมัด"
+              lines={["วัคซีนครบตามกำหนด", "หยดยาเห็บหมัดภายใน 1 เดือน", "ส่งหลักฐานก่อนเข้าพัก"]}
             />
             <InfoCard
-              src="/info/stay-rules.jpg"
-              alt="เงื่อนไขสำคัญในการเข้าพักโรงแรมแมว PetFlow รับเฉพาะแมวเลี้ยงระบบปิด สุขภาพแข็งแรง อัปเดตรูปทุกวัน"
-              caption="เงื่อนไขสำคัญในการเข้าพัก"
+              title="เงื่อนไขสำคัญในการเข้าพัก"
+              lines={["รับเฉพาะแมวเลี้ยงระบบปิด", "สุขภาพแข็งแรง", "อัปเดตรูปทุกวัน"]}
             />
           </div>
         </section>
@@ -440,11 +350,8 @@ export default function HomePage() {
                 <li>✓ เกิน 10 กิโล — 150 บาท + กิโลละ 10 บาท</li>
               </ul>
             </div>
-            <div className="mx-auto w-full max-w-sm">
-              <InfoCard
-                src="/info/transport.jpg"
-                alt="บริการรับส่งน้องแมว PetFlow เดินทางโดยรถยนต์ส่วนตัว คิดค่าบริการตามระยะทาง"
-              />
+            <div className="mx-auto flex aspect-square w-full max-w-sm items-center justify-center rounded-petflow border border-petflow-line bg-paper text-6xl">
+              🚗🐱
             </div>
           </div>
         </section>
@@ -455,18 +362,16 @@ export default function HomePage() {
             🎁 เป็นสมาชิก ยิ่งพัก ยิ่งคุ้ม
           </h2>
           <p className="mt-2 text-center text-xs text-brown-soft">
-            สะสมแต้มทุกการใช้บริการ (100 บาท = 1 คะแนน) แลกส่วนลดสูงสุด 500.- · สมาชิกใหม่รับส่วนลด 5%
+            สะสมแต้มทุกการใช้บริการ (100 บาท = 1 คะแนน) แลกส่วนลดได้ · สมาชิกใหม่รับส่วนลด 5%
           </p>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <InfoCard
-              src="/info/rewards.jpg"
-              alt="สะสมคะแนนแลกรางวัล PetFlow ครบ 5 คะแนนรับขนมแมวเลีย แลกส่วนลดสูงสุด 500 บาท"
-              caption="สะสมคะแนน แลกส่วนลด/ของรางวัล"
+              title="สะสมคะแนน แลกส่วนลด/ของรางวัล"
+              lines={["ทุก 100 บาท = 1 คะแนน", "แลกส่วนลดหรือของรางวัลได้ทางแอปสมาชิก"]}
             />
             <InfoCard
-              src="/info/new-member.jpg"
-              alt="สมาชิกใหม่ PetFlow รับส่วนลด 5% เมื่อสมัครสมาชิกและรีวิวบน Google Maps"
-              caption="สมาชิกใหม่ รับส่วนลด 5%"
+              title="สมาชิกใหม่ รับส่วนลด 5%"
+              lines={["สมัครสมาชิกฟรี", "รับส่วนลด 5% ในการใช้บริการครั้งแรก"]}
             />
           </div>
           <div className="mt-5 text-center">
@@ -482,21 +387,11 @@ export default function HomePage() {
         {/* ── พื้นที่ให้บริการ ── */}
         <section className="mt-14 rounded-petflow bg-card p-6 text-center shadow-petflow-sm">
           <h2 className="text-xl font-extrabold text-petflow-chocolate">
-            📍 รับฝากแมวใกล้คุณ — พื้นที่ให้บริการ
+            📍 รับฝากแมวใกล้คุณ
           </h2>
           <p className="mx-auto mt-2 max-w-xl text-xs leading-relaxed text-brown-soft">
-            ร้านตั้งอยู่ย่านหนามแดง–เทพารักษ์ เดินทางสะดวกจาก
+            ร้านตั้งอยู่แถว {LOCATION} — ทักไลน์สอบถามเส้นทางได้เลยค่ะ
           </p>
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
-            {AREAS.map((a) => (
-              <span
-                key={a}
-                className="rounded-full bg-paper px-3.5 py-1.5 text-xs font-bold text-brown-soft"
-              >
-                {a}
-              </span>
-            ))}
-          </div>
           <a
             href={MAPS_URL}
             className="mt-5 inline-block rounded-petflow-sm bg-honey/40 px-6 py-3 text-sm font-extrabold text-petflow-chocolate"
@@ -570,7 +465,7 @@ export default function HomePage() {
               href={LINE_URL}
               className="rounded-petflow-sm bg-[#06C755] px-6 py-3.5 text-sm font-extrabold text-white shadow-petflow-sm active:scale-[0.98]"
             >
-              💬 LINE @petflow
+              💬 LINE {BUSINESS.lineOa}
             </a>
             <a
               href={`tel:${PHONE_MAIN.replace(/-/g, "")}`}

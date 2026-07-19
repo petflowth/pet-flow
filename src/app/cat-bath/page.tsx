@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { BUSINESS } from "@/lib/business";
 import SiteFooter from "@/components/SiteFooter";
@@ -8,30 +7,22 @@ import SiteFooter from "@/components/SiteFooter";
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://petflow.example.com";
 const PHONE_MAIN = BUSINESS.phones[0];
-const LINE_URL = "https://line.me/R/ti/p/@petflow";
+const LINE_URL = BUSINESS.social.line;
+const LOCATION = BUSINESS.location.th;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "อาบน้ำแมว ราคาเริ่ม 400.- แชมพูพรีเมียม | PetFlow บางนา เทพารักษ์",
-  description:
-    "อาบน้ำแมวโดยพี่เลี้ยงใจเย็น จับนุ่มนวล แชมพูเกรดพรีเมียม Landin'Elite — อาบน้ำ-เป่าขนเริ่ม 400.- ขจัดคราบมัน PetFlow Premium อาบยับยั้งเชื้อรา รวมตัดเล็บ เช็ดหู บริการแบบ Private รับทีละบ้าน ย่านบางนา เทพารักษ์ สมุทรปราการ",
-  keywords: [
-    "อาบน้ำแมว บางนา",
-    "อาบน้ำแมว เทพารักษ์",
-    "อาบน้ำแมว สมุทรปราการ",
-    "อาบน้ำแมว ราคา",
-    "ร้านอาบน้ำแมว ใกล้ฉัน",
-    "กรูมมิ่งแมว บางนา",
-  ],
+  title: `อาบน้ำแมว ราคาเริ่ม 400.- | ${BUSINESS.name} ${LOCATION}`,
+  description: `อาบน้ำแมวโดยพี่เลี้ยงใจเย็น จับนุ่มนวล — อาบน้ำ-เป่าขนเริ่ม 400.- ขจัดคราบมัน รวมตัดเล็บ เช็ดหู บริการแบบ Private รับทีละบ้าน`,
+  keywords: [`อาบน้ำแมว ${LOCATION}`, "อาบน้ำแมว ราคา", "ร้านอาบน้ำแมว ใกล้ฉัน", `กรูมมิ่งแมว ${LOCATION}`],
   alternates: { canonical: "/cat-bath" },
   openGraph: {
     type: "website",
     locale: "th_TH",
     url: `${SITE_URL}/cat-bath`,
-    siteName: "PetFlow",
-    title: "อาบน้ำแมว PetFlow — เมนู + ราคา เริ่ม 400.-",
-    description: "แชมพูพรีเมียม พี่เลี้ยงใจเย็น บริการ Private รับน้องแมวทีละบ้าน",
-    images: [{ url: "/catalog/grooming/bath-menu.jpg", width: 1080, height: 1080, alt: "เมนูอาบน้ำแมว PetFlow" }],
+    siteName: BUSINESS.name,
+    title: `อาบน้ำแมว ${BUSINESS.name} — เมนู + ราคา เริ่ม 400.-`,
+    description: "พี่เลี้ยงใจเย็น บริการ Private รับน้องแมวทีละบ้าน",
   },
   robots: { index: true, follow: true },
 };
@@ -47,17 +38,14 @@ function jsonLd() {
   return {
     "@context": "https://schema.org",
     "@type": "Service",
-    name: "อาบน้ำแมว PetFlow",
+    name: `อาบน้ำแมว ${BUSINESS.name}`,
     serviceType: "Cat bathing & grooming spa",
-    description:
-      "อาบน้ำแมวแชมพูพรีเมียม เป่าแห้งสนิท รวมตัดเล็บ เช็ดหู-ตา ไถขนก้นและอุ้งเท้า บริการแบบ Private",
-    provider: { "@type": "LocalBusiness", name: "PetFlow", telephone: "+6621234567" },
-    areaServed: ["บางนา", "เทพารักษ์", "หนามแดง", "ศรีนครินทร์", "พัฒนาการ", "เมกาบางนา", "สมุทรปราการ"],
+    description: "อาบน้ำแมว เป่าแห้งสนิท รวมตัดเล็บ เช็ดหู-ตา ไถขนก้นและอุ้งเท้า บริการแบบ Private",
+    provider: { "@type": "LocalBusiness", name: BUSINESS.name, telephone: PHONE_MAIN },
     offers: [
       { "@type": "Offer", name: "อาบน้ำ-เป่าขน", price: "400", priceCurrency: "THB" },
       { "@type": "Offer", name: "อาบน้ำ+ขจัดคราบมัน", price: "500", priceCurrency: "THB" },
-      { "@type": "Offer", name: "PetFlow Premium", price: "700", priceCurrency: "THB" },
-      { "@type": "Offer", name: "อาบน้ำยับยั้งเชื้อรา Malaseb", price: "700", priceCurrency: "THB" },
+      { "@type": "Offer", name: `${BUSINESS.name} Premium`, price: "700", priceCurrency: "THB" },
     ],
   };
 }
@@ -70,13 +58,11 @@ export default function CatBathPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd()) }}
       />
       <Link href="/" className="text-xs font-bold text-brown-soft">
-        ← หน้าแรก PetFlow
+        ← หน้าแรก {BUSINESS.name}
       </Link>
       <h1 className="mt-3 text-2xl font-extrabold leading-snug text-petflow-chocolate md:text-3xl">
         🛁 อาบน้ำแมว — เมนู + ราคา
-        <span className="block text-lg text-latte-deep md:text-xl">
-          แชมพูเกรดพรีเมียม Landin&apos;Elite เริ่มต้น 400.-
-        </span>
+        <span className="block text-lg text-latte-deep md:text-xl">เริ่มต้น 400.-</span>
       </h1>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-brown-soft">
         อาบโดยพี่เลี้ยงที่จับแมวนุ่มนวล ใจเย็นกับน้องขี้กลัวเป็นพิเศษ เป่าแห้งสนิทถึงขนชั้นใน
@@ -119,64 +105,30 @@ export default function CatBathPage() {
         </table>
       </div>
       <p className="mt-2 text-[11px] text-brown-soft">
-        ขนาดตัว: ลูกแมวไม่เกิน 2 กก. · M ไม่เกิน 6 กก. · L 6 กก.ขึ้นไป — โปรแกรม Advance:
-        PetFlow Premium และอาบยับยั้งเชื้อรา Malaseb เริ่ม 700.- (ดูตารางเต็มด้านล่าง)
+        ขนาดตัว: ลูกแมวไม่เกิน 2 กก. · M ไม่เกิน 6 กก. · L 6 กก.ขึ้นไป — โปรแกรม Advance: {BUSINESS.name} Premium
+        เริ่ม 700.-
       </p>
-
-      {/* เมนูฉบับเต็ม (รูป) */}
-      <h2 className="mt-10 text-lg font-extrabold text-petflow-chocolate">
-        📋 เมนูฉบับเต็ม — แตะเพื่อขยาย
-      </h2>
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        {[
-          ["/catalog/grooming/bath-menu.jpg", "เมนูอาบน้ำ-เป่าขน และอาบน้ำ+ขจัดคราบมัน ทุกสายพันธุ์"],
-          ["/catalog/grooming/advance-menu.jpg", "เมนู Advance Grooming: PetFlow Premium และอาบยับยั้งเชื้อรา"],
-        ].map(([src, alt]) => (
-          <a
-            key={src}
-            href={src}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block overflow-hidden rounded-petflow border border-petflow-line bg-card shadow-petflow-sm transition hover:-translate-y-0.5 hover:shadow-petflow"
-          >
-            <Image
-              src={src}
-              alt={alt}
-              width={900}
-              height={900}
-              sizes="(max-width: 640px) 100vw, 50vw"
-              className="h-auto w-full"
-            />
-          </a>
-        ))}
-      </div>
 
       {/* ก่อนพามาอาบ */}
       <h2 className="mt-10 text-lg font-extrabold text-petflow-chocolate">
         🐾 ก่อนพาน้องมาอาบน้ำ + การจองคิว
       </h2>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        {[
-          ["/info/bath-info.jpg", "ข้อมูลก่อนพาน้องแมวมาอาบน้ำ งดอาหาร 2-3 ชั่วโมง แจ้งโรคประจำตัว พามาในกระเป๋าหรือกรง"],
-          ["/info/bath-booking.jpg", "เงื่อนไขการจองคิวอาบน้ำแมว มัดจำ 200 บาท นำไปหักค่าอาบน้ำ"],
-        ].map(([src, alt]) => (
-          <a
-            key={src}
-            href={src}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block overflow-hidden rounded-petflow border border-petflow-line bg-card shadow-petflow-sm transition hover:-translate-y-0.5 hover:shadow-petflow"
-          >
-            <Image
-              src={src}
-              alt={alt}
-              width={900}
-              height={900}
-              sizes="(max-width: 640px) 100vw, 50vw"
-              className="h-auto w-full"
-            />
-          </a>
-        ))}
+        <div className="rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm">
+          <p className="text-sm font-extrabold text-petflow-chocolate">ก่อนพาน้องมาอาบน้ำ</p>
+          <ul className="mt-2 space-y-1 text-[12px] leading-relaxed text-brown-soft">
+            <li>• งดอาหารก่อนอาบ 2-3 ชั่วโมง</li>
+            <li>• แจ้งโรคประจำตัว (ถ้ามี)</li>
+            <li>• พามาในกระเป๋าหรือกรง</li>
+          </ul>
+        </div>
+        <div className="rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm">
+          <p className="text-sm font-extrabold text-petflow-chocolate">เงื่อนไขการจองคิว</p>
+          <ul className="mt-2 space-y-1 text-[12px] leading-relaxed text-brown-soft">
+            <li>• มัดจำ 200 บาท</li>
+            <li>• นำไปหักค่าอาบน้ำ</li>
+          </ul>
+        </div>
       </div>
 
       {/* CTA */}
@@ -190,7 +142,7 @@ export default function CatBathPage() {
             href={LINE_URL}
             className="rounded-petflow-sm bg-[#06C755] px-6 py-3.5 text-sm font-extrabold text-white shadow-petflow-sm"
           >
-            💬 LINE @petflow
+            💬 LINE {BUSINESS.lineOa}
           </a>
           <a
             href={`tel:${PHONE_MAIN.replace(/-/g, "")}`}

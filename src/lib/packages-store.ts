@@ -110,6 +110,7 @@ export async function listAllPackages(): Promise<CustomerPackage[]> {
       const { data, error } = await sb
         .from("customer_packages")
         .select("*")
+        .eq("tenant_id", requireTenantId())
         .order("created_at", { ascending: false });
       if (error) return [];
       return ((data as PackageRow[] | null) || []).map(rowToPackage);

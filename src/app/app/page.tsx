@@ -14,6 +14,7 @@ import { Logo } from "@/components/Logo";
 import { LangSwitch } from "@/components/LangSwitch";
 import { CustomerExclusivePromos } from "@/components/CustomerExclusivePromos";
 import { MyCatsSection } from "@/components/MyCatsSection";
+import { MyPackagesSection } from "@/components/MyPackagesSection";
 
 export default function CustomerHome() {
   const { locale } = useLocale();
@@ -127,6 +128,9 @@ export default function CustomerHome() {
           </Link>
         </div>
       </section>
+
+      {/* คอร์สที่ซื้อไว้ — จ่ายเงินล่วงหน้าแล้ว ต้องเห็นว่าเหลือกี่ครั้ง */}
+      <MyPackagesSection />
 
       {/* แมวของฉัน — อัป/แก้รูปเองได้ */}
       <MyCatsSection />

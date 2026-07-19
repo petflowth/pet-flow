@@ -496,6 +496,11 @@ function CustomerSummaryCard({
   const [pkgPrice, setPkgPrice] = useState("");
   const [pkgBusy, setPkgBusy] = useState(false);
 
+  /** ครั้งที่ยังใช้ได้รวมทุกคอร์ส (ไม่นับที่ยกเลิก/ใช้หมดแล้ว) */
+  const packageUsesLeft = packages
+    .filter((p) => p.status === "active")
+    .reduce((n, p) => n + Math.max(0, p.totalUses - p.usedUses), 0);
+
   const loadPackages = useCallback(() => {
     fetch(`/api/packages?customerId=${customer.id}`)
       .then((r) => r.json())
@@ -711,7 +716,7 @@ function CustomerSummaryCard({
         </div>
       </div>
 
-      <div className="mb-4 grid grid-cols-3 gap-2">
+      <div className="mb-4 grid grid-cols-4 gap-2">
         <div className="rounded-petflow-sm bg-card/80 px-2 py-2.5 text-center shadow-petflow-sm">
           <p className="text-[10px] font-bold text-brown-soft">แต้ม</p>
           <p className="text-lg font-extrabold text-latte-deep">{points}</p>
@@ -727,6 +732,12 @@ function CustomerSummaryCard({
             {customer.memberCredit.toLocaleString()}
           </p>
           <p className="text-[10px] text-brown-faint">บาท</p>
+        </div>
+        {/* คอร์สคงเหลือ — ลูกค้าจ่ายล่วงหน้าไว้แล้ว ต้องเห็นตั้งแต่แรกว่ายังใช้ได้กี่ครั้ง */}
+        <div className="rounded-petflow-sm bg-card/80 px-2 py-2.5 text-center shadow-petflow-sm">
+          <p className="text-[10px] font-bold text-brown-soft">คอร์สเหลือ</p>
+          <p className="text-lg font-extrabold text-ok">{packageUsesLeft}</p>
+          <p className="text-[10px] text-brown-faint">ครั้ง</p>
         </div>
       </div>
 

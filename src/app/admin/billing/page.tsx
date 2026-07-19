@@ -1391,11 +1391,6 @@ export default function BillingPage() {
                     ? "room"
                     : "groom"
                 }
-                hasGroomService={inv.items?.some(
-                  (it) =>
-                    it.kind === "grooming" ||
-                    /อาบน้ำ|กรูม|premium|malaseb/i.test(it.label)
-                )}
                 invoiceDeposit={inv.deposit ?? 0}
                 onDone={load}
               />

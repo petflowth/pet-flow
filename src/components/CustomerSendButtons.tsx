@@ -14,7 +14,6 @@ export function CustomerSendButtons({
   bookingId,
   invoiceId,
   service,
-  hasGroomService,
   invoiceDeposit = 0,
   groomBookingIds,
   onDone,
@@ -24,8 +23,6 @@ export function CustomerSendButtons({
   bookingId?: string;
   invoiceId?: string;
   service?: "room" | "groom";
-  /** บิลนี้มีรายการอาบน้ำ/กรูมรวมอยู่ด้วยไหม (ต่างหากจาก service หลักของนัด — เช่น เข้าพัก+อาบน้ำในบิลเดียว) */
-  hasGroomService?: boolean;
   invoiceDeposit?: number;
   /** ถ้านัดนี้เป็นการ์ดรวมหลายตัว (จองทั้งบ้าน) — bookingId ของทุกตัว เอาไว้ส่งการ์ดสอบถามประวัติแยกให้ครบทุกตัว */
   groomBookingIds?: string[];
@@ -237,9 +234,10 @@ export function CustomerSendButtons({
     { key: "reminder", label: "📨 แจ้งเตือนนัด", when: !!bookingId },
     { key: "consent", label: "📋 เงื่อนไข + ลายเซ็น", when: service === "room" },
     {
+      // เข้าพักก็ขอประวัติได้ — เคสพักพร้อมอาบน้ำ หรือมาเพิ่มอาบน้ำระหว่างเข้าพัก
       key: "groomInfo",
       label: "🩺 ขอประวัติก่อนอาบน้ำ",
-      when: service === "groom" || !!hasGroomService,
+      when: !!bookingId,
     },
     { key: "checkin", label: "🧳 เลือกเวลาเช็คอิน", when: service === "room" },
     { key: "checkout", label: "🧳 เลือกเวลาเช็คเอาท์", when: service === "room" },
@@ -280,7 +278,8 @@ export function CustomerSendButtons({
           onClick={() => bookingSend("send_prestay", "ส่งการ์ดแจ้งเข้าพัก + เงื่อนไขแล้ว 🏠")}
         />
       )}
-      {bookingId && (service === "groom" || hasGroomService) && (
+      {/* เข้าพักก็กดขอประวัติได้ — เคสพักพร้อมอาบน้ำ / มาเพิ่มอาบน้ำระหว่างเข้าพัก */}
+      {bookingId && (
         <Btn
           k="send_groom_info"
           label={

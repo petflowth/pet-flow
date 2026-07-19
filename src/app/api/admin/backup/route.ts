@@ -10,6 +10,9 @@ import { listInvoices } from "@/lib/invoices-store";
 import { getAllPointsMap } from "@/lib/points-store";
 import { listPromos, listPromoClaims } from "@/lib/promos-store";
 import { listStaff } from "@/lib/staff-store";
+import { listAllCoupons, listOffers } from "@/lib/coupons-store";
+import { listAllPackages } from "@/lib/packages-store";
+import { listArticles } from "@/lib/articles-store";
 import { getSiteConfig } from "@/lib/config-store";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +43,10 @@ export async function GET() {
     staff,
     serviceRecords,
     memberTopups,
+    coupons,
+    couponOffers,
+    packages,
+    articles,
     config,
   ] = await Promise.all([
     listCustomers(),
@@ -52,6 +59,10 @@ export async function GET() {
     listStaff(),
     listAllServiceRecords(),
     listAllMemberTopups(),
+    listAllCoupons(),
+    listOffers(),
+    listAllPackages(),
+    listArticles(true),
     getSiteConfig(),
   ]);
 
@@ -71,6 +82,10 @@ export async function GET() {
         staff: staff.length,
         serviceRecords: serviceRecords.length,
         memberTopups: memberTopups.length,
+        coupons: coupons.length,
+        couponOffers: couponOffers.length,
+        packages: packages.length,
+        articles: articles.length,
       },
     },
     customers,
@@ -83,6 +98,10 @@ export async function GET() {
     staff,
     serviceRecords,
     memberTopups,
+    coupons,
+    couponOffers,
+    packages,
+    articles,
     config,
   };
 

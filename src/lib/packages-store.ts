@@ -102,6 +102,24 @@ export async function listCustomerPackages(customerId: string): Promise<Customer
   return mem.filter((p) => p.customerId === customerId);
 }
 
+/** คอร์สทุกใบ ทุกลูกค้า — ใช้สำหรับสำรองข้อมูลทั้งร้าน (ลูกค้าจ่ายเงินซื้อไว้ ห้ามหาย) */
+export async function listAllPackages(): Promise<CustomerPackage[]> {
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      const { data, error } = await sb
+        .from("customer_packages")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) return [];
+      return ((data as PackageRow[] | null) || []).map(rowToPackage);
+    } catch {
+      return [];
+    }
+  }
+  return [...mem];
+}
+
 /** คอร์สที่ยังใช้ได้ (active + ยังเหลือครั้ง) */
 export async function activeCustomerPackages(customerId: string) {
   return (await listCustomerPackages(customerId)).filter(

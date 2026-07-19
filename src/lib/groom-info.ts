@@ -26,6 +26,23 @@ export const GROOM_DRY_METHOD_LABELS: Record<string, string> = {
   cabinet: "ตู้เป่าขน",
 };
 
+export const GROOM_HEART_LABELS: Record<string, string> = {
+  yes: "เป็นโรคหัวใจ",
+  no: "ไม่เป็น",
+  unknown: "ไม่เคยตรวจ",
+};
+
+/**
+ * ป้ายสำรองของทุกคำตอบที่ระบบเคยใช้ — กันคำตอบเก่าโชว์เป็นคีย์ดิบ
+ * (เช่น "heart" ที่เมื่อก่อนอยู่ในข้อสุขภาพ ก่อนจะแยกออกมาเป็นข้อโรคหัวใจ)
+ */
+const LEGACY_LABELS: Record<string, string> = {
+  ...GROOM_TEMPERAMENT_LABELS,
+  ...GROOM_HEALTH_LABELS,
+  ...GROOM_DRY_METHOD_LABELS,
+  heart: "โรคหัวใจ",
+};
+
 export type GroomHealthInfo = {
   bathedBefore?: string;
   temperament?: string[];
@@ -34,6 +51,8 @@ export type GroomHealthInfo = {
   note?: string;
   /** ได้รับวัคซีนครบหรือยัง */
   vaccinated?: string;
+  /** เป็นโรคหัวใจไหม — yes | no | unknown (ไม่เคยตรวจ) */
+  heartDisease?: string;
   /** น้ำหนักตัว (โดยประมาณ) — ค่า "unknown" แปลว่าลูกค้าติ๊กไม่ทราบ */
   weight?: string;
   /** วิธีเป่าขนที่เคยใช้ — เลือกได้หลายวิธี (ข้อมูลเก่าอาจเป็น string เดี่ยว) */
@@ -74,7 +93,7 @@ export function groomInfoSummary(
       const raw = val(f.key);
       if (f.type === "multi" || f.type === "single") {
         const label = (k: string) =>
-          f.options.find((o) => o.key === k)?.label || k;
+          f.options.find((o) => o.key === k)?.label || LEGACY_LABELS[k] || k;
         out[f.label] = asList(raw).map(label).join(", ") || "-";
       } else {
         const s = String(raw ?? "").trim();
@@ -94,6 +113,7 @@ export function groomInfoSummary(
       "-",
     สุขภาพ:
       (g.health || []).map((h) => GROOM_HEALTH_LABELS[h] || h).join(", ") || "-",
+    โรคหัวใจ: GROOM_HEART_LABELS[g.heartDisease || ""] || "-",
     ได้รับวัคซีนครบ:
       g.vaccinated === "yes" ? "ครบแล้ว" : g.vaccinated === "no" ? "ยังไม่ครบ" : "-",
     น้ำหนักตัว: g.weight === "unknown" ? "ไม่ทราบ" : g.weight || "-",

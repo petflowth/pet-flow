@@ -71,11 +71,23 @@ export const GROOM_FORM_DEFAULTS: GroomField[] = [
     enabled: true,
     options: [
       { key: "healthy", label: "💪 แข็งแรงดี" },
-      { key: "heart", label: "❤️ โรคหัวใจ" },
       { key: "skin", label: "🩹 โรคผิวหนัง" },
       { key: "seizure", label: "⚡ ลมชัก/ชัก" },
       { key: "senior", label: "👵 สูงอายุ" },
       { key: "other", label: "➕ อื่นๆ" },
+    ],
+  },
+  {
+    // แยกออกมาเป็นข้อของตัวเอง — โรคหัวใจมีผลกับการอาบน้ำ/เป่าขนมากที่สุด ต้องไม่พลาด
+    key: "heartDisease",
+    type: "single",
+    label: "น้องเป็นโรคหัวใจไหมคะ",
+    required: true,
+    enabled: true,
+    options: [
+      { key: "no", label: "✅ ไม่เป็น" },
+      { key: "yes", label: "❤️ เป็นโรคหัวใจ" },
+      { key: "unknown", label: "❓ ไม่เคยตรวจ" },
     ],
   },
   {

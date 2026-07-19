@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "@/components/Toast";
+import { AUTO_MESSAGE_TOPICS } from "@/lib/auto-messages";
 
 /**
  * ปุ่มส่งหาลูกค้าแบบรวมศูนย์ — ใช้ได้ทุกที่ (การ์ดในปฏิทิน · บิล · ฯลฯ)
@@ -17,6 +18,7 @@ export function CustomerSendButtons({
   invoiceDeposit = 0,
   invoiceStatus,
   groomBookingIds,
+  initialAutoOff,
   onDone,
 }: {
   lineUserId?: string;
@@ -29,6 +31,8 @@ export function CustomerSendButtons({
   invoiceStatus?: string;
   /** ถ้านัดนี้เป็นการ์ดรวมหลายตัว (จองทั้งบ้าน) — bookingId ของทุกตัว เอาไว้ส่งการ์ดสอบถามประวัติแยกให้ครบทุกตัว */
   groomBookingIds?: string[];
+  /** หัวข้อข้อความอัตโนมัติที่นัดนี้ปิดไว้แล้ว (ถ้ามี) — ให้ปุ่มเปิด/ปิดตรงนี้เริ่มตรงกับของจริง */
+  initialAutoOff?: string[];
   onDone?: () => void;
 }) {
   const [busy, setBusy] = useState("");
@@ -184,6 +188,42 @@ export function CustomerSendButtons({
         ? `ส่งการ์ดเรียกเก็บมัดจำ ${amount.toLocaleString()} บาทแล้ว 📨 (ผูกกับบิลนี้แล้ว)`
         : `ส่งการ์ดเรียกเก็บมัดจำ ${amount.toLocaleString()} บาทแล้ว 📨 (จะหักเข้าบิลถัดไปให้อัตโนมัติ)`
     );
+  };
+
+  // 🔕 ปิดข้อความอัตโนมัติเฉพาะนัดนี้ — แก้ได้จากทุกที่ที่มีปุ่มส่ง LINE
+  // (เดิมแก้ได้แค่ในหน้าแก้ไขนัดที่ ตารางนัด ย้ายมาไว้ตรงนี้ด้วยจะได้แก้จากหน้าคิดเงินได้เลย)
+  const [autoOffOpen, setAutoOffOpen] = useState(false);
+  const [autoOff, setAutoOff] = useState<string[]>(initialAutoOff || []);
+  const [autoOffSaving, setAutoOffSaving] = useState(false);
+  useEffect(() => {
+    setAutoOff(initialAutoOff || []);
+  }, [initialAutoOff]);
+  const toggleAutoOff = async (topic: string) => {
+    if (!bookingId) return;
+    const next = autoOff.includes(topic)
+      ? autoOff.filter((x) => x !== topic)
+      : [...autoOff, topic];
+    setAutoOff(next);
+    setAutoOffSaving(true);
+    try {
+      const res = await fetch("/api/bookings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: bookingId, action: "update", autoOff: next }),
+      });
+      if (res.ok) {
+        toast(
+          next.includes(topic) ? "ปิดข้อความหัวข้อนี้แล้ว 🔕" : "เปิดกลับมาส่งตามปกติแล้ว",
+          "success"
+        );
+        onDone?.();
+      } else {
+        setAutoOff(autoOff); // ย้อนกลับถ้าบันทึกไม่สำเร็จ
+        toast("บันทึกไม่สำเร็จ", "error");
+      }
+    } finally {
+      setAutoOffSaving(false);
+    }
   };
 
   // 📦 ชุดการ์ด — เลือกหลายใบ ส่งใน push เดียว (LINE นับ 1 ข้อความ)
@@ -469,6 +509,42 @@ export function CustomerSendButtons({
               ? "กำลังส่ง…"
               : `📦 ส่ง ${bundleParts.length} การ์ดใน 1 ข้อความ`}
           </button>
+        </div>
+      )}
+
+      {/* 🔕 ปิดข้อความอัตโนมัติเฉพาะนัดนี้ — แก้ตรงนี้ได้เลย ไม่ต้องไปเปิดหน้าแก้ไขนัด */}
+      {bookingId && (
+        <button
+          type="button"
+          onClick={() => setAutoOffOpen((v) => !v)}
+          className="rounded-full bg-wait/15 px-2.5 py-1 text-[10px] font-extrabold text-wait"
+        >
+          🔕 ปิดข้อความอัตโนมัติ{autoOff.length > 0 ? ` (${autoOff.length})` : ""}{" "}
+          {autoOffOpen ? "▲" : "▼"}
+        </button>
+      )}
+      {autoOffOpen && bookingId && (
+        <div className="w-full rounded-catcha-sm border border-wait/30 bg-card p-2.5">
+          <p className="mb-1.5 text-[10px] font-bold text-brown-soft">
+            ติ๊กหัวข้อที่ไม่อยากให้ระบบส่งอัตโนมัติหานัดนี้ (นัดอื่นไม่กระทบ):
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {AUTO_MESSAGE_TOPICS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                disabled={autoOffSaving}
+                onClick={() => toggleAutoOff(t.id)}
+                className={`rounded-full px-2.5 py-1 text-[10px] font-bold disabled:opacity-40 ${
+                  autoOff.includes(t.id)
+                    ? "bg-wait text-white"
+                    : "bg-paper text-brown-soft"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

@@ -71,6 +71,7 @@ type Booking = {
   date?: string;
   time?: string;
   status: string;
+  autoOff?: string[];
 };
 
 type ItemKind = "grooming" | "room" | "service" | "custom" | "freebie";
@@ -1629,6 +1630,7 @@ export default function BillingPage() {
                 }
                 invoiceDeposit={inv.deposit ?? 0}
                 invoiceStatus={inv.status}
+                initialAutoOff={linkedBk?.autoOff}
                 onDone={load}
               />
               {/* บิลนี้ไม่มีนัดผูกอยู่ — ปุ่มแจ้งเตือนนัด/ส่งชุดการ์ดข้างบนเลยหายไปหมด

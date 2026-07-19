@@ -350,7 +350,13 @@ export default function BillingPage() {
   }, [customerId]);
 
   // บ้านเดียวกัน + นัดเดียวกัน = 1 รายการในลิสต์ ออกบิลใบเดียว
-  const bookingGroups = groupBookings(bookings);
+  // ตัดกลุ่มที่จบเคสแล้ว (มีบิลจ่ายแล้วผูกกับตัวใดตัวหนึ่งในกลุ่ม) ออกจากลิสต์ให้ดึงมาออกบิลซ้ำ
+  const paidBookingIds = new Set(
+    invoices.filter((i) => i.status === "paid" && i.bookingId).map((i) => i.bookingId)
+  );
+  const bookingGroups = groupBookings(bookings).filter(
+    (group) => !group.some((b) => paidBookingIds.has(b.id))
+  );
   const lines = items.map(computeLine);
   const subtotal = lines.reduce((s, l) => s + l.amount, 0);
   const selectedPromo = promos.find((p) => p.id === promoId);

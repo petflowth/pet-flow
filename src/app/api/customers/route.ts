@@ -14,6 +14,7 @@ import {
   restoreCustomer,
   listTrashedCustomers,
   topupMemberCredit,
+  deleteServiceRecord,
   upsertCustomerFromBooking,
   recalculateCustomerTier,
   recalcAllTiers,
@@ -187,6 +188,16 @@ async function handlePatch(req: NextRequest) {
     }
   }
 
+  // ลบประวัติใช้บริการทีละรายการ — เผื่อลงข้อมูลผิด ลูกค้าจะได้ไม่เห็นในแอปด้วย
+  if (action === "delete_service_record") {
+    const serviceId = String(body.serviceId || "");
+    if (!serviceId) {
+      return NextResponse.json({ error: "serviceId required" }, { status: 400 });
+    }
+    await deleteServiceRecord(serviceId);
+    return NextResponse.json({ ok: true });
+  }
+
   if (action === "delete_cat") {
     try {
       const c = await deleteCat(id, String(body.catId || ""));
@@ -229,6 +240,7 @@ async function handlePatch(req: NextRequest) {
       paidAmount,
       bonusAmount,
       note: body.note,
+      isLegacy: Boolean(body.isLegacy),
     });
     if (!result) {
       return NextResponse.json({ error: "invalid_topup" }, { status: 400 });

@@ -160,6 +160,11 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     name: "bookings.auto_off",
     sql: "alter table bookings add column if not exists auto_off text[] not null default array[]::text[];",
   },
+  {
+    // ยอดยกมาจากระบบเก่า — ไม่ใช่รายรับเดือนนี้ ต้องแยกได้ว่าเติมครั้งไหนเป็นยอดยกมา
+    name: "member_topups.is_legacy",
+    sql: "alter table member_topups add column if not exists is_legacy boolean not null default false;",
+  },
 ];
 
 export type MigrateResult = {

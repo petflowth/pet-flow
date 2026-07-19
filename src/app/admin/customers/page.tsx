@@ -169,6 +169,8 @@ function MemberTopupSection({
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  // ยอดยกมาจากระบบเก่า — เติมเครดิตให้ลูกค้าจริง แต่ไม่ใช่เงินที่รับเข้าร้านเดือนนี้
+  const [isLegacy, setIsLegacy] = useState(false);
 
   const paidNum = Math.max(0, Number(paid) || 0);
   const bonusNum = Math.max(0, Number(bonus) || 0);
@@ -196,6 +198,7 @@ function MemberTopupSection({
         paidAmount: paidNum,
         bonusAmount: bonusNum,
         note: note.trim() || undefined,
+        isLegacy,
       }),
     });
     const data = await res.json();
@@ -204,7 +207,11 @@ function MemberTopupSection({
       setPaid("");
       setBonus("");
       setNote("");
-      setMsg(`✅ เติมสำเร็จ +${total.toLocaleString()} บาท (คงเหลือ ${data.customer.memberCredit.toLocaleString()} บาท)`);
+      setIsLegacy(false);
+      setMsg(
+        `✅ เติมสำเร็จ +${total.toLocaleString()} บาท (คงเหลือ ${data.customer.memberCredit.toLocaleString()} บาท)` +
+          (isLegacy ? " · ยอดยกมา ไม่นับรายรับเดือนนี้" : "")
+      );
       onDone();
     } else {
       setMsg("❌ บันทึกไม่สำเร็จ");
@@ -275,13 +282,32 @@ function MemberTopupSection({
         className="mb-3 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs"
       />
 
+      <label className="mb-3 flex items-start gap-2 rounded-petflow-sm bg-paper/60 px-3 py-2 text-[11px] font-bold text-brown-soft">
+        <input
+          type="checkbox"
+          checked={isLegacy}
+          onChange={(e) => setIsLegacy(e.target.checked)}
+          className="mt-0.5 h-3.5 w-3.5 accent-latte-deep"
+        />
+        <span>
+          🕰️ ยอดยกมาจากระบบเก่า
+          <span className="block font-normal text-brown-faint">
+            เติมเครดิตให้ลูกค้าตามปกติ แต่จะ<b>ไม่นับเป็นรายรับ</b>ของร้านเดือนนี้
+          </span>
+        </span>
+      </label>
+
       <button
         type="button"
         disabled={saving || total <= 0}
         onClick={submit}
         className="w-full rounded-petflow-sm bg-latte/30 py-2.5 text-sm font-extrabold text-petflow-chocolate disabled:opacity-40"
       >
-        {saving ? "กำลังบันทึก…" : `บันทึกเติม Member +${total > 0 ? total.toLocaleString() : "—"} บาท`}
+        {saving
+          ? "กำลังบันทึก…"
+          : isLegacy
+            ? `บันทึกยอดยกมา +${total > 0 ? total.toLocaleString() : "—"} บาท (ไม่นับรายรับ)`
+            : `บันทึกเติม Member +${total > 0 ? total.toLocaleString() : "—"} บาท`}
       </button>
 
       {msg && (
@@ -346,12 +372,15 @@ function MemberCreditHistorySection({
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="font-bold text-ok">+ เติมเครดิต</p>
+                    <p className={`font-bold ${row.topup.isLegacy ? "text-brown" : "text-ok"}`}>
+                      {row.topup.isLegacy ? "🕰️ ยอดยกมาจากระบบเก่า" : "+ เติมเครดิต"}
+                    </p>
                     <p className="text-brown-soft">
                       {row.topup.createdAt.slice(0, 10)} · รับ {row.topup.paidAmount.toLocaleString()} บาท
                       {row.topup.bonusAmount > 0 && (
                         <> · แถม {row.topup.bonusAmount.toLocaleString()} บาท</>
                       )}
+                      {row.topup.isLegacy && <> · ไม่นับรายรับ</>}
                     </p>
                     {row.topup.note && (
                       <p className="text-[10px] text-brown-faint">{row.topup.note}</p>
@@ -1475,17 +1504,60 @@ export default function CustomersPage() {
 
         <section className="mb-4 rounded-petflow bg-card p-4">
           <h2 className="mb-2 text-sm font-extrabold">📋 ประวัติใช้บริการ</h2>
+          <p className="mb-2 text-[10px] text-brown-faint">
+            ลงข้อมูลผิด? ลบรายการนั้นออกได้ — จะหายจากประวัติที่ลูกค้าเห็นในแอปด้วย
+          </p>
           <ul className="space-y-2 text-xs text-brown-soft">
             {selected.history.services.map((s) => (
-              <li key={s.id}>
-                {s.date} · {s.catName} · {s.service}
-                {s.amount ? ` · ${s.amount} บาท` : ""}
+              <li key={s.id} className="flex items-center justify-between gap-2">
+                <span>
+                  {s.date} · {s.catName} · {s.service}
+                  {s.amount ? ` · ${s.amount} บาท` : ""}
+                </span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!confirm("ลบรายการนี้ออกจากประวัติ? กู้คืนไม่ได้")) return;
+                    await fetch("/api/customers", {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        id: c.id,
+                        action: "delete_service_record",
+                        serviceId: s.id,
+                      }),
+                    });
+                    open(c.id);
+                  }}
+                  className="shrink-0 text-[11px] font-bold text-wait"
+                  aria-label="ลบรายการนี้"
+                >
+                  🗑️
+                </button>
               </li>
             ))}
             {(selected.history.pastBookings || []).map((b) => (
-              <li key={b.id}>
-                {b.date} · {b.catName} · {b.service === "room" ? "ห้องพัก" : "อาบน้ำ"} ·{" "}
-                {statusLabel(b.status)}
+              <li key={b.id} className="flex items-center justify-between gap-2">
+                <span>
+                  {b.date} · {b.catName} · {b.service === "room" ? "ห้องพัก" : "อาบน้ำ"} ·{" "}
+                  {statusLabel(b.status)}
+                </span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!confirm("ลบนัดนี้ทิ้งถาวร? กู้คืนไม่ได้")) return;
+                    await fetch("/api/bookings", {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ id: b.id, action: "delete" }),
+                    });
+                    open(c.id);
+                  }}
+                  className="shrink-0 text-[11px] font-bold text-wait"
+                  aria-label="ลบนัดนี้"
+                >
+                  🗑️
+                </button>
               </li>
             ))}
             {!selected.history.services.length &&

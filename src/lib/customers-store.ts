@@ -111,6 +111,8 @@ export type MemberTopupRecord = {
   balanceAfter: number;
   note?: string;
   createdAt: string;
+  /** ยอดยกมาจากระบบเก่า — เติมเครดิตให้ลูกค้าจริง แต่ไม่ใช่รายรับของร้านเดือนนี้ */
+  isLegacy?: boolean;
 };
 
 /** รายการใช้เครดิต Member จ่ายบิล */
@@ -193,6 +195,7 @@ type MemberTopupRow = {
   balance_after: number;
   note: string | null;
   created_at: string;
+  is_legacy?: boolean | null;
 };
 
 const memCustomers = new Map<string, CustomerRecord>();
@@ -1232,7 +1235,7 @@ export async function addMemberCredit(customerId: string, amount: number) {
 
 export async function topupMemberCredit(
   customerId: string,
-  data: { paidAmount: number; bonusAmount?: number; note?: string }
+  data: { paidAmount: number; bonusAmount?: number; note?: string; isLegacy?: boolean }
 ) {
   const paid = Math.max(0, Number(data.paidAmount) || 0);
   const bonus = Math.max(0, Number(data.bonusAmount) || 0);
@@ -1253,6 +1256,7 @@ export async function topupMemberCredit(
   });
   if (!updated) return null;
 
+  const isLegacy = Boolean(data.isLegacy);
   const topup: MemberTopupRecord = {
     id: `MT${Date.now()}`,
     customerId,
@@ -1262,11 +1266,12 @@ export async function topupMemberCredit(
     balanceAfter: c.memberCredit,
     note: data.note?.trim() || undefined,
     createdAt: new Date().toISOString(),
+    isLegacy,
   };
 
   const sb = getSupabase();
   if (sb) {
-    await sb.from("member_topups").insert({
+    const row = {
       id: topup.id,
       tenant_id: requireTenantId(),
       customer_id: topup.customerId,
@@ -1276,12 +1281,22 @@ export async function topupMemberCredit(
       balance_after: topup.balanceAfter,
       note: topup.note || null,
       created_at: topup.createdAt,
-    });
+    };
+    // is_legacy เพิ่งเพิ่มมาทีหลัง — ลองใส่ก่อน ถ้าเครื่องยังไม่อัปเดตฐานข้อมูล
+    // (คอลัมน์ไม่มี) ให้ตกไปเขียนแบบเดิม กันบันทึกไม่สำเร็จทั้งก้อน
+    const { error } = await sb
+      .from("member_topups")
+      .insert({ ...row, is_legacy: isLegacy });
+    if (error) {
+      await sb.from("member_topups").insert(row);
+    }
   } else {
     memMemberTopups.unshift(topup);
   }
 
-  if (paid > 0) {
+  // ยอดยกมาจากระบบเก่า: เครดิตลูกค้าต้องได้เพิ่มจริง แต่ไม่ใช่เงินที่รับเข้าร้านเดือนนี้
+  // ไม่บันทึกรายรับ กันยอดขายบวมจากเงินที่ไม่ได้รับจริงในเดือนนี้
+  if (paid > 0 && !isLegacy) {
     const { addFinanceEntry } = await import("./finance-store");
     const bonusLabel =
       bonus > 0 ? ` (แถม ${bonus.toLocaleString()} บาท)` : "";
@@ -1356,6 +1371,26 @@ export async function deleteServiceRecordByInvoice(invoiceId: string) {
   }
 }
 
+/**
+ * ลบประวัติใช้บริการทีละรายการจากหลังบ้าน — เผื่อร้านลงข้อมูลผิด
+ * ลบแล้วหายจากประวัติที่ลูกค้าเห็นในแอปด้วย (คนละเรื่องกับ deleteServiceRecordByInvoice
+ * ที่ลบอัตโนมัติตอนยกเลิกการชำระ)
+ */
+export async function deleteServiceRecord(id: string) {
+  const sb = getSupabase();
+  if (sb) {
+    await sb
+      .from("service_records")
+      .delete()
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
+  } else {
+    const i = memServices.findIndex((r) => r.id === id);
+    if (i >= 0) memServices.splice(i, 1);
+  }
+  return { ok: true as const };
+}
+
 async function listServiceRecords(customerId: string) {
   const sb = getSupabase();
   if (sb) {
@@ -1399,9 +1434,20 @@ async function listMemberTopups(customerId: string): Promise<MemberTopupRecord[]
       balanceAfter: Number(r.balance_after),
       note: r.note ?? undefined,
       createdAt: r.created_at,
+      isLegacy: r.is_legacy ?? false,
     }));
   }
   return memMemberTopups.filter((t) => t.customerId === customerId);
+}
+
+/** ตัดชื่อน้อง/พันธุ์/ไซส์ที่ห้อยท้ายออก เหลือแค่ชื่อรายการสั้นๆ ให้ประวัติอ่านง่าย */
+function shortItemLabel(label: string): string {
+  return label
+    .replace(/^🐱 .+? · /, "")
+    .replace(/^🎁 /, "")
+    .split(" · ")[0]
+    .replace(/ × \d+$/, "")
+    .trim();
 }
 
 async function listMemberCreditUsage(customerId: string): Promise<MemberCreditUsageRecord[]> {
@@ -1409,14 +1455,24 @@ async function listMemberCreditUsage(customerId: string): Promise<MemberCreditUs
   const invoices = await listInvoices(customerId);
   return invoices
     .filter((i) => i.status === "paid" && i.paymentMethod === "member_credit" && i.paidAt)
-    .map((i) => ({
-      id: i.id,
-      customerId: i.customerId,
-      amount: i.total,
-      description: `${i.catName} · ${i.items.map((x) => x.label).join(", ")}`,
-      date: i.paidAt!.slice(0, 10),
-      at: i.paidAt!,
-    }))
+    .map((i) => {
+      // ย่อรายการให้เหลือแค่ชื่อสั้นๆ ไม่ซ้ำ — บิลที่มีหลายตัว/หลายรายการจะได้ไม่ยาวจนอ่านไม่ไหว
+      const names = Array.from(
+        new Set(i.items.map((it) => shortItemLabel(it.label)))
+      ).filter(Boolean);
+      const summary =
+        names.length > 2
+          ? `${names.slice(0, 2).join(", ")} และอีก ${names.length - 2} รายการ`
+          : names.join(", ");
+      return {
+        id: i.id,
+        customerId: i.customerId,
+        amount: i.total,
+        description: summary ? `${i.catName} · ${summary}` : i.catName,
+        date: i.paidAt!.slice(0, 10),
+        at: i.paidAt!,
+      };
+    })
     .sort((a, b) => b.at.localeCompare(a.at));
 }
 

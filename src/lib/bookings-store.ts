@@ -370,6 +370,21 @@ export async function cancelBooking(id: string) {
   return updateBooking(id, { status: "cancelled" });
 }
 
+/**
+ * ลบนัดทิ้งถาวรจากหลังบ้าน — เผื่อลงข้อมูลผิด (คนละเรื่องกับ cancelBooking
+ * ที่แค่เปลี่ยนสถานะ) ลบแล้วหายจากประวัติที่ลูกค้าเห็นในแอปของตัวเองด้วย
+ */
+export async function deleteBooking(id: string) {
+  const sb = getSupabase();
+  if (sb) {
+    await sb.from("bookings").delete().eq("id", id);
+  } else {
+    const i = mem.findIndex((b) => b.id === id);
+    if (i >= 0) mem.splice(i, 1);
+  }
+  return { ok: true as const };
+}
+
 export async function bookingsForDate(isoDate: string) {
   const all = await listBookings();
   return all.filter(

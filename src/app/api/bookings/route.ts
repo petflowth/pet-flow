@@ -12,6 +12,7 @@ import {
   listBookings,
   toBooking,
   updateBooking,
+  deleteBooking,
   type StoredBooking,
 } from "@/lib/bookings-store";
 import { AUTO_MESSAGE_TOPICS } from "@/lib/auto-messages";
@@ -769,6 +770,15 @@ export async function PATCH(req: NextRequest) {
     );
 
     return NextResponse.json({ ok: true, booking: toBooking(updated) });
+  }
+
+  // ลบนัดทิ้งถาวร — เผื่อลงข้อมูลผิด (คนละเรื่องกับ cancel ที่แค่เปลี่ยนสถานะ)
+  if (action === "delete") {
+    if (b.calendarEventId) {
+      await deleteCalendarEvent(b.calendarEventId);
+    }
+    await deleteBooking(id);
+    return NextResponse.json({ ok: true });
   }
 
   return NextResponse.json({ error: "unknown action" }, { status: 400 });

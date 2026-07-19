@@ -1487,35 +1487,20 @@ async function listMemberTopups(customerId: string): Promise<MemberTopupRecord[]
   return memMemberTopups.filter((t) => t.customerId === customerId);
 }
 
-/** ตัดชื่อน้อง/พันธุ์/ไซส์ที่ห้อยท้ายออก เหลือแค่ชื่อรายการสั้นๆ ให้ประวัติอ่านง่าย */
-function shortItemLabel(label: string): string {
-  return label
-    .replace(/^🐱 .+? · /, "")
-    .replace(/^🎁 /, "")
-    .split(" · ")[0]
-    .replace(/ × \d+$/, "")
-    .trim();
-}
-
 async function listMemberCreditUsage(customerId: string): Promise<MemberCreditUsageRecord[]> {
   const { listInvoices } = await import("./invoices-store");
+  const { summarizeInvoiceItems } = await import("./invoice-item-label");
   const invoices = await listInvoices(customerId);
   return invoices
     .filter((i) => i.status === "paid" && i.paymentMethod === "member_credit" && i.paidAt)
     .map((i) => {
       // ย่อรายการให้เหลือแค่ชื่อสั้นๆ ไม่ซ้ำ — บิลที่มีหลายตัว/หลายรายการจะได้ไม่ยาวจนอ่านไม่ไหว
-      const names = Array.from(
-        new Set(i.items.map((it) => shortItemLabel(it.label)))
-      ).filter(Boolean);
-      const summary =
-        names.length > 2
-          ? `${names.slice(0, 2).join(", ")} และอีก ${names.length - 2} รายการ`
-          : names.join(", ");
+      const summary = summarizeInvoiceItems(i.items);
       return {
         id: i.id,
         customerId: i.customerId,
         amount: i.total,
-        description: summary ? `${i.catName} · ${summary}` : i.catName,
+        description: `${i.catName} · ${summary}`,
         date: i.paidAt!.slice(0, 10),
         at: i.paidAt!,
       };

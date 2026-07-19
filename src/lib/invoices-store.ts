@@ -19,6 +19,7 @@ import { calcPromoDiscount, recordAdminPromoClaim } from "./promos-store";
 import { addPoints } from "./points-store";
 import { getSupabase } from "./supabase/server";
 import { requireTenantId } from "./tenant-context";
+import { summarizeInvoiceItems } from "./invoice-item-label";
 
 export type InvoiceItem = {
   label: string;
@@ -532,7 +533,9 @@ export async function markInvoicePaid(
     );
   }
 
-  const serviceLabel = inv.items.map((i) => i.label).join(", ") || "บริการ";
+  // สรุปรายการแบบสั้นๆ ไม่ซ้ำ — ของเดิมต่อ label ดิบทุกรายการเข้าด้วยกัน (มีชื่อน้อง/พันธุ์/ไซส์/ตัวคูณ
+  // ห้อยท้ายทุกอัน) พอบิลมีหลายตัว/หลายรายการ ยอดในหน้ารายรับ-รายจ่ายเลยยาวจนอ่านไม่ไหว
+  const serviceSummary = summarizeInvoiceItems(inv.items);
 
   // บันทึกรายรับเฉพาะ "ยอดคงเหลือจริง" ที่เก็บรอบนี้ (มัดจำถูกบันทึกไปก่อนแล้ว)
   if (settleAmount > 0) {
@@ -540,8 +543,8 @@ export async function markInvoicePaid(
     await addFinanceEntry({
       type: "income",
       amount: settleAmount,
-      category: paymentMethod === "member_credit" ? "member" : serviceLabel,
-      description: `${inv.catName} · ${inv.customerName} — ${serviceLabel}${
+      category: paymentMethod === "member_credit" ? "member" : serviceSummary,
+      description: `${inv.catName} · ${inv.customerName} — ${serviceSummary}${
         isRemainder ? " (ยอดคงเหลือ)" : ""
       }`,
       date: inv.paidAt.slice(0, 10),

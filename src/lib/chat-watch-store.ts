@@ -1,4 +1,5 @@
 import { getSupabase } from "./supabase/server";
+import { requireTenantId } from "./tenant-context";
 
 const TEN_MIN_MS = 10 * 60 * 1000;
 
@@ -37,6 +38,7 @@ export async function shouldNotifyUnanswered(lineUserId: string): Promise<boolea
     .from("chat_watch")
     .select("*")
     .eq("line_user_id", lineUserId)
+    .eq("tenant_id", requireTenantId())
     .maybeSingle();
   const row = data as ChatWatchRow | null;
 
@@ -47,6 +49,7 @@ export async function shouldNotifyUnanswered(lineUserId: string): Promise<boolea
 
   await sb.from("chat_watch").upsert({
     line_user_id: lineUserId,
+    tenant_id: requireTenantId(),
     last_message_at: new Date(now).toISOString(),
     last_notified_at: shouldNotify ? new Date(now).toISOString() : row?.last_notified_at || null,
   });

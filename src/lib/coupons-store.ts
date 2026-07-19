@@ -1,4 +1,5 @@
 import { getSupabase } from "./supabase/server";
+import { requireTenantId } from "./tenant-context";
 
 export type Coupon = {
   id: string;
@@ -113,6 +114,7 @@ export async function issueCoupon(data: {
   if (sb) {
     const base: Record<string, unknown> = {
       id: coupon.id,
+      tenant_id: requireTenantId(),
       code: coupon.code,
       customer_id: coupon.customerId || null,
       amount: coupon.amount,
@@ -150,6 +152,7 @@ export async function listCustomerCoupons(customerId: string): Promise<Coupon[]>
       .from("coupons")
       .select("*")
       .eq("customer_id", customerId)
+      .eq("tenant_id", requireTenantId())
       .order("created_at", { ascending: false });
     list = ((data as CouponRow[] | null) || []).map(rowToCoupon);
   } else {
@@ -166,7 +169,12 @@ export async function activeCustomerCoupons(customerId: string): Promise<Coupon[
 export async function getCoupon(id: string): Promise<Coupon | undefined> {
   const sb = getSupabase();
   if (sb) {
-    const { data } = await sb.from("coupons").select("*").eq("id", id).maybeSingle();
+    const { data } = await sb
+      .from("coupons")
+      .select("*")
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId())
+      .maybeSingle();
     return data ? withComputedStatus(rowToCoupon(data as CouponRow)) : undefined;
   }
   const c = mem.find((x) => x.id === id);
@@ -184,7 +192,8 @@ export async function redeemCoupon(id: string, invoiceId?: string) {
     await sb
       .from("coupons")
       .update({ status: "used", used_at: now, used_invoice_id: invoiceId || null })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
   } else {
     const m = mem.find((x) => x.id === id);
     if (m) {
@@ -203,7 +212,8 @@ export async function unredeemCoupon(id: string) {
     await sb
       .from("coupons")
       .update({ status: "active", used_at: null, used_invoice_id: null })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
   } else {
     const m = mem.find((x) => x.id === id);
     if (m) {
@@ -218,7 +228,11 @@ export async function unredeemCoupon(id: string) {
 export async function cancelCoupon(id: string) {
   const sb = getSupabase();
   if (sb) {
-    await sb.from("coupons").update({ status: "cancelled" }).eq("id", id);
+    await sb
+      .from("coupons")
+      .update({ status: "cancelled" })
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
   } else {
     const m = mem.find((x) => x.id === id);
     if (m) m.status = "cancelled";
@@ -234,6 +248,7 @@ export async function listAllCoupons(): Promise<Coupon[]> {
     const { data } = await sb
       .from("coupons")
       .select("*")
+      .eq("tenant_id", requireTenantId())
       .order("created_at", { ascending: false });
     list = ((data as CouponRow[] | null) || []).map(rowToCoupon);
   } else {
@@ -263,6 +278,7 @@ export async function createOffer(data: {
   if (sb) {
     await sb.from("coupon_offers").insert({
       id: offer.id,
+      tenant_id: requireTenantId(),
       title: offer.title,
       amount: offer.amount,
       reason: offer.reason,
@@ -282,6 +298,7 @@ export async function listOffers(): Promise<CouponOffer[]> {
     const { data } = await sb
       .from("coupon_offers")
       .select("*")
+      .eq("tenant_id", requireTenantId())
       .order("created_at", { ascending: false });
     return ((data as OfferRow[] | null) || []).map(rowToOffer);
   }
@@ -291,7 +308,12 @@ export async function listOffers(): Promise<CouponOffer[]> {
 export async function getOffer(id: string): Promise<CouponOffer | undefined> {
   const sb = getSupabase();
   if (sb) {
-    const { data } = await sb.from("coupon_offers").select("*").eq("id", id).maybeSingle();
+    const { data } = await sb
+      .from("coupon_offers")
+      .select("*")
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId())
+      .maybeSingle();
     return data ? rowToOffer(data as OfferRow) : undefined;
   }
   return memOffers.find((o) => o.id === id);
@@ -300,7 +322,11 @@ export async function getOffer(id: string): Promise<CouponOffer | undefined> {
 export async function setOfferActive(id: string, active: boolean) {
   const sb = getSupabase();
   if (sb) {
-    await sb.from("coupon_offers").update({ active }).eq("id", id);
+    await sb
+      .from("coupon_offers")
+      .update({ active })
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
   } else {
     const o = memOffers.find((x) => x.id === id);
     if (o) o.active = active;

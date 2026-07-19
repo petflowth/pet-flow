@@ -1,4 +1,5 @@
 import { getSupabase } from "./supabase/server";
+import { requireTenantId } from "./tenant-context";
 
 export type FinanceRecord = {
   id: string;
@@ -44,7 +45,11 @@ export async function listFinance(from?: string, to?: string) {
   const sb = getSupabase();
   let list: FinanceRecord[];
   if (sb) {
-    let q = sb.from("finance_records").select("*").order("created_at", { ascending: false });
+    let q = sb
+      .from("finance_records")
+      .select("*")
+      .eq("tenant_id", requireTenantId())
+      .order("created_at", { ascending: false });
     if (from) q = q.gte("date", from);
     if (to) q = q.lte("date", to);
     const { data } = await q;
@@ -139,6 +144,7 @@ export async function addFinanceEntry(
   if (sb) {
     await sb.from("finance_records").insert({
       id: rec.id,
+      tenant_id: requireTenantId(),
       type: rec.type,
       amount: rec.amount,
       category: rec.category,
@@ -168,7 +174,12 @@ export async function updateFinanceEntry(
     if (patch.category !== undefined) row.category = patch.category;
     if (patch.description !== undefined) row.description = patch.description;
     if (patch.date !== undefined) row.date = patch.date;
-    if (Object.keys(row).length) await sb.from("finance_records").update(row).eq("id", id);
+    if (Object.keys(row).length)
+      await sb
+        .from("finance_records")
+        .update(row)
+        .eq("id", id)
+        .eq("tenant_id", requireTenantId());
     return { ok: true as const };
   }
   const r = mem.find((x) => x.id === id);
@@ -180,7 +191,11 @@ export async function updateFinanceEntry(
 export async function deleteFinanceEntry(id: string) {
   const sb = getSupabase();
   if (sb) {
-    await sb.from("finance_records").delete().eq("id", id);
+    await sb
+      .from("finance_records")
+      .delete()
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
     return { ok: true as const };
   }
   const idx = mem.findIndex((r) => r.id === id);
@@ -192,7 +207,11 @@ export async function deleteFinanceEntry(id: string) {
 export async function deleteFinanceByInvoice(invoiceId: string) {
   const sb = getSupabase();
   if (sb) {
-    await sb.from("finance_records").delete().eq("invoice_id", invoiceId);
+    await sb
+      .from("finance_records")
+      .delete()
+      .eq("invoice_id", invoiceId)
+      .eq("tenant_id", requireTenantId());
     return;
   }
   for (let i = mem.length - 1; i >= 0; i--) {
@@ -208,6 +227,7 @@ export async function deleteInvoicePaymentIncome(invoiceId: string) {
       .from("finance_records")
       .delete()
       .eq("invoice_id", invoiceId)
+      .eq("tenant_id", requireTenantId())
       .neq("category", "มัดจำ");
     return;
   }

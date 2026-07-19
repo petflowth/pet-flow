@@ -18,6 +18,7 @@ import {
 import { calcPromoDiscount, recordAdminPromoClaim } from "./promos-store";
 import { addPoints } from "./points-store";
 import { getSupabase } from "./supabase/server";
+import { requireTenantId } from "./tenant-context";
 
 export type InvoiceItem = {
   label: string;
@@ -108,6 +109,7 @@ function rowToInvoice(r: InvoiceRow): InvoiceRecord {
 function invoiceToRow(inv: InvoiceRecord) {
   return {
     id: inv.id,
+    tenant_id: requireTenantId(),
     customer_id: inv.customerId,
     line_user_id: inv.lineUserId || null,
     customer_name: inv.customerName,
@@ -133,7 +135,11 @@ export async function listInvoices(customerId?: string) {
   const sb = getSupabase();
   let list: InvoiceRecord[];
   if (sb) {
-    let q = sb.from("invoices").select("*").order("created_at", { ascending: false });
+    let q = sb
+      .from("invoices")
+      .select("*")
+      .eq("tenant_id", requireTenantId())
+      .order("created_at", { ascending: false });
     if (customerId) q = q.eq("customer_id", customerId);
     const { data } = await q;
     list = ((data as InvoiceRow[] | null) || []).map(rowToInvoice);
@@ -152,6 +158,7 @@ export async function listTrashedInvoices() {
     const { data } = await sb
       .from("invoices")
       .select("*")
+      .eq("tenant_id", requireTenantId())
       .order("created_at", { ascending: false });
     list = ((data as InvoiceRow[] | null) || []).map(rowToInvoice);
   } else {
@@ -163,7 +170,12 @@ export async function listTrashedInvoices() {
 export async function getInvoice(id: string) {
   const sb = getSupabase();
   if (sb) {
-    const { data } = await sb.from("invoices").select("*").eq("id", id).maybeSingle();
+    const { data } = await sb
+      .from("invoices")
+      .select("*")
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId())
+      .maybeSingle();
     return data ? rowToInvoice(data as InvoiceRow) : undefined;
   }
   return mem.find((i) => i.id === id);
@@ -315,7 +327,11 @@ export async function receiveInvoiceDeposit(id: string) {
   const sb = getSupabase();
   if (sb) {
     try {
-      await sb.from("invoices").update({ deposit_received_at: receivedAt }).eq("id", id);
+      await sb
+        .from("invoices")
+        .update({ deposit_received_at: receivedAt })
+        .eq("id", id)
+        .eq("tenant_id", requireTenantId());
     } catch {
       /* ยังไม่ได้รัน migration — ข้าม */
     }
@@ -368,7 +384,11 @@ export async function updateInvoice(
 
   const sb = getSupabase();
   if (sb) {
-    await sb.from("invoices").update(invoiceToRow(inv)).eq("id", id);
+    await sb
+      .from("invoices")
+      .update(invoiceToRow(inv))
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
   }
   return { ok: true as const, invoice: inv };
 }
@@ -386,11 +406,16 @@ export async function deleteInvoice(id: string) {
       const { error } = await sb
         .from("invoices")
         .update({ deleted_at: now })
-        .eq("id", id);
+        .eq("id", id)
+        .eq("tenant_id", requireTenantId());
       if (error) throw new Error(error.message);
     } catch {
       // ยังไม่ได้รัน migration deleted_at → ลบจริงไปเลย (กู้ไม่ได้)
-      await sb.from("invoices").delete().eq("id", id);
+      await sb
+        .from("invoices")
+        .delete()
+        .eq("id", id)
+        .eq("tenant_id", requireTenantId());
     }
   } else {
     const i = mem.findIndex((x) => x.id === id);
@@ -403,7 +428,11 @@ export async function deleteInvoice(id: string) {
 export async function restoreInvoice(id: string) {
   const sb = getSupabase();
   if (sb) {
-    await sb.from("invoices").update({ deleted_at: null }).eq("id", id);
+    await sb
+      .from("invoices")
+      .update({ deleted_at: null })
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
   } else {
     const i = mem.findIndex((x) => x.id === id);
     if (i >= 0) mem[i].deletedAt = undefined;
@@ -418,7 +447,11 @@ export async function markInvoiceSent(id: string) {
 
   const sb = getSupabase();
   if (sb) {
-    await sb.from("invoices").update({ sent_at: inv.sentAt }).eq("id", id);
+    await sb
+      .from("invoices")
+      .update({ sent_at: inv.sentAt })
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
   }
   return inv;
 }
@@ -461,6 +494,7 @@ export async function markInvoicePaid(
         points_earned: inv.pointsEarned,
       })
       .eq("id", id)
+      .eq("tenant_id", requireTenantId())
       .neq("status", "paid")
       .select("id");
     if (!claimed || claimed.length === 0) {
@@ -565,7 +599,8 @@ export async function revertInvoicePaid(id: string) {
     await sb
       .from("invoices")
       .update({ status: "pending", payment_method: null, paid_at: null, points_earned: null })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
   }
 
   await recalculateCustomerTier(inv.customerId);

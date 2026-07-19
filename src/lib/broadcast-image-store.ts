@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { getSupabase } from "./supabase/server";
+import { requireTenantId } from "./tenant-context";
 
 export type BroadcastImage = {
   buffer: Buffer;
@@ -34,6 +35,7 @@ export async function storeBroadcastImage(dataUrl: string): Promise<string> {
   if (sb) {
     const { error } = await sb.from("broadcast_images").insert({
       id,
+      tenant_id: requireTenantId(),
       data: base64,
       content_type: contentType,
     });
@@ -57,6 +59,7 @@ export async function getBroadcastImage(
     .from("broadcast_images")
     .select("id, data, content_type")
     .eq("id", id)
+    .eq("tenant_id", requireTenantId())
     .maybeSingle<BroadcastImageRow>();
 
   if (error || !data) return null;

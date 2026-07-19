@@ -2,6 +2,7 @@ import type { Booking, BookingStatus } from "./business";
 import { getSupabase } from "./supabase/server";
 import { uploadDataUrlToStorage } from "./supabase/storage";
 import { seedEnabled } from "./demo-seed";
+import { requireTenantId } from "./tenant-context";
 
 export type StoredBooking = Booking & {
   lineUserId?: string;
@@ -93,6 +94,7 @@ function rowToStored(r: BookingRow): StoredBooking {
 function storedToRow(b: Partial<StoredBooking>) {
   return {
     id: b.id,
+    tenant_id: requireTenantId(),
     customer_name: b.customerName,
     cat_name: b.catName,
     service: b.service,
@@ -113,7 +115,11 @@ function storedToRow(b: Partial<StoredBooking>) {
 export async function listBookings(lineUserId?: string) {
   const sb = getSupabase();
   if (sb) {
-    let q = sb.from("bookings").select("*").order("created_at", { ascending: false });
+    let q = sb
+      .from("bookings")
+      .select("*")
+      .eq("tenant_id", requireTenantId())
+      .order("created_at", { ascending: false });
     if (lineUserId) q = q.eq("line_user_id", lineUserId);
     const { data } = await q;
     return (data as BookingRow[] | null)?.map(rowToStored) || [];
@@ -125,7 +131,12 @@ export async function listBookings(lineUserId?: string) {
 export async function getBooking(id: string) {
   const sb = getSupabase();
   if (sb) {
-    const { data } = await sb.from("bookings").select("*").eq("id", id).maybeSingle();
+    const { data } = await sb
+      .from("bookings")
+      .select("*")
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId())
+      .maybeSingle();
     return data ? rowToStored(data as BookingRow) : undefined;
   }
   return mem.find((b) => b.id === id);
@@ -150,7 +161,11 @@ export async function setBookingTime(
   const sb = getSupabase();
   if (sb) {
     try {
-      const { error } = await sb.from("bookings").update({ [col]: time }).eq("id", id);
+      const { error } = await sb
+        .from("bookings")
+        .update({ [col]: time })
+        .eq("id", id)
+        .eq("tenant_id", requireTenantId());
       if (error) return { ok: false as const, error: "need_sql", booking: b };
     } catch {
       return { ok: false as const, error: "need_sql", booking: b };
@@ -184,7 +199,8 @@ export async function setBookingGroomInfo(
       const { error } = await sb
         .from("bookings")
         .update({ groom_health_info: infoJson })
-        .eq("id", id);
+        .eq("id", id)
+        .eq("tenant_id", requireTenantId());
       if (error) return { ok: false as const, error: "need_sql", booking: b };
     } catch {
       return { ok: false as const, error: "need_sql", booking: b };
@@ -228,7 +244,8 @@ export async function acceptBookingConsent(
           care_note: note || null,
           consent_signature: sig || null,
         })
-        .eq("id", id);
+        .eq("id", id)
+        .eq("tenant_id", requireTenantId());
       if (error) {
         return { ok: false as const, error: "need_sql", message: error.message };
       }
@@ -315,7 +332,8 @@ export async function updateBooking(
         checkin_time: merged.checkinTime || null,
         calendar_event_id: merged.calendarEventId || null,
       })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
     return getBooking(id);
   }
 

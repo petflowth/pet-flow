@@ -1,4 +1,5 @@
 import { getSupabase } from "./supabase/server";
+import { requireTenantId } from "./tenant-context";
 
 /**
  * บัญชีพนักงาน — เจ้าของสร้างให้ พร้อมเลือกเมนูที่พนักงานคนนั้นมองเห็นได้
@@ -45,6 +46,7 @@ export async function listStaff(): Promise<StaffUser[]> {
       const { data, error } = await sb
         .from("staff_users")
         .select("*")
+        .eq("tenant_id", requireTenantId())
         .order("created_at", { ascending: true });
       if (error) return [];
       return ((data as StaffRow[] | null) || []).map(rowToStaff);
@@ -84,6 +86,7 @@ export async function addStaff(data: {
     try {
       const { error } = await sb.from("staff_users").insert({
         id: staff.id,
+        tenant_id: requireTenantId(),
         name: staff.name,
         code: staff.code,
         menus: staff.menus,
@@ -112,7 +115,11 @@ export async function updateStaff(
       if (patch.code !== undefined) row.code = patch.code.trim();
       if (patch.menus !== undefined) row.menus = patch.menus;
       if (patch.active !== undefined) row.active = patch.active;
-      const { error } = await sb.from("staff_users").update(row).eq("id", id);
+      const { error } = await sb
+        .from("staff_users")
+        .update(row)
+        .eq("id", id)
+        .eq("tenant_id", requireTenantId());
       if (error) return { ok: false as const, error: "need_sql" };
     } catch {
       return { ok: false as const, error: "need_sql" };
@@ -129,7 +136,11 @@ export async function deleteStaff(id: string) {
   const sb = getSupabase();
   if (sb) {
     try {
-      await sb.from("staff_users").delete().eq("id", id);
+      await sb
+        .from("staff_users")
+        .delete()
+        .eq("id", id)
+        .eq("tenant_id", requireTenantId());
     } catch {
       /* ตารางยังไม่มี — ไม่มีอะไรให้ลบ */
     }

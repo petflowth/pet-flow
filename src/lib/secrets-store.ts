@@ -1,4 +1,5 @@
 import { getSupabase } from "./supabase/server";
+import { requireTenantId } from "./tenant-context";
 
 export type GoogleSecrets = {
   serviceAccountEmail: string;
@@ -27,14 +28,19 @@ type SecretsPayload = {
   line?: LineSecrets;
 };
 
-const SECRETS_ID = "secrets";
+/** แถวเดียวต่อร้าน — id เดิมตายตัวเป็น "secrets" ทำให้ทุกร้านใช้ credential ก้อนเดียวกัน */
+function secretsId() {
+  return `secrets:${requireTenantId()}`;
+}
+
 let memSecrets: SecretsPayload = {};
 
 async function persistSecrets(next: SecretsPayload) {
   const sb = getSupabase();
   if (sb) {
     await sb.from("site_config").upsert({
-      id: SECRETS_ID,
+      id: secretsId(),
+      tenant_id: requireTenantId(),
       data: next,
       updated_at: new Date().toISOString(),
     });
@@ -49,7 +55,7 @@ export async function getSecrets(): Promise<SecretsPayload> {
     const { data } = await sb
       .from("site_config")
       .select("data")
-      .eq("id", SECRETS_ID)
+      .eq("id", secretsId())
       .maybeSingle();
     if (data?.data) return data.data as SecretsPayload;
   }

@@ -7,6 +7,7 @@ import {
 import { addPoints } from "./points-store";
 import { getSupabase } from "./supabase/server";
 import { seedEnabled } from "./demo-seed";
+import { requireTenantId } from "./tenant-context";
 
 export type PromoKind = "display" | "customer";
 export type PromoRestriction = "none" | "first_visit" | "calendar_month";
@@ -172,6 +173,7 @@ function rowToPromo(r: PromoRow): PromoRecord {
 function promoToRow(p: PromoRecord) {
   return {
     id: p.id,
+    tenant_id: requireTenantId(),
     title_th: p.title.th,
     title_en: p.title.en,
     body_th: p.body.th,
@@ -210,6 +212,7 @@ function rowToClaim(r: PromoClaimRow): PromoClaimRecord {
 function claimToRow(c: PromoClaimRecord) {
   return {
     id: c.id,
+    tenant_id: requireTenantId(),
     promo_id: c.promoId,
     customer_id: c.customerId,
     line_user_id: c.lineUserId ?? null,
@@ -357,7 +360,11 @@ export async function getBestPromoForCustomer(
 export async function listPromoClaims(promoId?: string) {
   const sb = getSupabase();
   if (sb) {
-    let q = sb.from("promo_claims").select("*").order("created_at", { ascending: false });
+    let q = sb
+      .from("promo_claims")
+      .select("*")
+      .eq("tenant_id", requireTenantId())
+      .order("created_at", { ascending: false });
     if (promoId) q = q.eq("promo_id", promoId);
     const { data } = await q;
     return ((data as PromoClaimRow[] | null) || []).map(rowToClaim);
@@ -374,6 +381,7 @@ async function getClaimForCustomer(promoId: string, customerId: string) {
       .select("*")
       .eq("promo_id", promoId)
       .eq("customer_id", customerId)
+      .eq("tenant_id", requireTenantId())
       .maybeSingle();
     return data ? rowToClaim(data as PromoClaimRow) : undefined;
   }
@@ -383,7 +391,11 @@ async function getClaimForCustomer(promoId: string, customerId: string) {
 export async function listPromos() {
   const sb = getSupabase();
   if (sb) {
-    const { data } = await sb.from("promos").select("*").order("until", { ascending: false });
+    const { data } = await sb
+      .from("promos")
+      .select("*")
+      .eq("tenant_id", requireTenantId())
+      .order("until", { ascending: false });
     return ((data as PromoRow[] | null) || []).map(rowToPromo);
   }
   return [...mem].sort((a, b) => b.until.localeCompare(a.until));
@@ -541,7 +553,12 @@ export async function claimCustomerPromo(
 export async function getPromo(id: string) {
   const sb = getSupabase();
   if (sb) {
-    const { data } = await sb.from("promos").select("*").eq("id", id).maybeSingle();
+    const { data } = await sb
+      .from("promos")
+      .select("*")
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId())
+      .maybeSingle();
     return data ? rowToPromo(data as PromoRow) : undefined;
   }
   return mem.find((p) => p.id === id);
@@ -574,7 +591,11 @@ export async function updatePromo(id: string, patch: Partial<Omit<PromoRecord, "
 
   const sb = getSupabase();
   if (sb) {
-    await sb.from("promos").update(promoToRow(updated)).eq("id", id);
+    await sb
+      .from("promos")
+      .update(promoToRow(updated))
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
     return updated;
   }
 
@@ -587,7 +608,11 @@ export async function updatePromo(id: string, patch: Partial<Omit<PromoRecord, "
 export async function deletePromo(id: string) {
   const sb = getSupabase();
   if (sb) {
-    await sb.from("promos").delete().eq("id", id);
+    await sb
+      .from("promos")
+      .delete()
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
     return true;
   }
   const i = mem.findIndex((x) => x.id === id);

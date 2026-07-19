@@ -1,5 +1,6 @@
 import { getSupabase } from "./supabase/server";
 import { addFinanceEntry } from "./finance-store";
+import { requireTenantId } from "./tenant-context";
 
 export type CustomerPackage = {
   id: string;
@@ -61,6 +62,7 @@ export async function sellPackage(data: {
   if (sb) {
     await sb.from("customer_packages").insert({
       id: pkg.id,
+      tenant_id: requireTenantId(),
       customer_id: pkg.customerId,
       name: pkg.name,
       total_uses: pkg.totalUses,
@@ -93,6 +95,7 @@ export async function listCustomerPackages(customerId: string): Promise<Customer
       .from("customer_packages")
       .select("*")
       .eq("customer_id", customerId)
+      .eq("tenant_id", requireTenantId())
       .order("created_at", { ascending: false });
     return ((data as PackageRow[] | null) || []).map(rowToPackage);
   }
@@ -109,7 +112,12 @@ export async function activeCustomerPackages(customerId: string) {
 export async function getPackage(id: string): Promise<CustomerPackage | undefined> {
   const sb = getSupabase();
   if (sb) {
-    const { data } = await sb.from("customer_packages").select("*").eq("id", id).maybeSingle();
+    const { data } = await sb
+      .from("customer_packages")
+      .select("*")
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId())
+      .maybeSingle();
     return data ? rowToPackage(data as PackageRow) : undefined;
   }
   return mem.find((p) => p.id === id);
@@ -126,7 +134,11 @@ export async function consumePackage(id: string) {
   const status = used >= p.totalUses ? "done" : "active";
   const sb = getSupabase();
   if (sb) {
-    await sb.from("customer_packages").update({ used_uses: used, status }).eq("id", id);
+    await sb
+      .from("customer_packages")
+      .update({ used_uses: used, status })
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
   } else {
     const m = mem.find((x) => x.id === id);
     if (m) {
@@ -144,7 +156,11 @@ export async function refundPackageUse(id: string) {
   const used = p.usedUses - 1;
   const sb = getSupabase();
   if (sb) {
-    await sb.from("customer_packages").update({ used_uses: used, status: "active" }).eq("id", id);
+    await sb
+      .from("customer_packages")
+      .update({ used_uses: used, status: "active" })
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
   } else {
     const m = mem.find((x) => x.id === id);
     if (m) {
@@ -157,7 +173,11 @@ export async function refundPackageUse(id: string) {
 export async function cancelPackage(id: string) {
   const sb = getSupabase();
   if (sb) {
-    await sb.from("customer_packages").update({ status: "cancelled" }).eq("id", id);
+    await sb
+      .from("customer_packages")
+      .update({ status: "cancelled" })
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
   } else {
     const m = mem.find((p) => p.id === id);
     if (m) m.status = "cancelled";

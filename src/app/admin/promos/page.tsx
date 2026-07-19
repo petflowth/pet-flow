@@ -18,7 +18,7 @@ import {
   BROADCAST_ACTIONS,
   BROADCAST_TEMPLATES,
   type BroadcastActionId,
-} from "@/lib/line-broadcast";
+} from "@/lib/broadcast-constants";
 
 type Promo = {
   id: string;

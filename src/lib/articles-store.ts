@@ -1,6 +1,7 @@
 import { getSupabase } from "./supabase/server";
 import { uploadDataUrlToStorage } from "./supabase/storage";
 import type { BlogBlock } from "./blog-posts";
+import { requireTenantId } from "./tenant-context";
 
 /**
  * บทความที่ร้านเขียนเองจากหลังบ้าน — โชว์รวมกับบทความ SEO เดิมในหน้า /blog
@@ -60,6 +61,7 @@ export async function listArticles(includeDrafts = false): Promise<ArticleRecord
       const { data, error } = await sb
         .from("articles")
         .select("*")
+        .eq("tenant_id", requireTenantId())
         .order("date_published", { ascending: false });
       if (error) return [];
       list = ((data as ArticleRow[] | null) || []).map(rowToArticle);
@@ -131,6 +133,7 @@ export async function saveArticle(data: {
     try {
       const { error } = await sb.from("articles").upsert({
         id: article.id,
+        tenant_id: requireTenantId(),
         slug: article.slug,
         title: article.title,
         description: article.description,
@@ -157,7 +160,11 @@ export async function deleteArticle(id: string) {
   const sb = getSupabase();
   if (sb) {
     try {
-      await sb.from("articles").delete().eq("id", id);
+      await sb
+        .from("articles")
+        .delete()
+        .eq("id", id)
+        .eq("tenant_id", requireTenantId());
     } catch {
       /* ตารางยังไม่มี */
     }

@@ -1,8 +1,16 @@
 import { getDefaultSiteConfig } from "./defaults/site-config";
 import type { SiteConfig } from "./config-types";
 import { getSupabase } from "./supabase/server";
+import { requireTenantId } from "./tenant-context";
 
-const CONFIG_ID = "main";
+/**
+ * แถวเดียวต่อร้าน — id เดิมเคยตายตัวเป็น "main" (ร้านเดียว) ตอนนี้ต้องผูกกับ
+ * tenant_id แทน ไม่งั้นทุกร้านจะเขียนทับ config ของกันและกัน
+ */
+function configId() {
+  return requireTenantId();
+}
+
 let memConfig: SiteConfig | null = null;
 
 function mergeConfig(base: SiteConfig, patch: Partial<SiteConfig>): SiteConfig {
@@ -37,7 +45,7 @@ export async function getSiteConfig(): Promise<SiteConfig> {
     const { data } = await sb
       .from("site_config")
       .select("data, updated_at")
-      .eq("id", CONFIG_ID)
+      .eq("id", configId())
       .maybeSingle();
 
     if (data?.data) {
@@ -61,7 +69,8 @@ export async function replaceSiteConfig(config: SiteConfig) {
   const sb = getSupabase();
   if (sb) {
     await sb.from("site_config").upsert({
-      id: CONFIG_ID,
+      id: configId(),
+      tenant_id: requireTenantId(),
       data: next,
       updated_at: next.updatedAt,
     });
@@ -80,7 +89,8 @@ export async function updateSiteConfig(patch: Partial<SiteConfig>) {
   const sb = getSupabase();
   if (sb) {
     await sb.from("site_config").upsert({
-      id: CONFIG_ID,
+      id: configId(),
+      tenant_id: requireTenantId(),
       data: next,
       updated_at: next.updatedAt,
     });

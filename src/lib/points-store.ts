@@ -1,5 +1,6 @@
 import { getSiteConfig } from "./config-store";
 import { getSupabase } from "./supabase/server";
+import { requireTenantId } from "./tenant-context";
 
 export type PointsHistoryEntry = {
   id: string;
@@ -59,6 +60,7 @@ async function loadHistory(lineUserId: string) {
     .from("points_history")
     .select("*")
     .eq("line_user_id", lineUserId)
+    .eq("tenant_id", requireTenantId())
     .order("created_at", { ascending: false });
   return ((data as HistoryRow[] | null) || []).map(rowToHistory);
 }
@@ -73,7 +75,10 @@ export async function getAllPointsMap(): Promise<Record<string, number>> {
     });
     return map;
   }
-  const { data } = await sb.from("points_accounts").select("line_user_id, points");
+  const { data } = await sb
+    .from("points_accounts")
+    .select("line_user_id, points")
+    .eq("tenant_id", requireTenantId());
   const map: Record<string, number> = {};
   for (const row of (data as { line_user_id: string; points: number }[] | null) || []) {
     map[row.line_user_id] = row.points;
@@ -91,12 +96,14 @@ export async function getAccount(
       .from("points_accounts")
       .select("*")
       .eq("line_user_id", lineUserId)
+      .eq("tenant_id", requireTenantId())
       .maybeSingle();
 
     if (!acc) {
       const points = lineUserId === "dev-user" ? 42 : 0;
       await sb.from("points_accounts").insert({
         line_user_id: lineUserId,
+        tenant_id: requireTenantId(),
         display_name: displayName || lineUserId,
         points,
       });
@@ -112,7 +119,8 @@ export async function getAccount(
       await sb
         .from("points_accounts")
         .update({ display_name: displayName })
-        .eq("line_user_id", lineUserId);
+        .eq("line_user_id", lineUserId)
+        .eq("tenant_id", requireTenantId());
     }
 
     const history = await loadHistory(lineUserId);
@@ -164,9 +172,11 @@ export async function redeemReward(
     await sb
       .from("points_accounts")
       .update({ points: newPoints, display_name: acc.displayName })
-      .eq("line_user_id", lineUserId);
+      .eq("line_user_id", lineUserId)
+      .eq("tenant_id", requireTenantId());
     await sb.from("points_history").insert({
       id: entry.id,
+      tenant_id: requireTenantId(),
       line_user_id: lineUserId,
       type: entry.type,
       points: entry.points,
@@ -215,9 +225,11 @@ export async function addPoints(
     await sb
       .from("points_accounts")
       .update({ points: newPoints })
-      .eq("line_user_id", lineUserId);
+      .eq("line_user_id", lineUserId)
+      .eq("tenant_id", requireTenantId());
     await sb.from("points_history").insert({
       id: entry.id,
+      tenant_id: requireTenantId(),
       line_user_id: lineUserId,
       type: entry.type,
       points: entry.points,

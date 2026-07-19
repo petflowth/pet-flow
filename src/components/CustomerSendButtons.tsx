@@ -183,10 +183,17 @@ export function CustomerSendButtons({
   // 📦 ชุดการ์ด — เลือกหลายใบ ส่งใน push เดียว (LINE นับ 1 ข้อความ)
   const [bundleOpen, setBundleOpen] = useState(false);
   const [bundleParts, setBundleParts] = useState<string[]>([]);
+  // LINE ส่งได้สูงสุด 5 การ์ดต่อ 1 ข้อความ — กันเลือกเกินแล้วโดนตัดทิ้งเงียบๆ
+  const BUNDLE_MAX = 5;
   const toggleBundlePart = (p: string) =>
-    setBundleParts((prev) =>
-      prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]
-    );
+    setBundleParts((prev) => {
+      if (prev.includes(p)) return prev.filter((x) => x !== p);
+      if (prev.length >= BUNDLE_MAX) {
+        toast(`เลือกได้สูงสุด ${BUNDLE_MAX} การ์ดต่อ 1 ข้อความ`, "error");
+        return prev;
+      }
+      return [...prev, p];
+    });
 
   const sendBundle = async () => {
     if (!bookingId || bundleParts.length === 0) return;
@@ -230,8 +237,12 @@ export function CustomerSendButtons({
     }
   };
 
+  const hasRemaining = depForBill > 0;
+
+  // ครบทุกหัวข้อเท่ากับปุ่มเดี่ยวด้านบน — เลือกผสมได้อิสระ ส่งใน 1 ข้อความ
   const BUNDLE_OPTIONS: { key: string; label: string; when: boolean }[] = [
     { key: "reminder", label: "📨 แจ้งเตือนนัด", when: !!bookingId },
+    { key: "prestay", label: "🏠 แจ้งเข้าพัก + เงื่อนไข", when: service === "room" },
     { key: "consent", label: "📋 เงื่อนไข + ลายเซ็น", when: service === "room" },
     {
       // เข้าพักก็ขอประวัติได้ — เคสพักพร้อมอาบน้ำ หรือมาเพิ่มอาบน้ำระหว่างเข้าพัก
@@ -242,7 +253,13 @@ export function CustomerSendButtons({
     { key: "checkin", label: "🧳 เลือกเวลาเช็คอิน", when: service === "room" },
     { key: "checkout", label: "🧳 เลือกเวลาเช็คเอาท์", when: service === "room" },
     { key: "deposit", label: "💰 เรียกเก็บมัดจำ", when: true },
-    { key: "payment", label: "💳 แจ้งยอดชำระ/คงเหลือ", when: !!invId },
+    { key: "summary", label: "🧾 สรุปการจอง", when: !!invId },
+    {
+      key: "payment",
+      label: hasRemaining ? "💳 เก็บส่วนที่เหลือ" : "💳 แจ้งเก็บเงิน",
+      when: !!invId,
+    },
+    { key: "review", label: "⭐ ขอรีวิว", when: !!invId },
   ];
 
   const Btn = ({ k, label, onClick }: { k: string; label: string; onClick: () => void }) => (
@@ -255,8 +272,6 @@ export function CustomerSendButtons({
       {busy === k ? "กำลังส่ง…" : label}
     </button>
   );
-
-  const hasRemaining = depForBill > 0;
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -364,7 +379,8 @@ export function CustomerSendButtons({
       {bundleOpen && bookingId && (
         <div className="w-full rounded-catcha-sm border border-latte/50 bg-card p-2.5">
           <p className="mb-1.5 text-[10px] font-bold text-brown-soft">
-            เลือกการ์ดที่จะส่งพร้อมกัน (สูงสุด 5 ใบ = นับเป็น 1 ข้อความ LINE):
+            เลือกการ์ดที่จะส่งพร้อมกัน ({bundleParts.length}/{BUNDLE_MAX}) —
+            ทั้งหมดรวมเป็น <b>1 ข้อความ LINE</b> ตัดโควตาแค่ครั้งเดียว:
           </p>
           <div className="flex flex-wrap gap-1.5">
             {BUNDLE_OPTIONS.filter((o) => o.when).map((o) => (

@@ -25,6 +25,8 @@ import {
   buildGroomInfoFlex,
   buildDepositRequestFlex,
   buildBillSummaryFlex,
+  buildReviewRequestFlex,
+  reviewMessageFor,
 } from "@/lib/line";
 import { buildBookingConfirmFlex } from "@/lib/booking-line-card";
 import {
@@ -326,7 +328,8 @@ export async function PATCH(req: NextRequest) {
   }
 
   // ── 📦 ส่งชุดการ์ดที่เลือกเอง — หลายการ์ดใน push เดียว (LINE นับเป็น 1 ข้อความ) ──
-  // parts: reminder | consent | groomInfo | checkin | checkout | deposit(+amount) | payment
+  // parts: reminder | prestay | consent | groomInfo | checkin | checkout
+  //        | deposit(+depositAmount) | summary | payment | review
   if (action === "send_bundle") {
     const to = await resolveRecipient(b, lineUserId);
     if (!to) {
@@ -374,6 +377,61 @@ export async function PATCH(req: NextRequest) {
               url,
             })
           );
+        }
+      } else if (part === "prestay") {
+        const url = await getConsentUrl(b.id);
+        messages.push(
+          buildPrestayFlex({
+            ...buildPrestayFlexData(b, cfg),
+            consentUrl: url || undefined,
+          })
+        );
+      } else if (part === "summary" || part === "review") {
+        const all = await listInvoices();
+        const inv =
+          all.find((i) => i.bookingId === b.id && i.status !== "paid") ||
+          all.find((i) => i.bookingId === b.id);
+        if (inv && part === "summary") {
+          const payment = await getPaymentConfig();
+          messages.push(
+            buildBillSummaryFlex({
+              mode: "booking",
+              title: cfg.billing.summaryBookingTitle,
+              closing: "",
+              customerName: inv.customerName,
+              catName: inv.catName,
+              scheduleText: bookingScheduleText(b),
+              items: inv.items,
+              subtotal: inv.subtotal,
+              discount: inv.discount,
+              total: inv.total,
+              deposit: inv.deposit || 0,
+              remaining: Math.max(0, inv.total - (inv.deposit || 0)),
+              bankName: payment.bankName,
+              accountNumber: payment.accountNumber,
+              accountName: payment.accountName,
+            }, cfg.cards?.billSummary)
+          );
+        }
+        if (inv && part === "review") {
+          const reviewUrl = cfg.business.reviewUrl || cfg.business.maps;
+          if (reviewUrl) {
+            const hasGroom = (inv.items || []).some(
+              (it) =>
+                it.kind === "grooming" ||
+                /อาบน้ำ|กรูม|premium|malaseb/i.test(it.label)
+            );
+            const hasRoom = (inv.items || []).some((it) => /คืน|ห้อง/.test(it.label));
+            const msg = reviewMessageFor(hasGroom, hasRoom);
+            messages.push(
+              buildReviewRequestFlex({
+                title: msg.title,
+                body: msg.body,
+                reviewUrl,
+                reviewLabel: cfg.business.reviewButtonText,
+              }, cfg.cards?.review)
+            );
+          }
         }
       } else if (part === "groomInfo") {
         const url = await getGroomInfoUrl(b.id);

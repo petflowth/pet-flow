@@ -85,7 +85,7 @@ export const ROOMS: RoomType[] = [
       th: "ทรายแมวฟรีพัก 3 คืนขึ้นไป · CCTV +100 (พัก 5 คืน+ ฟรี) · น้ำพุ +80/ครั้ง",
       en: "Free litter 3+ nights · CCTV +100 (free 5+ nights) · fountain +80",
     },
-    image: "",
+    image: "/catalog/rooms/cat-hotel-bangna-mini-meow.jpg",
     amenities: { th: [...BASE_AMENITIES.th], en: [...BASE_AMENITIES.en] },
   },
   {
@@ -101,7 +101,7 @@ export const ROOMS: RoomType[] = [
       th: "ทรายแมวฟรีพัก 3 คืนขึ้นไป · CCTV +100 (พัก 5 คืน+ ฟรี) · น้ำพุ +80/ครั้ง",
       en: "Free litter 3+ nights · CCTV +100 (free 5+ nights) · fountain +80",
     },
-    image: "",
+    image: "/catalog/rooms/cat-hotel-bangna-mid-cozy.jpg",
     amenities: { th: [...BASE_AMENITIES.th], en: [...BASE_AMENITIES.en] },
   },
   {
@@ -118,7 +118,7 @@ export const ROOMS: RoomType[] = [
       th: "ฟรี CCTV 24 ชม. · ฟรีน้ำพุไร้สาย · ฟรีทรายแมวตลอดการเข้าพัก",
       en: "Free 24h CCTV · free fountain · free litter",
     },
-    image: "",
+    image: "/catalog/rooms/cat-hotel-bangna-catflix.jpg",
     amenities: {
       th: [
         ...BASE_AMENITIES.th,
@@ -148,7 +148,7 @@ export const ROOMS: RoomType[] = [
       th: "ฟรี CCTV 24 ชม. · ฟรีน้ำพุไร้สาย · ฟรีทรายแมวตลอดการเข้าพัก",
       en: "Free 24h CCTV · free fountain · free litter",
     },
-    image: "",
+    image: "/catalog/rooms/cat-hotel-bangna-mini-duo.jpg",
     amenities: {
       th: [
         ...BASE_AMENITIES.th,
@@ -180,7 +180,7 @@ export const ROOMS: RoomType[] = [
       th: "ฟรี CCTV 24 ชม. · ฟรีน้ำพุไร้สาย · ฟรีทรายแมวตลอดการเข้าพัก",
       en: "Free 24h CCTV · free fountain · free litter",
     },
-    image: "",
+    image: "/catalog/rooms/cat-hotel-bangna-cozy-duo.jpg",
     amenities: {
       th: [
         ...BASE_AMENITIES.th,
@@ -212,7 +212,7 @@ export const ROOMS: RoomType[] = [
       th: "ฟรี CCTV 24 ชม. · ฟรีน้ำพุไร้สาย · ฟรีทรายแมวตลอดการเข้าพัก",
       en: "Free 24h CCTV · free fountain · free litter",
     },
-    image: "",
+    image: "/catalog/rooms/cat-hotel-bangna-cat-tower.jpg",
     amenities: {
       th: [
         ...BASE_AMENITIES.th,

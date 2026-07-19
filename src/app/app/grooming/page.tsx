@@ -15,20 +15,16 @@ export default function GroomingPage() {
     advance?: { poster?: string };
   };
 
-  const posters = [menus.bath?.poster, menus.advance?.poster].filter(
-    (src): src is string => Boolean(src)
-  );
+  const posters = [
+    menus.bath?.poster || "/catalog/grooming/bath-menu.jpg",
+    menus.advance?.poster || "/catalog/grooming/advance-menu.jpg",
+  ].filter(Boolean);
 
   return (
     <div className="px-4 pb-6 pt-5">
       <PageHeader title={`🛁 ${m.title}`} />
 
       <div className="space-y-4">
-        {posters.length === 0 && (
-          <div className="flex aspect-[4/3] items-center justify-center rounded-petflow border border-dashed border-petflow-line bg-card text-sm text-brown-soft">
-            🐾 ร้านยังไม่ได้อัปโหลดเมนู — ตั้งค่าได้ที่หลังบ้าน
-          </div>
-        )}
         {posters.map((src) => (
           <div
             key={src}

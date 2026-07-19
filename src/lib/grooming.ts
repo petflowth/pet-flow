@@ -21,7 +21,7 @@ export const GROOM_MENUS = {
       th: "แชมพู Landin'Elite เกรดพรีเมียม",
       en: "Landin'Elite premium shampoo",
     },
-    poster: "",
+    poster: "/catalog/grooming/bath-menu.jpg",
     programs: [
       {
         id: "dry",
@@ -66,7 +66,7 @@ export const GROOM_MENUS = {
       th: "Landin'Elite · PetFlow Premium หรือ Malaseb",
       en: "Landin'Elite · PetFlow Premium or Malaseb",
     },
-    poster: "",
+    poster: "/catalog/grooming/advance-menu.jpg",
     variants: [
       {
         id: "premium",

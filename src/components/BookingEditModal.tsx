@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Booking } from "@/lib/business";
-import { AUTO_MESSAGE_TOPICS } from "@/lib/auto-messages";
+import { relevantAutoMessageTopics } from "@/lib/auto-messages";
 
 export type EditableBooking = Booking & {
   lineUserId?: string;
@@ -203,7 +203,7 @@ export function BookingEditModal({
               ติ๊กหัวข้อที่ไม่อยากให้ระบบส่งหาลูกค้ารายนี้ · ไม่กระทบนัดอื่น
             </p>
             <div className="space-y-1.5">
-              {AUTO_MESSAGE_TOPICS.map((t) => (
+              {relevantAutoMessageTopics(service).map((t) => (
                 <label key={t.id} className="flex items-center gap-2 text-[11px] font-bold text-brown-soft">
                   <input
                     type="checkbox"

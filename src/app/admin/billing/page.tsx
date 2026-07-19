@@ -106,6 +106,17 @@ function newGrooming(): Item {
   };
 }
 
+/**
+ * บิลนี้มีอาบน้ำ ห้องพัก หรือทั้งคู่ — ใช้กรองว่าปุ่ม "ปิดข้อความอัตโนมัติ" ควรโชว์หัวข้อไหน
+ * (บิลอาบน้ำล้วนไม่ควรมีตัวเลือกเรื่องเข้าพักมาให้เลือกโดยไม่มีผล)
+ */
+function billServiceKind(items?: { label: string; kind?: string }[]): "room" | "groom" | "both" {
+  const hasRoom = !!items?.some((it) => it.kind === "room" || /คืน|ห้อง/.test(it.label));
+  const hasGroom = !!items?.some((it) => it.kind === "grooming" || /อาบน้ำ|กรูม/.test(it.label));
+  if (hasRoom && hasGroom) return "both";
+  return hasRoom ? "room" : "groom";
+}
+
 function computeLine(it: Item): {
   label: string;
   amount: number;
@@ -1623,11 +1634,7 @@ export default function BillingPage() {
                 bookingId={inv.bookingId || linkedBk?.id}
                 customerId={inv.customerId}
                 lineUserId={inv.lineUserId}
-                service={
-                  inv.items?.some((it) => /คืน|ห้อง/.test(it.label))
-                    ? "room"
-                    : "groom"
-                }
+                service={billServiceKind(inv.items)}
                 invoiceDeposit={inv.deposit ?? 0}
                 invoiceStatus={inv.status}
                 initialAutoOff={linkedBk?.autoOff}

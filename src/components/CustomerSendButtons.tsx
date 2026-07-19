@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "@/components/Toast";
-import { AUTO_MESSAGE_TOPICS } from "@/lib/auto-messages";
+import { relevantAutoMessageTopics } from "@/lib/auto-messages";
 
 /**
  * ปุ่มส่งหาลูกค้าแบบรวมศูนย์ — ใช้ได้ทุกที่ (การ์ดในปฏิทิน · บิล · ฯลฯ)
@@ -25,7 +25,7 @@ export function CustomerSendButtons({
   customerId?: string;
   bookingId?: string;
   invoiceId?: string;
-  service?: "room" | "groom";
+  service?: "room" | "groom" | "both";
   invoiceDeposit?: number;
   /** สถานะบิลที่ส่งมาจากหน้าบิล — ใช้ล็อกไม่ให้ส่งใบเสร็จตอนยังไม่จ่าย */
   invoiceStatus?: string;
@@ -529,7 +529,7 @@ export function CustomerSendButtons({
             ติ๊กหัวข้อที่ไม่อยากให้ระบบส่งอัตโนมัติหานัดนี้ (นัดอื่นไม่กระทบ):
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {AUTO_MESSAGE_TOPICS.map((t) => (
+            {relevantAutoMessageTopics(service).map((t) => (
               <button
                 key={t.id}
                 type="button"

@@ -63,14 +63,14 @@ export const GROOM_MENUS = {
     id: "advance",
     title: { th: "Advance Grooming", en: "Advance Grooming" },
     subtitle: {
-      th: "Landin'Elite · Catcha Premium หรือ Malaseb",
-      en: "Landin'Elite · Catcha Premium or Malaseb",
+      th: "Landin'Elite · PetFlow Premium หรือ Malaseb",
+      en: "Landin'Elite · PetFlow Premium or Malaseb",
     },
     poster: "/catalog/grooming/advance-menu.jpg",
     variants: [
       {
         id: "premium",
-        name: { th: "Catcha Premium", en: "Catcha Premium" },
+        name: { th: "PetFlow Premium", en: "PetFlow Premium" },
         badge: { th: "แนะนำ", en: "Recommended" },
         features: {
           th: [

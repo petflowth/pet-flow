@@ -73,7 +73,7 @@ export function MyCatsSection() {
   return (
     <section className="mb-5">
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-sm font-extrabold text-catcha-chocolate">
+        <h2 className="text-sm font-extrabold text-petflow-chocolate">
           🐾 แมวของฉัน
         </h2>
         <span className="text-[10px] font-bold text-brown-faint">
@@ -93,7 +93,7 @@ export function MyCatsSection() {
               className="hidden"
               onChange={(e) => e.target.files?.[0] && upload(cat, e.target.files[0])}
             />
-            <div className="relative h-24 w-24 overflow-hidden rounded-catcha border-2 border-honey/50 bg-honey/10 shadow-catcha-sm">
+            <div className="relative h-24 w-24 overflow-hidden rounded-petflow border-2 border-honey/50 bg-honey/10 shadow-petflow-sm">
               {cat.photoDataUrl ? (
                 <Image
                   src={cat.photoDataUrl}

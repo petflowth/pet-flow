@@ -306,7 +306,7 @@ const CARDS: CardMeta[] = [
     ],
     fields: [],
     texts: [],
-    styleTexts: [{ key: "header", label: "ข้อความบนแถบหัว", placeholder: "✨ โปรโมชั่น CatCha" }],
+    styleTexts: [{ key: "header", label: "ข้อความบนแถบหัว", placeholder: "✨ โปรโมชั่น PetFlow" }],
     closingLabel: "ข้อความปิดท้ายการ์ด (ไม่บังคับ)",
     hasTitleSize: true,
   },
@@ -396,7 +396,7 @@ function Preview({
           <p className="text-[10px] text-[#A2907E]">แจ้งกำหนดการนัด 🗓️ คุณตาล</p>
           <p>🗓️ <b>วันที่</b> — 24 ก.ค. 2569</p>
           <p>⏰ <b>เวลา</b> — 12:30 น.</p>
-          {show("location") && <p>📍 <b>สถานที่</b> — CatCha Hotel · เทพารักษ์ บางนา</p>}
+          {show("location") && <p>📍 <b>สถานที่</b> — PetFlow · เทพารักษ์ บางนา</p>}
           {show("notes") && <p>📝 <b>หมายเหตุ</b> — แจ้งในแชทได้เลยนะคะ</p>}
         </div>
         {btn(c("buttonColor", "#4A7348"), "🐾 ยืนยันนัด")}
@@ -415,7 +415,7 @@ function Preview({
           <p className="text-[10px] text-[#A2907E]">Soju · ตาล</p>
           {show("schedule") && <p className="text-[10px] font-bold">🛁 นัดอาบน้ำ: 24 ก.ค. 12:30 น.</p>}
           <hr className="border-[#eee3d2]" />
-          <div className="flex justify-between"><span>Catcha Premium · แมวไทย M</span><span>900 บาท</span></div>
+          <div className="flex justify-between"><span>PetFlow Premium · แมวไทย M</span><span>900 บาท</span></div>
           <div className="flex justify-between text-[#C08A2E]"><span>ส่วนลด</span><span>-45 บาท</span></div>
           <hr className="border-[#eee3d2]" />
           <div className="flex items-baseline justify-between">
@@ -429,7 +429,7 @@ function Preview({
             <div className="rounded-lg bg-[#F4ECE0] px-2.5 py-2">
               <p className="font-extrabold">กรุงไทย</p>
               <p className="text-sm font-extrabold text-[#4A7348]">664-4-43446-0</p>
-              <p className="text-[10px] text-[#A2907E]">ชื่อบัญชี: CatCha Hotel</p>
+              <p className="text-[10px] text-[#A2907E]">ชื่อบัญชี: PetFlow</p>
             </div>
           )}
           {show("closing") && (
@@ -476,7 +476,7 @@ function Preview({
       <div className={bubble}>
         <div className="px-4 py-3" style={{ background: c("headerColor", "#C4956A") }}>
           <p className={`${titleCls} font-extrabold`} style={{ color: c("headerTextColor", "#FFFFFF") }}>🧾 ใบเสร็จรับเงิน</p>
-          <p className="text-[10px]" style={{ color: c("headerTextColor", "#FFFFFF") }}>CatCha Hotel</p>
+          <p className="text-[10px]" style={{ color: c("headerTextColor", "#FFFFFF") }}>PetFlow</p>
         </div>
         <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
           <p>🐱 <b>ลูกค้า</b> — Soju · ตาล</p>
@@ -491,7 +491,7 @@ function Preview({
             </div>
           )}
           {show("closing") && (
-            <p className="text-center text-[10px] text-[#A2907E]">{st.closing || "ขอบคุณที่ไว้วางใจ CatCha Hotel นะคะ 🧡"}</p>
+            <p className="text-center text-[10px] text-[#A2907E]">{st.closing || "ขอบคุณที่ไว้วางใจ PetFlow นะคะ 🧡"}</p>
           )}
           {show("reviewBundle") && (
             <p className="rounded-lg border border-dashed border-[#d9c9a8] px-2 py-1.5 text-center text-[9px] text-[#A2907E]">
@@ -509,13 +509,13 @@ function Preview({
         <div className="px-4 py-4 text-center" style={{ background: c("headerColor", "#FBF4E9") }}>
           {show("stars") && <p className="text-sm" style={{ color: c("accentColor", "#C4956A") }}>⭐ ⭐ ⭐ ⭐ ⭐</p>}
           <p className={`mt-1 ${titleCls} font-extrabold`} style={{ color: c("headerTextColor", "#5C4033") }}>
-            ขอบคุณที่ไว้วางใจ CatCha Hotel นะคะ 🧡
+            ขอบคุณที่ไว้วางใจ PetFlow นะคะ 🧡
           </p>
         </div>
         <div className="space-y-1.5 px-4 py-3 text-[11px] text-[#4E3E32]">
           <p className="whitespace-pre-line">
             {(texts.reviewRequest || "ถ้าประทับใจ ฝากรีวิวให้ทีมงานหน่อยนะคะ")
-              .replace("{shop}", "CatCha Hotel").replace("{cat}", "น้อง Soju")}
+              .replace("{shop}", "PetFlow").replace("{cat}", "น้อง Soju")}
           </p>
           {st.closing && <p className="text-[10px] text-[#A2907E]">{st.closing}</p>}
         </div>
@@ -555,7 +555,7 @@ function Preview({
         </div>
         <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
           <p className={`${titleCls} font-extrabold`} style={{ color: c("accentColor", "#5C4033") }}>🐱 เรเนล</p>
-          <p className="text-[10px] text-[#A2907E]">CatCha Hotel</p>
+          <p className="text-[10px] text-[#A2907E]">PetFlow</p>
           <p>สวัสดีค่ะ 🧡 อีก 3 วันน้องจะได้มาพักกับเราแล้วนะคะ</p>
           {(show("dates") || show("room")) && (
             <div className="space-y-1.5 rounded-xl bg-[#F4ECE0] px-3 py-2.5">
@@ -665,7 +665,7 @@ function Preview({
           </p>
           <p className="text-[10px] text-[#A2907E]">Soju · ตาล</p>
           {show("items") && (
-            <p className="text-[10px]">Catcha Premium · แมวไทย M 900 บาท{"\n"}ส่วนลด -45 บาท</p>
+            <p className="text-[10px]">PetFlow Premium · แมวไทย M 900 บาท{"\n"}ส่วนลด -45 บาท</p>
           )}
           <hr className="border-[#eee3d2]" />
           <p className="text-base font-extrabold" style={{ color: c("accentColor", "#C4956A") }}>รวม 855 บาท</p>
@@ -673,7 +673,7 @@ function Preview({
             <div className="rounded-lg bg-[#F4ECE0] px-2.5 py-2">
               <p className="font-extrabold">กรุงไทย</p>
               <p className="text-sm font-extrabold text-[#4A7348]">664-4-43446-0</p>
-              <p className="text-[10px] text-[#A2907E]">ชื่อบัญชี: CatCha Hotel</p>
+              <p className="text-[10px] text-[#A2907E]">ชื่อบัญชี: PetFlow</p>
             </div>
           )}
           {st.closing && <p className="text-[10px] text-[#A2907E]">{st.closing}</p>}
@@ -711,7 +711,7 @@ function Preview({
       <div className={bubble}>
         <div className="px-4 py-5" style={{ background: c("headerColor", "#5A8F5A") }}>
           <p className="text-sm font-extrabold" style={{ color: c("headerTextColor", "#FFFFFF") }}>
-            {t("header", "✨ โปรโมชั่น CatCha")}
+            {t("header", "✨ โปรโมชั่น PetFlow")}
           </p>
           <p className="text-[9px]" style={{ color: c("headerTextColor", "#FFFFFF") }}>(ถ้าใส่รูปโปร รูปจะแทนแถบนี้)</p>
         </div>
@@ -737,7 +737,7 @@ function Preview({
         {show("date") && <p className="text-[10px] text-[#A2907E]">📅 นัดอาบน้ำ: 24 ก.ค. 12:30</p>}
         <p className="whitespace-pre-line">
           {(texts.groomInfoIntro || "รบกวนแจ้งประวัติน้องสั้นๆ นะคะ 🐾")
-            .replace("{shop}", "CatCha Hotel").replace("{cat}", "น้อง Soju")}
+            .replace("{shop}", "PetFlow").replace("{cat}", "น้อง Soju")}
         </p>
         {st.closing && <p className="text-[10px] text-[#A2907E]">{st.closing}</p>}
       </div>
@@ -859,7 +859,7 @@ export default function CardsStudioPage() {
     <div>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h1 className="text-lg font-extrabold text-catcha-chocolate">🎴 ปรับแต่งการ์ด LINE</h1>
+          <h1 className="text-lg font-extrabold text-petflow-chocolate">🎴 ปรับแต่งการ์ด LINE</h1>
           <p className="mt-1 text-xs text-brown-soft">
             สี ขนาดตัวอักษร ข้อความ เงื่อนไข และส่วนประกอบของการ์ดแต่ละใบ — พรีวิวสดทางขวา
           </p>
@@ -868,7 +868,7 @@ export default function CardsStudioPage() {
           type="button"
           disabled={saving || !dirty}
           onClick={save}
-          className="rounded-catcha-sm bg-gradient-to-r from-latte-deep to-catcha-chocolate px-5 py-2.5 text-sm font-extrabold text-white disabled:opacity-40"
+          className="rounded-petflow-sm bg-gradient-to-r from-latte-deep to-petflow-chocolate px-5 py-2.5 text-sm font-extrabold text-white disabled:opacity-40"
         >
           {saving ? "กำลังบันทึก…" : dirty ? "💾 บันทึกการเปลี่ยนแปลง" : "✅ บันทึกแล้ว"}
         </button>
@@ -883,7 +883,7 @@ export default function CardsStudioPage() {
             className={`rounded-full px-3 py-1.5 text-xs font-bold ${
               activeKey === c.key
                 ? "bg-latte-deep text-white"
-                : "bg-card text-brown-soft border border-catcha-line"
+                : "bg-card text-brown-soft border border-petflow-line"
             }`}
           >
             {c.name}
@@ -893,9 +893,9 @@ export default function CardsStudioPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         {/* ── ตัวแก้ไข ── */}
-        <div className="space-y-4 rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm">
+        <div className="space-y-4 rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm">
           <div>
-            <p className="text-sm font-extrabold text-catcha-chocolate">{meta.name}</p>
+            <p className="text-sm font-extrabold text-petflow-chocolate">{meta.name}</p>
             <p className="text-[11px] text-brown-soft">{meta.desc}</p>
           </div>
 
@@ -911,8 +911,8 @@ export default function CardsStudioPage() {
                 return (
                   <div
                     key={def.key}
-                    className={`rounded-catcha-sm border p-3 ${
-                      enabled ? "border-catcha-line bg-paper/40" : "border-dashed border-catcha-line bg-paper/20 opacity-60"
+                    className={`rounded-petflow-sm border p-3 ${
+                      enabled ? "border-petflow-line bg-paper/40" : "border-dashed border-petflow-line bg-paper/20 opacity-60"
                     }`}
                   >
                     <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -950,7 +950,7 @@ export default function CardsStudioPage() {
                       value={c.label ?? def.label}
                       disabled={!enabled}
                       onChange={(e) => patchGroomField(def.key, { label: e.target.value })}
-                      className="w-full rounded-catcha-sm border border-catcha-line bg-card px-2.5 py-2 text-xs font-bold text-brown"
+                      className="w-full rounded-petflow-sm border border-petflow-line bg-card px-2.5 py-2 text-xs font-bold text-brown"
                     />
 
                     {!isChip && (
@@ -959,7 +959,7 @@ export default function CardsStudioPage() {
                         disabled={!enabled}
                         onChange={(e) => patchGroomField(def.key, { placeholder: e.target.value })}
                         placeholder="ข้อความตัวอย่างในช่องพิมพ์"
-                        className="mt-1.5 w-full rounded-catcha-sm border border-catcha-line bg-card px-2.5 py-1.5 text-[11px] text-brown-soft"
+                        className="mt-1.5 w-full rounded-petflow-sm border border-petflow-line bg-card px-2.5 py-1.5 text-[11px] text-brown-soft"
                       />
                     )}
 
@@ -979,7 +979,7 @@ export default function CardsStudioPage() {
                                   );
                                   patchGroomField(def.key, { options: next });
                                 }}
-                                className="flex-1 rounded-catcha-sm border border-catcha-line bg-card px-2.5 py-1.5 text-[11px]"
+                                className="flex-1 rounded-petflow-sm border border-petflow-line bg-card px-2.5 py-1.5 text-[11px]"
                               />
                               <button
                                 type="button"
@@ -1038,7 +1038,7 @@ export default function CardsStudioPage() {
                       type="color"
                       value={styleValue(st, role)}
                       onChange={(e) => patch({ [role.key]: e.target.value })}
-                      className="h-8 w-12 cursor-pointer rounded border border-catcha-line bg-paper"
+                      className="h-8 w-12 cursor-pointer rounded border border-petflow-line bg-paper"
                     />
                     <span className="font-mono text-[10px] text-brown-faint">{styleValue(st, role)}</span>
                     <div className="flex gap-1">
@@ -1097,7 +1097,7 @@ export default function CardsStudioPage() {
                 {meta.fields.map((f) => (
                   <label
                     key={f.key}
-                    className="flex items-center gap-2 rounded-catcha-sm bg-paper px-2.5 py-2 text-[11px] font-bold text-brown"
+                    className="flex items-center gap-2 rounded-petflow-sm bg-paper px-2.5 py-2 text-[11px] font-bold text-brown"
                   >
                     <input
                       type="checkbox"
@@ -1124,13 +1124,13 @@ export default function CardsStudioPage() {
                         value={texts[t.stateKey] || ""}
                         onChange={(e) => patchText(t.stateKey, e.target.value)}
                         rows={t.stateKey === "consentTerms" ? 8 : 3}
-                        className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs font-normal"
+                        className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs font-normal"
                       />
                     ) : (
                       <input
                         value={texts[t.stateKey] || ""}
                         onChange={(e) => patchText(t.stateKey, e.target.value)}
-                        className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs font-normal"
+                        className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs font-normal"
                       />
                     )}
                     {t.hint && <span className="mt-0.5 block text-[9px] font-normal text-brown-faint">{t.hint}</span>}
@@ -1155,7 +1155,7 @@ export default function CardsStudioPage() {
                         patch({ texts: Object.keys(next).length ? next : undefined });
                       }}
                       placeholder={sx.placeholder}
-                      className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs font-normal"
+                      className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs font-normal"
                     />
                   </label>
                 ))}
@@ -1171,7 +1171,7 @@ export default function CardsStudioPage() {
                 onChange={(e) => patch({ closing: e.target.value || undefined })}
                 placeholder="เว้นว่าง = ใช้ข้อความเดิมของระบบ"
                 rows={2}
-                className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs"
+                className="w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs"
               />
             </div>
           )}
@@ -1196,7 +1196,7 @@ export default function CardsStudioPage() {
           </p>
           {activeKey === "groomFormFields" ? (
             <div className="rounded-2xl bg-[#efe6d6] p-3">
-              <div className="rounded-catcha bg-[#fdfaf4] p-3">
+              <div className="rounded-petflow bg-[#fdfaf4] p-3">
                 <p className="text-sm font-extrabold text-[#4a3a12]">🩺 ประวัติน้องก่อนอาบน้ำ</p>
                 <p className="mt-0.5 text-[10px] text-[#8a7a5c]">🐱 Soju</p>
                 {resolveGroomForm(groomForm).map((fd) => (

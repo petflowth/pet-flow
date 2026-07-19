@@ -8,20 +8,20 @@ import SiteFooter from "@/components/SiteFooter";
 // บทความที่เขียนเองจากหลังบ้านโผล่ภายใน ~5 นาทีหลังบันทึก
 export const revalidate = 300;
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catchahotel.com";
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://petflow.example.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "บทความน่ารู้เรื่องแมว | ฝากแมว อาบน้ำแมว ดูแลแมว — CatCha Hotel บางนา เทพารักษ์",
+  title: "บทความน่ารู้เรื่องแมว | ฝากแมว อาบน้ำแมว ดูแลแมว — PetFlow บางนา เทพารักษ์",
   description:
-    "รวมบทความจากโรงแรมแมว CatCha Hotel — ฝากแมวครั้งแรกเตรียมอะไร แมวอาบน้ำบ่อยแค่ไหน วิธีเลือกโรงแรมแมว และเคล็ดลับดูแลน้องแมว สำหรับทาสแมวย่านบางนา เทพารักษ์ สมุทรปราการ",
+    "รวมบทความจากโรงแรมแมว PetFlow — ฝากแมวครั้งแรกเตรียมอะไร แมวอาบน้ำบ่อยแค่ไหน วิธีเลือกโรงแรมแมว และเคล็ดลับดูแลน้องแมว สำหรับทาสแมวย่านบางนา เทพารักษ์ สมุทรปราการ",
   alternates: { canonical: "/blog" },
   openGraph: {
     type: "website",
     locale: "th_TH",
     url: `${SITE_URL}/blog`,
-    siteName: "CatCha Hotel",
-    title: "บทความน่ารู้เรื่องแมว — CatCha Hotel",
+    siteName: "PetFlow",
+    title: "บทความน่ารู้เรื่องแมว — PetFlow",
     description: "เคล็ดลับฝากแมว อาบน้ำแมว และดูแลน้องแมว จากพี่เลี้ยงตัวจริง",
   },
   robots: { index: true, follow: true },
@@ -58,14 +58,14 @@ export default async function BlogIndexPage() {
   return (
     <main className="mx-auto max-w-2xl px-5 pb-16 pt-8">
       <Link href="/" className="text-xs font-bold text-brown-soft">
-        ← หน้าแรก CatCha Hotel
+        ← หน้าแรก PetFlow
       </Link>
-      <h1 className="mt-3 text-2xl font-extrabold text-catcha-chocolate">
+      <h1 className="mt-3 text-2xl font-extrabold text-petflow-chocolate">
         📚 บทความน่ารู้เรื่องแมว
       </h1>
       <p className="mt-2 text-sm leading-relaxed text-brown-soft">
         เคล็ดลับฝากแมว อาบน้ำแมว และการดูแลน้องแมว เขียนจากประสบการณ์จริงของพี่เลี้ยง
-        CatCha Hotel โรงแรมแมวย่านบางนา–เทพารักษ์ สมุทรปราการ
+        PetFlow โรงแรมแมวย่านบางนา–เทพารักษ์ สมุทรปราการ
       </p>
 
       <div className="mt-6 space-y-4">
@@ -73,7 +73,7 @@ export default async function BlogIndexPage() {
           <Link
             key={post.slug}
             href={`/blog/${post.slug}`}
-            className="block overflow-hidden rounded-catcha border border-catcha-line bg-card shadow-catcha-sm transition hover:border-honey/60"
+            className="block overflow-hidden rounded-petflow border border-petflow-line bg-card shadow-petflow-sm transition hover:border-honey/60"
           >
             {post.cover &&
               (post.external ? (
@@ -91,7 +91,7 @@ export default async function BlogIndexPage() {
               ))}
             <div className="p-5">
             {!post.cover && <p className="text-3xl">{post.emoji}</p>}
-            <h2 className="mt-2 text-base font-extrabold leading-snug text-catcha-chocolate">
+            <h2 className="mt-2 text-base font-extrabold leading-snug text-petflow-chocolate">
               {post.title}
             </h2>
             <p className="mt-2 text-xs leading-relaxed text-brown-soft">{post.description}</p>
@@ -103,18 +103,18 @@ export default async function BlogIndexPage() {
         ))}
       </div>
 
-      <div className="mt-10 rounded-catcha bg-gradient-to-br from-honey/30 via-card to-latte/15 p-5 text-center shadow-catcha">
-        <p className="text-sm font-extrabold text-catcha-chocolate">
+      <div className="mt-10 rounded-petflow bg-gradient-to-br from-honey/30 via-card to-latte/15 p-5 text-center shadow-petflow">
+        <p className="text-sm font-extrabold text-petflow-chocolate">
           🐱 ฝากแมว / อาบน้ำแมว ย่านบางนา เทพารักษ์
         </p>
         <p className="mt-1 text-xs text-brown-soft">
           ห้องแอร์ส่วนตัว CCTV 24 ชม. รายงานเช้า-เย็นทุกวัน
         </p>
         <a
-          href="https://line.me/R/ti/p/@catchahotel"
+          href="https://line.me/R/ti/p/@petflow"
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 inline-block rounded-catcha-sm bg-latte-deep px-6 py-2.5 text-sm font-extrabold text-card"
+          className="mt-3 inline-block rounded-petflow-sm bg-latte-deep px-6 py-2.5 text-sm font-extrabold text-card"
         >
           💬 ทัก LINE จองคิวเลย
         </a>

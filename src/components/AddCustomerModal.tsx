@@ -56,15 +56,15 @@ export function AddCustomerModal({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mb-4 w-full rounded-catcha-sm bg-gradient-to-r from-honey to-honey-deep py-3 text-sm font-extrabold text-catcha-chocolate"
+        className="mb-4 w-full rounded-petflow-sm bg-gradient-to-r from-honey to-honey-deep py-3 text-sm font-extrabold text-petflow-chocolate"
       >
         ➕ เพิ่มลูกค้าเอง
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-catcha bg-card p-5 shadow-catcha">
-            <h2 className="mb-1 text-sm font-extrabold text-catcha-chocolate">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-petflow bg-card p-5 shadow-petflow">
+            <h2 className="mb-1 text-sm font-extrabold text-petflow-chocolate">
               ➕ เพิ่มลูกค้าเอง
             </h2>
             <p className="mb-4 text-[10px] text-brown-soft">
@@ -79,7 +79,7 @@ export function AddCustomerModal({
                   placeholder="เช่น คุณมาย"
                   required
                   autoFocus
-                  className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm font-bold"
+                  className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm font-bold"
                 />
               </label>
               <label className="block text-xs font-bold text-brown-soft">
@@ -89,7 +89,7 @@ export function AddCustomerModal({
                   onChange={(e) => setPhone(e.target.value)}
                   type="tel"
                   placeholder="08x-xxx-xxxx"
-                  className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
+                  className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm"
                 />
               </label>
               <label className="block text-xs font-bold text-brown-soft">
@@ -99,7 +99,7 @@ export function AddCustomerModal({
                   onChange={(e) => setCatName(e.target.value)}
                   placeholder="เช่น น้องจู๊ด"
                   required
-                  className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm font-bold"
+                  className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm font-bold"
                 />
               </label>
               <label className="block text-xs font-bold text-brown-soft">
@@ -109,7 +109,7 @@ export function AddCustomerModal({
                   onChange={(e) => setCatNote(e.target.value)}
                   placeholder="นิสัย / แพ้อาหาร"
                   rows={2}
-                  className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs"
+                  className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs"
                 />
               </label>
               {error && (
@@ -119,14 +119,14 @@ export function AddCustomerModal({
                 <button
                   type="button"
                   onClick={close}
-                  className="flex-1 rounded-catcha-sm bg-paper py-2.5 text-xs font-bold text-brown-soft"
+                  className="flex-1 rounded-petflow-sm bg-paper py-2.5 text-xs font-bold text-brown-soft"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
                   disabled={saving || !name.trim() || !catName.trim()}
-                  className="flex-1 rounded-catcha-sm bg-gradient-to-r from-sage to-[#4A7348] py-2.5 text-xs font-extrabold text-white disabled:opacity-50"
+                  className="flex-1 rounded-petflow-sm bg-gradient-to-r from-sage to-[#4A7348] py-2.5 text-xs font-extrabold text-white disabled:opacity-50"
                 >
                   {saving ? "กำลังบันทึก…" : "💾 บันทึก"}
                 </button>

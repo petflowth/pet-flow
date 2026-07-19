@@ -147,7 +147,7 @@ export async function redeemReward(
     return { ok: false as const, error: "insufficient_points" };
   }
 
-  const couponCode = `CATCHA-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+  const couponCode = `PETFLOW-${Date.now().toString(36).toUpperCase().slice(-6)}`;
   const entry: PointsHistoryEntry = {
     id: `H${Date.now()}`,
     type: "redeem",

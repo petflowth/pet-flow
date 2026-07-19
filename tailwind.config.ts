@@ -15,12 +15,12 @@ export default {
         brown: { DEFAULT: "#4e3e32", soft: "#a2907e", faint: "#c4b4a2" },
         honey: { DEFAULT: "#ebc583", deep: "#e0ad5a" },
         latte: { DEFAULT: "#c7a583", deep: "#a9855f" },
-        catcha: { yellow: "#f5d76e", chocolate: "#5c4033", line: "#efe6d7" },
+        petflow: { yellow: "#f5d76e", chocolate: "#5c4033", line: "#efe6d7" },
         sage: "#9fb79a",
         wait: "#d9a05b",
         ok: "#7fa876",
       },
-      borderRadius: { catcha: "24px", "catcha-sm": "16px" },
+      borderRadius: { petflow: "24px", "petflow-sm": "16px" },
       fontFamily: {
         sans: [
           "Sukhumvit Set",

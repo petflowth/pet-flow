@@ -66,8 +66,8 @@ export default function CustomerHome() {
             {m.greeting}
             {profile ? `, ${profile.displayName}` : ""}
           </p>
-          <h1 className="text-lg font-extrabold text-catcha-chocolate">
-            CatCha <span className="text-latte-deep">Hotel</span>
+          <h1 className="text-lg font-extrabold text-petflow-chocolate">
+            PetFlow <span className="text-latte-deep">Hotel</span>
           </h1>
         </div>
         <LangSwitch />
@@ -75,36 +75,36 @@ export default function CustomerHome() {
 
       <Link
         href="/app/coupons"
-        className="mb-3 flex items-center justify-between gap-3 rounded-catcha border-2 border-honey/60 bg-gradient-to-r from-honey/35 to-latte/20 p-4 shadow-catcha"
+        className="mb-3 flex items-center justify-between gap-3 rounded-petflow border-2 border-honey/60 bg-gradient-to-r from-honey/35 to-latte/20 p-4 shadow-petflow"
       >
         <div className="min-w-0">
-          <p className="text-base font-extrabold text-catcha-chocolate">
+          <p className="text-base font-extrabold text-petflow-chocolate">
             🎫 กระเป๋าคูปองของฉัน
           </p>
           <p className="mt-0.5 text-[11px] font-bold text-brown-soft">
             ชวนเพื่อนมาใช้บริการ รับคูปองคนละ 100฿
           </p>
         </div>
-        <span className="flex shrink-0 items-center gap-1 rounded-full bg-latte-deep px-3.5 py-2 text-xs font-extrabold text-card shadow-catcha-sm">
+        <span className="flex shrink-0 items-center gap-1 rounded-full bg-latte-deep px-3.5 py-2 text-xs font-extrabold text-card shadow-petflow-sm">
           {couponCount > 0 ? `${couponCount} ใบ` : "เปิด"} →
         </span>
       </Link>
 
       <Link
         href="/app/profile"
-        className="mb-4 flex items-center justify-center gap-1 rounded-catcha-sm bg-paper/70 px-3 py-2 text-xs font-bold text-brown-soft"
+        className="mb-4 flex items-center justify-center gap-1 rounded-petflow-sm bg-paper/70 px-3 py-2 text-xs font-bold text-brown-soft"
       >
         ✏️ แก้ไขข้อมูลของฉัน / น้องแมว
       </Link>
 
       {!ready && (
-        <p className="mb-4 rounded-catcha-sm bg-paper px-4 py-3 text-sm text-brown-soft">
+        <p className="mb-4 rounded-petflow-sm bg-paper px-4 py-3 text-sm text-brown-soft">
           {t(locale).common.loading}
         </p>
       )}
 
       {/* คะแนนสะสม */}
-      <section className="mb-4 overflow-hidden rounded-catcha bg-gradient-to-br from-honey/45 via-card to-latte/15 p-5 shadow-catcha">
+      <section className="mb-4 overflow-hidden rounded-petflow bg-gradient-to-br from-honey/45 via-card to-latte/15 p-5 shadow-petflow">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-bold text-brown-soft">{m.yourPoints}</p>
@@ -121,7 +121,7 @@ export default function CustomerHome() {
           </div>
           <Link
             href="/app/points"
-            className="shrink-0 rounded-full bg-card/80 px-3 py-1.5 text-[10px] font-bold text-catcha-chocolate shadow-catcha-sm"
+            className="shrink-0 rounded-full bg-card/80 px-3 py-1.5 text-[10px] font-bold text-petflow-chocolate shadow-petflow-sm"
           >
             {m.pointsHistory} →
           </Link>
@@ -144,9 +144,9 @@ export default function CustomerHome() {
 
       {/* คิวถัดไป */}
       {nextBooking ? (
-        <section className="mb-4 rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm">
+        <section className="mb-4 rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm">
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-sm font-extrabold text-catcha-chocolate">
+            <h2 className="text-sm font-extrabold text-petflow-chocolate">
               📅 {m.nextBooking}
             </h2>
             <span className="rounded-full bg-honey/30 px-2 py-0.5 text-[10px] font-bold text-wait">
@@ -162,7 +162,7 @@ export default function CustomerHome() {
           </p>
           <Link
             href="/app/bookings"
-            className="mt-3 block rounded-catcha-sm bg-latte/25 py-2.5 text-center text-xs font-extrabold text-catcha-chocolate"
+            className="mt-3 block rounded-petflow-sm bg-latte/25 py-2.5 text-center text-xs font-extrabold text-petflow-chocolate"
           >
             {m.confirmBooking} →
           </Link>
@@ -170,10 +170,10 @@ export default function CustomerHome() {
       ) : null}
 
       <a
-        href="https://line.me/R/ti/p/@catchahotel"
+        href="https://line.me/R/ti/p/@petflow"
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-4 block rounded-catcha-sm border border-catcha-line bg-card py-3 text-center text-xs font-bold text-brown-soft"
+        className="mt-4 block rounded-petflow-sm border border-petflow-line bg-card py-3 text-center text-xs font-bold text-brown-soft"
       >
         💬 LINE {config.business.lineOa} · {m.chatBook}
       </a>

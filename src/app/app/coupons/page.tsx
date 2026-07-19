@@ -49,7 +49,7 @@ export default function CouponsPage() {
   }, [profile?.lineUserId]);
 
   const share = async () => {
-    const text = `🐱 มาเลี้ยงน้องแมวที่ CatCha Hotel กันนะ! สมัครผ่านลิงก์นี้ + มาใช้บริการครั้งแรก รับคูปองส่วนลด 100฿ ทั้งคู่เลย 🎁\n${referralUrl}`;
+    const text = `🐱 มาเลี้ยงน้องแมวที่ PetFlow กันนะ! สมัครผ่านลิงก์นี้ + มาใช้บริการครั้งแรก รับคูปองส่วนลด 100฿ ทั้งคู่เลย 🎁\n${referralUrl}`;
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -67,24 +67,24 @@ export default function CouponsPage() {
       <Link href="/app" className="mb-3 inline-block text-xs font-bold text-brown-soft">
         ← กลับหน้าแรก
       </Link>
-      <h1 className="text-lg font-extrabold text-catcha-chocolate">🎟️ กระเป๋าคูปองของฉัน</h1>
+      <h1 className="text-lg font-extrabold text-petflow-chocolate">🎟️ กระเป๋าคูปองของฉัน</h1>
 
       {/* ── ชวนเพื่อน ── */}
-      <div className="mt-4 rounded-catcha border border-honey/50 bg-gradient-to-br from-honey/25 via-card to-latte/15 p-4 shadow-catcha-sm">
-        <p className="text-sm font-extrabold text-catcha-chocolate">🎁 ชวนเพื่อน รับคนละ 100฿</p>
+      <div className="mt-4 rounded-petflow border border-honey/50 bg-gradient-to-br from-honey/25 via-card to-latte/15 p-4 shadow-petflow-sm">
+        <p className="text-sm font-extrabold text-petflow-chocolate">🎁 ชวนเพื่อน รับคนละ 100฿</p>
         <p className="mt-1 text-xs text-brown-soft">
           ส่งลิงก์ให้เพื่อนสมัคร + <b className="text-latte-deep">มาใช้บริการครั้งแรก</b> — ได้คูปองส่วนลด <b className="text-latte-deep">100฿ ทั้งคุณและเพื่อน</b> 🧡
         </p>
         {referralCode && (
           <p className="mt-2 text-[11px] font-bold text-brown-soft">
-            รหัสของคุณ: <span className="rounded bg-paper px-2 py-0.5 font-extrabold text-catcha-chocolate">{referralCode}</span>
+            รหัสของคุณ: <span className="rounded bg-paper px-2 py-0.5 font-extrabold text-petflow-chocolate">{referralCode}</span>
           </p>
         )}
         <button
           type="button"
           onClick={share}
           disabled={!referralUrl}
-          className="mt-3 w-full rounded-catcha-sm bg-latte-deep py-2.5 text-sm font-extrabold text-card active:scale-[0.98] disabled:opacity-50"
+          className="mt-3 w-full rounded-petflow-sm bg-latte-deep py-2.5 text-sm font-extrabold text-card active:scale-[0.98] disabled:opacity-50"
         >
           {copied ? "✅ คัดลอกลิงก์แล้ว — เอาไปส่งเพื่อนได้เลย!" : "📋 คัดลอกลิงก์ชวนเพื่อน"}
         </button>
@@ -100,9 +100,9 @@ export default function CouponsPage() {
               return (
                 <div
                   key={p.id}
-                  className="flex items-center gap-3 rounded-catcha border border-sage/40 bg-sage/10 p-3"
+                  className="flex items-center gap-3 rounded-petflow border border-sage/40 bg-sage/10 p-3"
                 >
-                  <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-catcha-sm bg-sage text-card">
+                  <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-petflow-sm bg-sage text-card">
                     <span className="text-lg font-extrabold leading-none">{left}</span>
                     <span className="text-[8px]">เหลือ</span>
                   </div>
@@ -128,7 +128,7 @@ export default function CouponsPage() {
             คูปองที่ใช้ได้ ({active.length})
           </p>
           {active.length === 0 ? (
-            <p className="rounded-catcha-sm bg-paper px-4 py-4 text-center text-xs text-brown-soft">
+            <p className="rounded-petflow-sm bg-paper px-4 py-4 text-center text-xs text-brown-soft">
               ยังไม่มีคูปอง — ชวนเพื่อนมาใช้บริการ รับ 100฿ ได้เลยนะคะ 🧡
             </p>
           ) : (
@@ -138,10 +138,10 @@ export default function CouponsPage() {
                 return (
                   <div
                     key={c.id}
-                    className="rounded-catcha border border-catcha-line bg-card p-3 shadow-catcha-sm"
+                    className="rounded-petflow border border-petflow-line bg-card p-3 shadow-petflow-sm"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-catcha-sm bg-latte-deep text-card">
+                      <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-petflow-sm bg-latte-deep text-card">
                         <span className="text-lg font-extrabold leading-none">฿{c.amount}</span>
                         <span className="text-[8px]">ส่วนลด</span>
                       </div>
@@ -156,7 +156,7 @@ export default function CouponsPage() {
                     <button
                       type="button"
                       onClick={() => setVoucher(c)}
-                      className="mt-2 w-full rounded-catcha-sm bg-gradient-to-r from-honey to-honey-deep py-2.5 text-xs font-extrabold text-catcha-chocolate active:scale-[0.98]"
+                      className="mt-2 w-full rounded-petflow-sm bg-gradient-to-r from-honey to-honey-deep py-2.5 text-xs font-extrabold text-petflow-chocolate active:scale-[0.98]"
                     >
                       🎫 กดใช้คูปองนี้
                     </button>
@@ -173,7 +173,7 @@ export default function CouponsPage() {
                 {past.map((c) => (
                   <div
                     key={c.id}
-                    className="flex items-center gap-3 rounded-catcha-sm border border-catcha-line bg-paper p-2.5"
+                    className="flex items-center gap-3 rounded-petflow-sm border border-petflow-line bg-paper p-2.5"
                   >
                     <span className="text-sm font-extrabold text-brown-faint">฿{c.amount}</span>
                     <span className="min-w-0 flex-1 truncate text-xs text-brown-soft">{c.reason}</span>
@@ -195,19 +195,19 @@ export default function CouponsPage() {
           onClick={() => setVoucher(null)}
         >
           <div
-            className="w-full max-w-xs rounded-catcha bg-card p-6 text-center shadow-catcha"
+            className="w-full max-w-xs rounded-petflow bg-card p-6 text-center shadow-petflow"
             onClick={(e) => e.stopPropagation()}
           >
             <p className="text-xs font-bold text-brown-soft">คูปองส่วนลด</p>
             <p className="mt-1 text-5xl font-extrabold text-latte-deep">฿{voucher.amount}</p>
             <p className="mt-1 text-sm font-bold text-brown">{voucher.reason}</p>
-            <div className="mt-4 rounded-catcha-sm border-2 border-dashed border-latte/50 bg-paper py-3">
+            <div className="mt-4 rounded-petflow-sm border-2 border-dashed border-latte/50 bg-paper py-3">
               <p className="text-[10px] font-bold text-brown-soft">รหัสคูปอง</p>
-              <p className="text-2xl font-extrabold tracking-widest text-catcha-chocolate">
+              <p className="text-2xl font-extrabold tracking-widest text-petflow-chocolate">
                 {voucher.code}
               </p>
             </div>
-            <p className="mt-4 text-xs font-bold text-catcha-chocolate">
+            <p className="mt-4 text-xs font-bold text-petflow-chocolate">
               📸 แสดงหน้านี้ให้พนักงานตอนคิดเงิน
             </p>
             <p className="mt-1 text-[10px] text-brown-faint">
@@ -216,7 +216,7 @@ export default function CouponsPage() {
             <button
               type="button"
               onClick={() => setVoucher(null)}
-              className="mt-5 w-full rounded-catcha-sm bg-latte/25 py-2.5 text-xs font-bold text-catcha-chocolate"
+              className="mt-5 w-full rounded-petflow-sm bg-latte/25 py-2.5 text-xs font-bold text-petflow-chocolate"
             >
               ปิด
             </button>

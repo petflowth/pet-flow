@@ -18,12 +18,12 @@ export function RoomCard({
   return (
     <Link
       href={`/app/rooms/${room.id}`}
-      className="block overflow-hidden rounded-catcha border border-catcha-line bg-card shadow-catcha-sm transition active:scale-[0.99]"
+      className="block overflow-hidden rounded-petflow border border-petflow-line bg-card shadow-petflow-sm transition active:scale-[0.99]"
     >
       <RoomPoster src={room.image} alt={room.name} />
       <div className="flex items-center justify-between gap-2 px-4 py-3">
         <div className="min-w-0">
-          <p className="truncate text-sm font-extrabold text-catcha-chocolate">
+          <p className="truncate text-sm font-extrabold text-petflow-chocolate">
             {room.name}
           </p>
           <p className="text-[11px] text-brown-soft">

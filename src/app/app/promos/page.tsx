@@ -32,18 +32,18 @@ export default function PromosPage() {
   return (
     <div className="px-4 pb-6 pt-5">
       <div className="mb-5 flex items-center justify-between">
-        <h1 className="text-xl font-extrabold text-catcha-chocolate">🎁 {m.title}</h1>
+        <h1 className="text-xl font-extrabold text-petflow-chocolate">🎁 {m.title}</h1>
         <LangSwitch />
       </div>
 
       <CustomerExclusivePromos />
 
-      <h2 className="mb-3 mt-5 text-sm font-extrabold text-catcha-chocolate">✨ {m.title}</h2>
+      <h2 className="mb-3 mt-5 text-sm font-extrabold text-petflow-chocolate">✨ {m.title}</h2>
       <ul className="space-y-3">
         {promos.map((promo) => (
           <li
             key={promo.id}
-            className="overflow-hidden rounded-catcha border border-catcha-line bg-card shadow-catcha-sm"
+            className="overflow-hidden rounded-petflow border border-petflow-line bg-card shadow-petflow-sm"
           >
             {promo.imageUrl && (
               // eslint-disable-next-line @next/next/no-img-element
@@ -54,7 +54,7 @@ export default function PromosPage() {
               />
             )}
             <div className="p-4">
-              <p className="line-clamp-1 text-sm font-extrabold text-catcha-chocolate">
+              <p className="line-clamp-1 text-sm font-extrabold text-petflow-chocolate">
                 {promo.title[locale]}
               </p>
               <p
@@ -86,7 +86,7 @@ export default function PromosPage() {
           </li>
         ))}
         {!promos.length && (
-          <li className="rounded-catcha bg-card p-6 text-center text-sm text-brown-soft">
+          <li className="rounded-petflow bg-card p-6 text-center text-sm text-brown-soft">
             ยังไม่มีโปรทั่วไปช่วงนี้
           </li>
         )}

@@ -46,7 +46,7 @@ export const BROADCAST_TEMPLATES: BroadcastTemplate[] = [
     title: "🛁 โปรอาบน้ำ & กรูมมิ่ง",
     body:
       "น้องแมวสดชื่น หอมปราดเปรียะ\n" +
-      "จองคิวอาบน้ำวันนี้ — รับสิทธิพิเศษสำหรับลูกค้า CatCha",
+      "จองคิวอาบน้ำวันนี้ — รับสิทธิพิเศษสำหรับลูกค้า PetFlow",
     suggestedActions: ["grooming", "line_chat"],
   },
   {
@@ -61,7 +61,7 @@ export const BROADCAST_TEMPLATES: BroadcastTemplate[] = [
     label: "ทักทายลูกค้าเก่า",
     title: "🐱 คิดถึงน้องแมว",
     body:
-      "สวัสดีจาก CatCha Hotel\n" +
+      "สวัสดีจาก PetFlow\n" +
       "นานแล้วที่ไม่ได้เจอน้อง — มีโปรพิเศษรออยู่\n" +
       "ทักแชทหรือกดปุ่มด้านล่างเพื่อจองคิว",
     suggestedActions: ["line_chat", "grooming"],
@@ -72,7 +72,7 @@ export function resolveBroadcastActionUri(
   actionId: BroadcastActionId,
   liffId?: string
 ): string {
-  const appBase = getAppUrlFromEnv() || "https://catchahotel.com";
+  const appBase = getAppUrlFromEnv() || "https://petflow.example.com";
   const lid = liffId?.trim();
 
   switch (actionId) {

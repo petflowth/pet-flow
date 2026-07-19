@@ -38,11 +38,11 @@ export default function ServicesPage() {
           <Link
             key={c.href}
             href={c.href}
-            className="flex items-center gap-4 rounded-catcha border border-catcha-line bg-card p-5 shadow-catcha-sm transition active:scale-[0.98]"
+            className="flex items-center gap-4 rounded-petflow border border-petflow-line bg-card p-5 shadow-petflow-sm transition active:scale-[0.98]"
           >
             <span className="text-3xl">{c.icon}</span>
             <div className="min-w-0 flex-1">
-              <p className="text-base font-extrabold text-catcha-chocolate">{c.title}</p>
+              <p className="text-base font-extrabold text-petflow-chocolate">{c.title}</p>
               <p className="mt-0.5 text-xs text-brown-soft">{c.desc}</p>
             </div>
             <span className="text-brown-faint">→</span>

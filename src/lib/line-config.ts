@@ -82,14 +82,14 @@ export async function testLineChannelToken(token: string) {
 export function getAppUrlFromEnv() {
   return (
     process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "") ||
-    "https://catchahotel.com"
+    "https://petflow.example.com"
   );
 }
 
 export function bookingConfirmUrl(bookingId: string, liffId?: string) {
   const lid = liffId || process.env.NEXT_PUBLIC_LIFF_ID;
   const base =
-    getAppUrlFromEnv() || "https://catchahotel.com";
+    getAppUrlFromEnv() || "https://petflow.example.com";
   if (lid) {
     return `https://liff.line.me/${lid}?path=bookings&id=${bookingId}`;
   }

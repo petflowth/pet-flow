@@ -204,7 +204,7 @@ export default function BillingPage() {
   const [items, setItems] = useState<Item[]>([newGrooming()]);
   const [creating, setCreating] = useState(false);
   const [pay, setPay] = useState({ bankName: "", accountNumber: "", accountName: "" });
-  const [shopName, setShopName] = useState("CatCha Hotel");
+  const [shopName, setShopName] = useState("PetFlow");
   const [billMsg, setBillMsg] = useState({
     summaryBookingTitle: "สรุปการจอง",
     summaryDepositTitle: "แจ้งมัดจำ",
@@ -705,22 +705,22 @@ export default function BillingPage() {
     }
   };
 
-  const sub = "w-full rounded-lg border border-catcha-line bg-paper px-3 py-2 text-sm";
+  const sub = "w-full rounded-lg border border-petflow-line bg-paper px-3 py-2 text-sm";
   const field =
-    "w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm";
+    "w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm";
 
   return (
     <div>
-      <h1 className="mb-4 text-lg font-extrabold text-catcha-chocolate">💳 คิดเงิน</h1>
+      <h1 className="mb-4 text-lg font-extrabold text-petflow-chocolate">💳 คิดเงิน</h1>
 
-      <div className="mb-4 space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm">
+      <div className="mb-4 space-y-3 rounded-petflow bg-card p-4 shadow-petflow-sm">
         {/* ── ดึงจากนัด ── */}
         {bookings.length > 0 && (
           <div>
             <button
               type="button"
               onClick={() => setShowBookings((v) => !v)}
-              className="w-full rounded-catcha-sm border border-dashed border-latte/60 bg-latte/10 py-2 text-xs font-extrabold text-latte-deep"
+              className="w-full rounded-petflow-sm border border-dashed border-latte/60 bg-latte/10 py-2 text-xs font-extrabold text-latte-deep"
             >
               📅 ดึงจากนัด ({bookings.length}) {showBookings ? "▲" : "▼"}
             </button>
@@ -731,7 +731,7 @@ export default function BillingPage() {
                     <button
                       type="button"
                       onClick={() => pickBooking(bk)}
-                      className="block w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-left text-xs"
+                      className="block w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-left text-xs"
                     >
                       <span className="font-bold text-brown">
                         {bk.service === "room" ? "🏠" : "🛁"} {bk.catName} · {bk.customerName}
@@ -753,7 +753,7 @@ export default function BillingPage() {
         <div>
           <p className="mb-1 text-xs font-bold text-brown-soft">ลูกค้า</p>
           {selected ? (
-            <div className="rounded-catcha-sm border border-latte/50 bg-latte/10 px-3 py-2">
+            <div className="rounded-petflow-sm border border-latte/50 bg-latte/10 px-3 py-2">
               <div className="flex items-center justify-between gap-2">
                 <span className="min-w-0 truncate text-sm font-bold text-brown">
                   🐱 {selected.cats[0]?.name || "—"} · {selected.name}
@@ -787,7 +787,7 @@ export default function BillingPage() {
                 className={field}
               />
               {showList && (
-                <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-catcha-sm border border-catcha-line bg-card shadow-catcha">
+                <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-petflow-sm border border-petflow-line bg-card shadow-petflow">
                   {filtered.length === 0 ? (
                     <li className="px-3 py-2 text-xs text-brown-soft">ไม่พบลูกค้า</li>
                   ) : (
@@ -828,13 +828,13 @@ export default function BillingPage() {
               return (
                 <div
                   key={i}
-                  className="space-y-2 rounded-catcha-sm border border-catcha-line bg-paper/40 p-2.5"
+                  className="space-y-2 rounded-petflow-sm border border-petflow-line bg-paper/40 p-2.5"
                 >
                   <div className="flex items-center gap-2">
                     <select
                       value={item.kind}
                       onChange={(e) => changeKind(i, e.target.value as ItemKind)}
-                      className="min-w-0 flex-1 rounded-lg border border-catcha-line bg-card px-3 py-2 text-sm font-bold"
+                      className="min-w-0 flex-1 rounded-lg border border-petflow-line bg-card px-3 py-2 text-sm font-bold"
                     >
                       {KIND_OPTIONS.map((k) => (
                         <option key={k.id} value={k.id}>
@@ -924,7 +924,7 @@ export default function BillingPage() {
                           onChange={(e) =>
                             updateItem(i, { nights: Number(e.target.value) || 1 })
                           }
-                          className="w-16 rounded-lg border border-catcha-line bg-paper px-2 py-2 text-center text-sm"
+                          className="w-16 rounded-lg border border-petflow-line bg-paper px-2 py-2 text-center text-sm"
                         />
                         <span className="text-xs font-bold text-brown-soft">คืน</span>
                       </div>
@@ -990,7 +990,7 @@ export default function BillingPage() {
                         onChange={(e) =>
                           updateItem(i, { amount: Number(e.target.value) || 0 })
                         }
-                        className="w-24 shrink-0 rounded-lg border border-catcha-line bg-paper px-3 py-1.5 text-right text-sm font-bold"
+                        className="w-24 shrink-0 rounded-lg border border-petflow-line bg-paper px-3 py-1.5 text-right text-sm font-bold"
                       />
                     ) : item.kind === "freebie" ? (
                       <span className="shrink-0 text-sm font-extrabold text-ok">
@@ -1010,7 +1010,7 @@ export default function BillingPage() {
           <button
             type="button"
             onClick={() => setItems((prev) => [...prev, newGrooming()])}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-catcha-sm border-2 border-dashed border-latte/60 bg-latte/10 py-2.5 text-sm font-extrabold text-latte-deep transition active:scale-[.98]"
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-petflow-sm border-2 border-dashed border-latte/60 bg-latte/10 py-2.5 text-sm font-extrabold text-latte-deep transition active:scale-[.98]"
           >
             <span className="text-lg">➕</span> เพิ่มรายการ
             <span className="text-lg">🧾</span>
@@ -1098,13 +1098,13 @@ export default function BillingPage() {
         </div>
 
         {autoPromoLabel && promoId && (
-          <p className="rounded-catcha-sm bg-sage/15 px-3 py-1.5 text-[11px] font-bold text-ok">
+          <p className="rounded-petflow-sm bg-sage/15 px-3 py-1.5 text-[11px] font-bold text-ok">
             ⚡ ใช้โปร &quot;{autoPromoLabel}&quot; อัตโนมัติ (ลูกค้าคนนี้มีสิทธิ์)
           </p>
         )}
 
         {/* ── สรุปยอด ── */}
-        <div className="space-y-1 rounded-catcha-sm bg-paper/60 px-3 py-2 text-sm">
+        <div className="space-y-1 rounded-petflow-sm bg-paper/60 px-3 py-2 text-sm">
           <div className="flex justify-between text-brown-soft">
             <span>ยอดรวม</span>
             <span>{subtotal.toLocaleString()} ฿</span>
@@ -1115,12 +1115,12 @@ export default function BillingPage() {
               <span>-{(promoDiscount + manualDiscount).toLocaleString()} ฿</span>
             </div>
           )}
-          <div className="flex justify-between border-t border-catcha-line pt-1 text-base font-extrabold text-catcha-chocolate">
+          <div className="flex justify-between border-t border-petflow-line pt-1 text-base font-extrabold text-petflow-chocolate">
             <span>ยอดสุทธิ</span>
             <span>{total.toLocaleString()} ฿</span>
           </div>
           {/* มัดจำของบิลนี้ (ถ้ามี) — กด % หรือใส่เอง */}
-          <div className="flex items-center justify-between gap-2 border-t border-catcha-line pt-1.5">
+          <div className="flex items-center justify-between gap-2 border-t border-petflow-line pt-1.5">
             <span className="text-xs font-bold text-brown-soft">💰 มัดจำ (ถ้ามี)</span>
             <input
               type="number"
@@ -1132,7 +1132,7 @@ export default function BillingPage() {
                 setBillDeposit(e.target.value);
                 setBillDepPct(null);
               }}
-              className="w-24 rounded-lg border border-catcha-line bg-paper px-3 py-1.5 text-right text-sm"
+              className="w-24 rounded-lg border border-petflow-line bg-paper px-3 py-1.5 text-right text-sm"
             />
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
@@ -1149,7 +1149,7 @@ export default function BillingPage() {
                   }}
                   className={`rounded-full px-2.5 py-1 text-[10px] font-bold disabled:opacity-40 ${
                     billDepPct === pct
-                      ? "bg-honey text-catcha-chocolate"
+                      ? "bg-honey text-petflow-chocolate"
                       : "bg-paper text-brown-soft"
                   }`}
                 >
@@ -1179,7 +1179,7 @@ export default function BillingPage() {
         </div>
 
         {/* ── สรุป (ก๊อป / ส่ง LINE ให้ลูกค้า) ── */}
-        <div className="space-y-2 rounded-catcha-sm border border-catcha-line bg-card/80 p-2.5">
+        <div className="space-y-2 rounded-petflow-sm border border-petflow-line bg-card/80 p-2.5">
           <p className="text-[10px] font-bold text-brown-soft">
             สรุปให้ลูกค้า — ก๊อปไปแปะ หรือส่งเข้า LINE เลย
           </p>
@@ -1221,7 +1221,7 @@ export default function BillingPage() {
           type="button"
           disabled={creating}
           onClick={createBill}
-          className="w-full rounded-catcha-sm bg-gradient-to-r from-honey to-honey-deep py-3 text-sm font-extrabold text-catcha-chocolate disabled:opacity-60"
+          className="w-full rounded-petflow-sm bg-gradient-to-r from-honey to-honey-deep py-3 text-sm font-extrabold text-petflow-chocolate disabled:opacity-60"
         >
           {creating
             ? "กำลังบันทึก…"
@@ -1233,7 +1233,7 @@ export default function BillingPage() {
           <button
             type="button"
             onClick={resetForm}
-            className="w-full rounded-catcha-sm bg-paper py-2 text-xs font-bold text-brown-soft"
+            className="w-full rounded-petflow-sm bg-paper py-2 text-xs font-bold text-brown-soft"
           >
             ยกเลิกการแก้ไข
           </button>
@@ -1271,7 +1271,7 @@ export default function BillingPage() {
               onClick={() => setBillFilter(f)}
               className={`rounded-full px-3 py-1.5 text-xs font-bold ${
                 billFilter === f
-                  ? "bg-honey/45 text-catcha-chocolate"
+                  ? "bg-honey/45 text-petflow-chocolate"
                   : "bg-paper text-brown-soft"
               }`}
             >
@@ -1285,12 +1285,12 @@ export default function BillingPage() {
           value={billSearch}
           onChange={(e) => setBillSearch(e.target.value)}
           placeholder="🔍 ค้นหาชื่อน้อง / ลูกค้า / เลขบิล"
-          className="min-w-0 flex-1 rounded-catcha-sm border border-catcha-line bg-paper px-3 py-1.5 text-xs"
+          className="min-w-0 flex-1 rounded-petflow-sm border border-petflow-line bg-paper px-3 py-1.5 text-xs"
         />
         <select
           value={billSort}
           onChange={(e) => setBillSort(e.target.value as typeof billSort)}
-          className="rounded-catcha-sm border border-catcha-line bg-paper px-2 py-1.5 text-xs font-bold text-brown-soft"
+          className="rounded-petflow-sm border border-petflow-line bg-paper px-2 py-1.5 text-xs font-bold text-brown-soft"
         >
           <option value="issued-desc">🧾 ออกบิลล่าสุดก่อน</option>
           <option value="issued-asc">🧾 ออกบิลเก่าก่อน</option>
@@ -1346,7 +1346,7 @@ export default function BillingPage() {
           const linkedBk = linkedFor(inv);
           const sched = scheduleLabelFor(linkedBk);
           return (
-          <div key={inv.id} className="rounded-catcha border border-catcha-line bg-card p-4">
+          <div key={inv.id} className="rounded-petflow border border-petflow-line bg-card p-4">
             <p className="font-bold text-brown">
               {inv.catName} · {inv.customerName}
             </p>
@@ -1356,7 +1356,7 @@ export default function BillingPage() {
             ) : null}
 
             {inv.items && inv.items.length > 0 && (
-              <div className="mt-2 space-y-0.5 rounded-catcha-sm bg-paper/50 px-3 py-2 text-xs text-brown-soft">
+              <div className="mt-2 space-y-0.5 rounded-petflow-sm bg-paper/50 px-3 py-2 text-xs text-brown-soft">
                 {inv.items.map((it, k) => (
                   <div key={k} className="flex justify-between gap-2">
                     <span className="min-w-0 truncate">{it.label}</span>
@@ -1364,7 +1364,7 @@ export default function BillingPage() {
                   </div>
                 ))}
                 {inv.discount ? (
-                  <div className="flex justify-between border-t border-catcha-line pt-0.5 text-wait">
+                  <div className="flex justify-between border-t border-petflow-line pt-0.5 text-wait">
                     <span>ส่วนลด{inv.promoLabel ? ` (${inv.promoLabel})` : ""}</span>
                     <span>-{inv.discount.toLocaleString()} ฿</span>
                   </div>
@@ -1400,7 +1400,7 @@ export default function BillingPage() {
             )}
 
             {/* ส่งการ์ดให้ลูกค้า — ชุดปุ่มรวม (เหมือนในปฏิทิน กดจากบิลนี้ได้) */}
-            <div className="mt-2 rounded-catcha-sm bg-paper/50 p-2">
+            <div className="mt-2 rounded-petflow-sm bg-paper/50 p-2">
               <CustomerSendButtons
                 invoiceId={inv.id}
                 bookingId={inv.bookingId || linkedBk?.id}
@@ -1430,7 +1430,7 @@ export default function BillingPage() {
                         "รับมัดจำแล้ว 💰 (ลงบัญชี + ส่งการ์ดขอบคุณให้ลูกค้า)"
                       )
                     }
-                    className="rounded-full bg-honey/40 px-3 py-1.5 text-xs font-bold text-catcha-chocolate disabled:opacity-50"
+                    className="rounded-full bg-honey/40 px-3 py-1.5 text-xs font-bold text-petflow-chocolate disabled:opacity-50"
                   >
                     💰 รับมัดจำแล้ว
                   </button>
@@ -1464,7 +1464,7 @@ export default function BillingPage() {
                 <button
                   type="button"
                   onClick={() => editInvoice(inv)}
-                  className="rounded-full bg-latte/25 px-3 py-1.5 text-xs font-bold text-catcha-chocolate"
+                  className="rounded-full bg-latte/25 px-3 py-1.5 text-xs font-bold text-petflow-chocolate"
                 >
                   ✏️ แก้ไข
                 </button>
@@ -1541,8 +1541,8 @@ export default function BillingPage() {
                   .reduce((s, i) => s + dueOf(i), 0);
                 return (
                   <div key={g.date || "no-date"}>
-                    <div className="mb-2 flex items-center justify-between border-b border-catcha-line pb-1">
-                      <span className="text-xs font-extrabold text-catcha-chocolate">
+                    <div className="mb-2 flex items-center justify-between border-b border-petflow-line pb-1">
+                      <span className="text-xs font-extrabold text-petflow-chocolate">
                         {isIssuedSort ? "🧾" : "📅"}{" "}
                         {g.date ? formatThaiDateShort(g.date) : "ไม่ระบุวัน"} ·{" "}
                         {g.bills.length} บิล

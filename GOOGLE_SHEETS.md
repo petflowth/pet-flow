@@ -1,4 +1,4 @@
-# Google Sheets Export — CatCha Hotel
+# Google Sheets Export — PetFlow
 
 ส่งออก **ข้อมูลลูกค้า** และ **รายรับ-รายจ่าย** ไป Google Spreadsheet เดียว (2 แท็บ)
 
@@ -30,7 +30,7 @@
 (ใช้ service account ชุดเดียวกับ Calendar ได้)
 
 ### 2. สร้าง Spreadsheet
-1. [sheets.google.com](https://sheets.google.com) → สร้างชีตใหม่ เช่น **CatCha Hotel — Data**
+1. [sheets.google.com](https://sheets.google.com) → สร้างชีตใหม่ เช่น **PetFlow — Data**
 2. ก็อป **Spreadsheet ID** จาก URL  
    `https://docs.google.com/spreadsheets/d/`**`THIS_PART`**`/edit`
 

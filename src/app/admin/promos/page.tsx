@@ -126,7 +126,7 @@ export default function PromosAdminPage() {
   const [broadcastMsg, setBroadcastMsg] = useState("");
   const adminCode =
     typeof window !== "undefined"
-      ? sessionStorage.getItem("catcha-admin") || ""
+      ? sessionStorage.getItem("petflow-admin") || ""
       : "";
 
   const load = useCallback(async () => {
@@ -398,7 +398,7 @@ export default function PromosAdminPage() {
     <div>
       <div className="mb-4 flex items-start justify-between gap-2">
         <div>
-          <h1 className="text-lg font-extrabold text-catcha-chocolate">✨ โปรโมชั่น</h1>
+          <h1 className="text-lg font-extrabold text-petflow-chocolate">✨ โปรโมชั่น</h1>
           <p className="mt-1 text-xs text-brown-soft">
             สร้างโปรเดียว · ติ๊กขึ้นหน้าแรกได้ · ส่วนลดหรือแต้ม
           </p>
@@ -408,8 +408,8 @@ export default function PromosAdminPage() {
         </span>
       </div>
 
-      <section className="mb-5 space-y-3 rounded-catcha border border-sage/40 bg-sage/10 p-4">
-        <h2 className="text-sm font-extrabold text-catcha-chocolate">📨 ส่งโปรทาง LINE</h2>
+      <section className="mb-5 space-y-3 rounded-petflow border border-sage/40 bg-sage/10 p-4">
+        <h2 className="text-sm font-extrabold text-petflow-chocolate">📨 ส่งโปรทาง LINE</h2>
         <p className="text-[10px] text-brown-soft">
           เลือกกลุ่มลูกค้าแล้วส่งการ์ด Flex — ตั้ง LINE ที่ Admin → ติดตั้ง
         </p>
@@ -418,7 +418,7 @@ export default function PromosAdminPage() {
           onChange={(e) =>
             setBroadcastTier(e.target.value as StoreCustomerTier | "all")
           }
-          className="w-full rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-sm"
+          className="w-full rounded-petflow-sm border border-petflow-line bg-card px-3 py-2 text-sm"
         >
           <option value="all">ทุกระดับ ({broadcastCount ?? "…"} คน)</option>
           {(Object.keys(TIER_LABELS) as StoreCustomerTier[]).map((t) => (
@@ -433,7 +433,7 @@ export default function PromosAdminPage() {
           <select
             value={broadcastBreed}
             onChange={(e) => setBroadcastBreed(e.target.value)}
-            className="min-w-0 rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs"
+            className="min-w-0 rounded-petflow-sm border border-petflow-line bg-card px-3 py-2 text-xs"
           >
             <option value="">🐱 ทุกพันธุ์</option>
             {BREED_OPTIONS.map((b) => (
@@ -442,7 +442,7 @@ export default function PromosAdminPage() {
               </option>
             ))}
           </select>
-          <div className="flex min-w-0 items-center gap-1 rounded-catcha-sm border border-catcha-line bg-card px-2 py-1">
+          <div className="flex min-w-0 items-center gap-1 rounded-petflow-sm border border-petflow-line bg-card px-2 py-1">
             <span className="shrink-0 text-xs">⏱️ หายไป &gt;</span>
             <input
               type="number"
@@ -484,8 +484,8 @@ export default function PromosAdminPage() {
           </button>
         )}
 
-        <div className="rounded-catcha-sm border border-catcha-line bg-card/80 p-3">
-          <p className="mb-2 text-xs font-extrabold text-catcha-chocolate">
+        <div className="rounded-petflow-sm border border-petflow-line bg-card/80 p-3">
+          <p className="mb-2 text-xs font-extrabold text-petflow-chocolate">
             👥 จะส่งหา ({broadcastCount ?? 0} คน)
           </p>
           {broadcastNoConsent > 0 && (
@@ -521,7 +521,7 @@ export default function PromosAdminPage() {
             </ul>
           )}
           {broadcastSkippedTotal > 0 && (
-            <div className="mt-2 border-t border-catcha-line pt-2">
+            <div className="mt-2 border-t border-petflow-line pt-2">
               <p className="mb-1 text-[10px] font-bold text-brown-faint">
                 ข้าม {broadcastSkippedTotal} คน (ยังไม่ผูก LINE)
               </p>
@@ -539,8 +539,8 @@ export default function PromosAdminPage() {
           )}
         </div>
 
-        <div className="rounded-catcha-sm border border-catcha-line bg-card/80 p-3">
-          <p className="mb-2 text-xs font-extrabold text-catcha-chocolate">
+        <div className="rounded-petflow-sm border border-petflow-line bg-card/80 p-3">
+          <p className="mb-2 text-xs font-extrabold text-petflow-chocolate">
             📝 ตัวอย่างข้อความ
           </p>
           <div className="flex flex-wrap gap-2">
@@ -561,18 +561,18 @@ export default function PromosAdminPage() {
           value={broadcastTitle}
           onChange={(e) => setBroadcastTitle(e.target.value)}
           placeholder="หัวข้อการ์ด"
-          className="w-full rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-sm"
+          className="w-full rounded-petflow-sm border border-petflow-line bg-card px-3 py-2 text-sm"
         />
         <textarea
           value={broadcastBody}
           onChange={(e) => setBroadcastBody(e.target.value)}
           placeholder="ข้อความโปรโมชั่น"
           rows={3}
-          className="w-full rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-sm"
+          className="w-full rounded-petflow-sm border border-petflow-line bg-card px-3 py-2 text-sm"
         />
 
-        <div className="rounded-catcha-sm border border-catcha-line bg-card/80 p-3">
-          <p className="mb-2 text-xs font-extrabold text-catcha-chocolate">
+        <div className="rounded-petflow-sm border border-petflow-line bg-card/80 p-3">
+          <p className="mb-2 text-xs font-extrabold text-petflow-chocolate">
             🖼️ รูปโปร (ไม่บังคับ)
           </p>
           <input
@@ -604,8 +604,8 @@ export default function PromosAdminPage() {
           )}
         </div>
 
-        <div className="rounded-catcha-sm border border-catcha-line bg-card/80 p-3">
-          <p className="mb-1 text-xs font-extrabold text-catcha-chocolate">
+        <div className="rounded-petflow-sm border border-petflow-line bg-card/80 p-3">
+          <p className="mb-1 text-xs font-extrabold text-petflow-chocolate">
             🔘 ปุ่มกดในการ์ด (เลือกได้สูงสุด 3)
           </p>
           <p className="mb-2 text-[10px] text-brown-soft">
@@ -637,11 +637,11 @@ export default function PromosAdminPage() {
           </div>
         </div>
 
-        <div className="rounded-catcha-sm border border-catcha-line bg-card/80 p-3">
-          <p className="mb-2 text-xs font-extrabold text-catcha-chocolate">
+        <div className="rounded-petflow-sm border border-petflow-line bg-card/80 p-3">
+          <p className="mb-2 text-xs font-extrabold text-petflow-chocolate">
             👀 ตัวอย่างที่ลูกค้าจะเห็นใน LINE
           </p>
-          <div className="mx-auto max-w-[260px] overflow-hidden rounded-2xl border border-catcha-line bg-white">
+          <div className="mx-auto max-w-[260px] overflow-hidden rounded-2xl border border-petflow-line bg-white">
             {broadcastImage.startsWith("data:") || broadcastImage.startsWith("http") ? (
               <Image
                 src={broadcastImage}
@@ -653,7 +653,7 @@ export default function PromosAdminPage() {
               />
             ) : (
               <div className="px-4 py-5" style={{ backgroundColor: "#5A8F5A" }}>
-                <span className="text-sm font-bold text-white">✨ โปรโมชั่น CatCha</span>
+                <span className="text-sm font-bold text-white">✨ โปรโมชั่น PetFlow</span>
               </div>
             )}
             <div className="px-4 py-3">
@@ -694,7 +694,7 @@ export default function PromosAdminPage() {
           type="button"
           disabled={broadcasting}
           onClick={sendBroadcast}
-          className="w-full rounded-catcha-sm bg-[#4A7348] py-3 text-sm font-extrabold text-white disabled:opacity-60"
+          className="w-full rounded-petflow-sm bg-[#4A7348] py-3 text-sm font-extrabold text-white disabled:opacity-60"
         >
           {broadcasting ? "กำลังส่ง…" : `📨 ส่งให้ลูกค้า (${broadcastCount ?? "…"} คน)`}
         </button>
@@ -706,19 +706,19 @@ export default function PromosAdminPage() {
       <button
         type="button"
         onClick={openNew}
-        className="mb-5 w-full rounded-catcha-sm border border-dashed border-honey/60 bg-honey/15 py-3 text-sm font-extrabold text-catcha-chocolate"
+        className="mb-5 w-full rounded-petflow-sm border border-dashed border-honey/60 bg-honey/15 py-3 text-sm font-extrabold text-petflow-chocolate"
       >
         ➕ เพิ่มโปรใหม่
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-catcha bg-card p-5 shadow-catcha">
-            <h2 className="mb-3 text-sm font-extrabold text-catcha-chocolate">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-petflow bg-card p-5 shadow-petflow">
+            <h2 className="mb-3 text-sm font-extrabold text-petflow-chocolate">
               {editing ? "✏️ แก้ไขโปร" : "➕ เพิ่มโปรใหม่"}
             </h2>
             <form key={editing?.id || "new"} onSubmit={submit} className="space-y-3">
-              <label className="flex items-start gap-3 rounded-catcha-sm border border-honey/50 bg-honey/10 px-3 py-3 text-xs font-bold text-catcha-chocolate">
+              <label className="flex items-start gap-3 rounded-petflow-sm border border-honey/50 bg-honey/10 px-3 py-3 text-xs font-bold text-petflow-chocolate">
                 <input
                   type="checkbox"
                   checked={showOnHome}
@@ -747,8 +747,8 @@ export default function PromosAdminPage() {
                       key={value}
                       type="button"
                       onClick={() => setRewardType(value)}
-                      className={`rounded-catcha-sm px-2 py-2 text-[10px] font-bold ${
-                        rewardType === value ? "bg-latte/30 text-catcha-chocolate" : "bg-paper text-brown-faint"
+                      className={`rounded-petflow-sm px-2 py-2 text-[10px] font-bold ${
+                        rewardType === value ? "bg-latte/30 text-petflow-chocolate" : "bg-paper text-brown-faint"
                       }`}
                     >
                       {label}
@@ -757,24 +757,24 @@ export default function PromosAdminPage() {
                 </div>
               </div>
 
-              <input name="titleTh" required defaultValue={editing?.title.th} placeholder="หัวข้อ (ไทย)" className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
-              <textarea name="bodyTh" required defaultValue={editing?.body.th} placeholder="รายละเอียด" rows={2} className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+              <input name="titleTh" required defaultValue={editing?.title.th} placeholder="หัวข้อ (ไทย)" className="w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm" />
+              <textarea name="bodyTh" required defaultValue={editing?.body.th} placeholder="รายละเอียด" rows={2} className="w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm" />
 
               {showDiscount && (
                 <div className="grid grid-cols-2 gap-2">
-                  <input name="discountPercent" type="number" defaultValue={editing?.discountPercent ?? ""} placeholder="ส่วนลด %" className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
-                  <input name="discountAmount" type="number" defaultValue={editing?.discountAmount ?? ""} placeholder="ส่วนลด บาท" className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+                  <input name="discountPercent" type="number" defaultValue={editing?.discountPercent ?? ""} placeholder="ส่วนลด %" className="rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm" />
+                  <input name="discountAmount" type="number" defaultValue={editing?.discountAmount ?? ""} placeholder="ส่วนลด บาท" className="rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm" />
                 </div>
               )}
 
               {showPoints && (
                 <div className="grid grid-cols-2 gap-2">
-                  <input name="pointsBonus" type="number" defaultValue={editing?.pointsBonus ?? ""} placeholder="แต้มโบนัส (กดใช้แล้วได้ทันที)" className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
-                  <input name="pointsMultiplier" type="number" step="0.1" defaultValue={editing?.pointsMultiplier ?? ""} placeholder="ตัวคูณแต้ม เช่น 2" className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+                  <input name="pointsBonus" type="number" defaultValue={editing?.pointsBonus ?? ""} placeholder="แต้มโบนัส (กดใช้แล้วได้ทันที)" className="rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm" />
+                  <input name="pointsMultiplier" type="number" step="0.1" defaultValue={editing?.pointsMultiplier ?? ""} placeholder="ตัวคูณแต้ม เช่น 2" className="rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm" />
                 </div>
               )}
 
-              <input name="couponCode" defaultValue={editing?.couponCode ?? ""} placeholder="รหัสโปร (ถ้ามี)" className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+              <input name="couponCode" defaultValue={editing?.couponCode ?? ""} placeholder="รหัสโปร (ถ้ามี)" className="w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm" />
 
               <div>
                 <p className="mb-2 text-[10px] font-bold text-brown-soft">
@@ -787,7 +787,7 @@ export default function PromosAdminPage() {
                       type="button"
                       onClick={() => toggleTier(opt.value)}
                       className={`rounded-full px-3 py-1.5 text-[10px] font-bold ${
-                        tiers.includes(opt.value) ? "bg-latte/30 text-catcha-chocolate" : "bg-paper text-brown-faint"
+                        tiers.includes(opt.value) ? "bg-latte/30 text-petflow-chocolate" : "bg-paper text-brown-faint"
                       }`}
                     >
                       {opt.label}
@@ -810,7 +810,7 @@ export default function PromosAdminPage() {
                       key={value}
                       type="button"
                       onClick={() => setRestriction(value)}
-                      className={`rounded-catcha-sm px-2 py-2 text-[10px] font-bold ${
+                      className={`rounded-petflow-sm px-2 py-2 text-[10px] font-bold ${
                         restriction === value ? "bg-latte/30" : "bg-paper text-brown-faint"
                       }`}
                     >
@@ -820,12 +820,12 @@ export default function PromosAdminPage() {
                 </div>
               </div>
               {restriction === "calendar_month" && (
-                <input name="validMonth" type="month" required defaultValue={editing?.validMonth ?? ""} className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+                <input name="validMonth" type="month" required defaultValue={editing?.validMonth ?? ""} className="w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm" />
               )}
 
               <div className="grid grid-cols-2 gap-2">
-                <input name="startDate" type="date" required defaultValue={editing?.startDate ?? ""} className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
-                <input name="until" type="date" required defaultValue={editing?.until ?? ""} className="rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+                <input name="startDate" type="date" required defaultValue={editing?.startDate ?? ""} className="rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm" />
+                <input name="until" type="date" required defaultValue={editing?.until ?? ""} className="rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm" />
               </div>
 
               <label className="block text-[10px] font-bold text-latte-deep">
@@ -833,14 +833,14 @@ export default function PromosAdminPage() {
                 <input type="file" accept="image/*" className="mt-1 block w-full text-[10px]" onChange={(e) => e.target.files?.[0] && onImage(e.target.files[0])} />
               </label>
               {hasImage && (
-                <Image src={imageUrl} alt="" width={96} height={72} className="h-[72px] w-[96px] rounded-catcha-sm object-cover" unoptimized />
+                <Image src={imageUrl} alt="" width={96} height={72} className="h-[72px] w-[96px] rounded-petflow-sm object-cover" unoptimized />
               )}
 
               <div className="flex gap-2 pt-1">
-                <button type="button" onClick={closeModal} className="flex-1 rounded-catcha-sm bg-paper py-2.5 text-xs font-bold text-brown-soft">
+                <button type="button" onClick={closeModal} className="flex-1 rounded-petflow-sm bg-paper py-2.5 text-xs font-bold text-brown-soft">
                   ยกเลิก
                 </button>
-                <button type="submit" className="flex-1 rounded-catcha-sm bg-gradient-to-r from-honey to-honey-deep py-2.5 text-xs font-extrabold text-catcha-chocolate">
+                <button type="submit" className="flex-1 rounded-petflow-sm bg-gradient-to-r from-honey to-honey-deep py-2.5 text-xs font-extrabold text-petflow-chocolate">
                   {editing ? "💾 บันทึกการแก้ไข" : "บันทึกโปร"}
                 </button>
               </div>
@@ -849,7 +849,7 @@ export default function PromosAdminPage() {
         </div>
       )}
 
-      <h2 className="mb-2 text-sm font-extrabold text-catcha-chocolate">
+      <h2 className="mb-2 text-sm font-extrabold text-petflow-chocolate">
         📋 รายการโปร ({visiblePromos.length}{visiblePromos.length !== promos.length ? ` / ${promos.length}` : ""})
       </h2>
 
@@ -858,7 +858,7 @@ export default function PromosAdminPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as "all" | "active" | "inactive")}
-          className="rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs font-bold text-brown"
+          className="rounded-petflow-sm border border-petflow-line bg-card px-3 py-2 text-xs font-bold text-brown"
         >
           <option value="all">ทุกสถานะ</option>
           <option value="active">✅ ใช้งาน</option>
@@ -867,7 +867,7 @@ export default function PromosAdminPage() {
         <select
           value={kindFilter}
           onChange={(e) => setKindFilter(e.target.value as "all" | PromoKind)}
-          className="rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs font-bold text-brown"
+          className="rounded-petflow-sm border border-petflow-line bg-card px-3 py-2 text-xs font-bold text-brown"
         >
           <option value="all">ทุกที่แสดงผล</option>
           <option value="customer">🏠 หน้าแรก</option>
@@ -877,13 +877,13 @@ export default function PromosAdminPage() {
           value={promoQuery}
           onChange={(e) => setPromoQuery(e.target.value)}
           placeholder="🔍 ค้นหาชื่อ/รายละเอียด"
-          className="min-w-0 flex-1 rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs"
+          className="min-w-0 flex-1 rounded-petflow-sm border border-petflow-line bg-card px-3 py-2 text-xs"
         />
         {(promoQuery || statusFilter !== "all" || kindFilter !== "all") && (
           <button
             type="button"
             onClick={resetPromoFilters}
-            className="rounded-catcha-sm bg-paper px-3 py-2 text-xs font-bold text-brown-soft"
+            className="rounded-petflow-sm bg-paper px-3 py-2 text-xs font-bold text-brown-soft"
           >
             ↺ รีเซ็ต
           </button>
@@ -891,10 +891,10 @@ export default function PromosAdminPage() {
       </div>
 
       {/* ── ตาราง (จอกว้าง) ── */}
-      <div className="mb-4 hidden overflow-x-auto rounded-catcha border border-catcha-line bg-card shadow-catcha-sm md:block">
+      <div className="mb-4 hidden overflow-x-auto rounded-petflow border border-petflow-line bg-card shadow-petflow-sm md:block">
         <table className="w-full min-w-[900px] text-left text-xs">
           <thead>
-            <tr className="border-b border-catcha-line bg-paper/60 text-[10px] font-extrabold uppercase tracking-wide text-brown-soft">
+            <tr className="border-b border-petflow-line bg-paper/60 text-[10px] font-extrabold uppercase tracking-wide text-brown-soft">
               <PromoSortableTh label="ชื่อ" sortKey="title" active={promoSortKey} dir={promoSortDir} onSort={togglePromoSort} />
               <th className="px-3 py-2.5">เงื่อนไข</th>
               <th className="px-3 py-2.5">กลุ่มลูกค้า</th>
@@ -911,7 +911,7 @@ export default function PromosAdminPage() {
             {visiblePromos.map((p) => {
               const reward = promoRewardLabel(p);
               return (
-                <tr key={p.id} className="border-b border-catcha-line last:border-0 hover:bg-paper/50">
+                <tr key={p.id} className="border-b border-petflow-line last:border-0 hover:bg-paper/50">
                   <td className="px-3 py-2.5">
                     <p className="font-bold text-brown">{p.title.th}</p>
                     <p className="mt-0.5 max-w-[220px] truncate text-[10px] text-brown-faint">{p.body.th}</p>
@@ -925,7 +925,7 @@ export default function PromosAdminPage() {
                   <td className="px-3 py-2.5 text-brown-soft">{p.until}</td>
                   <td className="px-3 py-2.5">
                     {p.imageUrl ? (
-                      <Image src={p.imageUrl} alt="" width={40} height={40} className="h-10 w-10 rounded-catcha-sm object-cover" unoptimized />
+                      <Image src={p.imageUrl} alt="" width={40} height={40} className="h-10 w-10 rounded-petflow-sm object-cover" unoptimized />
                     ) : (
                       <span className="text-brown-faint">—</span>
                     )}
@@ -949,7 +949,7 @@ export default function PromosAdminPage() {
                       type="button"
                       onClick={() => toggleHome(p)}
                       className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                        p.kind === "customer" ? "bg-honey/30 text-catcha-chocolate" : "bg-paper text-brown-faint"
+                        p.kind === "customer" ? "bg-honey/30 text-petflow-chocolate" : "bg-paper text-brown-faint"
                       }`}
                     >
                       {p.kind === "customer" ? "🏠 หน้าแรก" : "หน้าโปร"}
@@ -957,7 +957,7 @@ export default function PromosAdminPage() {
                   </td>
                   <td className="px-3 py-2.5">
                     <div className="flex justify-end gap-2">
-                      <button type="button" onClick={() => openEdit(p)} className="text-catcha-chocolate" aria-label="แก้ไข">
+                      <button type="button" onClick={() => openEdit(p)} className="text-petflow-chocolate" aria-label="แก้ไข">
                         ✏️
                       </button>
                       <button type="button" onClick={() => remove(p)} className="text-wait" aria-label="ลบ">
@@ -984,7 +984,7 @@ export default function PromosAdminPage() {
         {visiblePromos.map((p) => {
           const reward = promoRewardLabel(p);
           return (
-            <li key={p.id} className="overflow-hidden rounded-catcha border border-catcha-line bg-card">
+            <li key={p.id} className="overflow-hidden rounded-petflow border border-petflow-line bg-card">
               <div className="p-4">
                 <div className="flex justify-between gap-2">
                   <div className="min-w-0 flex-1">
@@ -1002,7 +1002,7 @@ export default function PromosAdminPage() {
                       {p.tiers.join(", ")}
                     </p>
                     {claimsFor(p.id).length > 0 && (
-                      <div className="mt-2 rounded-catcha-sm bg-sage/10 px-2 py-1.5 text-[10px] text-brown-soft">
+                      <div className="mt-2 rounded-petflow-sm bg-sage/10 px-2 py-1.5 text-[10px] text-brown-soft">
                         ใช้แล้ว {claimsFor(p.id).length} ครั้ง
                         {claimsFor(p.id).slice(0, 3).map((c) => (
                           <div key={c.id}>
@@ -1018,7 +1018,7 @@ export default function PromosAdminPage() {
                       type="button"
                       onClick={() => toggleHome(p)}
                       className={`rounded-full px-3 py-1 text-[10px] font-bold ${
-                        p.kind === "customer" ? "bg-honey/30 text-catcha-chocolate" : "bg-paper text-brown-faint"
+                        p.kind === "customer" ? "bg-honey/30 text-petflow-chocolate" : "bg-paper text-brown-faint"
                       }`}
                     >
                       {p.kind === "customer" ? "🏠 หน้าแรก" : "หน้าโปร"}
@@ -1035,7 +1035,7 @@ export default function PromosAdminPage() {
                     <button
                       type="button"
                       onClick={() => openEdit(p)}
-                      className="rounded-full bg-honey/25 px-3 py-1 text-[10px] font-bold text-catcha-chocolate"
+                      className="rounded-full bg-honey/25 px-3 py-1 text-[10px] font-bold text-petflow-chocolate"
                     >
                       ✏️ แก้ไข
                     </button>
@@ -1078,7 +1078,7 @@ function PromoSortableTh({
       <button
         type="button"
         onClick={() => onSort(sortKey)}
-        className={`inline-flex items-center gap-0.5 ${isActive ? "text-catcha-chocolate" : "text-brown-soft"}`}
+        className={`inline-flex items-center gap-0.5 ${isActive ? "text-petflow-chocolate" : "text-brown-soft"}`}
       >
         {label}
         <span className="text-[9px]">{isActive ? (dir === "asc" ? "▲" : "▼") : "↕"}</span>

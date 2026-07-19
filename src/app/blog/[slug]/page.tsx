@@ -36,7 +36,7 @@ async function resolvePost(
   return null;
 }
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catchahotel.com";
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://petflow.example.com";
 
 type Params = { slug: string };
 
@@ -55,7 +55,7 @@ export async function generateMetadata({
   const post = resolvedMeta.post;
   return {
     metadataBase: new URL(SITE_URL),
-    title: `${post.title} | CatCha Hotel`,
+    title: `${post.title} | PetFlow`,
     description: post.description,
     keywords: post.keywords,
     alternates: { canonical: `/blog/${post.slug}` },
@@ -63,7 +63,7 @@ export async function generateMetadata({
       type: "article",
       locale: "th_TH",
       url: `${SITE_URL}/blog/${post.slug}`,
-      siteName: "CatCha Hotel",
+      siteName: "PetFlow",
       title: post.title,
       description: post.description,
       publishedTime: post.datePublished,
@@ -91,8 +91,8 @@ export default async function BlogPostPage({ params }: { params: Promise<Params>
         datePublished: post.datePublished,
         ...(post.cover ? { image: `${SITE_URL}${post.cover}` } : {}),
         inLanguage: "th",
-        author: { "@type": "Organization", name: "CatCha Hotel" },
-        publisher: { "@type": "Organization", name: "CatCha Hotel" },
+        author: { "@type": "Organization", name: "PetFlow" },
+        publisher: { "@type": "Organization", name: "PetFlow" },
         mainEntityOfPage: `${SITE_URL}/blog/${post.slug}`,
       },
       {
@@ -126,7 +126,7 @@ export default async function BlogPostPage({ params }: { params: Promise<Params>
               <img
                 src={post.cover}
                 alt={post.title}
-                className="h-auto w-full rounded-catcha border border-catcha-line shadow-catcha-sm"
+                className="h-auto w-full rounded-petflow border border-petflow-line shadow-petflow-sm"
               />
             ) : (
               <Image
@@ -136,25 +136,25 @@ export default async function BlogPostPage({ params }: { params: Promise<Params>
                 height={800}
                 priority
                 sizes="(max-width: 640px) 100vw, 640px"
-                className="h-auto w-full rounded-catcha border border-catcha-line shadow-catcha-sm"
+                className="h-auto w-full rounded-petflow border border-petflow-line shadow-petflow-sm"
               />
             )}
           </a>
         ) : (
           <p className="text-4xl">{post.emoji}</p>
         )}
-        <h1 className="mt-3 text-2xl font-extrabold leading-snug text-catcha-chocolate">
+        <h1 className="mt-3 text-2xl font-extrabold leading-snug text-petflow-chocolate">
           {post.title}
         </h1>
         <p className="mt-2 text-[11px] font-bold text-brown-faint">
-          โดย CatCha Hotel · อ่าน {post.readMinutes} นาที
+          โดย PetFlow · อ่าน {post.readMinutes} นาที
         </p>
 
         <div className="mt-5 space-y-4">
           {post.blocks.map((block, i) => {
             if (block.type === "h2") {
               return (
-                <h2 key={i} className="pt-2 text-lg font-extrabold text-catcha-chocolate">
+                <h2 key={i} className="pt-2 text-lg font-extrabold text-petflow-chocolate">
                   {block.text}
                 </h2>
               );
@@ -182,11 +182,11 @@ export default async function BlogPostPage({ params }: { params: Promise<Params>
         {/* FAQ */}
         {post.faqs.length > 0 && (
         <div className="mt-8">
-          <h2 className="text-lg font-extrabold text-catcha-chocolate">❓ คำถามที่พบบ่อย</h2>
+          <h2 className="text-lg font-extrabold text-petflow-chocolate">❓ คำถามที่พบบ่อย</h2>
           <div className="mt-3 space-y-3">
             {post.faqs.map((f, i) => (
-              <div key={i} className="rounded-catcha border border-catcha-line bg-card p-4">
-                <p className="text-sm font-extrabold text-catcha-chocolate">{f.q}</p>
+              <div key={i} className="rounded-petflow border border-petflow-line bg-card p-4">
+                <p className="text-sm font-extrabold text-petflow-chocolate">{f.q}</p>
                 <p className="mt-1.5 text-sm leading-relaxed text-brown-soft">{f.a}</p>
               </div>
             ))}
@@ -195,18 +195,18 @@ export default async function BlogPostPage({ params }: { params: Promise<Params>
         )}
 
         {/* CTA */}
-        <div className="mt-8 rounded-catcha bg-gradient-to-br from-honey/30 via-card to-latte/15 p-5 text-center shadow-catcha">
-          <p className="text-sm font-extrabold text-catcha-chocolate">
-            🐱 CatCha Hotel — โรงแรมแมว & อาบน้ำแมว
+        <div className="mt-8 rounded-petflow bg-gradient-to-br from-honey/30 via-card to-latte/15 p-5 text-center shadow-petflow">
+          <p className="text-sm font-extrabold text-petflow-chocolate">
+            🐱 PetFlow — โรงแรมแมว & อาบน้ำแมว
           </p>
           <p className="mt-1 text-xs text-brown-soft">
             ย่านเทพารักษ์–หนามแดง ใกล้บางนา ศรีนครินทร์ เมกาบางนา · เริ่มคืนละ 350.-
           </p>
           <a
-            href="https://line.me/R/ti/p/@catchahotel"
+            href="https://line.me/R/ti/p/@petflow"
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-3 inline-block rounded-catcha-sm bg-latte-deep px-6 py-2.5 text-sm font-extrabold text-card"
+            className="mt-3 inline-block rounded-petflow-sm bg-latte-deep px-6 py-2.5 text-sm font-extrabold text-card"
           >
             💬 ทัก LINE จองคิว / สอบถาม
           </a>
@@ -221,13 +221,13 @@ export default async function BlogPostPage({ params }: { params: Promise<Params>
       {/* บทความอื่น */}
       {others.length > 0 && (
         <div className="mt-10">
-          <h2 className="text-sm font-extrabold text-catcha-chocolate">อ่านต่อ</h2>
+          <h2 className="text-sm font-extrabold text-petflow-chocolate">อ่านต่อ</h2>
           <div className="mt-3 space-y-2">
             {others.map((p) => (
               <Link
                 key={p.slug}
                 href={`/blog/${p.slug}`}
-                className="block rounded-catcha-sm border border-catcha-line bg-card px-4 py-3 text-sm font-bold text-brown transition hover:border-honey/60"
+                className="block rounded-petflow-sm border border-petflow-line bg-card px-4 py-3 text-sm font-bold text-brown transition hover:border-honey/60"
               >
                 {p.emoji} {p.title}
               </Link>

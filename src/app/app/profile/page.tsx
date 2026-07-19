@@ -135,26 +135,26 @@ export default function ProfilePage() {
     }
   };
 
-  const field = "w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm";
-  const sub = "w-full rounded-lg border border-catcha-line bg-paper px-3 py-2 text-sm";
+  const field = "w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm";
+  const sub = "w-full rounded-lg border border-petflow-line bg-paper px-3 py-2 text-sm";
 
   return (
     <div className="px-4 pb-10 pt-5">
       <Link href="/app" className="mb-3 inline-block text-xs font-bold text-brown-soft">
         ← กลับหน้าแรก
       </Link>
-      <h1 className="text-lg font-extrabold text-catcha-chocolate">
+      <h1 className="text-lg font-extrabold text-petflow-chocolate">
         ✏️ แก้ไขข้อมูลของฉัน
       </h1>
 
       {!ready || loading ? (
         <p className="mt-6 text-sm text-brown-soft">กำลังโหลด…</p>
       ) : !found ? (
-        <div className="mt-6 rounded-catcha bg-paper px-4 py-4 text-center text-sm text-brown-soft">
+        <div className="mt-6 rounded-petflow bg-paper px-4 py-4 text-center text-sm text-brown-soft">
           ยังไม่มีข้อมูลของคุณในระบบ
           <Link
             href="/app/register"
-            className="mt-3 block rounded-catcha-sm bg-latte-deep py-2.5 text-sm font-extrabold text-card"
+            className="mt-3 block rounded-petflow-sm bg-latte-deep py-2.5 text-sm font-extrabold text-card"
           >
             ลงทะเบียนก่อนค่ะ
           </Link>
@@ -162,7 +162,7 @@ export default function ProfilePage() {
       ) : (
         <>
           {/* ── ผู้ปกครอง ── */}
-          <div className="mt-4 space-y-3 rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm">
+          <div className="mt-4 space-y-3 rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm">
             <label className="block text-xs font-bold text-brown-soft">
               ชื่อผู้ปกครอง
               <input value={name} onChange={(e) => setName(e.target.value)} className={`${field} mt-1 font-bold text-brown`} />
@@ -215,9 +215,9 @@ export default function ProfilePage() {
 
           {/* ── น้องแมว ── */}
           <div className="mt-4 space-y-3">
-            <p className="text-xs font-extrabold text-catcha-chocolate">🐱 น้องแมวของฉัน</p>
+            <p className="text-xs font-extrabold text-petflow-chocolate">🐱 น้องแมวของฉัน</p>
             {cats.map((cat, idx) => (
-              <div key={cat.id} className="space-y-2 rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm">
+              <div key={cat.id} className="space-y-2 rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm">
                 <label className="block text-xs font-bold text-brown-soft">
                   ชื่อน้อง
                   <input value={cat.name} onChange={(e) => updateCat(idx, { name: e.target.value })} className={`${sub} mt-1 font-bold text-brown`} />
@@ -228,7 +228,7 @@ export default function ProfilePage() {
                       key={v}
                       type="button"
                       onClick={() => updateCat(idx, { gender: cat.gender === v ? "" : v })}
-                      className={`flex-1 rounded-lg py-2 text-xs font-bold ${cat.gender === v ? "bg-latte/40 text-catcha-chocolate ring-1 ring-latte-deep" : "bg-paper text-brown-faint"}`}
+                      className={`flex-1 rounded-lg py-2 text-xs font-bold ${cat.gender === v ? "bg-latte/40 text-petflow-chocolate ring-1 ring-latte-deep" : "bg-paper text-brown-faint"}`}
                     >
                       {l}
                     </button>
@@ -256,12 +256,12 @@ export default function ProfilePage() {
                     value={cat.ageValue}
                     onChange={(e) => updateCat(idx, { ageValue: e.target.value })}
                     placeholder="อายุ"
-                    className="min-w-0 flex-1 rounded-lg border border-catcha-line bg-paper px-3 py-2 text-sm"
+                    className="min-w-0 flex-1 rounded-lg border border-petflow-line bg-paper px-3 py-2 text-sm"
                   />
                   <select
                     value={cat.ageUnit}
                     onChange={(e) => updateCat(idx, { ageUnit: e.target.value as "year" | "month" })}
-                    className="w-24 shrink-0 rounded-lg border border-catcha-line bg-paper px-3 py-2 text-sm"
+                    className="w-24 shrink-0 rounded-lg border border-petflow-line bg-paper px-3 py-2 text-sm"
                   >
                     <option value="year">ปี</option>
                     <option value="month">เดือน</option>
@@ -289,7 +289,7 @@ export default function ProfilePage() {
                   key={opt}
                   type="button"
                   onClick={() => setReferral((p) => (p === opt ? "" : opt))}
-                  className={`rounded-full px-3 py-1.5 text-xs font-bold ${referral === opt ? "bg-latte/40 text-catcha-chocolate ring-1 ring-latte-deep" : "bg-paper text-brown-faint"}`}
+                  className={`rounded-full px-3 py-1.5 text-xs font-bold ${referral === opt ? "bg-latte/40 text-petflow-chocolate ring-1 ring-latte-deep" : "bg-paper text-brown-faint"}`}
                 >
                   {opt}
                 </button>
@@ -298,7 +298,7 @@ export default function ProfilePage() {
           </div>
 
           {/* ── ยินยอมรับข่าวสาร ── */}
-          <label className="mt-4 flex items-start gap-3 rounded-catcha-sm border border-catcha-line bg-card p-3">
+          <label className="mt-4 flex items-start gap-3 rounded-petflow-sm border border-petflow-line bg-card p-3">
             <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-4 w-4 flex-none accent-[#4A7348]" />
             <span className="text-xs text-brown">ยินยอมให้ส่งข่าวสาร โปรโมชั่น และสิทธิพิเศษ</span>
           </label>
@@ -307,7 +307,7 @@ export default function ProfilePage() {
             type="button"
             onClick={save}
             disabled={saving || !name.trim()}
-            className="mt-4 w-full rounded-catcha-sm bg-latte-deep py-3 text-sm font-extrabold text-card active:scale-[0.98] disabled:opacity-50"
+            className="mt-4 w-full rounded-petflow-sm bg-latte-deep py-3 text-sm font-extrabold text-card active:scale-[0.98] disabled:opacity-50"
           >
             {saving ? "กำลังบันทึก…" : "💾 บันทึกข้อมูล"}
           </button>

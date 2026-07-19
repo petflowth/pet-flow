@@ -426,13 +426,13 @@ export function CustomerSendButtons({
           type="button"
           disabled={noLine || busy !== ""}
           onClick={() => setBundleOpen((v) => !v)}
-          className="rounded-full bg-latte/40 px-2.5 py-1 text-[10px] font-extrabold text-catcha-chocolate disabled:opacity-40"
+          className="rounded-full bg-latte/40 px-2.5 py-1 text-[10px] font-extrabold text-petflow-chocolate disabled:opacity-40"
         >
           📦 ส่งชุดการ์ด {bundleOpen ? "▲" : "▼"}
         </button>
       )}
       {bundleOpen && bookingId && (
-        <div className="w-full rounded-catcha-sm border border-latte/50 bg-card p-2.5">
+        <div className="w-full rounded-petflow-sm border border-latte/50 bg-card p-2.5">
           <p className="mb-1.5 text-[10px] font-bold text-brown-soft">
             เลือกการ์ดที่จะส่งพร้อมกัน ({bundleParts.length}/{BUNDLE_MAX}) —
             ทั้งหมดรวมเป็น <b>1 ข้อความ LINE</b> ตัดโควตาแค่ครั้งเดียว:
@@ -457,7 +457,7 @@ export function CustomerSendButtons({
             type="button"
             disabled={bundleParts.length === 0 || busy !== ""}
             onClick={sendBundle}
-            className="mt-2 w-full rounded-catcha-sm bg-latte-deep py-2 text-[11px] font-extrabold text-white disabled:opacity-40"
+            className="mt-2 w-full rounded-petflow-sm bg-latte-deep py-2 text-[11px] font-extrabold text-white disabled:opacity-40"
           >
             {busy === "bundle"
               ? "กำลังส่ง…"

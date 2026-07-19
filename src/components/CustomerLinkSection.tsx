@@ -41,8 +41,8 @@ export function CustomerLinkSection({
   };
 
   return (
-    <section className="mb-4 rounded-catcha border border-latte/40 bg-latte/10 p-4">
-      <h2 className="mb-1 text-sm font-extrabold text-catcha-chocolate">
+    <section className="mb-4 rounded-petflow border border-latte/40 bg-latte/10 p-4">
+      <h2 className="mb-1 text-sm font-extrabold text-petflow-chocolate">
         🔗 ลิงก์ผูก LINE
       </h2>
       <p className="mb-3 text-[10px] text-brown-soft">
@@ -57,7 +57,7 @@ export function CustomerLinkSection({
             alt="QR ผูก LINE"
             width={120}
             height={120}
-            className="rounded-catcha-sm bg-white p-2 shadow-catcha-sm"
+            className="rounded-petflow-sm bg-white p-2 shadow-petflow-sm"
           />
           <div className="min-w-0 flex-1">
             <p className="mb-2 break-all font-mono text-[10px] text-brown-soft">
@@ -66,7 +66,7 @@ export function CustomerLinkSection({
             <button
               type="button"
               onClick={copy}
-              className="rounded-catcha-sm bg-card px-3 py-2 text-[10px] font-bold text-latte-deep"
+              className="rounded-petflow-sm bg-card px-3 py-2 text-[10px] font-bold text-latte-deep"
             >
               {copied ? "✅ Copy แล้ว" : "📋 Copy ลิงก์ผูก LINE"}
             </button>

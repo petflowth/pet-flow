@@ -26,7 +26,7 @@ export default function RoomDetailClient({ roomId }: { roomId: string }) {
       <div className="px-4 pt-4">
         <Link
           href="/app/rooms"
-          className="mb-3 inline-flex items-center gap-1 rounded-full bg-card px-3 py-1.5 text-xs font-bold text-catcha-chocolate shadow-catcha-sm"
+          className="mb-3 inline-flex items-center gap-1 rounded-full bg-card px-3 py-1.5 text-xs font-bold text-petflow-chocolate shadow-petflow-sm"
         >
           ← {m.back}
         </Link>

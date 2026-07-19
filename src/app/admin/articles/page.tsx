@@ -42,7 +42,7 @@ export default function ArticlesAdminPage() {
   const [saving, setSaving] = useState(false);
 
   const adminCode =
-    typeof window !== "undefined" ? sessionStorage.getItem("catcha-admin") || "" : "";
+    typeof window !== "undefined" ? sessionStorage.getItem("petflow-admin") || "" : "";
 
   const load = useCallback(async () => {
     const res = await fetch("/api/articles?all=1", {
@@ -131,7 +131,7 @@ export default function ArticlesAdminPage() {
   };
 
   const field =
-    "w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm";
+    "w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm";
 
   if (!loaded) return <p className="py-10 text-center text-sm text-brown-soft">กำลังโหลด…</p>;
 
@@ -139,7 +139,7 @@ export default function ArticlesAdminPage() {
     <div>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h1 className="text-lg font-extrabold text-catcha-chocolate">📝 บทความหน้าเว็บ</h1>
+          <h1 className="text-lg font-extrabold text-petflow-chocolate">📝 บทความหน้าเว็บ</h1>
           <p className="mt-1 text-xs text-brown-soft">
             เพิ่มบทความใหม่ + รูปปกได้เอง — ขึ้นที่หน้า{" "}
             <a href="/blog" target="_blank" className="font-bold text-latte-deep underline">
@@ -152,7 +152,7 @@ export default function ArticlesAdminPage() {
           <button
             type="button"
             onClick={startNew}
-            className="rounded-catcha-sm bg-gradient-to-r from-honey to-honey-deep px-4 py-2.5 text-xs font-extrabold text-catcha-chocolate"
+            className="rounded-petflow-sm bg-gradient-to-r from-honey to-honey-deep px-4 py-2.5 text-xs font-extrabold text-petflow-chocolate"
           >
             ➕ เขียนบทความใหม่
           </button>
@@ -160,8 +160,8 @@ export default function ArticlesAdminPage() {
       </div>
 
       {form && (
-        <div className="mb-5 space-y-3 rounded-catcha border border-latte/50 bg-card p-4 shadow-catcha-sm">
-          <p className="text-sm font-extrabold text-catcha-chocolate">
+        <div className="mb-5 space-y-3 rounded-petflow border border-latte/50 bg-card p-4 shadow-petflow-sm">
+          <p className="text-sm font-extrabold text-petflow-chocolate">
             {form.id ? "✏️ แก้ไขบทความ" : "➕ บทความใหม่"}
           </p>
           <label className="block text-xs font-bold text-brown-soft">
@@ -232,7 +232,7 @@ export default function ArticlesAdminPage() {
                 <img
                   src={coverDataUrl || form.coverUrl}
                   alt="ปก"
-                  className="mt-2 h-24 w-full rounded-catcha-sm object-cover"
+                  className="mt-2 h-24 w-full rounded-petflow-sm object-cover"
                 />
               )}
             </label>
@@ -261,14 +261,14 @@ export default function ArticlesAdminPage() {
               type="button"
               disabled={saving || !form.title.trim() || !form.slug.trim()}
               onClick={save}
-              className="flex-1 rounded-catcha-sm bg-latte-deep py-2.5 text-sm font-extrabold text-white disabled:opacity-40"
+              className="flex-1 rounded-petflow-sm bg-latte-deep py-2.5 text-sm font-extrabold text-white disabled:opacity-40"
             >
               {saving ? "กำลังบันทึก…" : "💾 บันทึกบทความ"}
             </button>
             <button
               type="button"
               onClick={() => setForm(null)}
-              className="rounded-catcha-sm bg-paper px-4 py-2.5 text-xs font-bold text-brown-soft"
+              className="rounded-petflow-sm bg-paper px-4 py-2.5 text-xs font-bold text-brown-soft"
             >
               ยกเลิก
             </button>
@@ -278,7 +278,7 @@ export default function ArticlesAdminPage() {
 
       <div className="space-y-2">
         {articles.length === 0 && builtins.length === 0 && (
-          <p className="rounded-catcha bg-card p-6 text-center text-sm text-brown-soft">
+          <p className="rounded-petflow bg-card p-6 text-center text-sm text-brown-soft">
             ยังไม่มีบทความ — กด &quot;เขียนบทความใหม่&quot; ได้เลย
           </p>
         )}
@@ -286,7 +286,7 @@ export default function ArticlesAdminPage() {
         {articles.map((a) => (
           <div
             key={a.id}
-            className="flex items-center justify-between gap-3 rounded-catcha-sm border border-catcha-line bg-card p-3"
+            className="flex items-center justify-between gap-3 rounded-petflow-sm border border-petflow-line bg-card p-3"
           >
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-brown">
@@ -311,7 +311,7 @@ export default function ArticlesAdminPage() {
             <button
               type="button"
               onClick={() => startEdit(a)}
-              className="shrink-0 rounded-full bg-honey/25 px-2.5 py-1 text-[10px] font-bold text-catcha-chocolate"
+              className="shrink-0 rounded-full bg-honey/25 px-2.5 py-1 text-[10px] font-bold text-petflow-chocolate"
             >
               ✏️ แก้ไข
             </button>
@@ -334,7 +334,7 @@ export default function ArticlesAdminPage() {
         {builtins.map((a) => (
           <div
             key={a.slug}
-            className="flex items-center justify-between gap-3 rounded-catcha-sm border border-dashed border-latte/50 bg-paper/40 p-3"
+            className="flex items-center justify-between gap-3 rounded-petflow-sm border border-dashed border-latte/50 bg-paper/40 p-3"
           >
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-brown">
@@ -357,7 +357,7 @@ export default function ArticlesAdminPage() {
             <button
               type="button"
               onClick={() => startEditBuiltin(a)}
-              className="shrink-0 rounded-full bg-honey/25 px-2.5 py-1 text-[10px] font-bold text-catcha-chocolate"
+              className="shrink-0 rounded-full bg-honey/25 px-2.5 py-1 text-[10px] font-bold text-petflow-chocolate"
             >
               ✏️ แก้ไข
             </button>

@@ -1,22 +1,28 @@
+// ────────────────────────────────────────────────────────────
+// ข้อมูลร้าน (DEMO) — เป็นค่าตัวอย่างของ "PetFlow" ไว้โชว์ลูกค้า
+// ร้านจริงให้แก้ค่าในนี้ให้เป็นของร้านตัวเอง (ชื่อ เบอร์ แผนที่ โซเชียล)
+// อย่าใส่ข้อมูลติดต่อของร้านอื่นเป็นค่า fallback — ให้เว้นว่างแทน
+// ────────────────────────────────────────────────────────────
 export const BUSINESS = {
-  name: "CatCha Hotel",
+  name: "PetFlow",
   tagline: { th: "โรงแรมแมว · อาบน้ำ & กรูมมิ่ง", en: "Cat Hotel · Grooming & Spa" },
-  lineOa: "@catchahotel",
-  phones: ["080-549-8969", "095-324-6989"],
-  maps: "https://maps.app.goo.gl/u38pzVGa9LiEsLEK8",
-  facebook: "catcha hotel",
-  /** โซเชียลมีเดีย — ลิงก์ทางการ (ตัด tracking param ออกแล้ว) */
+  lineOa: "@petflow",
+  phones: ["02-123-4567"],
+  address: "",
+  maps: "https://www.google.com/maps",
+  facebook: "petflow",
+  /** โซเชียลมีเดีย — ใส่ลิงก์ทางการของร้าน */
   social: {
-    line: "https://line.me/R/ti/p/@catchahotel",
-    instagram: "https://www.instagram.com/catcha.hotel",
-    tiktok: "https://www.tiktok.com/@catchahotel",
-    facebook: "https://www.facebook.com/share/1BZg1aaQTc/",
+    line: "https://line.me/R/ti/p/@petflow",
+    instagram: "https://www.instagram.com/",
+    tiktok: "https://www.tiktok.com/",
+    facebook: "https://www.facebook.com/",
   },
-  reviewUrl: "https://g.page/r/CfUOdXCGI8AHEBM/review",
+  reviewUrl: "https://www.google.com/maps",
   reviewButtonText: "⭐ รีวิวให้เราหน่อยนะคะ",
   location: {
-    th: "บางนา เมกะ เทพารักษ์ สมุทรปราการ",
-    en: "Bang Na, Mega Bangna, Samut Prakan",
+    th: "กรุงเทพฯ",
+    en: "Bangkok",
   },
   pointsRate: 100, // บาท = 1 แต้ม
 } as const;

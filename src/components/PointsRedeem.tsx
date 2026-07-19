@@ -71,7 +71,7 @@ export function PointsRedeem({
   return (
     <div>
       {success ? (
-        <div className="mb-3 rounded-catcha-sm border border-ok/30 bg-sage/15 p-4 text-center">
+        <div className="mb-3 rounded-petflow-sm border border-ok/30 bg-sage/15 p-4 text-center">
           <p className="text-xs font-bold text-ok">✅ {m.redeemOk}</p>
           <p className="mt-1 text-sm font-semibold text-brown">{success.label}</p>
           <p className="mt-2 font-mono text-lg font-extrabold tracking-wider text-latte-deep">
@@ -89,7 +89,7 @@ export function PointsRedeem({
       ) : null}
 
       {err ? (
-        <p className="mb-3 rounded-catcha-sm bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">
+        <p className="mb-3 rounded-petflow-sm bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">
           {err}
         </p>
       ) : null}
@@ -106,10 +106,10 @@ export function PointsRedeem({
           return (
             <div
               key={tier.id}
-              className={`flex snap-start shrink-0 flex-col justify-between overflow-hidden rounded-catcha-sm border bg-paper/50 ${
+              className={`flex snap-start shrink-0 flex-col justify-between overflow-hidden rounded-petflow-sm border bg-paper/50 ${
                 compact ? "w-[72%] min-w-[220px]" : "w-[78%] min-w-[240px]"
               } max-w-[300px] ${
-                canRedeem ? "border-catcha-line" : "border-catcha-line/50 opacity-75"
+                canRedeem ? "border-petflow-line" : "border-petflow-line/50 opacity-75"
               }`}
             >
               {tier.imageUrl && (
@@ -136,9 +136,9 @@ export function PointsRedeem({
                   type="button"
                   disabled={!canRedeem || loading === tier.id}
                   onClick={() => redeem(tier.id)}
-                  className={`mt-3 w-full rounded-catcha-sm py-2 text-xs font-extrabold ${
+                  className={`mt-3 w-full rounded-petflow-sm py-2 text-xs font-extrabold ${
                     canRedeem
-                      ? "bg-gradient-to-r from-honey to-honey-deep text-catcha-chocolate"
+                      ? "bg-gradient-to-r from-honey to-honey-deep text-petflow-chocolate"
                       : "bg-paper text-brown-faint"
                   }`}
                 >

@@ -54,7 +54,7 @@ export function ExportSheetsButton({ className = "" }: { className?: string }) {
     setUrl("");
     const adminCode =
       typeof window !== "undefined"
-        ? sessionStorage.getItem("catcha-admin") || ""
+        ? sessionStorage.getItem("petflow-admin") || ""
         : "";
 
     // เรียงตามลำดับ CUSTOMER_COLUMN_OPTIONS เพื่อให้คอลัมน์เรียงสวย
@@ -79,12 +79,12 @@ export function ExportSheetsButton({ className = "" }: { className?: string }) {
       <button
         type="button"
         onClick={() => setShowCols((v) => !v)}
-        className="mb-2 w-full rounded-catcha-sm border border-catcha-line bg-card py-2 text-xs font-bold text-brown-soft"
+        className="mb-2 w-full rounded-petflow-sm border border-petflow-line bg-card py-2 text-xs font-bold text-brown-soft"
       >
         ⚙️ เลือกคอลัมน์ที่จะส่งออก ({cols.length}/{ALL_KEYS.length}) {showCols ? "▲" : "▼"}
       </button>
       {showCols && (
-        <div className="mb-2 rounded-catcha-sm border border-catcha-line bg-paper/50 p-3">
+        <div className="mb-2 rounded-petflow-sm border border-petflow-line bg-paper/50 p-3">
           <div className="mb-2 flex gap-2">
             <button
               type="button"
@@ -124,7 +124,7 @@ export function ExportSheetsButton({ className = "" }: { className?: string }) {
         type="button"
         disabled={loading || cols.length === 0}
         onClick={exportSheets}
-        className="w-full rounded-catcha-sm bg-gradient-to-r from-sage/40 to-latte/30 py-3 text-sm font-extrabold text-catcha-chocolate disabled:opacity-50"
+        className="w-full rounded-petflow-sm bg-gradient-to-r from-sage/40 to-latte/30 py-3 text-sm font-extrabold text-petflow-chocolate disabled:opacity-50"
       >
         {loading ? "กำลังส่งออก…" : "📊 ส่งออก Google Sheets"}
       </button>

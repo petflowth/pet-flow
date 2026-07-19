@@ -56,7 +56,7 @@ export function isProfileComplete(c: Pick<CustomerRecord, "phone" | "cats">): bo
 export function tierBadgeClass(tier: CustomerTier): string {
   switch (tier) {
     case "vip":
-      return "bg-honey/40 text-catcha-chocolate";
+      return "bg-honey/40 text-petflow-chocolate";
     case "member":
       return "bg-latte/30 text-latte-deep";
     case "regular":

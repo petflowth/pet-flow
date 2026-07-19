@@ -1,5 +1,5 @@
 /**
- * Google Calendar + iPhone (.ics) — ปฏิทินร่วม Catcha Hotel
+ * Google Calendar + iPhone (.ics) — ปฏิทินร่วม PetFlow
  */
 
 import type { calendar_v3 } from "googleapis";
@@ -96,17 +96,17 @@ export function buildIcsContent(event: {
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//CatCha Hotel//TH",
+    "PRODID:-//PetFlow//TH",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
-    `UID:${event.uid}@catchahotel`,
+    `UID:${event.uid}@petflow`,
     `DTSTAMP:${toIcsUtc(new Date().toISOString().slice(0, 10), "00:00")}`,
     dtStart,
     dtEnd,
     `SUMMARY:${event.summary}`,
     `DESCRIPTION:${event.description.replace(/\n/g, "\\n")}`,
-    `LOCATION:CatCha Hotel Bang Na`,
+    `LOCATION:PetFlow Bang Na`,
     attendees,
     "END:VEVENT",
     "END:VCALENDAR",
@@ -128,7 +128,7 @@ export function buildGoogleCalendarUrl(event: {
   const params = new URLSearchParams({
     text: event.summary,
     details: `${event.description}\n\nเจ้าของ: ${CALENDAR_OWNER_EMAILS.join(", ")}`,
-    location: "CatCha Hotel Bang Na",
+    location: "PetFlow Bang Na",
     dates,
   });
   return `${base}&${params.toString()}`;
@@ -181,7 +181,7 @@ function buildGoogleEventResource(
 
   const description = [
     booking.description,
-    booking.bookingId ? `— CatCha Booking ${booking.bookingId}` : "",
+    booking.bookingId ? `— PetFlow Booking ${booking.bookingId}` : "",
     `สถานะ: ${confirmed ? "ยืนยันแล้ว" : "รอยืนยัน"}`,
     `เจ้าของ: ${CALENDAR_OWNER_EMAILS.join(", ")}`,
   ]
@@ -197,7 +197,7 @@ function buildGoogleEventResource(
     return {
       summary,
       description,
-      location: "CatCha Hotel Bang Na",
+      location: "PetFlow Bang Na",
       colorId,
       start: { date: checkin },
       end: { date: addDaysYmd(checkout, 1) },
@@ -210,7 +210,7 @@ function buildGoogleEventResource(
   return {
     summary,
     description,
-    location: "CatCha Hotel Bang Na",
+    location: "PetFlow Bang Na",
     colorId,
     start: { dateTime: startDt, timeZone: TIMEZONE },
     end: { dateTime: endDt, timeZone: TIMEZONE },

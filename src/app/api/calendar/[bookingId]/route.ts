@@ -12,7 +12,7 @@ export async function GET(
 
   const ics = buildIcsContent({
     uid: b.calendarEventId || b.id,
-    summary: `🐱 ${b.catName} (${b.customerName}) — CatCha Hotel`,
+    summary: `🐱 ${b.catName} (${b.customerName}) — PetFlow`,
     description: `${b.service === "room" ? "ห้องพัก" : "อาบน้ำ"} · ${b.notes || ""}`,
     start: b.date || b.checkin || "",
     end: b.checkout || b.date || b.checkin || "",
@@ -23,7 +23,7 @@ export async function GET(
   return new NextResponse(ics, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": `attachment; filename="catcha-${bookingId}.ics"`,
+      "Content-Disposition": `attachment; filename="petflow-${bookingId}.ics"`,
     },
   });
 }

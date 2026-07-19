@@ -64,7 +64,7 @@ function ClaimContent() {
     return (
       <div className="px-6 py-16 text-center">
         <div className="text-5xl">🎟️</div>
-        <h1 className="mt-4 text-lg font-extrabold text-catcha-chocolate">
+        <h1 className="mt-4 text-lg font-extrabold text-petflow-chocolate">
           {result === "ok" ? "รับคูปองเรียบร้อยแล้ว!" : "คุณรับคูปองนี้ไปแล้วนะคะ"}
         </h1>
         <p className="mt-2 text-sm text-brown-soft">
@@ -72,7 +72,7 @@ function ClaimContent() {
         </p>
         <Link
           href="/app/coupons"
-          className="mt-6 inline-block rounded-catcha-sm bg-latte-deep px-5 py-2.5 text-sm font-extrabold text-card"
+          className="mt-6 inline-block rounded-petflow-sm bg-latte-deep px-5 py-2.5 text-sm font-extrabold text-card"
         >
           🎟️ ดูกระเป๋าคูปอง
         </Link>
@@ -81,8 +81,8 @@ function ClaimContent() {
 
   return (
     <div className="px-4 pb-10 pt-5">
-      <h1 className="text-lg font-extrabold text-catcha-chocolate">🎟️ คูปองส่วนลดพิเศษ</h1>
-      <div className="mt-4 rounded-catcha border border-honey/50 bg-gradient-to-br from-honey/25 via-card to-latte/15 p-5 text-center shadow-catcha-sm">
+      <h1 className="text-lg font-extrabold text-petflow-chocolate">🎟️ คูปองส่วนลดพิเศษ</h1>
+      <div className="mt-4 rounded-petflow border border-honey/50 bg-gradient-to-br from-honey/25 via-card to-latte/15 p-5 text-center shadow-petflow-sm">
         <p className="text-sm font-bold text-brown">{offer.title}</p>
         <p className="mt-2 text-4xl font-extrabold text-latte-deep">
           ฿{offer.amount.toLocaleString()}
@@ -99,7 +99,7 @@ function ClaimContent() {
         type="button"
         onClick={claim}
         disabled={claiming || !offer.active}
-        className="mt-5 w-full rounded-catcha-sm bg-latte-deep py-3.5 text-sm font-extrabold text-card active:scale-[0.98] disabled:opacity-50"
+        className="mt-5 w-full rounded-petflow-sm bg-latte-deep py-3.5 text-sm font-extrabold text-card active:scale-[0.98] disabled:opacity-50"
       >
         {claiming ? "กำลังรับ…" : offer.active ? "🎁 กดรับคูปองเข้ากระเป๋า" : "แคมเปญปิดแล้ว"}
       </button>

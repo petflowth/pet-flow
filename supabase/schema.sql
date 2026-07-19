@@ -1,4 +1,4 @@
--- CatCha Hotel — รันใน Supabase SQL Editor (Dashboard → SQL → New query)
+-- PetFlow — รันใน Supabase SQL Editor (Dashboard → SQL → New query)
 
 create table if not exists customers (
   id text primary key,

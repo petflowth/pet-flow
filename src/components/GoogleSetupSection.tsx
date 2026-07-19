@@ -53,8 +53,8 @@ export function GoogleSetupSection({ adminCode }: { adminCode: string }) {
   }
 
   return (
-    <section className="mb-4 space-y-3 rounded-catcha border border-latte/40 bg-card p-4 shadow-catcha-sm">
-      <h2 className="text-sm font-extrabold text-catcha-chocolate">
+    <section className="mb-4 space-y-3 rounded-petflow border border-latte/40 bg-card p-4 shadow-petflow-sm">
+      <h2 className="text-sm font-extrabold text-petflow-chocolate">
         📅 Google Calendar + Sheets
       </h2>
       <p className="text-xs text-brown-soft">
@@ -62,7 +62,7 @@ export function GoogleSetupSection({ adminCode }: { adminCode: string }) {
       </p>
 
       {status?.configured ? (
-        <div className="rounded-catcha-sm bg-sage/15 px-3 py-2 text-xs">
+        <div className="rounded-petflow-sm bg-sage/15 px-3 py-2 text-xs">
           <p className="font-bold text-ok">✅ Google พร้อมแล้ว ({status.source})</p>
           {status.serviceAccountEmail && (
             <p className="mt-1 text-brown-soft">Service: {status.serviceAccountEmail}</p>
@@ -71,7 +71,7 @@ export function GoogleSetupSection({ adminCode }: { adminCode: string }) {
       ) : null}
 
       {msg && (
-        <p className="whitespace-pre-line rounded-catcha-sm bg-paper px-3 py-2 text-xs font-bold text-brown">
+        <p className="whitespace-pre-line rounded-petflow-sm bg-paper px-3 py-2 text-xs font-bold text-brown">
           {msg}
         </p>
       )}
@@ -82,8 +82,8 @@ export function GoogleSetupSection({ adminCode }: { adminCode: string }) {
           value={jsonText}
           onChange={(e) => setJsonText(e.target.value)}
           rows={6}
-          placeholder='วางเนื้อหา catcha-hote-xxxxx.json ทั้งไฟล์…'
-          className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper p-2 font-mono text-[10px]"
+          placeholder='วางเนื้อหา petflow-hote-xxxxx.json ทั้งไฟล์…'
+          className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper p-2 font-mono text-[10px]"
         />
       </label>
 
@@ -92,7 +92,7 @@ export function GoogleSetupSection({ adminCode }: { adminCode: string }) {
         <input
           value={spreadsheetUrl}
           onChange={(e) => setSpreadsheetUrl(e.target.value)}
-          className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs"
+          className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs"
         />
       </label>
 
@@ -101,12 +101,12 @@ export function GoogleSetupSection({ adminCode }: { adminCode: string }) {
         <input
           value={calendarUrl}
           onChange={(e) => setCalendarUrl(e.target.value)}
-          className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs"
+          className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs"
         />
       </label>
 
-      <div className="rounded-catcha-sm bg-honey/15 px-3 py-2 text-[10px] text-brown-soft">
-        <p className="font-bold text-catcha-chocolate">ก่อนกดบันทึก — Share ให้ service account:</p>
+      <div className="rounded-petflow-sm bg-honey/15 px-3 py-2 text-[10px] text-brown-soft">
+        <p className="font-bold text-petflow-chocolate">ก่อนกดบันทึก — Share ให้ service account:</p>
         <p className="mt-1">
           เปิด JSON ดู <code>client_email</code> → Share Sheet (Editor) + Calendar (แก้ไข event)
         </p>
@@ -116,7 +116,7 @@ export function GoogleSetupSection({ adminCode }: { adminCode: string }) {
         type="button"
         disabled={saving || !jsonText.trim()}
         onClick={save}
-        className="w-full rounded-catcha-sm bg-gradient-to-r from-latte/40 to-sage/30 py-3 text-sm font-extrabold text-catcha-chocolate disabled:opacity-40"
+        className="w-full rounded-petflow-sm bg-gradient-to-r from-latte/40 to-sage/30 py-3 text-sm font-extrabold text-petflow-chocolate disabled:opacity-40"
       >
         {saving ? "กำลังทดสอบและบันทึก…" : "💾 บันทึก Google (ทดสอบอัตโนมัติ)"}
       </button>

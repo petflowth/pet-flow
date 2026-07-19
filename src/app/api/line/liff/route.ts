@@ -5,7 +5,7 @@ import { getAppUrlFromEnv, getLineCredentials, isLiffConfigured } from "@/lib/li
 export async function GET() {
   const creds = await getLineCredentials();
   const liffId = creds?.liffId || "";
-  const appUrl = getAppUrlFromEnv() || "https://catchahotel.com";
+  const appUrl = getAppUrlFromEnv() || "https://petflow.example.com";
 
   return NextResponse.json({
     liffId,

@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { BLOG_POSTS } from "@/lib/blog-posts";
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catchahotel.com";
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://petflow.example.com";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
@@ -22,24 +22,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.9,
-    },
-    {
-      url: `${SITE_URL}/cat-hotel-bangna`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${SITE_URL}/cat-hotel-samutprakan`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${SITE_URL}/cat-bath-bangna`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.8,
     },
     {
       url: `${SITE_URL}/blog`,

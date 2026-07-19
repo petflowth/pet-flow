@@ -48,11 +48,11 @@ export function RegistrationQrSection({ compact }: { compact?: boolean }) {
 
   return (
     <section
-      className={`rounded-catcha border border-sage/40 bg-sage/10 ${
+      className={`rounded-petflow border border-sage/40 bg-sage/10 ${
         compact ? "p-4" : "p-5"
       }`}
     >
-      <h2 className="mb-1 text-sm font-extrabold text-catcha-chocolate">
+      <h2 className="mb-1 text-sm font-extrabold text-petflow-chocolate">
         📱 QR ลงทะเบียนลูกค้า
       </h2>
       <p className="mb-3 text-[10px] text-brown-soft">
@@ -66,7 +66,7 @@ export function RegistrationQrSection({ compact }: { compact?: boolean }) {
             alt="QR ลงทะเบียน"
             width={140}
             height={140}
-            className="rounded-catcha-sm bg-white p-2 shadow-catcha-sm"
+            className="rounded-petflow-sm bg-white p-2 shadow-petflow-sm"
           />
           <div className="min-w-0 flex-1 text-xs">
             <p className="mb-2 break-all font-mono text-[10px] text-brown-soft">
@@ -75,7 +75,7 @@ export function RegistrationQrSection({ compact }: { compact?: boolean }) {
             <button
               type="button"
               onClick={copy}
-              className="rounded-catcha-sm bg-card px-3 py-2 text-[10px] font-bold text-latte-deep"
+              className="rounded-petflow-sm bg-card px-3 py-2 text-[10px] font-bold text-latte-deep"
             >
               {copied ? "✅ Copy แล้ว" : "📋 Copy ลิงก์"}
             </button>
@@ -105,7 +105,7 @@ export function LiffSetupSection({ adminCode }: { adminCode?: string }) {
   const endpointUrl = useMemo(() => {
     if (status?.endpointUrl) return status.endpointUrl;
     if (typeof window !== "undefined") return `${window.location.origin}/app`;
-    return "https://catchahotel.com/app";
+    return "https://petflow.example.com/app";
   }, [status?.endpointUrl]);
 
   const load = useCallback(async () => {
@@ -150,8 +150,8 @@ export function LiffSetupSection({ adminCode }: { adminCode?: string }) {
   }
 
   return (
-    <section className="mb-4 space-y-3 rounded-catcha border-2 border-latte/40 bg-gradient-to-b from-honey/15 to-card p-4 shadow-catcha-sm">
-      <h2 className="text-base font-extrabold text-catcha-chocolate">
+    <section className="mb-4 space-y-3 rounded-petflow border-2 border-latte/40 bg-gradient-to-b from-honey/15 to-card p-4 shadow-petflow-sm">
+      <h2 className="text-base font-extrabold text-petflow-chocolate">
         📱 LINE LIFF — แอปลูกค้าใน LINE
       </h2>
       <p className="text-xs text-brown-soft">
@@ -159,16 +159,16 @@ export function LiffSetupSection({ adminCode }: { adminCode?: string }) {
       </p>
 
       {status?.liffConfigured ? (
-        <div className="rounded-catcha-sm bg-sage/20 px-3 py-2 text-xs font-bold text-ok">
+        <div className="rounded-petflow-sm bg-sage/20 px-3 py-2 text-xs font-bold text-ok">
           ✅ ตั้ง LIFF แล้ว · ID: {status.liffId}
         </div>
       ) : (
-        <div className="rounded-catcha-sm bg-honey/25 px-3 py-2 text-xs font-bold text-wait">
+        <div className="rounded-petflow-sm bg-honey/25 px-3 py-2 text-xs font-bold text-wait">
           ⏳ ยังไม่ได้ตั้ง LIFF — ลูกค้าเปิดแอปจาก LINE ไม่ได้
         </div>
       )}
 
-      <ol className="space-y-2 rounded-catcha-sm bg-paper/80 p-3 text-xs text-brown-soft">
+      <ol className="space-y-2 rounded-petflow-sm bg-paper/80 p-3 text-xs text-brown-soft">
         <li>
           <b>1.</b> เปิด{" "}
           <a
@@ -213,12 +213,12 @@ export function LiffSetupSection({ adminCode }: { adminCode?: string }) {
           value={liffId}
           onChange={(e) => setLiffId(e.target.value)}
           placeholder="เช่น 2001234567-AbCdEfGh"
-          className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-card px-3 py-2.5 text-sm font-mono"
+          className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-card px-3 py-2.5 text-sm font-mono"
         />
       </label>
 
       {msg && (
-        <p className="rounded-catcha-sm bg-paper px-3 py-2 text-xs font-bold text-brown whitespace-pre-line">
+        <p className="rounded-petflow-sm bg-paper px-3 py-2 text-xs font-bold text-brown whitespace-pre-line">
           {msg}
         </p>
       )}
@@ -228,7 +228,7 @@ export function LiffSetupSection({ adminCode }: { adminCode?: string }) {
           type="button"
           disabled={saving || !liffId.trim()}
           onClick={saveLiff}
-          className="flex-1 rounded-catcha-sm bg-gradient-to-r from-latte to-latte-deep py-3 text-sm font-extrabold text-white disabled:opacity-50"
+          className="flex-1 rounded-petflow-sm bg-gradient-to-r from-latte to-latte-deep py-3 text-sm font-extrabold text-white disabled:opacity-50"
         >
           {saving ? "กำลังบันทึก…" : "💾 บันทึก LIFF ID"}
         </button>
@@ -237,7 +237,7 @@ export function LiffSetupSection({ adminCode }: { adminCode?: string }) {
             href={status.testLiffUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-catcha-sm border border-catcha-line bg-card px-4 py-3 text-xs font-bold text-latte-deep"
+            className="rounded-petflow-sm border border-petflow-line bg-card px-4 py-3 text-xs font-bold text-latte-deep"
           >
             🔗 ทดสอบ LIFF
           </a>
@@ -308,8 +308,8 @@ export function LineMessagingSetupSection({ adminCode }: { adminCode?: string })
   }
 
   return (
-    <section className="mb-4 space-y-3 rounded-catcha border border-sage/40 bg-card p-4 shadow-catcha-sm">
-      <h2 className="text-sm font-extrabold text-catcha-chocolate">
+    <section className="mb-4 space-y-3 rounded-petflow border border-sage/40 bg-card p-4 shadow-petflow-sm">
+      <h2 className="text-sm font-extrabold text-petflow-chocolate">
         💬 LINE Messaging — ส่งการ์ดยืนยันนัด
       </h2>
       <p className="text-xs text-brown-soft">
@@ -322,26 +322,26 @@ export function LineMessagingSetupSection({ adminCode }: { adminCode?: string })
       </p>
 
       {status?.configured ? (
-        <div className="rounded-catcha-sm bg-sage/15 px-3 py-2 text-xs font-bold text-ok">
+        <div className="rounded-petflow-sm bg-sage/15 px-3 py-2 text-xs font-bold text-ok">
           ✅ พร้อมส่งการ์ด
           {status.displayName ? ` · ${status.displayName}` : ""}
         </div>
       ) : (
-        <div className="rounded-catcha-sm bg-honey/20 px-3 py-2 text-xs font-bold text-wait">
+        <div className="rounded-petflow-sm bg-honey/20 px-3 py-2 text-xs font-bold text-wait">
           ⏳ ยังไม่ได้ตั้ง Token — กดส่งการ์ดจะขึ้น &quot;ส่งไม่สำเร็จ&quot;
         </div>
       )}
 
       {status?.configured && (
-        <div className="rounded-catcha-sm border border-sage/40 bg-sage/5 p-3">
-          <p className="mb-2 text-xs font-bold text-catcha-chocolate">
+        <div className="rounded-petflow-sm border border-sage/40 bg-sage/5 p-3">
+          <p className="mb-2 text-xs font-bold text-petflow-chocolate">
             🔔 แจ้งเตือนเข้า Telegram (คนแอด LINE + ลูกค้าตอบแชท)
           </p>
           <button
             type="button"
             disabled={saving}
             onClick={setWebhook}
-            className="w-full rounded-catcha-sm bg-[#06C755] py-2.5 text-xs font-extrabold text-white disabled:opacity-60"
+            className="w-full rounded-petflow-sm bg-[#06C755] py-2.5 text-xs font-extrabold text-white disabled:opacity-60"
           >
             {saving ? "กำลังตั้ง…" : "ตั้ง Webhook อัตโนมัติ (กดครั้งเดียว)"}
           </button>
@@ -359,12 +359,12 @@ export function LineMessagingSetupSection({ adminCode }: { adminCode?: string })
           value={channelToken}
           onChange={(e) => setChannelToken(e.target.value)}
           placeholder="LINE Developers → Messaging API → Issue token"
-          className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
+          className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm"
         />
       </label>
 
       {msg && (
-        <p className="rounded-catcha-sm bg-paper px-3 py-2 text-xs font-bold text-brown whitespace-pre-line">
+        <p className="rounded-petflow-sm bg-paper px-3 py-2 text-xs font-bold text-brown whitespace-pre-line">
           {msg}
         </p>
       )}
@@ -373,12 +373,12 @@ export function LineMessagingSetupSection({ adminCode }: { adminCode?: string })
         type="button"
         disabled={saving || !channelToken.trim()}
         onClick={saveToken}
-        className="w-full rounded-catcha-sm bg-[#4A7348] py-3 text-sm font-extrabold text-white disabled:opacity-50"
+        className="w-full rounded-petflow-sm bg-[#4A7348] py-3 text-sm font-extrabold text-white disabled:opacity-50"
       >
         {saving ? "กำลังบันทึก…" : "💾 บันทึก LINE Token"}
       </button>
 
-      <div className="border-t border-catcha-line pt-3">
+      <div className="border-t border-petflow-line pt-3">
         <p className="mb-2 text-xs font-bold text-brown">ระดับลูกค้า (อัตโนมัติ)</p>
         <ul className="space-y-1 text-[10px] text-brown-soft">
           {(Object.entries(TIER_LABELS) as [CustomerTier, string][]).map(

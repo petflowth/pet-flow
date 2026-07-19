@@ -41,16 +41,16 @@ export default function PayPage() {
 
   if (!invoice) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-catcha-gradient p-6">
+      <div className="flex min-h-screen items-center justify-center bg-petflow-gradient p-6">
         <p className="text-sm text-brown-soft">กำลังโหลดบิล…</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-catcha-gradient px-4 py-8">
-      <div className="mx-auto max-w-md rounded-catcha bg-card p-6 shadow-catcha">
-        <h1 className="text-lg font-extrabold text-catcha-chocolate">💳 ชำระเงิน</h1>
+    <div className="min-h-screen bg-petflow-gradient px-4 py-8">
+      <div className="mx-auto max-w-md rounded-petflow bg-card p-6 shadow-petflow">
+        <h1 className="text-lg font-extrabold text-petflow-chocolate">💳 ชำระเงิน</h1>
         <p className="mt-1 text-sm text-brown-soft">
           {invoice.catName} · {invoice.customerName}
         </p>
@@ -75,11 +75,11 @@ export default function PayPage() {
         </p>
 
         {invoice.status === "paid" ? (
-          <p className="mt-4 rounded-catcha-sm bg-sage/15 p-4 text-center text-sm font-bold text-ok">
+          <p className="mt-4 rounded-petflow-sm bg-sage/15 p-4 text-center text-sm font-bold text-ok">
             ✅ ชำระเงินเรียบร้อยแล้ว
           </p>
         ) : payment ? (
-          <div className="mt-4 rounded-catcha-sm bg-paper p-4 text-sm">
+          <div className="mt-4 rounded-petflow-sm bg-paper p-4 text-sm">
             <p className="font-bold text-brown">โอนเข้าบัญชี</p>
             <p className="mt-2 text-brown-soft">
               {payment.bankName}
@@ -98,9 +98,9 @@ export default function PayPage() {
           href={config.business.reviewUrl || config.business.maps}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-4 block rounded-catcha-sm border border-catcha-line py-3 text-center text-xs font-bold text-brown-soft"
+          className="mt-4 block rounded-petflow-sm border border-petflow-line py-3 text-center text-xs font-bold text-brown-soft"
         >
-          {config.business.reviewButtonText || "⭐ รีวิว CatCha Hotel"}
+          {config.business.reviewButtonText || "⭐ รีวิว PetFlow"}
         </a>
 
         <Link

@@ -93,7 +93,7 @@ export function InvoiceActionButtons({
   );
 
   return (
-    <div className="mt-2 rounded-catcha-sm bg-honey/10 p-2">
+    <div className="mt-2 rounded-petflow-sm bg-honey/10 p-2">
       <p className="mb-1 text-[10px] font-bold text-brown-faint">
         🧾 บิล {inv.total.toLocaleString()} ฿ ·{" "}
         {inv.status === "paid" ? "✅ ชำระแล้ว" : "⏳ รอชำระ"}
@@ -110,7 +110,7 @@ export function InvoiceActionButtons({
               <B
                 k="receive_deposit"
                 label="💰 รับมัดจำแล้ว"
-                cls="bg-honey/40 text-catcha-chocolate"
+                cls="bg-honey/40 text-petflow-chocolate"
                 onClick={() =>
                   act(
                     "receive_deposit",
@@ -163,7 +163,7 @@ export function InvoiceActionButtons({
         )}
         <Link
           href={`/admin/billing?bookingId=${bookingId}`}
-          className="rounded-full bg-latte/25 px-2.5 py-1 text-[10px] font-bold text-catcha-chocolate"
+          className="rounded-full bg-latte/25 px-2.5 py-1 text-[10px] font-bold text-petflow-chocolate"
         >
           🧾 ไปหน้าบิล
         </Link>

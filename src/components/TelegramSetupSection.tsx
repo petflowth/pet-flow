@@ -65,8 +65,8 @@ export function TelegramSetupSection({ adminCode }: { adminCode: string }) {
   }
 
   return (
-    <section className="mb-4 space-y-3 rounded-catcha border border-honey/40 bg-card p-4 shadow-catcha-sm">
-      <h2 className="text-sm font-extrabold text-catcha-chocolate">
+    <section className="mb-4 space-y-3 rounded-petflow border border-honey/40 bg-card p-4 shadow-petflow-sm">
+      <h2 className="text-sm font-extrabold text-petflow-chocolate">
         📱 Telegram Bot (แจ้งเตือนเจ้าของ)
       </h2>
       <p className="text-xs text-brown-soft">
@@ -79,7 +79,7 @@ export function TelegramSetupSection({ adminCode }: { adminCode: string }) {
       </p>
 
       {status?.configured ? (
-        <div className="rounded-catcha-sm bg-sage/15 px-3 py-2 text-xs">
+        <div className="rounded-petflow-sm bg-sage/15 px-3 py-2 text-xs">
           <p className="font-bold text-ok">
             ✅ บอทพร้อมแล้ว
             {status.botUsername ? ` (@${status.botUsername})` : ""}
@@ -100,7 +100,7 @@ export function TelegramSetupSection({ adminCode }: { adminCode: string }) {
       ) : null}
 
       {msg && (
-        <p className="whitespace-pre-line rounded-catcha-sm bg-paper px-3 py-2 text-xs font-bold text-brown">
+        <p className="whitespace-pre-line rounded-petflow-sm bg-paper px-3 py-2 text-xs font-bold text-brown">
           {msg}
         </p>
       )}
@@ -118,7 +118,7 @@ export function TelegramSetupSection({ adminCode }: { adminCode: string }) {
           value={botToken}
           onChange={(e) => setBotToken(e.target.value)}
           placeholder="1234567890:AAHxxxxxxxxxxxxxxxx"
-          className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs font-mono"
+          className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs font-mono"
         />
       </label>
 
@@ -129,7 +129,7 @@ export function TelegramSetupSection({ adminCode }: { adminCode: string }) {
           value={ownerChatIds}
           onChange={(e) => setOwnerChatIds(e.target.value)}
           placeholder="2075576799"
-          className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs"
+          className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs"
         />
         <span className="mt-1 block text-[10px] font-normal">
           หลายคนใส่คั่นด้วย comma เช่น 2075576799,123456789
@@ -142,8 +142,8 @@ export function TelegramSetupSection({ adminCode }: { adminCode: string }) {
           type="url"
           value={appUrl}
           onChange={(e) => setAppUrl(e.target.value)}
-          placeholder="https://catcha-hotel-five.vercel.app"
-          className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs"
+          placeholder="https://petflow-hotel-five.vercel.app"
+          className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs"
         />
       </label>
 
@@ -151,7 +151,7 @@ export function TelegramSetupSection({ adminCode }: { adminCode: string }) {
         type="button"
         disabled={saving || !botToken.trim()}
         onClick={save}
-        className="w-full rounded-catcha-sm bg-gradient-to-r from-latte/50 to-honey/40 py-3 text-sm font-extrabold text-catcha-chocolate disabled:opacity-40"
+        className="w-full rounded-petflow-sm bg-gradient-to-r from-latte/50 to-honey/40 py-3 text-sm font-extrabold text-petflow-chocolate disabled:opacity-40"
       >
         {saving ? "กำลังตั้งบอท…" : "💾 บันทึกและเปิดใช้บอท"}
       </button>

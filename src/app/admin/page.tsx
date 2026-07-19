@@ -80,7 +80,7 @@ export default function AdminDashboard() {
         <button
           type="button"
           onClick={load}
-          className="mt-4 rounded-catcha-sm bg-honey/40 px-4 py-2 text-xs font-bold"
+          className="mt-4 rounded-petflow-sm bg-honey/40 px-4 py-2 text-xs font-bold"
         >
           🔄 ลองใหม่
         </button>
@@ -100,15 +100,15 @@ export default function AdminDashboard() {
       {/* งานที่ต้องทำ */}
       {(stats.queue > 0 ||
         (tasks && (tasks.unpaidCount > 0 || tasks.pendingConsent > 0))) && (
-        <div className="rounded-catcha border border-honey/50 bg-honey/10 p-4">
-          <p className="mb-2 text-sm font-extrabold text-catcha-chocolate">
+        <div className="rounded-petflow border border-honey/50 bg-honey/10 p-4">
+          <p className="mb-2 text-sm font-extrabold text-petflow-chocolate">
             📌 งานที่ต้องทำ
           </p>
           <div className="space-y-1.5 text-sm">
             {stats.queue > 0 && (
               <Link
                 href="/admin/schedule"
-                className="flex items-center justify-between rounded-catcha-sm bg-card px-3 py-2"
+                className="flex items-center justify-between rounded-petflow-sm bg-card px-3 py-2"
               >
                 <span className="font-bold text-brown">⏳ นัดรอยืนยัน</span>
                 <span className="font-extrabold text-wait">{stats.queue} นัด →</span>
@@ -117,7 +117,7 @@ export default function AdminDashboard() {
             {tasks && tasks.unpaidCount > 0 && (
               <Link
                 href="/admin/billing"
-                className="flex items-center justify-between rounded-catcha-sm bg-card px-3 py-2"
+                className="flex items-center justify-between rounded-petflow-sm bg-card px-3 py-2"
               >
                 <span className="font-bold text-brown">💳 บิลค้างชำระ</span>
                 <span className="font-extrabold text-wait">
@@ -128,7 +128,7 @@ export default function AdminDashboard() {
             {tasks && tasks.pendingConsent > 0 && (
               <Link
                 href="/admin/schedule"
-                className="flex items-center justify-between rounded-catcha-sm bg-card px-3 py-2"
+                className="flex items-center justify-between rounded-petflow-sm bg-card px-3 py-2"
               >
                 <span className="font-bold text-brown">📋 ยังไม่กดยอมรับเงื่อนไข</span>
                 <span className="font-extrabold text-latte-deep">
@@ -143,30 +143,30 @@ export default function AdminDashboard() {
       {/* เปิดตารางนัด (แยกหน้า) */}
       <Link
         href="/admin/schedule"
-        className="flex items-center justify-between rounded-catcha bg-card p-4 shadow-catcha-sm"
+        className="flex items-center justify-between rounded-petflow bg-card p-4 shadow-petflow-sm"
       >
         <div>
-          <p className="text-base font-extrabold text-catcha-chocolate">🗓️ ตารางนัด</p>
+          <p className="text-base font-extrabold text-petflow-chocolate">🗓️ ตารางนัด</p>
           <p className="text-xs text-brown-soft">
             วันนี้ {stats.todayAppointments} นัด · รอยืนยัน {stats.queue}
           </p>
         </div>
-        <span className="rounded-full bg-honey/30 px-4 py-2 text-xs font-extrabold text-catcha-chocolate">
+        <span className="rounded-full bg-honey/30 px-4 py-2 text-xs font-extrabold text-petflow-chocolate">
           เปิดตาราง →
         </span>
       </Link>
 
       <div className="grid grid-cols-2 gap-2">
-        <Link href="/admin/bookings/new" className="rounded-catcha-sm bg-latte/25 py-3 text-center text-xs font-bold text-catcha-chocolate">
+        <Link href="/admin/bookings/new" className="rounded-petflow-sm bg-latte/25 py-3 text-center text-xs font-bold text-petflow-chocolate">
           ➕ จองใหม่
         </Link>
-        <Link href="/admin/billing" className="rounded-catcha-sm bg-honey/30 py-3 text-center text-xs font-bold text-catcha-chocolate">
+        <Link href="/admin/billing" className="rounded-petflow-sm bg-honey/30 py-3 text-center text-xs font-bold text-petflow-chocolate">
           💳 คิดเงิน
         </Link>
-        <Link href="/admin/customers" className="rounded-catcha-sm bg-paper py-3 text-center text-xs font-bold text-catcha-chocolate">
+        <Link href="/admin/customers" className="rounded-petflow-sm bg-paper py-3 text-center text-xs font-bold text-petflow-chocolate">
           👤 ลูกค้า
         </Link>
-        <Link href="/admin/finance" className="rounded-catcha-sm bg-latte/20 py-3 text-center text-xs font-bold text-catcha-chocolate">
+        <Link href="/admin/finance" className="rounded-petflow-sm bg-latte/20 py-3 text-center text-xs font-bold text-petflow-chocolate">
           📒 รายรับ-จ่าย
         </Link>
       </div>
@@ -186,7 +186,7 @@ function StatCard({
   sub: string;
 }) {
   return (
-    <div className="rounded-catcha-sm bg-card p-4 shadow-catcha-sm">
+    <div className="rounded-petflow-sm bg-card p-4 shadow-petflow-sm">
       <p className="text-lg">{emoji}</p>
       <p className="text-lg font-extrabold text-latte-deep">{value}</p>
       <p className="text-xs font-bold text-brown-soft">{label}</p>

@@ -18,13 +18,13 @@ export function LocaleProvider({
   const [locale, setLocaleState] = useState<Locale>(initial);
 
   useEffect(() => {
-    const saved = localStorage.getItem("catcha-locale") as Locale | null;
+    const saved = localStorage.getItem("petflow-locale") as Locale | null;
     if (saved === "th" || saved === "en") setLocaleState(saved);
   }, []);
 
   const setLocale = (l: Locale) => {
     setLocaleState(l);
-    localStorage.setItem("catcha-locale", l);
+    localStorage.setItem("petflow-locale", l);
   };
 
   return (

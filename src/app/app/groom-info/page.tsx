@@ -197,7 +197,7 @@ function GroomInfoContent() {
     return (
       <div className="px-6 py-16 text-center">
         <div className="text-5xl">🧡</div>
-        <h1 className="mt-4 text-lg font-extrabold text-catcha-chocolate">
+        <h1 className="mt-4 text-lg font-extrabold text-petflow-chocolate">
           ขอบคุณที่แจ้งประวัติน้องนะคะ!
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-brown-soft">
@@ -210,21 +210,21 @@ function GroomInfoContent() {
   }
 
   const inputClass =
-    "w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm";
+    "w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm";
 
   return (
     <div className="px-4 pb-10 pt-5">
       <Link href="/app" className="mb-3 inline-block text-xs font-bold text-brown-soft">
         ← กลับหน้าแรก
       </Link>
-      <h1 className="text-lg font-extrabold text-catcha-chocolate">
+      <h1 className="text-lg font-extrabold text-petflow-chocolate">
         🩺 ประวัติน้องก่อนอาบน้ำ
       </h1>
 
       {loading ? (
         <p className="mt-6 text-sm text-brown-soft">กำลังโหลด…</p>
       ) : forms.length === 0 ? (
-        <p className="mt-6 rounded-catcha-sm bg-paper px-4 py-3 text-sm text-brown-soft">
+        <p className="mt-6 rounded-petflow-sm bg-paper px-4 py-3 text-sm text-brown-soft">
           ไม่พบข้อมูลการนัด
         </p>
       ) : (
@@ -240,7 +240,7 @@ function GroomInfoContent() {
             return (
               <div
                 key={f.id}
-                className="mt-4 rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm"
+                className="mt-4 rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm"
               >
                 <p className="text-sm font-extrabold text-brown">🐱 {f.catName}</p>
                 {forms.length === 1 && (
@@ -344,7 +344,7 @@ function GroomInfoContent() {
           })}
 
           {saveError && (
-            <p className="mt-4 rounded-catcha-sm bg-wait/10 px-3 py-2 text-xs font-bold text-wait">
+            <p className="mt-4 rounded-petflow-sm bg-wait/10 px-3 py-2 text-xs font-bold text-wait">
               😿 {saveError}
             </p>
           )}
@@ -352,7 +352,7 @@ function GroomInfoContent() {
             type="button"
             onClick={submit}
             disabled={saving}
-            className="mt-5 w-full rounded-catcha-sm bg-latte-deep py-3 text-sm font-extrabold text-card active:scale-[0.98] disabled:opacity-50"
+            className="mt-5 w-full rounded-petflow-sm bg-latte-deep py-3 text-sm font-extrabold text-card active:scale-[0.98] disabled:opacity-50"
           >
             {saving
               ? "กำลังบันทึก…"

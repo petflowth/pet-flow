@@ -10,7 +10,7 @@ export function LangSwitch() {
     <button
       type="button"
       onClick={() => setLocale(next)}
-      className="rounded-full border border-catcha-line bg-card px-3 py-1.5 text-xs font-bold text-brown-soft shadow-catcha-sm"
+      className="rounded-full border border-petflow-line bg-card px-3 py-1.5 text-xs font-bold text-brown-soft shadow-petflow-sm"
     >
       {t(locale).common.lang}
     </button>

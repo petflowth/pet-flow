@@ -14,7 +14,7 @@ export function RoomPoster({
 }) {
   return (
     <div
-      className={`overflow-hidden rounded-catcha border border-catcha-line bg-paper ${className}`}
+      className={`overflow-hidden rounded-petflow border border-petflow-line bg-paper ${className}`}
     >
       <Image
         src={src}

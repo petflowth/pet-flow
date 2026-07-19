@@ -77,7 +77,7 @@ export function BirthdayPicker({
 
   const cls =
     selectClass ||
-    "min-w-0 flex-1 rounded-lg border border-catcha-line bg-paper px-2 py-2 text-sm";
+    "min-w-0 flex-1 rounded-lg border border-petflow-line bg-paper px-2 py-2 text-sm";
 
   return (
     <div className="flex gap-2">

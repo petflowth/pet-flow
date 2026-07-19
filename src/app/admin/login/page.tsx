@@ -26,14 +26,14 @@ export default function AdminLoginPage() {
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {
         // เก็บไว้แค่ให้หน้าจอรู้ว่าจะโชว์เมนูไหน — สิทธิ์จริงอยู่ที่คุกกี้ฝั่งเซิร์ฟเวอร์
-        sessionStorage.setItem("catcha-role", data.role);
-        sessionStorage.setItem("catcha-staff-name", data.name || "พนักงาน");
+        sessionStorage.setItem("petflow-role", data.role);
+        sessionStorage.setItem("petflow-staff-name", data.name || "พนักงาน");
         const next = params.get("next");
         if (data.role === "staff") {
-          sessionStorage.setItem("catcha-menus", JSON.stringify(data.menus || []));
+          sessionStorage.setItem("petflow-menus", JSON.stringify(data.menus || []));
           router.push(next || (data.menus || [])[0] || "/admin");
         } else {
-          sessionStorage.removeItem("catcha-menus");
+          sessionStorage.removeItem("petflow-menus");
           router.push(next || "/admin");
         }
       } else {
@@ -47,15 +47,15 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-catcha-gradient px-4">
+    <div className="flex min-h-screen items-center justify-center bg-petflow-gradient px-4">
       <form
         onSubmit={submit}
-        className="w-full max-w-sm rounded-catcha border border-catcha-line bg-card p-8 shadow-catcha"
+        className="w-full max-w-sm rounded-petflow border border-petflow-line bg-card p-8 shadow-petflow"
       >
         <div className="mb-6 flex flex-col items-center text-center">
           <Logo size={64} />
-          <h1 className="mt-4 text-lg font-extrabold text-catcha-chocolate">
-            CatCha Admin
+          <h1 className="mt-4 text-lg font-extrabold text-petflow-chocolate">
+            PetFlow Admin
           </h1>
           <p className="mt-1 text-xs text-brown-soft">เข้าสู่ระบบเจ้าของ / พนักงาน</p>
         </div>
@@ -66,14 +66,14 @@ export default function AdminLoginPage() {
           type="password"
           value={code}
           onChange={(e) => setCode(e.target.value)}
-          className="mb-4 w-full rounded-catcha-sm border border-catcha-line bg-paper px-4 py-3 text-sm outline-none focus:border-latte-deep"
+          className="mb-4 w-full rounded-petflow-sm border border-petflow-line bg-paper px-4 py-3 text-sm outline-none focus:border-latte-deep"
           placeholder="••••••••"
         />
         {err && <p className="mb-3 text-xs font-semibold text-red-600">{err}</p>}
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-catcha-sm bg-gradient-to-r from-latte-deep to-catcha-chocolate py-3 text-sm font-extrabold text-white disabled:opacity-60"
+          className="w-full rounded-petflow-sm bg-gradient-to-r from-latte-deep to-petflow-chocolate py-3 text-sm font-extrabold text-white disabled:opacity-60"
         >
           {busy ? "กำลังตรวจสอบ…" : "เข้าใช้งาน 🐾"}
         </button>

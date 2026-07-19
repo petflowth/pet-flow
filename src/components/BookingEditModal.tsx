@@ -26,7 +26,7 @@ function EditField({
   textarea?: boolean;
 }) {
   const cls =
-    "mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm";
+    "mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm";
   return (
     <label className="block text-xs font-bold text-brown-soft">
       {label}
@@ -106,8 +106,8 @@ export function BookingEditModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-catcha bg-card p-5 shadow-catcha">
-        <h2 className="mb-3 text-sm font-extrabold text-catcha-chocolate">✏️ แก้ไขนัด</h2>
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-petflow bg-card p-5 shadow-petflow">
+        <h2 className="mb-3 text-sm font-extrabold text-petflow-chocolate">✏️ แก้ไขนัด</h2>
         <div className="mb-3 flex gap-2">
           {(
             [
@@ -119,8 +119,8 @@ export function BookingEditModal({
               key={s.id}
               type="button"
               onClick={() => setService(s.id)}
-              className={`flex-1 rounded-catcha-sm py-2 text-xs font-bold ${
-                service === s.id ? "bg-honey/45 text-catcha-chocolate" : "bg-paper text-brown-soft"
+              className={`flex-1 rounded-petflow-sm py-2 text-xs font-bold ${
+                service === s.id ? "bg-honey/45 text-petflow-chocolate" : "bg-paper text-brown-soft"
               }`}
             >
               {s.label}
@@ -140,7 +140,7 @@ export function BookingEditModal({
                   type="time"
                   list="edit-groom-slots"
                   defaultValue={booking.time || "12:30"}
-                  className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
                 />
                 <datalist id="edit-groom-slots">
                   {groomSlots.map((t) => (
@@ -156,7 +156,7 @@ export function BookingEditModal({
                 <select
                   name="room"
                   defaultValue={booking.room || booking.roomType || ""}
-                  className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
                 >
                   {rooms.map((r) => (
                     <option key={r.id} value={r.id}>
@@ -186,14 +186,14 @@ export function BookingEditModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-catcha-sm bg-paper py-2.5 text-xs font-bold text-brown-soft"
+              className="flex-1 rounded-petflow-sm bg-paper py-2.5 text-xs font-bold text-brown-soft"
             >
               ปิด
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 rounded-catcha-sm bg-honey/40 py-2.5 text-xs font-extrabold text-catcha-chocolate disabled:opacity-50"
+              className="flex-1 rounded-petflow-sm bg-honey/40 py-2.5 text-xs font-extrabold text-petflow-chocolate disabled:opacity-50"
             >
               {saving ? "กำลังบันทึก…" : "บันทึก"}
             </button>

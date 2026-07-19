@@ -164,15 +164,15 @@ export default function RegisterPage() {
   }
 
   const fieldClass =
-    "w-full rounded-catcha-sm border border-catcha-line bg-card px-3 py-2.5 text-sm";
+    "w-full rounded-petflow-sm border border-petflow-line bg-card px-3 py-2.5 text-sm";
   const subFieldClass =
-    "w-full rounded-lg border border-catcha-line bg-paper px-3 py-2 text-sm";
+    "w-full rounded-lg border border-petflow-line bg-paper px-3 py-2 text-sm";
 
   return (
     <div className="px-4 pb-6 pt-5">
-      <div className="mb-5 rounded-catcha bg-sage/20 p-4 text-center">
+      <div className="mb-5 rounded-petflow bg-sage/20 p-4 text-center">
         <p className="text-2xl">🐾</p>
-        <h1 className="mt-2 font-extrabold leading-tight text-catcha-chocolate">
+        <h1 className="mt-2 font-extrabold leading-tight text-petflow-chocolate">
           <span className="block text-2xl">สมัครสมาชิก</span>
           <span className="mt-0.5 block text-sm text-latte-deep">
             เพื่อรับสิทธิพิเศษ
@@ -184,7 +184,7 @@ export default function RegisterPage() {
       </div>
 
       {referralCode && (
-        <div className="mb-4 rounded-catcha-sm border border-honey/50 bg-honey/15 px-4 py-3 text-center text-xs font-extrabold text-catcha-chocolate">
+        <div className="mb-4 rounded-petflow-sm border border-honey/50 bg-honey/15 px-4 py-3 text-center text-xs font-extrabold text-petflow-chocolate">
           🎁 สมัครผ่านเพื่อนแนะนำ — มาใช้บริการครั้งแรก รับคูปองส่วนลด <span className="text-latte-deep">100฿</span> ทั้งคุณและเพื่อน!
         </div>
       )}
@@ -269,7 +269,7 @@ export default function RegisterPage() {
             {cats.map((cat, idx) => (
               <li
                 key={idx}
-                className="space-y-2 rounded-catcha-sm border border-catcha-line bg-card p-3"
+                className="space-y-2 rounded-petflow-sm border border-petflow-line bg-card p-3"
               >
                 <input
                   required={idx === 0}
@@ -296,7 +296,7 @@ export default function RegisterPage() {
                       }
                       className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
                         cat.gender === value
-                          ? "bg-latte/40 text-catcha-chocolate ring-1 ring-latte-deep"
+                          ? "bg-latte/40 text-petflow-chocolate ring-1 ring-latte-deep"
                           : "bg-paper text-brown-faint"
                       }`}
                     >
@@ -350,7 +350,7 @@ export default function RegisterPage() {
                         className={`flex-1 rounded-lg border px-3 py-2 text-xs font-bold ${
                           cat.furLength === value
                             ? "border-latte-deep bg-latte-deep text-card"
-                            : "border-catcha-line bg-paper text-brown-soft"
+                            : "border-petflow-line bg-paper text-brown-soft"
                         }`}
                       >
                         {label}
@@ -372,7 +372,7 @@ export default function RegisterPage() {
                     value={cat.ageValue}
                     onChange={(e) => updateCat(idx, { ageValue: e.target.value })}
                     placeholder="อายุ"
-                    className="min-w-0 flex-1 rounded-lg border border-catcha-line bg-paper px-3 py-2 text-sm"
+                    className="min-w-0 flex-1 rounded-lg border border-petflow-line bg-paper px-3 py-2 text-sm"
                   />
                   <select
                     value={cat.ageUnit}
@@ -381,7 +381,7 @@ export default function RegisterPage() {
                         ageUnit: e.target.value as "year" | "month",
                       })
                     }
-                    className="w-24 shrink-0 rounded-lg border border-catcha-line bg-paper px-3 py-2 text-sm"
+                    className="w-24 shrink-0 rounded-lg border border-petflow-line bg-paper px-3 py-2 text-sm"
                   >
                     <option value="year">ปี</option>
                     <option value="month">เดือน</option>
@@ -430,7 +430,7 @@ export default function RegisterPage() {
           <button
             type="button"
             onClick={addCat}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-catcha-sm border-2 border-dashed border-latte/60 bg-latte/10 py-3 text-sm font-extrabold text-latte-deep transition active:scale-[.98]"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-petflow-sm border-2 border-dashed border-latte/60 bg-latte/10 py-3 text-sm font-extrabold text-latte-deep transition active:scale-[.98]"
           >
             <span className="text-lg">🐱</span> เพิ่มน้องแมวอีกตัว
             <span className="text-lg">🐾</span>
@@ -451,7 +451,7 @@ export default function RegisterPage() {
                 onClick={() => setReferral((prev) => (prev === opt ? "" : opt))}
                 className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
                   referral === opt
-                    ? "bg-latte/40 text-catcha-chocolate ring-1 ring-latte-deep"
+                    ? "bg-latte/40 text-petflow-chocolate ring-1 ring-latte-deep"
                     : "bg-paper text-brown-faint"
                 }`}
               >
@@ -462,7 +462,7 @@ export default function RegisterPage() {
         </div>
 
         {/* ── ยินยอมรับข่าวสาร ── */}
-        <label className="flex items-start gap-3 rounded-catcha-sm border border-catcha-line bg-card p-3">
+        <label className="flex items-start gap-3 rounded-petflow-sm border border-petflow-line bg-card p-3">
           <input
             type="checkbox"
             checked={consent}
@@ -478,7 +478,7 @@ export default function RegisterPage() {
         </label>
 
         {error && (
-          <p className="rounded-catcha-sm bg-red-50 px-3 py-2 text-xs font-bold text-red-700">
+          <p className="rounded-petflow-sm bg-red-50 px-3 py-2 text-xs font-bold text-red-700">
             {error}
           </p>
         )}
@@ -486,7 +486,7 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={saving}
-          className="w-full rounded-catcha-sm bg-gradient-to-r from-sage to-[#4A7348] py-3.5 text-sm font-extrabold text-white disabled:opacity-60"
+          className="w-full rounded-petflow-sm bg-gradient-to-r from-sage to-[#4A7348] py-3.5 text-sm font-extrabold text-white disabled:opacity-60"
         >
           {saving ? "กำลังบันทึก…" : "✅ บันทึกข้อมูล"}
         </button>

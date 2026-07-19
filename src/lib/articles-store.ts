@@ -34,8 +34,8 @@ type ArticleRow = {
 };
 
 // dev (ไม่มี Supabase): แชร์ array เดียวกันข้าม bundle ของ API route กับหน้าเพจ
-const globalMem = globalThis as unknown as { __catchaArticlesMem?: ArticleRecord[] };
-const mem: ArticleRecord[] = (globalMem.__catchaArticlesMem ||= []);
+const globalMem = globalThis as unknown as { __petflowArticlesMem?: ArticleRecord[] };
+const mem: ArticleRecord[] = (globalMem.__petflowArticlesMem ||= []);
 
 function rowToArticle(r: ArticleRow): ArticleRecord {
   return {

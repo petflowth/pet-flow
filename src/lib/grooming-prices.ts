@@ -1,5 +1,5 @@
 /**
- * ตารางราคาอาบน้ำ/กรูมมิ่ง — จากเมนู CATCHA GROOMING (Landin'Elite)
+ * ตารางราคาอาบน้ำ/กรูมมิ่ง — เมนูตัวอย่าง (Landin'Elite)
  * เลือก โปรแกรม → พันธุ์ → ไซส์ แล้วได้ราคาเลย
  * TODO(config-driven): ย้ายไปแก้ในหน้าตั้งค่าได้ (ดู memory: prefer-config-driven-no-code-edits)
  */
@@ -51,7 +51,7 @@ export const GROOM_PROGRAMS: GroomProgram[] = [
   },
   {
     id: "premium",
-    name: "Catcha Premium (แนะนำ)",
+    name: "PetFlow Premium (แนะนำ)",
     breeds: [
       { breed: "แมวพันธุ์ขนสั้น", prices: { kitten: 700, m: 900, l: 1100 } },
       { breed: "แมวพันธุ์ขนยาว", prices: { kitten: 800, m: 1000, l: 1250 } },

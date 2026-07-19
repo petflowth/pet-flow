@@ -87,7 +87,7 @@ function SignaturePad({
         onPointerMove={move}
         onPointerUp={end}
         onPointerLeave={end}
-        className="w-full touch-none rounded-catcha-sm border border-catcha-line bg-white"
+        className="w-full touch-none rounded-petflow-sm border border-petflow-line bg-white"
         style={{ height: 140 }}
       />
       <button
@@ -180,7 +180,7 @@ function ConsentContent() {
         ← กลับหน้าแรก
       </Link>
 
-      <h1 className="text-lg font-extrabold text-catcha-chocolate">
+      <h1 className="text-lg font-extrabold text-petflow-chocolate">
         📋 {consentTitle}
       </h1>
       <p className="mt-1 text-xs text-brown-soft">
@@ -188,13 +188,13 @@ function ConsentContent() {
       </p>
 
       {!ready || loading ? (
-        <p className="mt-6 rounded-catcha-sm bg-paper px-4 py-3 text-sm text-brown-soft">
+        <p className="mt-6 rounded-petflow-sm bg-paper px-4 py-3 text-sm text-brown-soft">
           กำลังโหลด…
         </p>
       ) : (
         <>
           {booking && (
-            <div className="mt-4 rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm">
+            <div className="mt-4 rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm">
               <p className="text-sm font-bold text-brown">
                 🐱 {booking.catName}
               </p>
@@ -210,7 +210,7 @@ function ConsentContent() {
             {terms.map((term, i) => (
               <li
                 key={i}
-                className="flex gap-2 rounded-catcha-sm bg-paper/70 px-3 py-2 text-xs text-brown"
+                className="flex gap-2 rounded-petflow-sm bg-paper/70 px-3 py-2 text-xs text-brown"
               >
                 <span className="font-bold text-latte-deep">{i + 1}.</span>
                 <span>{term}</span>
@@ -219,7 +219,7 @@ function ConsentContent() {
           </ul>
 
           <div className="mt-5">
-            <label className="text-xs font-bold text-catcha-chocolate">
+            <label className="text-xs font-bold text-petflow-chocolate">
               📝 แจ้งการดูแลเพิ่มเติม (ไม่บังคับ)
             </label>
             <p className="mb-1.5 text-[11px] text-brown-faint">
@@ -231,13 +231,13 @@ function ConsentContent() {
               disabled={accepted}
               rows={4}
               placeholder="พิมพ์รายละเอียดการดูแลน้องที่อยากให้ทางร้านทราบ…"
-              className="w-full rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs text-brown disabled:bg-paper/60"
+              className="w-full rounded-petflow-sm border border-petflow-line bg-card px-3 py-2 text-xs text-brown disabled:bg-paper/60"
             />
           </div>
 
           {accepted ? (
-            <div className="mt-4 rounded-catcha bg-sage/15 px-4 py-4 text-center">
-              <p className="text-sm font-extrabold text-catcha-chocolate">
+            <div className="mt-4 rounded-petflow bg-sage/15 px-4 py-4 text-center">
+              <p className="text-sm font-extrabold text-petflow-chocolate">
                 ✅ รับทราบและยอมรับข้อตกลงแล้ว
               </p>
               <p className="mt-1 text-xs text-brown-soft">
@@ -247,7 +247,7 @@ function ConsentContent() {
           ) : (
             <>
               <div className="mt-5">
-                <label className="text-xs font-bold text-catcha-chocolate">
+                <label className="text-xs font-bold text-petflow-chocolate">
                   ✍️ ลายเซ็นยืนยันตัวตน
                 </label>
                 <p className="mb-1.5 text-[11px] text-brown-faint">
@@ -282,7 +282,7 @@ function ConsentContent() {
                 type="button"
                 disabled={!checked || saving || !booking}
                 onClick={submit}
-                className="mt-4 w-full rounded-catcha-sm bg-latte-deep py-3 text-center text-sm font-extrabold text-card disabled:opacity-40"
+                className="mt-4 w-full rounded-petflow-sm bg-latte-deep py-3 text-center text-sm font-extrabold text-card disabled:opacity-40"
               >
                 {saving ? "กำลังบันทึก…" : "ยอมรับข้อตกลง"}
               </button>

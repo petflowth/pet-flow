@@ -12,17 +12,17 @@ import SiteFooter, { SocialLinks } from "@/components/SiteFooter";
  * หมายเหตุ: ร้านมีบริการ "อาบน้ำแมว" เท่านั้น ไม่มีบริการตัดขน
  */
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catchahotel.com";
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://petflow.example.com";
 const PHONE_MAIN = BUSINESS.phones[0];
-const LINE_URL = "https://line.me/R/ti/p/@catchahotel";
+const LINE_URL = "https://line.me/R/ti/p/@petflow";
 const MAPS_URL = BUSINESS.maps;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title:
-    "โรงแรมแมว บางนา–เทพารักษ์ | รับฝากแมว อาบน้ำแมว | CatCha Hotel สมุทรปราการ",
+    "โรงแรมแมว บางนา–เทพารักษ์ | รับฝากแมว อาบน้ำแมว | PetFlow สมุทรปราการ",
   description:
-    "CatCha Hotel โรงแรมแมวย่านบางนา เทพารักษ์ หนามแดง ใกล้เมกาบางนา ศรีนครินทร์ — รับฝากแมวห้องแอร์ มี CCTV ดูน้องได้ 24 ชม. รายงานเช้า-เย็นทุกวัน พร้อมบริการอาบน้ำแมวโดยพี่เลี้ยงใจดี เริ่มคืนละ 350.-",
+    "PetFlow โรงแรมแมวย่านบางนา เทพารักษ์ หนามแดง ใกล้เมกาบางนา ศรีนครินทร์ — รับฝากแมวห้องแอร์ มี CCTV ดูน้องได้ 24 ชม. รายงานเช้า-เย็นทุกวัน พร้อมบริการอาบน้ำแมวโดยพี่เลี้ยงใจดี เริ่มคืนละ 350.-",
   keywords: [
     "โรงแรมแมว บางนา",
     "โรงแรมแมว เทพารักษ์",
@@ -44,11 +44,11 @@ export const metadata: Metadata = {
     type: "website",
     locale: "th_TH",
     url: SITE_URL,
-    siteName: "CatCha Hotel",
-    title: "CatCha Hotel — โรงแรมแมว & อาบน้ำแมว บางนา เทพารักษ์",
+    siteName: "PetFlow",
+    title: "PetFlow — โรงแรมแมว & อาบน้ำแมว บางนา เทพารักษ์",
     description:
       "รับฝากแมวห้องแอร์ CCTV 24 ชม. รายงานเช้า-เย็น + อาบน้ำแมว ย่านบางนา เทพารักษ์ ใกล้เมกาบางนา เริ่มคืนละ 350.-",
-    images: [{ url: "/info/welcome.jpg", width: 1200, height: 1200, alt: "CatCha Hotel โรงแรมแมว บางนา" }],
+    images: [{ url: "/info/welcome.jpg", width: 1200, height: 1200, alt: "PetFlow โรงแรมแมว บางนา" }],
   },
   robots: { index: true, follow: true },
 };
@@ -71,7 +71,7 @@ const AREAS = [
 
 const FAQS = [
   {
-    q: "โรงแรมแมว CatCha อยู่ตรงไหน?",
+    q: "โรงแรมแมว PetFlow อยู่ตรงไหน?",
     a: "ร้านอยู่ย่านหนามแดง–เทพารักษ์ สมุทรปราการ ใกล้บางนาและเมกาบางนา เดินทางสะดวกจากศรีนครินทร์ แบริ่ง ลาซาล อุดมสุข และสำโรง มีที่จอดรถหน้าร้าน",
   },
   {
@@ -84,7 +84,7 @@ const FAQS = [
   },
   {
     q: "รับอาบน้ำแมวไหม ราคาเท่าไหร่?",
-    a: "รับค่ะ อาบน้ำ-เป่าขนเริ่มต้น 400 บาท (ตามพันธุ์และขนาด) มีโปรแกรมขจัดคราบมัน และ Catcha Premium ครบเซ็ต โดยพี่เลี้ยงที่จับแมวนุ่มนวล ใจเย็นกับน้องขี้กลัวเป็นพิเศษ (ทางร้านไม่มีบริการตัดขนนะคะ)",
+    a: "รับค่ะ อาบน้ำ-เป่าขนเริ่มต้น 400 บาท (ตามพันธุ์และขนาด) มีโปรแกรมขจัดคราบมัน และ PetFlow Premium ครบเซ็ต โดยพี่เลี้ยงที่จับแมวนุ่มนวล ใจเย็นกับน้องขี้กลัวเป็นพิเศษ (ทางร้านไม่มีบริการตัดขนนะคะ)",
   },
   {
     q: "ต้องเตรียมอะไรมาบ้างตอนฝากแมว?",
@@ -92,7 +92,7 @@ const FAQS = [
   },
   {
     q: "จองคิวยังไง?",
-    a: "ทักไลน์ @catchahotel หรือโทร 080-549-8969 ได้เลยค่ะ จองผ่านระบบสมาชิกในไลน์ได้ตลอด 24 ชม. มีระบบสะสมแต้มและคูปองส่วนลดสำหรับสมาชิก",
+    a: "ทักไลน์ @petflow หรือโทร 02-123-4567 ได้เลยค่ะ จองผ่านระบบสมาชิกในไลน์ได้ตลอด 24 ชม. มีระบบสะสมแต้มและคูปองส่วนลดสำหรับสมาชิก",
   },
 ];
 
@@ -104,12 +104,12 @@ function jsonLd() {
       {
         "@type": "LocalBusiness",
         "@id": `${SITE_URL}#business`,
-        name: "CatCha Hotel โรงแรมแมว อาบน้ำแมว",
-        alternateName: "แคทฉะ โฮเทล",
+        name: "PetFlow โรงแรมแมว อาบน้ำแมว",
+        alternateName: "PetFlow",
         description:
           "โรงแรมแมวและอาบน้ำแมว ย่านบางนา เทพารักษ์ หนามแดง สมุทรปราการ ห้องแอร์ CCTV รายงานเช้า-เย็น",
         url: SITE_URL,
-        telephone: "+66805498969",
+        telephone: "+6621234567",
         priceRange: "฿350-฿1,450",
         image: `${SITE_URL}/logo.jpg`,
         address: {
@@ -118,7 +118,7 @@ function jsonLd() {
           addressRegion: "สมุทรปราการ",
           addressCountry: "TH",
         },
-        geo: { "@type": "GeoCoordinates", latitude: 13.6290175, longitude: 100.654973 },
+        geo: { "@type": "GeoCoordinates", latitude: 13.7563, longitude: 100.5018 },
         hasMap: MAPS_URL,
         sameAs: [
           MAPS_URL,
@@ -163,7 +163,7 @@ function InfoCard({
       href={src}
       target="_blank"
       rel="noopener noreferrer"
-      className="group block overflow-hidden rounded-catcha border border-catcha-line bg-card shadow-catcha-sm transition hover:-translate-y-0.5 hover:shadow-catcha"
+      className="group block overflow-hidden rounded-petflow border border-petflow-line bg-card shadow-petflow-sm transition hover:-translate-y-0.5 hover:shadow-petflow"
     >
       <Image
         src={src}
@@ -197,20 +197,20 @@ export default function HomePage() {
           <div className="text-center md:text-left">
             <Image
               src="/logo.jpg"
-              alt="CatCha Hotel โรงแรมแมว บางนา เทพารักษ์"
+              alt="PetFlow โรงแรมแมว บางนา เทพารักษ์"
               width={88}
               height={88}
-              className="mx-auto rounded-full border-4 border-honey/50 shadow-catcha md:mx-0"
+              className="mx-auto rounded-full border-4 border-honey/50 shadow-petflow md:mx-0"
               priority
             />
-            <h1 className="mt-5 text-[26px] font-extrabold leading-tight text-catcha-chocolate sm:text-3xl md:text-4xl">
+            <h1 className="mt-5 text-[26px] font-extrabold leading-tight text-petflow-chocolate sm:text-3xl md:text-4xl">
               โรงแรมแมว & อาบน้ำแมว
               <span className="mt-1 block text-latte-deep">
                 บางนา · เทพารักษ์ · สมุทรปราการ
               </span>
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-brown-soft md:mx-0 md:text-[15px]">
-              CatCha Hotel รับฝากแมว<b className="text-catcha-chocolate">ห้องแอร์ส่วนตัว</b>ใกล้เมกาบางนา
+              PetFlow รับฝากแมว<b className="text-petflow-chocolate">ห้องแอร์ส่วนตัว</b>ใกล้เมกาบางนา
               ศรีนครินทร์ หนามแดง — มี CCTV ดูน้องได้ตลอด
               พี่เลี้ยงรายงานรูปเช้า-เย็นทุกวัน พร้อมบริการอาบน้ำแมวโดยพี่เลี้ยงใจดี
               <b className="text-latte-deep"> เริ่มต้นคืนละ 350.-</b>
@@ -218,13 +218,13 @@ export default function HomePage() {
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center md:justify-start">
               <a
                 href={LINE_URL}
-                className="rounded-catcha-sm bg-[#06C755] px-6 py-3.5 text-center text-sm font-extrabold text-white shadow-catcha-sm active:scale-[0.98]"
+                className="rounded-petflow-sm bg-[#06C755] px-6 py-3.5 text-center text-sm font-extrabold text-white shadow-petflow-sm active:scale-[0.98]"
               >
-                💬 จองผ่าน LINE @catchahotel
+                💬 จองผ่าน LINE @petflow
               </a>
               <a
                 href={`tel:${PHONE_MAIN.replace(/-/g, "")}`}
-                className="rounded-catcha-sm bg-latte-deep px-6 py-3.5 text-center text-sm font-extrabold text-white shadow-catcha-sm active:scale-[0.98]"
+                className="rounded-petflow-sm bg-latte-deep px-6 py-3.5 text-center text-sm font-extrabold text-white shadow-petflow-sm active:scale-[0.98]"
               >
                 📞 โทร {PHONE_MAIN}
               </a>
@@ -232,7 +232,7 @@ export default function HomePage() {
                 href={MAPS_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-catcha-sm border-2 border-latte-deep bg-card px-6 py-3 text-center text-sm font-extrabold text-latte-deep shadow-catcha-sm active:scale-[0.98]"
+                className="rounded-petflow-sm border-2 border-latte-deep bg-card px-6 py-3 text-center text-sm font-extrabold text-latte-deep shadow-petflow-sm active:scale-[0.98]"
               >
                 🗺️ Google Maps นำทางมาร้าน
               </a>
@@ -244,12 +244,12 @@ export default function HomePage() {
           <div className="mx-auto w-full max-w-sm md:max-w-none">
             <Image
               src="/info/welcome.jpg"
-              alt="ยินดีต้อนรับสู่ CatCha Hotel โรงแรมแมวระบบปิด ดูแลใกล้ชิด อบอุ่นเหมือนอยู่บ้าน"
+              alt="ยินดีต้อนรับสู่ PetFlow โรงแรมแมวระบบปิด ดูแลใกล้ชิด อบอุ่นเหมือนอยู่บ้าน"
               width={900}
               height={900}
               priority
               sizes="(max-width: 768px) 100vw, 50vw"
-              className="h-auto w-full rounded-catcha border border-honey/40 shadow-catcha"
+              className="h-auto w-full rounded-petflow border border-honey/40 shadow-petflow"
             />
           </div>
         </div>
@@ -258,8 +258,8 @@ export default function HomePage() {
       <div className="mx-auto max-w-5xl px-5 pb-16">
         {/* ── จุดเด่น ── */}
         <section className="mt-2">
-          <h2 className="text-center text-xl font-extrabold text-catcha-chocolate">
-            ทำไมทาสแมวย่านบางนา–เทพารักษ์ ไว้ใจ CatCha 🧡
+          <h2 className="text-center text-xl font-extrabold text-petflow-chocolate">
+            ทำไมทาสแมวย่านบางนา–เทพารักษ์ ไว้ใจ PetFlow 🧡
           </h2>
           <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
             {[
@@ -270,10 +270,10 @@ export default function HomePage() {
             ].map(([icon, title, desc]) => (
               <div
                 key={title}
-                className="rounded-catcha border border-catcha-line bg-card p-4 text-center shadow-catcha-sm"
+                className="rounded-petflow border border-petflow-line bg-card p-4 text-center shadow-petflow-sm"
               >
                 <div className="text-3xl">{icon}</div>
-                <p className="mt-2 text-sm font-extrabold text-catcha-chocolate">{title}</p>
+                <p className="mt-2 text-sm font-extrabold text-petflow-chocolate">{title}</p>
                 <p className="mt-1 text-[11px] leading-relaxed text-brown-soft">{desc}</p>
               </div>
             ))}
@@ -282,7 +282,7 @@ export default function HomePage() {
 
         {/* ── ห้องพัก + ราคา ── */}
         <section className="mt-14">
-          <h2 className="text-center text-xl font-extrabold text-catcha-chocolate">
+          <h2 className="text-center text-xl font-extrabold text-petflow-chocolate">
             🏨 ห้องพักแมว เริ่มต้นคืนละ 350.-
           </h2>
           <p className="mt-2 text-center text-xs text-brown-soft">
@@ -292,16 +292,16 @@ export default function HomePage() {
             {singleRooms.map((r, i) => (
               <div
                 key={r.id}
-                className={`relative rounded-catcha border bg-card p-5 shadow-catcha-sm ${
-                  i === 0 ? "border-honey/60" : "border-catcha-line"
+                className={`relative rounded-petflow border bg-card p-5 shadow-petflow-sm ${
+                  i === 0 ? "border-honey/60" : "border-petflow-line"
                 }`}
               >
                 {i === 0 && (
-                  <span className="absolute -top-2.5 left-4 rounded-full bg-honey px-3 py-0.5 text-[10px] font-extrabold text-catcha-chocolate">
+                  <span className="absolute -top-2.5 left-4 rounded-full bg-honey px-3 py-0.5 text-[10px] font-extrabold text-petflow-chocolate">
                     ⭐ เริ่มต้น
                   </span>
                 )}
-                <p className="text-base font-extrabold text-catcha-chocolate">{r.name}</p>
+                <p className="text-base font-extrabold text-petflow-chocolate">{r.name}</p>
                 <p className="mt-0.5 text-xs text-brown-soft">{r.cats.th}</p>
                 <p className="mt-3 text-2xl font-extrabold text-latte-deep">
                   {r.price.toLocaleString()}
@@ -321,7 +321,7 @@ export default function HomePage() {
           <div className="mt-4 text-center">
             <Link
               href="/cat-hotel"
-              className="inline-block rounded-catcha-sm bg-latte/25 px-6 py-3 text-sm font-extrabold text-catcha-chocolate shadow-catcha-sm"
+              className="inline-block rounded-petflow-sm bg-latte/25 px-6 py-3 text-sm font-extrabold text-petflow-chocolate shadow-petflow-sm"
             >
               📷 ดูรูปห้องจริง + ราคาทุกห้อง →
             </Link>
@@ -330,18 +330,18 @@ export default function HomePage() {
 
         {/* ── จองยังไง + เวลาทำการ ── */}
         <section className="mt-14">
-          <h2 className="text-center text-xl font-extrabold text-catcha-chocolate">
+          <h2 className="text-center text-xl font-extrabold text-petflow-chocolate">
             📅 จองง่ายๆ 4 ขั้นตอน + เวลาให้บริการ
           </h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <InfoCard
               src="/info/booking-steps.jpg"
-              alt="วิธีจองห้องพักโรงแรมแมว CatCha Hotel ง่ายๆ 4 ขั้นตอน แจ้งวัน ส่งข้อมูลน้องแมว ชำระมัดจำ รับ Booking Confirmation"
+              alt="วิธีจองห้องพักโรงแรมแมว PetFlow ง่ายๆ 4 ขั้นตอน แจ้งวัน ส่งข้อมูลน้องแมว ชำระมัดจำ รับ Booking Confirmation"
               caption="วิธีจองห้องพัก 4 ขั้นตอน"
             />
             <InfoCard
               src="/info/hours.jpg"
-              alt="เวลาให้บริการ CatCha Hotel 09:00-19:00 ทุกวัน เช็กอิน 09:00-18:00 เช็กเอาต์ 09:00-19:00"
+              alt="เวลาให้บริการ PetFlow 09:00-19:00 ทุกวัน เช็กอิน 09:00-18:00 เช็กเอาต์ 09:00-19:00"
               caption="เวลาให้บริการ · เช็กอิน-เช็กเอาต์"
             />
           </div>
@@ -349,7 +349,7 @@ export default function HomePage() {
 
         {/* ── อาบน้ำแมว ── */}
         <section className="mt-14">
-          <h2 className="text-center text-xl font-extrabold text-catcha-chocolate">
+          <h2 className="text-center text-xl font-extrabold text-petflow-chocolate">
             🛁 อาบน้ำแมว (Cat Bathing)
           </h2>
           <p className="mt-2 text-center text-xs text-brown-soft">
@@ -359,13 +359,13 @@ export default function HomePage() {
             {[
               ["อาบน้ำ – เป่าขน", "เริ่ม 400.-", "อาบสะอาด เป่าแห้งสนิท ตัดเล็บ เช็ดหู"],
               ["อาบน้ำ + ขจัดคราบมัน", "เริ่ม 500.-", "สำหรับน้องขนมัน คราบเหนียว ขนกลับมาฟู"],
-              ["Catcha Premium", "เริ่ม 700.-", "จัดเต็มครบเซ็ต บำรุงขน แนะนำสำหรับขนยาว"],
+              ["PetFlow Premium", "เริ่ม 700.-", "จัดเต็มครบเซ็ต บำรุงขน แนะนำสำหรับขนยาว"],
             ].map(([name, price, desc]) => (
               <div
                 key={name}
-                className="rounded-catcha border border-catcha-line bg-card p-5 text-center shadow-catcha-sm"
+                className="rounded-petflow border border-petflow-line bg-card p-5 text-center shadow-petflow-sm"
               >
-                <p className="text-sm font-extrabold text-catcha-chocolate">{name}</p>
+                <p className="text-sm font-extrabold text-petflow-chocolate">{name}</p>
                 <p className="mt-2 text-xl font-extrabold text-latte-deep">{price}</p>
                 <p className="mt-1.5 text-[11px] leading-relaxed text-brown-soft">{desc}</p>
               </div>
@@ -374,12 +374,12 @@ export default function HomePage() {
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <InfoCard
               src="/info/bath-info.jpg"
-              alt="ข้อมูลก่อนพาน้องแมวมาอาบน้ำที่ CatCha Hotel งดอาหารก่อนอาบ 2-3 ชั่วโมง แจ้งโรคประจำตัว พามาในกระเป๋าหรือกรง"
+              alt="ข้อมูลก่อนพาน้องแมวมาอาบน้ำที่ PetFlow งดอาหารก่อนอาบ 2-3 ชั่วโมง แจ้งโรคประจำตัว พามาในกระเป๋าหรือกรง"
               caption="ข้อมูลก่อนพาน้องมาอาบน้ำ"
             />
             <InfoCard
               src="/info/bath-booking.jpg"
-              alt="เงื่อนไขการจองคิวอาบน้ำแมว CatCha Hotel มัดจำ 200 บาท นำไปหักค่าอาบน้ำ"
+              alt="เงื่อนไขการจองคิวอาบน้ำแมว PetFlow มัดจำ 200 บาท นำไปหักค่าอาบน้ำ"
               caption="เงื่อนไขการจองคิวอาบน้ำ"
             />
           </div>
@@ -391,7 +391,7 @@ export default function HomePage() {
           <div className="mt-4 text-center">
             <Link
               href="/cat-bath"
-              className="inline-block rounded-catcha-sm bg-latte/25 px-6 py-3 text-sm font-extrabold text-catcha-chocolate shadow-catcha-sm"
+              className="inline-block rounded-petflow-sm bg-latte/25 px-6 py-3 text-sm font-extrabold text-petflow-chocolate shadow-petflow-sm"
             >
               📋 ดูเมนู-ราคาอาบน้ำทุกสายพันธุ์ →
             </Link>
@@ -400,7 +400,7 @@ export default function HomePage() {
 
         {/* ── เตรียมตัวก่อนเข้าพัก ── */}
         <section className="mt-14">
-          <h2 className="text-center text-xl font-extrabold text-catcha-chocolate">
+          <h2 className="text-center text-xl font-extrabold text-petflow-chocolate">
             🧳 เตรียมตัวก่อนพาน้องเข้าพัก
           </h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -416,7 +416,7 @@ export default function HomePage() {
             />
             <InfoCard
               src="/info/stay-rules.jpg"
-              alt="เงื่อนไขสำคัญในการเข้าพักโรงแรมแมว CatCha Hotel รับเฉพาะแมวเลี้ยงระบบปิด สุขภาพแข็งแรง อัปเดตรูปทุกวัน"
+              alt="เงื่อนไขสำคัญในการเข้าพักโรงแรมแมว PetFlow รับเฉพาะแมวเลี้ยงระบบปิด สุขภาพแข็งแรง อัปเดตรูปทุกวัน"
               caption="เงื่อนไขสำคัญในการเข้าพัก"
             />
           </div>
@@ -424,9 +424,9 @@ export default function HomePage() {
 
         {/* ── บริการรับส่ง ── */}
         <section className="mt-14">
-          <div className="grid items-center gap-6 rounded-catcha bg-card p-5 shadow-catcha-sm md:grid-cols-2 md:p-8">
+          <div className="grid items-center gap-6 rounded-petflow bg-card p-5 shadow-petflow-sm md:grid-cols-2 md:p-8">
             <div className="text-center md:text-left">
-              <h2 className="text-xl font-extrabold text-catcha-chocolate">
+              <h2 className="text-xl font-extrabold text-petflow-chocolate">
                 🚗 มีบริการรับ-ส่งน้องแมวถึงบ้าน
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-brown-soft">
@@ -443,7 +443,7 @@ export default function HomePage() {
             <div className="mx-auto w-full max-w-sm">
               <InfoCard
                 src="/info/transport.jpg"
-                alt="บริการรับส่งน้องแมว CatCha Hotel เดินทางโดยรถยนต์ส่วนตัว คิดค่าบริการตามระยะทาง"
+                alt="บริการรับส่งน้องแมว PetFlow เดินทางโดยรถยนต์ส่วนตัว คิดค่าบริการตามระยะทาง"
               />
             </div>
           </div>
@@ -451,7 +451,7 @@ export default function HomePage() {
 
         {/* ── สมาชิก / สะสมแต้ม ── */}
         <section className="mt-14">
-          <h2 className="text-center text-xl font-extrabold text-catcha-chocolate">
+          <h2 className="text-center text-xl font-extrabold text-petflow-chocolate">
             🎁 เป็นสมาชิก ยิ่งพัก ยิ่งคุ้ม
           </h2>
           <p className="mt-2 text-center text-xs text-brown-soft">
@@ -460,19 +460,19 @@ export default function HomePage() {
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <InfoCard
               src="/info/rewards.jpg"
-              alt="สะสมคะแนนแลกรางวัล CatCha Hotel ครบ 5 คะแนนรับขนมแมวเลีย แลกส่วนลดสูงสุด 500 บาท"
+              alt="สะสมคะแนนแลกรางวัล PetFlow ครบ 5 คะแนนรับขนมแมวเลีย แลกส่วนลดสูงสุด 500 บาท"
               caption="สะสมคะแนน แลกส่วนลด/ของรางวัล"
             />
             <InfoCard
               src="/info/new-member.jpg"
-              alt="สมาชิกใหม่ CatCha Hotel รับส่วนลด 5% เมื่อสมัครสมาชิกและรีวิวบน Google Maps"
+              alt="สมาชิกใหม่ PetFlow รับส่วนลด 5% เมื่อสมัครสมาชิกและรีวิวบน Google Maps"
               caption="สมาชิกใหม่ รับส่วนลด 5%"
             />
           </div>
           <div className="mt-5 text-center">
             <Link
               href="/app"
-              className="inline-block rounded-catcha-sm bg-honey/50 px-6 py-3 text-sm font-extrabold text-catcha-chocolate shadow-catcha-sm"
+              className="inline-block rounded-petflow-sm bg-honey/50 px-6 py-3 text-sm font-extrabold text-petflow-chocolate shadow-petflow-sm"
             >
               🐱 สมัครสมาชิก / เข้าระบบสมาชิก →
             </Link>
@@ -480,8 +480,8 @@ export default function HomePage() {
         </section>
 
         {/* ── พื้นที่ให้บริการ ── */}
-        <section className="mt-14 rounded-catcha bg-card p-6 text-center shadow-catcha-sm">
-          <h2 className="text-xl font-extrabold text-catcha-chocolate">
+        <section className="mt-14 rounded-petflow bg-card p-6 text-center shadow-petflow-sm">
+          <h2 className="text-xl font-extrabold text-petflow-chocolate">
             📍 รับฝากแมวใกล้คุณ — พื้นที่ให้บริการ
           </h2>
           <p className="mx-auto mt-2 max-w-xl text-xs leading-relaxed text-brown-soft">
@@ -499,7 +499,7 @@ export default function HomePage() {
           </div>
           <a
             href={MAPS_URL}
-            className="mt-5 inline-block rounded-catcha-sm bg-honey/40 px-6 py-3 text-sm font-extrabold text-catcha-chocolate"
+            className="mt-5 inline-block rounded-petflow-sm bg-honey/40 px-6 py-3 text-sm font-extrabold text-petflow-chocolate"
           >
             🗺️ นำทางด้วย Google Maps
           </a>
@@ -507,16 +507,16 @@ export default function HomePage() {
 
         {/* ── FAQ ── */}
         <section className="mt-14">
-          <h2 className="text-center text-xl font-extrabold text-catcha-chocolate">
+          <h2 className="text-center text-xl font-extrabold text-petflow-chocolate">
             ❓ คำถามที่พบบ่อย
           </h2>
           <div className="mt-6 space-y-3">
             {FAQS.map((f) => (
               <details
                 key={f.q}
-                className="group rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm"
+                className="group rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm"
               >
-                <summary className="cursor-pointer list-none text-sm font-extrabold text-catcha-chocolate">
+                <summary className="cursor-pointer list-none text-sm font-extrabold text-petflow-chocolate">
                   <span className="mr-1 inline-block transition group-open:rotate-90">▸</span>
                   {f.q}
                 </summary>
@@ -527,19 +527,20 @@ export default function HomePage() {
         </section>
 
         {/* ── บทความ ── */}
+        {BLOG_POSTS.length > 0 && (
         <section className="mt-14">
-          <h2 className="text-center text-xl font-extrabold text-catcha-chocolate">
-            📚 บทความน่ารู้จากพี่เลี้ยง CatCha
+          <h2 className="text-center text-xl font-extrabold text-petflow-chocolate">
+            📚 บทความน่ารู้จากพี่เลี้ยง {BUSINESS.name}
           </h2>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
             {BLOG_POSTS.slice(0, 3).map((post) => (
               <Link
                 key={post.slug}
                 href={`/blog/${post.slug}`}
-                className="rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm transition hover:border-honey/60"
+                className="rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm transition hover:border-honey/60"
               >
                 <p className="text-2xl">{post.emoji}</p>
-                <p className="mt-2 text-sm font-extrabold leading-snug text-catcha-chocolate">
+                <p className="mt-2 text-sm font-extrabold leading-snug text-petflow-chocolate">
                   {post.title}
                 </p>
                 <p className="mt-2 text-[11px] font-bold text-latte-deep">
@@ -554,10 +555,11 @@ export default function HomePage() {
             </Link>
           </p>
         </section>
+        )}
 
         {/* ── CTA ท้าย ── */}
-        <section className="mt-14 rounded-catcha bg-gradient-to-br from-honey/35 via-card to-latte/15 p-6 text-center shadow-catcha md:p-10">
-          <h2 className="text-xl font-extrabold text-catcha-chocolate">
+        <section className="mt-14 rounded-petflow bg-gradient-to-br from-honey/35 via-card to-latte/15 p-6 text-center shadow-petflow md:p-10">
+          <h2 className="text-xl font-extrabold text-petflow-chocolate">
             พร้อมดูแลน้องแมวของคุณแล้ววันนี้ 🧡
           </h2>
           <p className="mt-2 text-xs text-brown-soft">
@@ -566,13 +568,13 @@ export default function HomePage() {
           <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row sm:flex-wrap">
             <a
               href={LINE_URL}
-              className="rounded-catcha-sm bg-[#06C755] px-6 py-3.5 text-sm font-extrabold text-white shadow-catcha-sm active:scale-[0.98]"
+              className="rounded-petflow-sm bg-[#06C755] px-6 py-3.5 text-sm font-extrabold text-white shadow-petflow-sm active:scale-[0.98]"
             >
-              💬 LINE @catchahotel
+              💬 LINE @petflow
             </a>
             <a
               href={`tel:${PHONE_MAIN.replace(/-/g, "")}`}
-              className="rounded-catcha-sm bg-latte-deep px-6 py-3.5 text-sm font-extrabold text-white shadow-catcha-sm active:scale-[0.98]"
+              className="rounded-petflow-sm bg-latte-deep px-6 py-3.5 text-sm font-extrabold text-white shadow-petflow-sm active:scale-[0.98]"
             >
               📞 {PHONE_MAIN}
             </a>

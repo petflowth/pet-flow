@@ -6,15 +6,15 @@ import SiteFooter from "@/components/SiteFooter";
 
 /** หน้าห้องพักโรงแรมแมว — รูปจริง + ราคา ครบทุกห้อง (SEO service page) */
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://catchahotel.com";
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://petflow.example.com";
 const PHONE_MAIN = BUSINESS.phones[0];
-const LINE_URL = "https://line.me/R/ti/p/@catchahotel";
+const LINE_URL = "https://line.me/R/ti/p/@petflow";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "ห้องพักแมว ราคาเริ่ม 350.-/คืน รูปห้องจริงทุกห้อง | CatCha Hotel โรงแรมแมว บางนา เทพารักษ์",
+  title: "ห้องพักแมว ราคาเริ่ม 350.-/คืน รูปห้องจริงทุกห้อง | PetFlow โรงแรมแมว บางนา เทพารักษ์",
   description:
-    "ดูห้องพักโรงแรมแมว CatCha Hotel ครบทุกแบบพร้อมรูปจริงและราคา — MiNi Meow 350.-, Mid Cozy 450.-, Catflix & Chill วิวหน้าต่าง 750.- มีห้องคู่สำหรับบ้านแมวหลายตัว ห้องแอร์ทุกห้อง CCTV รายงานทุกวัน ย่านบางนา เทพารักษ์",
+    "ดูห้องพักโรงแรมแมว PetFlow ครบทุกแบบพร้อมรูปจริงและราคา — MiNi Meow 350.-, Mid Cozy 450.-, Catflix & Chill วิวหน้าต่าง 750.- มีห้องคู่สำหรับบ้านแมวหลายตัว ห้องแอร์ทุกห้อง CCTV รายงานทุกวัน ย่านบางนา เทพารักษ์",
   keywords: [
     "ห้องพักแมว ราคา",
     "โรงแรมแมว ราคา",
@@ -27,10 +27,10 @@ export const metadata: Metadata = {
     type: "website",
     locale: "th_TH",
     url: `${SITE_URL}/cat-hotel`,
-    siteName: "CatCha Hotel",
-    title: "ห้องพักแมว CatCha Hotel — รูปจริง + ราคา เริ่ม 350.-/คืน",
+    siteName: "PetFlow",
+    title: "ห้องพักแมว PetFlow — รูปจริง + ราคา เริ่ม 350.-/คืน",
     description: "ห้องแอร์ส่วนตัวทุกห้อง มีห้องเดี่ยว ห้องคู่ ห้องวิวหน้าต่าง CCTV ดูน้องได้",
-    images: [{ url: "/catalog/rooms/cat-hotel-bangna-catflix.jpg", width: 800, height: 800, alt: "ห้องพักแมว CatCha Hotel" }],
+    images: [{ url: "/catalog/rooms/cat-hotel-bangna-catflix.jpg", width: 800, height: 800, alt: "ห้องพักแมว PetFlow" }],
   },
   robots: { index: true, follow: true },
 };
@@ -39,7 +39,7 @@ function jsonLd() {
   return {
     "@context": "https://schema.org",
     "@type": "Product",
-    name: "ห้องพักโรงแรมแมว CatCha Hotel",
+    name: "ห้องพักโรงแรมแมว PetFlow",
     description: "ห้องพักแมวห้องแอร์ส่วนตัว ย่านบางนา เทพารักษ์ สมุทรปราการ",
     image: `${SITE_URL}/catalog/rooms/cat-hotel-bangna-catflix.jpg`,
     offers: ROOMS.map((r) => ({
@@ -57,11 +57,11 @@ const duos = ROOMS.filter((r) => !r.count);
 
 function RoomCard({ room }: { room: (typeof ROOMS)[number] }) {
   return (
-    <div className="overflow-hidden rounded-catcha border border-catcha-line bg-card shadow-catcha-sm">
+    <div className="overflow-hidden rounded-petflow border border-petflow-line bg-card shadow-petflow-sm">
       <a href={room.image} target="_blank" rel="noopener noreferrer">
         <Image
           src={room.image}
-          alt={`ห้องพักแมว ${room.name} โรงแรมแมว CatCha Hotel บางนา เทพารักษ์`}
+          alt={`ห้องพักแมว ${room.name} โรงแรมแมว PetFlow บางนา เทพารักษ์`}
           width={800}
           height={800}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -71,7 +71,7 @@ function RoomCard({ room }: { room: (typeof ROOMS)[number] }) {
       <div className="p-5">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="text-base font-extrabold text-catcha-chocolate">
+            <p className="text-base font-extrabold text-petflow-chocolate">
               {room.name}
               <span className="ml-1.5 rounded-full bg-latte/20 px-2 py-0.5 text-[10px] font-bold text-latte-deep">
                 {room.size}
@@ -95,13 +95,13 @@ function RoomCard({ room }: { room: (typeof ROOMS)[number] }) {
         {room.config && (
           <p className="mt-1 text-[11px] text-brown-soft">🚪 {room.config.th}</p>
         )}
-        <ul className="mt-3 space-y-1 border-t border-catcha-line pt-3 text-[11px] text-brown-soft">
+        <ul className="mt-3 space-y-1 border-t border-petflow-line pt-3 text-[11px] text-brown-soft">
           {room.amenities.th.map((a) => (
             <li key={a}>✓ {a}</li>
           ))}
         </ul>
         {room.note && (
-          <p className="mt-3 rounded-catcha-sm bg-honey/15 px-3 py-2 text-[10px] leading-relaxed text-brown-soft">
+          <p className="mt-3 rounded-petflow-sm bg-honey/15 px-3 py-2 text-[10px] leading-relaxed text-brown-soft">
             💡 {room.note.th}
           </p>
         )}
@@ -118,9 +118,9 @@ export default function CatHotelPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd()) }}
       />
       <Link href="/" className="text-xs font-bold text-brown-soft">
-        ← หน้าแรก CatCha Hotel
+        ← หน้าแรก PetFlow
       </Link>
-      <h1 className="mt-3 text-2xl font-extrabold leading-snug text-catcha-chocolate md:text-3xl">
+      <h1 className="mt-3 text-2xl font-extrabold leading-snug text-petflow-chocolate md:text-3xl">
         🏨 ห้องพักแมวทุกแบบ + ราคา
         <span className="block text-lg text-latte-deep md:text-xl">
           รูปห้องจริง เริ่มต้นคืนละ 350.-
@@ -131,14 +131,14 @@ export default function CatHotelPage() {
         พร้อมรายงานรูป-วิดีโอเช้า-เย็นทาง LINE — พัก 3 คืนขึ้นไปฟรีทรายแมว
       </p>
 
-      <h2 className="mt-8 text-lg font-extrabold text-catcha-chocolate">ห้องเดี่ยว</h2>
+      <h2 className="mt-8 text-lg font-extrabold text-petflow-chocolate">ห้องเดี่ยว</h2>
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {singles.map((r) => (
           <RoomCard key={r.id} room={r} />
         ))}
       </div>
 
-      <h2 className="mt-10 text-lg font-extrabold text-catcha-chocolate">
+      <h2 className="mt-10 text-lg font-extrabold text-petflow-chocolate">
         ห้องเชื่อม — สำหรับบ้านแมวหลายตัว
       </h2>
       <p className="mt-1 text-xs text-brown-soft">
@@ -151,8 +151,8 @@ export default function CatHotelPage() {
       </div>
 
       {/* CTA */}
-      <div className="mt-12 rounded-catcha bg-gradient-to-br from-honey/35 via-card to-latte/15 p-6 text-center shadow-catcha md:p-8">
-        <h2 className="text-lg font-extrabold text-catcha-chocolate">
+      <div className="mt-12 rounded-petflow bg-gradient-to-br from-honey/35 via-card to-latte/15 p-6 text-center shadow-petflow md:p-8">
+        <h2 className="text-lg font-extrabold text-petflow-chocolate">
           เช็กห้องว่าง / จองคิวเลย 🧡
         </h2>
         <p className="mt-1 text-xs text-brown-soft">
@@ -161,13 +161,13 @@ export default function CatHotelPage() {
         <div className="mt-4 flex flex-col justify-center gap-3 sm:flex-row">
           <a
             href={LINE_URL}
-            className="rounded-catcha-sm bg-[#06C755] px-6 py-3.5 text-sm font-extrabold text-white shadow-catcha-sm"
+            className="rounded-petflow-sm bg-[#06C755] px-6 py-3.5 text-sm font-extrabold text-white shadow-petflow-sm"
           >
-            💬 LINE @catchahotel
+            💬 LINE @petflow
           </a>
           <a
             href={`tel:${PHONE_MAIN.replace(/-/g, "")}`}
-            className="rounded-catcha-sm bg-latte-deep px-6 py-3.5 text-sm font-extrabold text-white shadow-catcha-sm"
+            className="rounded-petflow-sm bg-latte-deep px-6 py-3.5 text-sm font-extrabold text-white shadow-petflow-sm"
           >
             📞 {PHONE_MAIN}
           </a>

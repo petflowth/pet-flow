@@ -9,12 +9,12 @@ export function LiffStuckBanner() {
 
   return (
     <div className="fixed inset-x-0 top-0 z-50 mx-auto max-w-lg p-3">
-      <div className="rounded-catcha border-2 border-honey/60 bg-card p-4 text-center shadow-catcha">
+      <div className="rounded-petflow border-2 border-honey/60 bg-card p-4 text-center shadow-petflow">
         <p className="text-sm font-bold text-brown">😿 {error}</p>
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="mt-3 w-full rounded-catcha-sm bg-latte-deep py-2.5 text-sm font-extrabold text-white"
+          className="mt-3 w-full rounded-petflow-sm bg-latte-deep py-2.5 text-sm font-extrabold text-white"
         >
           🔄 โหลดใหม่
         </button>

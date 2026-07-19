@@ -86,13 +86,13 @@ export function LinkLineContent() {
     return (
       <div className="px-4 py-10 text-center">
         <p className="text-2xl">✅</p>
-        <p className="mt-2 text-sm font-extrabold text-catcha-chocolate">
+        <p className="mt-2 text-sm font-extrabold text-petflow-chocolate">
           ลูกค้ารายนี้ผูก LINE แล้ว
         </p>
         <button
           type="button"
           onClick={() => router.replace("/app")}
-          className="mt-4 rounded-catcha-sm bg-latte/25 px-4 py-2 text-xs font-bold text-catcha-chocolate"
+          className="mt-4 rounded-petflow-sm bg-latte/25 px-4 py-2 text-xs font-bold text-petflow-chocolate"
         >
           ไปหน้าแรก
         </button>
@@ -112,9 +112,9 @@ export function LinkLineContent() {
 
   return (
     <div className="px-4 pb-6 pt-5">
-      <div className="mb-5 rounded-catcha bg-latte/15 p-4 text-center">
+      <div className="mb-5 rounded-petflow bg-latte/15 p-4 text-center">
         <p className="text-2xl">🔗</p>
-        <h1 className="mt-2 text-lg font-extrabold text-catcha-chocolate">
+        <h1 className="mt-2 text-lg font-extrabold text-petflow-chocolate">
           ผูกบัญชี LINE
         </h1>
         <p className="mt-1 text-xs text-brown-soft">
@@ -123,8 +123,8 @@ export function LinkLineContent() {
       </div>
 
       {preview && (
-        <div className="mb-5 rounded-catcha-sm border border-catcha-line bg-card p-4 text-sm">
-          <p className="font-extrabold text-catcha-chocolate">{preview.name}</p>
+        <div className="mb-5 rounded-petflow-sm border border-petflow-line bg-card p-4 text-sm">
+          <p className="font-extrabold text-petflow-chocolate">{preview.name}</p>
           {preview.phone && (
             <p className="mt-1 text-xs text-brown-soft">📞 {preview.phone}</p>
           )}
@@ -135,7 +135,7 @@ export function LinkLineContent() {
       )}
 
       {error && (
-        <p className="mb-3 rounded-catcha-sm bg-red-50 px-3 py-2 text-xs font-bold text-red-700">
+        <p className="mb-3 rounded-petflow-sm bg-red-50 px-3 py-2 text-xs font-bold text-red-700">
           {error}
         </p>
       )}
@@ -144,7 +144,7 @@ export function LinkLineContent() {
         type="button"
         disabled={linking || !profile?.lineUserId}
         onClick={link}
-        className="w-full rounded-catcha-sm bg-gradient-to-r from-sage to-[#4A7348] py-3.5 text-sm font-extrabold text-white disabled:opacity-60"
+        className="w-full rounded-petflow-sm bg-gradient-to-r from-sage to-[#4A7348] py-3.5 text-sm font-extrabold text-white disabled:opacity-60"
       >
         {linking ? "กำลังผูก…" : "✅ ยืนยันผูก LINE กับบัญชีนี้"}
       </button>

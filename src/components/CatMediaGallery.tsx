@@ -109,8 +109,8 @@ export function CatMediaGallery({
   };
 
   return (
-    <div className="mt-2 rounded-catcha-sm border border-latte/40 bg-honey/5 p-2.5">
-      <p className="text-[10px] font-bold text-catcha-chocolate">
+    <div className="mt-2 rounded-petflow-sm border border-latte/40 bg-honey/5 p-2.5">
+      <p className="text-[10px] font-bold text-petflow-chocolate">
         🖼️ อัลบั้มหลังบ้าน (รูป/วิดีโอ — ลูกค้าไม่เห็น)
       </p>
       <p className="mt-0.5 text-[9px] text-brown-faint">
@@ -118,12 +118,12 @@ export function CatMediaGallery({
       </p>
 
       {needSql && (
-        <p className="mt-1.5 rounded-catcha-sm bg-wait/10 px-2 py-1.5 text-[10px] font-bold text-wait">
+        <p className="mt-1.5 rounded-petflow-sm bg-wait/10 px-2 py-1.5 text-[10px] font-bold text-wait">
           ยังบันทึกไม่ได้ — ต้องอัปเดตฐานข้อมูลก่อน (ตั้งค่า → ขั้นสูง → อัปเดตฐานข้อมูล)
         </p>
       )}
       {error && (
-        <p className="mt-1.5 rounded-catcha-sm bg-wait/10 px-2 py-1.5 text-[10px] font-bold text-wait">
+        <p className="mt-1.5 rounded-petflow-sm bg-wait/10 px-2 py-1.5 text-[10px] font-bold text-wait">
           😿 {error}
         </p>
       )}
@@ -131,7 +131,7 @@ export function CatMediaGallery({
       {media.length > 0 && (
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {media.map((m) => (
-            <div key={m.id} className="overflow-hidden rounded-catcha-sm border border-catcha-line bg-card">
+            <div key={m.id} className="overflow-hidden rounded-petflow-sm border border-petflow-line bg-card">
               {m.type === "video" ? (
                 <video src={m.dataUrl} controls className="h-24 w-full bg-black object-contain" />
               ) : (
@@ -142,7 +142,7 @@ export function CatMediaGallery({
                 defaultValue={m.caption || ""}
                 placeholder="โน้ตสั้นๆ เช่น ตอนอาบดื้อมาก"
                 onBlur={(e) => setCaption(m.id, e.target.value)}
-                className="w-full border-t border-catcha-line bg-paper px-1.5 py-1 text-[9px] outline-none"
+                className="w-full border-t border-petflow-line bg-paper px-1.5 py-1 text-[9px] outline-none"
               />
               <button
                 type="button"

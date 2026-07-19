@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       message:
-        `✅ บอท @${test.username || "catcha"} พร้อมแล้ว!\n` +
+        `✅ บอท @${test.username || "petflow"} พร้อมแล้ว!\n` +
         `ทัก /start ใน Telegram — จะเห็นปุ่มเมนูด้านล่าง`,
       botUsername: test.username,
       webhookUrl: register.webhookUrl,

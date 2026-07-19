@@ -113,7 +113,7 @@ export default function SettingsPage() {
         <button
           type="button"
           onClick={load}
-          className="mt-4 rounded-catcha-sm bg-honey/40 px-4 py-2 text-xs font-bold"
+          className="mt-4 rounded-petflow-sm bg-honey/40 px-4 py-2 text-xs font-bold"
         >
           🔄 ลองใหม่
         </button>
@@ -123,13 +123,13 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-lg font-extrabold text-catcha-chocolate">⚙️ ตั้งค่าระบบ</h1>
+      <h1 className="mb-1 text-lg font-extrabold text-petflow-chocolate">⚙️ ตั้งค่าระบบ</h1>
       <p className="mb-4 text-xs text-brown-soft">
         แก้รูป ราคา โปร ข้อมูลร้าน — ไม่ต้องแก้โค้ด · v{config.version}
       </p>
 
       {msg && (
-        <p className="mb-3 rounded-catcha-sm bg-sage/15 px-3 py-2 text-xs font-bold text-ok">
+        <p className="mb-3 rounded-petflow-sm bg-sage/15 px-3 py-2 text-xs font-bold text-ok">
           {msg}
         </p>
       )}
@@ -141,7 +141,7 @@ export default function SettingsPage() {
             type="button"
             onClick={() => setTab(t.id)}
             className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${
-              tab === t.id ? "bg-honey/45 text-catcha-chocolate" : "bg-paper text-brown-soft"
+              tab === t.id ? "bg-honey/45 text-petflow-chocolate" : "bg-paper text-brown-soft"
             }`}
           >
             {t.icon} {t.label}
@@ -151,7 +151,7 @@ export default function SettingsPage() {
 
       <Link
         href="/admin/promos"
-        className="mb-4 block rounded-catcha-sm border border-catcha-line bg-card px-4 py-3 text-xs font-bold text-latte-deep"
+        className="mb-4 block rounded-petflow-sm border border-petflow-line bg-card px-4 py-3 text-xs font-bold text-latte-deep"
       >
         ✨ จัดการโปรโมชั่น (แยกหน้า) →
       </Link>
@@ -213,7 +213,7 @@ function ShopTab({
 
   return (
     <form
-      className="space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm"
+      className="space-y-3 rounded-petflow bg-card p-4 shadow-petflow-sm"
       onSubmit={(e) => {
         e.preventDefault();
         onSave({ business: form });
@@ -265,7 +265,7 @@ function PaymentTab({
 
   return (
     <form
-      className="space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm"
+      className="space-y-3 rounded-petflow bg-card p-4 shadow-petflow-sm"
       onSubmit={(e) => {
         e.preventDefault();
         onSave({ payment: form });
@@ -274,7 +274,7 @@ function PaymentTab({
       <Field label="ธนาคาร" value={form.bankName} onChange={(v) => setForm({ ...form, bankName: v })} />
       <Field label="เลขบัญชี" value={form.accountNumber} onChange={(v) => setForm({ ...form, accountNumber: v })} />
       <Field label="ชื่อบัญชี" value={form.accountName} onChange={(v) => setForm({ ...form, accountName: v })} />
-      <p className="rounded-catcha-sm bg-paper px-3 py-2 text-[11px] text-brown-faint">
+      <p className="rounded-petflow-sm bg-paper px-3 py-2 text-[11px] text-brown-faint">
         💬 ข้อความสรุป/แจ้งมัดจำ/เก็บเงิน และข้อความอื่นๆ ที่ส่งให้ลูกค้า
         ย้ายไปแก้ที่แท็บ <b>💬 ข้อความ</b> แล้ว
       </p>
@@ -301,13 +301,13 @@ function MessagesTab({
 
   return (
     <form
-      className="space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm"
+      className="space-y-3 rounded-petflow bg-card p-4 shadow-petflow-sm"
       onSubmit={(e) => {
         e.preventDefault();
         onSave({ billing: bill, messages: msgs, crm });
       }}
     >
-      <p className="text-xs font-extrabold text-catcha-chocolate">
+      <p className="text-xs font-extrabold text-petflow-chocolate">
         🧾 สรุปยอด / แจ้งมัดจำ / เก็บเงิน (ตอนกดคิดเงิน)
       </p>
       <Field
@@ -331,8 +331,8 @@ function MessagesTab({
         onChange={(v) => setBill({ ...bill, summaryClosing: v })}
       />
 
-      <hr className="border-catcha-line" />
-      <p className="text-xs font-extrabold text-catcha-chocolate">
+      <hr className="border-petflow-line" />
+      <p className="text-xs font-extrabold text-petflow-chocolate">
         ⏰ เตือนอัตโนมัติก่อนเข้าพัก
       </p>
       <TextAreaField
@@ -412,8 +412,8 @@ function MessagesTab({
         rows={5}
       />
 
-      <hr className="border-catcha-line" />
-      <p className="text-xs font-extrabold text-catcha-chocolate">
+      <hr className="border-petflow-line" />
+      <p className="text-xs font-extrabold text-petflow-chocolate">
         💛 ตามลูกค้าที่หายไป
       </p>
       <TextAreaField
@@ -424,8 +424,8 @@ function MessagesTab({
         rows={3}
       />
 
-      <hr className="border-catcha-line" />
-      <p className="text-xs font-extrabold text-catcha-chocolate">
+      <hr className="border-petflow-line" />
+      <p className="text-xs font-extrabold text-petflow-chocolate">
         📨 การ์ดเรียกเก็บมัดจำ (ส่งก่อนลูกค้าโอน)
       </p>
       <Field
@@ -441,8 +441,8 @@ function MessagesTab({
         rows={4}
       />
 
-      <hr className="border-catcha-line" />
-      <p className="text-xs font-extrabold text-catcha-chocolate">
+      <hr className="border-petflow-line" />
+      <p className="text-xs font-extrabold text-petflow-chocolate">
         🧡 การ์ดขอบคุณตอนรับมัดจำ
       </p>
       <Field
@@ -469,8 +469,8 @@ function MessagesTab({
         rows={5}
       />
 
-      <hr className="border-catcha-line" />
-      <p className="text-xs font-extrabold text-catcha-chocolate">
+      <hr className="border-petflow-line" />
+      <p className="text-xs font-extrabold text-petflow-chocolate">
         📋 ข้อตกลงก่อนเข้าพัก (หน้า /app/consent)
       </p>
       <Field
@@ -497,8 +497,8 @@ function MessagesTab({
         rows={3}
       />
 
-      <hr className="border-catcha-line" />
-      <p className="text-xs font-extrabold text-catcha-chocolate">
+      <hr className="border-petflow-line" />
+      <p className="text-xs font-extrabold text-petflow-chocolate">
         🎂 อวยพรวันเกิดแมวอัตโนมัติ
       </p>
       <p className="text-[10px] text-brown-soft">
@@ -544,7 +544,7 @@ function RoomsTab({
   return (
     <div className="space-y-4">
       {rooms.map((room, idx) => (
-        <div key={room.id} className="rounded-catcha border border-catcha-line bg-card p-4">
+        <div key={room.id} className="rounded-petflow border border-petflow-line bg-card p-4">
           <p className="mb-2 font-bold text-brown">{room.name}</p>
           <div className="mb-3 flex gap-3">
             {room.image.startsWith("data:") || room.image.startsWith("http") ? (
@@ -553,11 +553,11 @@ function RoomsTab({
                 alt=""
                 width={80}
                 height={100}
-                className="h-[100px] w-[80px] rounded-catcha-sm object-contain bg-paper"
+                className="h-[100px] w-[80px] rounded-petflow-sm object-contain bg-paper"
                 unoptimized
               />
             ) : (
-              <div className="flex h-[100px] w-[80px] items-center justify-center rounded-catcha-sm bg-paper text-xs text-brown-faint">
+              <div className="flex h-[100px] w-[80px] items-center justify-center rounded-petflow-sm bg-paper text-xs text-brown-faint">
                 ไม่มีรูป
               </div>
             )}
@@ -601,7 +601,7 @@ function RoomsTab({
         type="button"
         disabled={saving}
         onClick={() => onSave({ rooms })}
-        className="w-full rounded-catcha-sm bg-gradient-to-r from-honey to-honey-deep py-3 text-sm font-extrabold text-catcha-chocolate disabled:opacity-50"
+        className="w-full rounded-petflow-sm bg-gradient-to-r from-honey to-honey-deep py-3 text-sm font-extrabold text-petflow-chocolate disabled:opacity-50"
       >
         {saving ? "กำลังบันทึก…" : "💾 บันทึกห้องทั้งหมด"}
       </button>
@@ -654,7 +654,7 @@ function GroomingTab({
   };
 
   return (
-    <div className="space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm">
+    <div className="space-y-3 rounded-petflow bg-card p-4 shadow-petflow-sm">
       <Field label="รอบเวลาแนะนำ (คั่นด้วย ,)" value={slots} onChange={setSlots} />
 
       <PosterField
@@ -672,16 +672,16 @@ function GroomingTab({
 
       <label className="block text-xs font-bold text-brown-soft">
         รับส่ง (ไทย) — หนึ่งบรรทัดต่อข้อ
-        <textarea value={transportTh} onChange={(e) => setTransportTh(e.target.value)} rows={4} className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+        <textarea value={transportTh} onChange={(e) => setTransportTh(e.target.value)} rows={4} className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm" />
       </label>
       <label className="block text-xs font-bold text-brown-soft">
         รับส่ง (EN)
-        <textarea value={transportEn} onChange={(e) => setTransportEn(e.target.value)} rows={4} className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm" />
+        <textarea value={transportEn} onChange={(e) => setTransportEn(e.target.value)} rows={4} className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm" />
       </label>
       <p className="text-[10px] text-brown-faint">
         หน้าลูกค้าจะแสดงรูป 2 รูปนี้เต็มๆ — ไม่มีตารางราคา
       </p>
-      <button type="button" disabled={saving} onClick={submit} className="w-full rounded-catcha-sm bg-honey/40 py-3 text-sm font-extrabold disabled:opacity-50">
+      <button type="button" disabled={saving} onClick={submit} className="w-full rounded-petflow-sm bg-honey/40 py-3 text-sm font-extrabold disabled:opacity-50">
         {saving ? "กำลังบันทึก…" : "💾 บันทึกอาบน้ำ/กรูมมิ่ง"}
       </button>
     </div>
@@ -720,7 +720,7 @@ function PointsTab({
   return (
     <div className="space-y-3">
       {rewards.map((r, i) => (
-        <div key={r.id} className="rounded-catcha border border-catcha-line bg-card p-3 space-y-2">
+        <div key={r.id} className="rounded-petflow border border-petflow-line bg-card p-3 space-y-2">
           <p className="text-xs font-bold text-brown-faint">{r.id}</p>
           <div className="flex gap-3">
             {r.imageUrl ? (
@@ -729,11 +729,11 @@ function PointsTab({
                 alt=""
                 width={64}
                 height={64}
-                className="h-16 w-16 shrink-0 rounded-catcha-sm object-cover"
+                className="h-16 w-16 shrink-0 rounded-petflow-sm object-cover"
                 unoptimized
               />
             ) : (
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-catcha-sm bg-paper text-2xl">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-petflow-sm bg-paper text-2xl">
                 🎁
               </div>
             )}
@@ -795,7 +795,7 @@ function PointsTab({
         type="button"
         disabled={saving}
         onClick={() => onSave({ pointsRewards: rewards })}
-        className="w-full rounded-catcha-sm bg-honey/40 py-3 text-sm font-extrabold disabled:opacity-50"
+        className="w-full rounded-petflow-sm bg-honey/40 py-3 text-sm font-extrabold disabled:opacity-50"
       >
         💾 บันทึกรางวัลแต้ม
       </button>
@@ -852,7 +852,7 @@ function CrmTab({
 
   return (
     <form
-      className="space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm"
+      className="space-y-3 rounded-petflow bg-card p-4 shadow-petflow-sm"
       onSubmit={(e) => {
         e.preventDefault();
         onSave({
@@ -889,7 +889,7 @@ function CrmTab({
           value={form.followUpMessage}
           onChange={(e) => setForm({ ...form, followUpMessage: e.target.value })}
           rows={5}
-          className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
         />
       </label>
       <Field
@@ -898,8 +898,8 @@ function CrmTab({
         onChange={setPresetsText}
       />
 
-      <hr className="border-catcha-line" />
-      <p className="text-xs font-extrabold text-catcha-chocolate">
+      <hr className="border-petflow-line" />
+      <p className="text-xs font-extrabold text-petflow-chocolate">
         ⭐ เงื่อนไขเลื่อนระดับลูกค้าอัตโนมัติ
       </p>
       <p className="text-[10px] text-brown-faint">
@@ -927,12 +927,12 @@ function CrmTab({
 
       <SaveBtn saving={saving} />
 
-      <hr className="border-catcha-line" />
+      <hr className="border-petflow-line" />
       <button
         type="button"
         onClick={recalcAll}
         disabled={recalcBusy}
-        className="w-full rounded-catcha-sm bg-latte/25 py-2.5 text-xs font-extrabold text-catcha-chocolate disabled:opacity-50"
+        className="w-full rounded-petflow-sm bg-latte/25 py-2.5 text-xs font-extrabold text-petflow-chocolate disabled:opacity-50"
       >
         {recalcBusy ? "กำลังคำนวณ…" : "🔄 คำนวณระดับลูกค้าใหม่ทั้งหมด (หลังแก้เงื่อนไข)"}
       </button>
@@ -960,7 +960,7 @@ function AdvancedTab({
   onExport: () => void;
 }) {
   return (
-    <div className="space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm">
+    <div className="space-y-3 rounded-petflow bg-card p-4 shadow-petflow-sm">
       <MigrateSection />
       <MigratePhotosSection />
       <StaffSection />
@@ -975,17 +975,17 @@ function AdvancedTab({
         value={jsonText}
         onChange={(e) => setJsonText(e.target.value)}
         rows={16}
-        className="w-full rounded-catcha-sm border border-catcha-line bg-paper p-3 font-mono text-[10px]"
+        className="w-full rounded-petflow-sm border border-petflow-line bg-paper p-3 font-mono text-[10px]"
       />
       <div className="flex gap-2">
-        <button type="button" onClick={onExport} className="flex-1 rounded-catcha-sm bg-paper py-2 text-xs font-bold">
+        <button type="button" onClick={onExport} className="flex-1 rounded-petflow-sm bg-paper py-2 text-xs font-bold">
           📋 Copy
         </button>
         <button
           type="button"
           disabled={saving}
           onClick={onSaveJson}
-          className="flex-1 rounded-catcha-sm bg-latte/30 py-2 text-xs font-bold disabled:opacity-50"
+          className="flex-1 rounded-petflow-sm bg-latte/30 py-2 text-xs font-bold disabled:opacity-50"
         >
           {saving ? "…" : "📥 นำเข้า JSON"}
         </button>
@@ -1019,7 +1019,7 @@ function StaffSection() {
   const [busy, setBusy] = useState(false);
 
   const adminCode =
-    typeof window !== "undefined" ? sessionStorage.getItem("catcha-admin") || "" : "";
+    typeof window !== "undefined" ? sessionStorage.getItem("petflow-admin") || "" : "";
 
   const load = useCallback(async () => {
     try {
@@ -1111,8 +1111,8 @@ function StaffSection() {
   );
 
   return (
-    <div className="rounded-catcha-sm border border-latte/50 bg-latte/10 p-3">
-      <p className="text-xs font-extrabold text-catcha-chocolate">
+    <div className="rounded-petflow-sm border border-latte/50 bg-latte/10 p-3">
+      <p className="text-xs font-extrabold text-petflow-chocolate">
         👥 บัญชีพนักงาน ({staff.length})
       </p>
       <p className="mb-2 text-[10px] text-brown-soft">
@@ -1121,7 +1121,7 @@ function StaffSection() {
       </p>
 
       {staff.map((s) => (
-        <details key={s.id} className="mb-2 rounded-catcha-sm border border-catcha-line bg-card p-2.5">
+        <details key={s.id} className="mb-2 rounded-petflow-sm border border-petflow-line bg-card p-2.5">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-2">
             <span className="min-w-0 truncate text-xs font-bold text-brown">
               {s.active ? "🟢" : "⏸️"} {s.name}
@@ -1131,7 +1131,7 @@ function StaffSection() {
             </span>
             <span className="shrink-0 text-[10px] font-bold text-latte-deep">แก้ไข ▾</span>
           </summary>
-          <div className="mt-2 space-y-2 border-t border-catcha-line pt-2">
+          <div className="mt-2 space-y-2 border-t border-petflow-line pt-2">
             {menuPicker(s.menus, (href) =>
               patchStaff(s.id, { menus: toggleMenu(s.menus, href) })
             )}
@@ -1165,20 +1165,20 @@ function StaffSection() {
         </details>
       ))}
 
-      <div className="mt-3 rounded-catcha-sm border border-dashed border-latte/60 bg-card p-2.5">
-        <p className="mb-1.5 text-[11px] font-extrabold text-catcha-chocolate">➕ เพิ่มพนักงานใหม่</p>
+      <div className="mt-3 rounded-petflow-sm border border-dashed border-latte/60 bg-card p-2.5">
+        <p className="mb-1.5 text-[11px] font-extrabold text-petflow-chocolate">➕ เพิ่มพนักงานใหม่</p>
         <div className="mb-2 grid grid-cols-2 gap-2">
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="ชื่อพนักงาน"
-            className="rounded-catcha-sm border border-catcha-line bg-paper px-2.5 py-2 text-xs"
+            className="rounded-petflow-sm border border-petflow-line bg-paper px-2.5 py-2 text-xs"
           />
           <input
             value={newCode}
             onChange={(e) => setNewCode(e.target.value)}
             placeholder="รหัสเข้าใช้ (4 ตัวขึ้นไป)"
-            className="rounded-catcha-sm border border-catcha-line bg-paper px-2.5 py-2 text-xs"
+            className="rounded-petflow-sm border border-petflow-line bg-paper px-2.5 py-2 text-xs"
           />
         </div>
         <p className="mb-1 text-[10px] font-bold text-brown-soft">เมนูที่ให้เห็น:</p>
@@ -1187,7 +1187,7 @@ function StaffSection() {
           type="button"
           disabled={busy || !newName.trim() || newCode.trim().length < 4}
           onClick={addStaff}
-          className="mt-2 w-full rounded-catcha-sm bg-latte-deep py-2 text-xs font-extrabold text-card disabled:opacity-40"
+          className="mt-2 w-full rounded-petflow-sm bg-latte-deep py-2 text-xs font-extrabold text-card disabled:opacity-40"
         >
           {busy ? "กำลังเพิ่ม…" : "➕ เพิ่มพนักงาน"}
         </button>
@@ -1226,8 +1226,8 @@ function MigratePhotosSection() {
   };
 
   return (
-    <div className="rounded-catcha-sm border border-sage/40 bg-sage/10 p-3">
-      <p className="text-xs font-extrabold text-catcha-chocolate">
+    <div className="rounded-petflow-sm border border-sage/40 bg-sage/10 p-3">
+      <p className="text-xs font-extrabold text-petflow-chocolate">
         🖼️ ย้ายรูป/วิดีโอเก่าไป Storage
       </p>
       <p className="mb-2 text-[10px] text-brown-soft">
@@ -1238,7 +1238,7 @@ function MigratePhotosSection() {
         type="button"
         disabled={busy}
         onClick={run}
-        className="w-full rounded-catcha-sm bg-sage/70 py-2 text-xs font-extrabold text-catcha-chocolate disabled:opacity-50"
+        className="w-full rounded-petflow-sm bg-sage/70 py-2 text-xs font-extrabold text-petflow-chocolate disabled:opacity-50"
       >
         {busy ? "กำลังย้าย… (อาจใช้เวลาสักครู่)" : "🖼️ ย้ายรูปเก่าตอนนี้"}
       </button>
@@ -1283,8 +1283,8 @@ function MigrateSection() {
   };
 
   return (
-    <div className="rounded-catcha-sm border border-honey/50 bg-honey/10 p-3">
-      <p className="text-xs font-extrabold text-catcha-chocolate">
+    <div className="rounded-petflow-sm border border-honey/50 bg-honey/10 p-3">
+      <p className="text-xs font-extrabold text-petflow-chocolate">
         🗄️ อัปเดตฐานข้อมูล (อัตโนมัติ)
       </p>
       <p className="mb-2 text-[10px] text-brown-soft">
@@ -1295,7 +1295,7 @@ function MigrateSection() {
         type="button"
         disabled={busy}
         onClick={run}
-        className="w-full rounded-catcha-sm bg-honey-deep/80 py-2 text-xs font-extrabold text-catcha-chocolate disabled:opacity-50"
+        className="w-full rounded-petflow-sm bg-honey-deep/80 py-2 text-xs font-extrabold text-petflow-chocolate disabled:opacity-50"
       >
         {busy ? "กำลังอัปเดต…" : "🔄 อัปเดตฐานข้อมูลตอนนี้"}
       </button>
@@ -1308,12 +1308,12 @@ function MigrateSection() {
             readOnly
             value={bootSql}
             rows={10}
-            className="w-full rounded-catcha-sm border border-catcha-line bg-paper p-2 font-mono text-[9px]"
+            className="w-full rounded-petflow-sm border border-petflow-line bg-paper p-2 font-mono text-[9px]"
           />
           <button
             type="button"
             onClick={() => navigator.clipboard.writeText(bootSql)}
-            className="mt-1 w-full rounded-catcha-sm bg-paper py-1.5 text-[10px] font-bold text-brown-soft"
+            className="mt-1 w-full rounded-petflow-sm bg-paper py-1.5 text-[10px] font-bold text-brown-soft"
           >
             📋 คัดลอก SQL (วางใน Supabase ครั้งเดียว)
           </button>
@@ -1337,7 +1337,7 @@ function PosterField({
   const hasImage = value.startsWith("data:") || value.startsWith("http") || value.startsWith("/");
 
   return (
-    <div className="rounded-catcha-sm border border-catcha-line bg-paper p-3">
+    <div className="rounded-petflow-sm border border-petflow-line bg-paper p-3">
       <p className="mb-2 text-xs font-bold text-brown-soft">{label}</p>
       <div className="flex gap-3">
         {hasImage ? (
@@ -1346,11 +1346,11 @@ function PosterField({
             alt=""
             width={72}
             height={96}
-            className="h-24 w-[72px] shrink-0 rounded-catcha-sm object-cover bg-card"
+            className="h-24 w-[72px] shrink-0 rounded-petflow-sm object-cover bg-card"
             unoptimized
           />
         ) : (
-          <div className="flex h-24 w-[72px] shrink-0 items-center justify-center rounded-catcha-sm bg-card text-[9px] text-brown-faint">
+          <div className="flex h-24 w-[72px] shrink-0 items-center justify-center rounded-petflow-sm bg-card text-[9px] text-brown-faint">
             ยังไม่มี
           </div>
         )}
@@ -1371,7 +1371,7 @@ function PosterField({
             value={value.startsWith("data:") ? "" : value}
             onChange={(e) => onChange(e.target.value)}
             placeholder="หรือวาง URL"
-            className="w-full rounded-catcha-sm border border-catcha-line bg-card px-2 py-1.5 text-xs"
+            className="w-full rounded-petflow-sm border border-petflow-line bg-card px-2 py-1.5 text-xs"
           />
         </div>
       </div>
@@ -1400,7 +1400,7 @@ function Field({
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+        className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
       />
     </label>
   );
@@ -1429,7 +1429,7 @@ function TextAreaField({
         rows={rows}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm leading-relaxed"
+        className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm leading-relaxed"
       />
       {hint && (
         <span className="mt-0.5 block font-normal text-[10px] text-brown-faint">
@@ -1481,7 +1481,7 @@ function Toggle({
           checked ? "bg-sage justify-end" : "bg-paper justify-start"
         }`}
       >
-        <span className="h-5 w-5 rounded-full bg-card shadow-catcha-sm" />
+        <span className="h-5 w-5 rounded-full bg-card shadow-petflow-sm" />
       </span>
     </button>
   );
@@ -1505,7 +1505,7 @@ function AutomationTab({
 
   return (
     <form
-      className="space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm"
+      className="space-y-3 rounded-petflow bg-card p-4 shadow-petflow-sm"
       onSubmit={(e) => {
         e.preventDefault();
         onSave({ automation: form });
@@ -1515,7 +1515,7 @@ function AutomationTab({
         ระบบส่งอัตโนมัติ เที่ยงวัน (เวลาไทย) ทุกวัน — เปิด/ปิด และตั้งจำนวนวันได้เอง
       </p>
 
-      <div className="rounded-catcha-sm border border-catcha-line p-3">
+      <div className="rounded-petflow-sm border border-petflow-line p-3">
         <Toggle
           label="✅ ส่งการ์ดยืนยันนัดอัตโนมัติ"
           checked={form.confirmTomorrowEnabled}
@@ -1531,7 +1531,7 @@ function AutomationTab({
         )}
       </div>
 
-      <div className="rounded-catcha-sm border border-catcha-line p-3">
+      <div className="rounded-petflow-sm border border-petflow-line p-3">
         <Toggle
           label="💰 เตือนยอดคงเหลือก่อนเข้าพัก"
           checked={form.depositReminderEnabled}
@@ -1547,7 +1547,7 @@ function AutomationTab({
         )}
       </div>
 
-      <div className="rounded-catcha-sm border border-catcha-line p-3">
+      <div className="rounded-petflow-sm border border-petflow-line p-3">
         <Toggle
           label="🏠 แจ้งเข้าพัก + เงื่อนไข ก่อนเข้าพัก"
           checked={form.prestayReminderEnabled}
@@ -1563,7 +1563,7 @@ function AutomationTab({
         )}
       </div>
 
-      <div className="rounded-catcha-sm border border-catcha-line p-3">
+      <div className="rounded-petflow-sm border border-petflow-line p-3">
         <Toggle
           label="🧳 เตือนเช็คอิน ก่อนวันเข้าพัก"
           checked={form.checkinReminderEnabled}
@@ -1579,7 +1579,7 @@ function AutomationTab({
         )}
       </div>
 
-      <div className="rounded-catcha-sm border border-catcha-line p-3">
+      <div className="rounded-petflow-sm border border-petflow-line p-3">
         <Toggle
           label="🧳 เตือนเช็คเอาท์ ก่อนวันออก"
           checked={form.checkoutReminderEnabled}
@@ -1595,7 +1595,7 @@ function AutomationTab({
         )}
       </div>
 
-      <div className="rounded-catcha-sm border border-catcha-line p-3">
+      <div className="rounded-petflow-sm border border-petflow-line p-3">
         <Toggle
           label="⭐ ขอรีวิวอัตโนมัติ หลังเช็คเอาท์ (ห้องพัก)"
           checked={form.reviewRequestEnabled}
@@ -1614,7 +1614,7 @@ function AutomationTab({
         </p>
       </div>
 
-      <div className="rounded-catcha-sm border border-catcha-line p-3">
+      <div className="rounded-petflow-sm border border-petflow-line p-3">
         <Field
           label="🐈 แถมทรายฟรีเมื่อเข้าพัก (คืน) ขึ้นไป"
           type="number"
@@ -1627,7 +1627,7 @@ function AutomationTab({
         </p>
       </div>
 
-      <div className="rounded-catcha-sm border border-catcha-line p-3">
+      <div className="rounded-petflow-sm border border-petflow-line p-3">
         <Toggle
           label="🩺 สอบถามประวัติน้องก่อนอาบน้ำ (พ่วงกับยืนยันนัด)"
           checked={form.groomInfoEnabled}
@@ -1644,7 +1644,7 @@ function AutomationTab({
         onChange={(v) => set({ birthdayEnabled: v })}
       />
 
-      <div className="rounded-catcha-sm border border-catcha-line p-3">
+      <div className="rounded-petflow-sm border border-petflow-line p-3">
         <Toggle
           label="🎁 แจกคูปองวันเกิดอัตโนมัติ (แมว/เจ้าของ)"
           checked={form.birthdayCouponEnabled}
@@ -1696,7 +1696,7 @@ function ListsTab({
 
   return (
     <form
-      className="space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm"
+      className="space-y-3 rounded-petflow bg-card p-4 shadow-petflow-sm"
       onSubmit={(e) => {
         e.preventDefault();
         onSave({
@@ -1707,7 +1707,7 @@ function ListsTab({
         });
       }}
     >
-      <p className="text-xs font-extrabold text-catcha-chocolate">
+      <p className="text-xs font-extrabold text-petflow-chocolate">
         ✨ บริการเสริม (หน้าคิดเงิน) — ชื่อ + ราคา
       </p>
       <div className="space-y-2">
@@ -1717,13 +1717,13 @@ function ListsTab({
               value={p.label}
               onChange={(e) => setPreset(i, { label: e.target.value })}
               placeholder="ชื่อบริการ"
-              className="min-w-0 flex-1 rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+              className="min-w-0 flex-1 rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
             />
             <input
               type="number"
               value={String(p.amount)}
               onChange={(e) => setPreset(i, { amount: Number(e.target.value) || 0 })}
-              className="w-20 rounded-catcha-sm border border-catcha-line bg-paper px-2 py-2 text-right text-sm"
+              className="w-20 rounded-petflow-sm border border-petflow-line bg-paper px-2 py-2 text-right text-sm"
             />
             <button
               type="button"
@@ -1747,13 +1747,13 @@ function ListsTab({
               servicePresets: [...f.servicePresets, { label: "", amount: 0 }],
             }))
           }
-          className="w-full rounded-catcha-sm border border-dashed border-catcha-line py-2 text-xs font-bold text-latte-deep"
+          className="w-full rounded-petflow-sm border border-dashed border-petflow-line py-2 text-xs font-bold text-latte-deep"
         >
           + เพิ่มบริการ
         </button>
       </div>
 
-      <hr className="border-catcha-line" />
+      <hr className="border-petflow-line" />
       <TextAreaField
         label="🎁 ของแถม (ฟรี) — 1 บรรทัด = 1 อย่าง"
         value={form.freebies.join("\n")}
@@ -1792,7 +1792,7 @@ function SaveBtn({ saving }: { saving: boolean }) {
     <button
       type="submit"
       disabled={saving}
-      className="w-full rounded-catcha-sm bg-gradient-to-r from-honey to-honey-deep py-3 text-sm font-extrabold text-catcha-chocolate disabled:opacity-50"
+      className="w-full rounded-petflow-sm bg-gradient-to-r from-honey to-honey-deep py-3 text-sm font-extrabold text-petflow-chocolate disabled:opacity-50"
     >
       {saving ? "กำลังบันทึก…" : "💾 บันทึก"}
     </button>

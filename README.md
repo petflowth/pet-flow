@@ -1,4 +1,4 @@
-# CatCha Hotel Web v2
+# PetFlow Web v2
 
 เว็บใหม่แยก — หน้าลูกค้า (LINE LIFF) + หลังบ้านเจ้าของ
 
@@ -11,7 +11,7 @@ npm run dev
 ```
 
 - **ลูกค้า:** http://localhost:3000/app
-- **หลังบ้าน:** http://localhost:3000/admin/login (รหัสเริ่มต้น `catcha2026`)
+- **หลังบ้าน:** http://localhost:3000/admin/login (รหัสเริ่มต้น `petflow2026`)
 
 ## Deploy (Vercel) — เจ้าของทำครั้งเดียว
 
@@ -24,9 +24,9 @@ npm run dev
 | `NEXT_PUBLIC_LIFF_ID` | LIFF ID จาก LINE Developers |
 | `NEXT_PUBLIC_ADMIN_CODE` | รหัสหลังบ้านที่ต้องการ |
 
-4. Deploy → ได้ URL เช่น `https://catcha.vercel.app`
+4. Deploy → ได้ URL เช่น `https://petflow.vercel.app`
 5. ตั้ง LIFF Endpoint = `https://your-url.app/app`
-6. ใส่ลิงก์ใน Rich Menu LINE OA @catchahotel
+6. ใส่ลิงก์ใน Rich Menu LINE OA @petflow
 
 ## โครงสร้าง
 

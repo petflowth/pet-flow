@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CatCha Hotel",
+  title: "PetFlow",
   description: "โรงแรมแมว · อาบน้ำ & กรูมมิ่ง บางนา",
 };
 

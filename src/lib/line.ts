@@ -407,7 +407,7 @@ export function buildPromoFlex(data: {
         contents: [
           {
             type: "text" as const,
-            text: style?.texts?.header || "✨ โปรโมชั่น CatCha",
+            text: style?.texts?.header || "✨ โปรโมชั่น PetFlow",
             color: style?.headerTextColor || "#FFFFFF",
             weight: "bold" as const,
             size: "md" as const,

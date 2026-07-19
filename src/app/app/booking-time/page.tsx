@@ -85,7 +85,7 @@ function BookingTimeContent() {
     return (
       <div className="px-6 py-16 text-center">
         <div className="text-5xl">🧡</div>
-        <h1 className="mt-4 text-lg font-extrabold text-catcha-chocolate">
+        <h1 className="mt-4 text-lg font-extrabold text-petflow-chocolate">
           บันทึกเวลาเรียบร้อยแล้ว!
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-brown-soft">
@@ -105,19 +105,19 @@ function BookingTimeContent() {
         ← กลับหน้าแรก
       </Link>
 
-      <h1 className="text-lg font-extrabold text-catcha-chocolate">
+      <h1 className="text-lg font-extrabold text-petflow-chocolate">
         🕒 {isCheckin ? "เลือกเวลาที่จะมาส่งน้อง" : "เลือกเวลาที่จะมารับน้อง"}
       </h1>
 
       {loading ? (
         <p className="mt-6 text-sm text-brown-soft">กำลังโหลด…</p>
       ) : !bk ? (
-        <p className="mt-6 rounded-catcha-sm bg-paper px-4 py-3 text-sm text-brown-soft">
+        <p className="mt-6 rounded-petflow-sm bg-paper px-4 py-3 text-sm text-brown-soft">
           ไม่พบข้อมูลการจอง
         </p>
       ) : (
         <>
-          <div className="mt-3 rounded-catcha border border-catcha-line bg-card p-4 shadow-catcha-sm">
+          <div className="mt-3 rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm">
             <p className="text-sm font-bold text-brown">🐱 {bk.catName}</p>
             <p className="text-xs text-brown-soft">
               {isCheckin ? "วันเข้าพัก" : "วันรับน้อง"}:{" "}
@@ -126,8 +126,8 @@ function BookingTimeContent() {
           </div>
 
           {saved && (
-            <div className="mt-4 rounded-catcha bg-sage/15 px-4 py-4 text-center">
-              <p className="text-base font-extrabold text-catcha-chocolate">
+            <div className="mt-4 rounded-petflow bg-sage/15 px-4 py-4 text-center">
+              <p className="text-base font-extrabold text-petflow-chocolate">
                 ✅ เลือกเวลา {saved} แล้ว
               </p>
               <p className="mt-1 text-xs text-brown-soft">
@@ -136,7 +136,7 @@ function BookingTimeContent() {
               <button
                 type="button"
                 onClick={finish}
-                className="mt-3 w-full rounded-catcha-sm bg-latte-deep py-3 text-sm font-extrabold text-card active:scale-[0.98]"
+                className="mt-3 w-full rounded-petflow-sm bg-latte-deep py-3 text-sm font-extrabold text-card active:scale-[0.98]"
               >
                 เสร็จแล้ว — กลับไปที่แชท 🧡
               </button>
@@ -153,7 +153,7 @@ function BookingTimeContent() {
                 type="button"
                 disabled={saving}
                 onClick={() => pick(t)}
-                className={`rounded-catcha-sm py-2.5 text-sm font-bold disabled:opacity-50 ${
+                className={`rounded-petflow-sm py-2.5 text-sm font-bold disabled:opacity-50 ${
                   saved === t
                     ? "bg-latte-deep text-card"
                     : "bg-paper text-brown-soft"
@@ -170,13 +170,13 @@ function BookingTimeContent() {
               type="time"
               value={custom}
               onChange={(e) => setCustom(e.target.value)}
-              className="min-w-0 flex-1 rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
+              className="min-w-0 flex-1 rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm"
             />
             <button
               type="button"
               disabled={!custom || saving}
               onClick={() => pick(custom)}
-              className="shrink-0 rounded-catcha-sm bg-honey-deep/80 px-4 py-2.5 text-sm font-extrabold text-catcha-chocolate disabled:opacity-40"
+              className="shrink-0 rounded-petflow-sm bg-honey-deep/80 px-4 py-2.5 text-sm font-extrabold text-petflow-chocolate disabled:opacity-40"
             >
               บันทึก
             </button>

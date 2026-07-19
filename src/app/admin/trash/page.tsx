@@ -58,27 +58,27 @@ export default function TrashPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-extrabold text-catcha-chocolate">🗑️ ถังขยะ</h1>
+      <h1 className="text-lg font-extrabold text-petflow-chocolate">🗑️ ถังขยะ</h1>
       <p className="text-xs text-brown-soft">
         รายการที่ลบไว้ กดกู้คืนได้ (บิลที่เคยจ่ายแล้ว กู้คืนได้แต่ควรเช็คยอดบัญชีอีกที)
       </p>
 
       {empty && (
-        <p className="rounded-catcha bg-card p-6 text-center text-sm text-brown-soft shadow-catcha-sm">
+        <p className="rounded-petflow bg-card p-6 text-center text-sm text-brown-soft shadow-petflow-sm">
           ถังขยะว่างเปล่า ✨
         </p>
       )}
 
       {invoices.length > 0 && (
-        <section className="rounded-catcha bg-card p-4 shadow-catcha-sm">
-          <h2 className="mb-3 text-sm font-extrabold text-catcha-chocolate">
+        <section className="rounded-petflow bg-card p-4 shadow-petflow-sm">
+          <h2 className="mb-3 text-sm font-extrabold text-petflow-chocolate">
             🧾 บิลที่ลบ ({invoices.length})
           </h2>
           <ul className="space-y-2">
             {invoices.map((inv) => (
               <li
                 key={inv.id}
-                className="flex items-center justify-between gap-2 rounded-catcha-sm bg-paper/50 px-3 py-2"
+                className="flex items-center justify-between gap-2 rounded-petflow-sm bg-paper/50 px-3 py-2"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold text-brown">
@@ -103,15 +103,15 @@ export default function TrashPage() {
       )}
 
       {customers.length > 0 && (
-        <section className="rounded-catcha bg-card p-4 shadow-catcha-sm">
-          <h2 className="mb-3 text-sm font-extrabold text-catcha-chocolate">
+        <section className="rounded-petflow bg-card p-4 shadow-petflow-sm">
+          <h2 className="mb-3 text-sm font-extrabold text-petflow-chocolate">
             👤 ลูกค้าที่ลบ ({customers.length})
           </h2>
           <ul className="space-y-2">
             {customers.map((c) => (
               <li
                 key={c.id}
-                className="flex items-center justify-between gap-2 rounded-catcha-sm bg-paper/50 px-3 py-2"
+                className="flex items-center justify-between gap-2 rounded-petflow-sm bg-paper/50 px-3 py-2"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold text-brown">{c.name}</p>

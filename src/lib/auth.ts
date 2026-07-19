@@ -18,7 +18,7 @@ export type SessionPayload = {
   exp: number;
 };
 
-export const SESSION_COOKIE = "catcha_session";
+export const SESSION_COOKIE = "petflow_session";
 const SESSION_DAYS = 7;
 
 /**
@@ -31,12 +31,12 @@ export function getOwnerCode(): string {
   return (
     process.env.ADMIN_CODE ||
     process.env.NEXT_PUBLIC_ADMIN_CODE ||
-    "catcha2026"
+    "petflow2026"
   );
 }
 
 function secretKey(): string {
-  return process.env.SESSION_SECRET || `catcha-session::${getOwnerCode()}`;
+  return process.env.SESSION_SECRET || `petflow-session::${getOwnerCode()}`;
 }
 
 const enc = new TextEncoder();

@@ -31,9 +31,9 @@ function isTabActive(pathname: string, href: string) {
 /** เมนูที่ผู้ใช้ปัจจุบันเห็นได้ — null = เจ้าของ (เห็นทุกเมนู) */
 export function getAllowedMenus(): string[] | null {
   if (typeof window === "undefined") return null;
-  if (sessionStorage.getItem("catcha-role") !== "staff") return null;
+  if (sessionStorage.getItem("petflow-role") !== "staff") return null;
   try {
-    const menus = JSON.parse(sessionStorage.getItem("catcha-menus") || "[]");
+    const menus = JSON.parse(sessionStorage.getItem("petflow-menus") || "[]");
     return Array.isArray(menus) ? menus : [];
   } catch {
     return [];
@@ -69,10 +69,10 @@ function NavLink({
     <Link
       href={href}
       onClick={onNavigate}
-      className={`flex items-center gap-3 rounded-catcha-sm font-bold transition ${
+      className={`flex items-center gap-3 rounded-petflow-sm font-bold transition ${
         active
-          ? "bg-honey/40 text-catcha-chocolate"
-          : "text-brown-soft hover:bg-honey/15 hover:text-catcha-chocolate"
+          ? "bg-honey/40 text-petflow-chocolate"
+          : "text-brown-soft hover:bg-honey/15 hover:text-petflow-chocolate"
       } ${className}`}
     >
       <span aria-hidden className="text-lg leading-none">
@@ -97,21 +97,21 @@ export function AdminMenuButton({
       aria-controls="admin-menu"
       aria-label={open ? "ปิดเมนู" : "เปิดเมนู"}
       onClick={onClick}
-      className="flex h-10 w-10 items-center justify-center rounded-catcha-sm border border-catcha-line bg-paper"
+      className="flex h-10 w-10 items-center justify-center rounded-petflow-sm border border-petflow-line bg-paper"
     >
       <span className="relative block h-4 w-5">
         <span
-          className={`absolute left-0 top-0 block h-0.5 w-5 rounded-full bg-catcha-chocolate transition ${
+          className={`absolute left-0 top-0 block h-0.5 w-5 rounded-full bg-petflow-chocolate transition ${
             open ? "top-[7px] rotate-45" : ""
           }`}
         />
         <span
-          className={`absolute left-0 top-[7px] block h-0.5 w-5 rounded-full bg-catcha-chocolate transition ${
+          className={`absolute left-0 top-[7px] block h-0.5 w-5 rounded-full bg-petflow-chocolate transition ${
             open ? "opacity-0" : ""
           }`}
         />
         <span
-          className={`absolute bottom-0 left-0 block h-0.5 w-5 rounded-full bg-catcha-chocolate transition ${
+          className={`absolute bottom-0 left-0 block h-0.5 w-5 rounded-full bg-petflow-chocolate transition ${
             open ? "bottom-[7px] -rotate-45" : ""
           }`}
         />
@@ -158,12 +158,12 @@ export function AdminNav({
       <button
         type="button"
         aria-label="ปิดเมนู"
-        className="fixed inset-0 z-40 bg-catcha-chocolate/25"
+        className="fixed inset-0 z-40 bg-petflow-chocolate/25"
         onClick={closeMenu}
       />
       <nav
         id="admin-menu"
-        className="absolute left-0 right-0 top-full z-50 border-b border-catcha-line bg-card px-3 py-3 shadow-catcha"
+        className="absolute left-0 right-0 top-full z-50 border-b border-petflow-line bg-card px-3 py-3 shadow-petflow"
         aria-label="เมนูหลังบ้าน"
       >
         <ul className="mx-auto grid max-w-6xl gap-1 sm:grid-cols-2">

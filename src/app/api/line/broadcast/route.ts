@@ -29,7 +29,7 @@ async function resolveLineImageUrl(body: {
 }): Promise<string | undefined> {
   if (body.imageData && body.imageData.startsWith("data:")) {
     const id = await storeBroadcastImage(body.imageData);
-    const base = getAppUrlFromEnv() || "https://catchahotel.com";
+    const base = getAppUrlFromEnv() || "https://petflow.example.com";
     return `${base}/api/line/broadcast-image/${id}`;
   }
   if (body.imageUrl) {

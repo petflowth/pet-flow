@@ -79,7 +79,7 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
   if (compact) {
     return (
       <section className="mb-4">
-        <h2 className="mb-2 text-sm font-extrabold text-catcha-chocolate">🎁 {m.title}</h2>
+        <h2 className="mb-2 text-sm font-extrabold text-petflow-chocolate">🎁 {m.title}</h2>
         <div className="flex gap-3 overflow-x-auto pb-1">
           {promos.map((promo) => (
             <Link
@@ -87,7 +87,7 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
               href="/app/promos"
               className="w-36 shrink-0"
             >
-              <div className="h-36 w-36 overflow-hidden rounded-catcha border-2 border-honey/50 bg-honey/10 shadow-catcha-sm">
+              <div className="h-36 w-36 overflow-hidden rounded-petflow border-2 border-honey/50 bg-honey/10 shadow-petflow-sm">
                 {promo.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -112,25 +112,25 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
   return (
     <section className={compact ? "mb-4" : ""}>
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-extrabold text-catcha-chocolate">🎁 {m.title}</h2>
+        <h2 className="text-sm font-extrabold text-petflow-chocolate">🎁 {m.title}</h2>
       </div>
 
       {loading ? (
         <p className="text-xs text-brown-soft">{t(locale).common.loading}</p>
       ) : promos.length === 0 ? (
-        <p className="rounded-catcha bg-card p-4 text-center text-xs text-brown-soft">{m.empty}</p>
+        <p className="rounded-petflow bg-card p-4 text-center text-xs text-brown-soft">{m.empty}</p>
       ) : (
         <div className="space-y-3">
           {promos.map((promo, i) => {
             return (
               <div
                 key={promo.id}
-                className={`overflow-hidden rounded-catcha border bg-card shadow-catcha-sm ${
-                  i === 0 ? "border-honey/60" : "border-catcha-line"
+                className={`overflow-hidden rounded-petflow border bg-card shadow-petflow-sm ${
+                  i === 0 ? "border-honey/60" : "border-petflow-line"
                 }`}
               >
                 {i === 0 && (
-                  <div className="bg-gradient-to-r from-catcha-yellow/60 to-honey/50 px-3 py-1 text-[10px] font-extrabold text-catcha-chocolate">
+                  <div className="bg-gradient-to-r from-petflow-yellow/60 to-honey/50 px-3 py-1 text-[10px] font-extrabold text-petflow-chocolate">
                     ✨ {m.featured}
                   </div>
                 )}
@@ -143,7 +143,7 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
                   />
                 )}
                 <div className="p-4">
-                  <p className="line-clamp-1 text-base font-extrabold text-catcha-chocolate">
+                  <p className="line-clamp-1 text-base font-extrabold text-petflow-chocolate">
                     {promo.title[locale]}
                   </p>
 
@@ -176,10 +176,10 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
                   </button>
 
                   {promo.claimed ? (
-                    <div className="mt-3 rounded-catcha-sm bg-sage/15 px-3 py-2 text-center">
+                    <div className="mt-3 rounded-petflow-sm bg-sage/15 px-3 py-2 text-center">
                       <p className="text-xs font-bold text-ok">✅ {m.claimed}</p>
                       {promo.couponCode && (
-                        <p className="mt-1 text-sm font-extrabold tracking-wide text-catcha-chocolate">
+                        <p className="mt-1 text-sm font-extrabold tracking-wide text-petflow-chocolate">
                           {promo.couponCode}
                         </p>
                       )}
@@ -194,12 +194,12 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
                       type="button"
                       disabled={claimingId === promo.id}
                       onClick={() => claim(promo)}
-                      className="mt-3 w-full rounded-catcha-sm bg-gradient-to-r from-honey to-honey-deep py-2.5 text-xs font-extrabold text-catcha-chocolate disabled:opacity-50"
+                      className="mt-3 w-full rounded-petflow-sm bg-gradient-to-r from-honey to-honey-deep py-2.5 text-xs font-extrabold text-petflow-chocolate disabled:opacity-50"
                     >
                       {claimingId === promo.id ? m.claiming : m.claim}
                     </button>
                   ) : (
-                    <p className="mt-3 rounded-catcha-sm bg-paper px-3 py-2 text-center text-[10px] font-bold text-brown-soft">
+                    <p className="mt-3 rounded-petflow-sm bg-paper px-3 py-2 text-center text-[10px] font-bold text-brown-soft">
                       {promo.reason || m.notEligible}
                     </p>
                   )}
@@ -212,7 +212,7 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
 
       {claimedInfo && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-          <div className="w-full max-w-sm rounded-catcha bg-card p-5 shadow-catcha">
+          <div className="w-full max-w-sm rounded-petflow bg-card p-5 shadow-petflow">
             <p className="text-center text-sm font-extrabold text-ok">✅ {m.claimOk}</p>
             <p className="mt-2 text-center text-xs text-brown-soft">{claimedInfo.title}</p>
             {claimedInfo.pointsAwarded ? (
@@ -221,7 +221,7 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
               </p>
             ) : null}
             {claimedInfo.code && (
-              <p className="mt-3 rounded-catcha-sm bg-honey/25 py-3 text-center text-lg font-extrabold tracking-widest text-catcha-chocolate">
+              <p className="mt-3 rounded-petflow-sm bg-honey/25 py-3 text-center text-lg font-extrabold tracking-widest text-petflow-chocolate">
                 {claimedInfo.code}
               </p>
             )}
@@ -229,7 +229,7 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
             <button
               type="button"
               onClick={() => setClaimedInfo(null)}
-              className="mt-4 w-full rounded-catcha-sm bg-latte/25 py-2.5 text-xs font-bold text-catcha-chocolate"
+              className="mt-4 w-full rounded-petflow-sm bg-latte/25 py-2.5 text-xs font-bold text-petflow-chocolate"
             >
               {t(locale).points.dismiss}
             </button>

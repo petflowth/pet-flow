@@ -90,7 +90,7 @@ function CustomerAppointmentsSection({
   };
 
   return (
-    <section className="mb-4 rounded-catcha bg-card p-4">
+    <section className="mb-4 rounded-petflow bg-card p-4">
       {editing && (
         <BookingEditModal
           booking={editing}
@@ -100,7 +100,7 @@ function CustomerAppointmentsSection({
           onSaved={onRefresh}
         />
       )}
-      <h2 className="mb-2 text-sm font-extrabold text-catcha-chocolate">📅 นัดหมาย</h2>
+      <h2 className="mb-2 text-sm font-extrabold text-petflow-chocolate">📅 นัดหมาย</h2>
       {bookings.length === 0 ? (
         <p className="text-xs text-brown-soft">ยังไม่มีนัดที่กำลังจะมาถึง</p>
       ) : (
@@ -108,7 +108,7 @@ function CustomerAppointmentsSection({
           {bookings.map((b) => (
             <li
               key={b.id}
-              className="rounded-catcha-sm border border-catcha-line bg-paper/50 p-3"
+              className="rounded-petflow-sm border border-petflow-line bg-paper/50 p-3"
             >
               <div className="flex flex-wrap items-start gap-2">
                 <div className="min-w-0 flex-1">
@@ -129,7 +129,7 @@ function CustomerAppointmentsSection({
                 <button
                   type="button"
                   onClick={() => setEditing(b)}
-                  className="rounded-full bg-honey/25 px-2.5 py-1 text-[10px] font-bold text-catcha-chocolate"
+                  className="rounded-full bg-honey/25 px-2.5 py-1 text-[10px] font-bold text-petflow-chocolate"
                 >
                   ✏️ แก้ไข
                 </button>
@@ -212,7 +212,7 @@ function MemberTopupSection({
   };
 
   return (
-    <section className="mb-4 rounded-catcha bg-card p-4">
+    <section className="mb-4 rounded-petflow bg-card p-4">
       <h2 className="mb-1 text-sm font-extrabold">💎 เติมเครดิต Member</h2>
       <p className="mb-3 text-[10px] text-brown-soft">
         คงเหลือ <span className="font-bold text-latte-deep">{memberCredit.toLocaleString()} บาท</span>
@@ -227,7 +227,7 @@ function MemberTopupSection({
             value={paid}
             onChange={(e) => setPaid(e.target.value)}
             placeholder="10000"
-            className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm font-bold text-catcha-chocolate"
+            className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm font-bold text-petflow-chocolate"
           />
         </label>
         <label className="block text-[10px] font-bold text-brown-soft">
@@ -238,13 +238,13 @@ function MemberTopupSection({
             value={bonus}
             onChange={(e) => setBonus(e.target.value)}
             placeholder="2000"
-            className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm font-bold text-latte-deep"
+            className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm font-bold text-latte-deep"
           />
         </label>
       </div>
 
       {total > 0 && (
-        <p className="mb-3 rounded-catcha-sm bg-honey/20 px-3 py-2 text-center text-xs font-bold text-catcha-chocolate">
+        <p className="mb-3 rounded-petflow-sm bg-honey/20 px-3 py-2 text-center text-xs font-bold text-petflow-chocolate">
           ลูกค้าได้เครดิตรวม <span className="text-base">{total.toLocaleString()}</span> บาท
           {bonusNum > 0 && (
             <span className="block text-[10px] font-normal text-brown-soft">
@@ -261,7 +261,7 @@ function MemberTopupSection({
             key={p.label}
             type="button"
             onClick={() => applyPromo(p.paid, p.bonus)}
-            className="rounded-full bg-honey/30 px-3 py-1.5 text-[10px] font-bold text-catcha-chocolate"
+            className="rounded-full bg-honey/30 px-3 py-1.5 text-[10px] font-bold text-petflow-chocolate"
           >
             {p.label}
           </button>
@@ -272,14 +272,14 @@ function MemberTopupSection({
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="โน้ต (ถ้ามี) เช่น โปรปีใหม่"
-        className="mb-3 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs"
+        className="mb-3 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs"
       />
 
       <button
         type="button"
         disabled={saving || total <= 0}
         onClick={submit}
-        className="w-full rounded-catcha-sm bg-latte/30 py-2.5 text-sm font-extrabold text-catcha-chocolate disabled:opacity-40"
+        className="w-full rounded-petflow-sm bg-latte/30 py-2.5 text-sm font-extrabold text-petflow-chocolate disabled:opacity-40"
       >
         {saving ? "กำลังบันทึก…" : `บันทึกเติม Member +${total > 0 ? total.toLocaleString() : "—"} บาท`}
       </button>
@@ -315,8 +315,8 @@ function MemberCreditHistorySection({
   if (!topups.length && !usage.length && memberCredit <= 0) return null;
 
   return (
-    <section className="mb-4 rounded-catcha bg-card p-4">
-      <h2 className="mb-1 text-sm font-extrabold text-catcha-chocolate">📒 ประวัติเครดิต Member</h2>
+    <section className="mb-4 rounded-petflow bg-card p-4">
+      <h2 className="mb-1 text-sm font-extrabold text-petflow-chocolate">📒 ประวัติเครดิต Member</h2>
       <p className="mb-3 text-[10px] text-brown-soft">
         คงเหลือ{" "}
         <span className="font-bold text-latte-deep">{memberCredit.toLocaleString()} บาท</span>
@@ -342,7 +342,7 @@ function MemberCreditHistorySection({
             row.kind === "topup" ? (
               <li
                 key={row.topup.id}
-                className="rounded-catcha-sm border border-catcha-line bg-paper/50 px-3 py-2 text-xs"
+                className="rounded-petflow-sm border border-petflow-line bg-paper/50 px-3 py-2 text-xs"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -370,7 +370,7 @@ function MemberCreditHistorySection({
             ) : (
               <li
                 key={row.usage.id}
-                className="rounded-catcha-sm border border-catcha-line bg-paper/50 px-3 py-2 text-xs"
+                className="rounded-petflow-sm border border-petflow-line bg-paper/50 px-3 py-2 text-xs"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -597,9 +597,9 @@ function CustomerSummaryCard({
   };
 
   return (
-    <section className="mb-4 overflow-hidden rounded-catcha bg-gradient-to-br from-honey/45 via-card to-latte/15 p-5 shadow-catcha">
+    <section className="mb-4 overflow-hidden rounded-petflow bg-gradient-to-br from-honey/45 via-card to-latte/15 p-5 shadow-petflow">
       {msg && (
-        <p className="mb-3 rounded-catcha-sm bg-sage/25 px-3 py-2 text-center text-xs font-extrabold text-ok">
+        <p className="mb-3 rounded-petflow-sm bg-sage/25 px-3 py-2 text-center text-xs font-extrabold text-ok">
           {msg}
         </p>
       )}
@@ -610,17 +610,17 @@ function CustomerSummaryCard({
             alt={heroCat.name}
             width={64}
             height={64}
-            className="h-16 w-16 shrink-0 rounded-catcha-sm object-cover ring-2 ring-white/70"
+            className="h-16 w-16 shrink-0 rounded-petflow-sm object-cover ring-2 ring-white/70"
             unoptimized
           />
         ) : (
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-catcha-sm bg-card/80 text-3xl ring-2 ring-white/70">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-petflow-sm bg-card/80 text-3xl ring-2 ring-white/70">
             {customer.cats.length > 0 ? "🐱" : "👤"}
           </div>
         )}
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-bold uppercase tracking-wide text-brown-soft">ข้อมูลลูกค้า</p>
-          <h1 className="mt-0.5 text-xl font-extrabold text-catcha-chocolate">
+          <h1 className="mt-0.5 text-xl font-extrabold text-petflow-chocolate">
             {customer.name}
             {customer.isMember && (
               <span className="ml-2 align-middle text-sm font-extrabold text-latte-deep">💎 Member</span>
@@ -674,7 +674,7 @@ function CustomerSummaryCard({
             </span>
           </div>
           {inactive && (
-            <p className="mt-2 rounded-catcha-sm bg-wait/10 px-2.5 py-1.5 text-[10px] font-bold text-wait">
+            <p className="mt-2 rounded-petflow-sm bg-wait/10 px-2.5 py-1.5 text-[10px] font-bold text-wait">
               😴 หายไป {daysSinceVisit} วัน
               {lastVisitDate ? ` · มาครั้งล่าสุด ${lastVisitDate}` : ""}
             </p>
@@ -683,26 +683,26 @@ function CustomerSummaryCard({
       </div>
 
       <div className="mb-4 grid grid-cols-3 gap-2">
-        <div className="rounded-catcha-sm bg-card/80 px-2 py-2.5 text-center shadow-catcha-sm">
+        <div className="rounded-petflow-sm bg-card/80 px-2 py-2.5 text-center shadow-petflow-sm">
           <p className="text-[10px] font-bold text-brown-soft">แต้ม</p>
           <p className="text-lg font-extrabold text-latte-deep">{points}</p>
         </div>
-        <div className="rounded-catcha-sm bg-card/80 px-2 py-2.5 text-center shadow-catcha-sm">
+        <div className="rounded-petflow-sm bg-card/80 px-2 py-2.5 text-center shadow-petflow-sm">
           <p className="text-[10px] font-bold text-brown-soft">มาใช้บริการ</p>
-          <p className="text-lg font-extrabold text-catcha-chocolate">{visits}</p>
+          <p className="text-lg font-extrabold text-petflow-chocolate">{visits}</p>
           <p className="text-[10px] text-brown-faint">ครั้ง</p>
         </div>
-        <div className="rounded-catcha-sm bg-card/80 px-2 py-2.5 text-center shadow-catcha-sm">
+        <div className="rounded-petflow-sm bg-card/80 px-2 py-2.5 text-center shadow-petflow-sm">
           <p className="text-[10px] font-bold text-brown-soft">เครดิต</p>
-          <p className="text-lg font-extrabold text-catcha-chocolate">
+          <p className="text-lg font-extrabold text-petflow-chocolate">
             {customer.memberCredit.toLocaleString()}
           </p>
           <p className="text-[10px] text-brown-faint">บาท</p>
         </div>
       </div>
 
-      <div className="mb-4 rounded-catcha-sm border border-latte/40 bg-latte/10 p-3">
-        <p className="mb-1.5 text-xs font-extrabold text-catcha-chocolate">
+      <div className="mb-4 rounded-petflow-sm border border-latte/40 bg-latte/10 p-3">
+        <p className="mb-1.5 text-xs font-extrabold text-petflow-chocolate">
           🎁 เพิ่มแต้มพิเศษ (แต้มฟรี)
         </p>
         {customer.lineUserId ? (
@@ -713,19 +713,19 @@ function CustomerSummaryCard({
                 value={addAmt}
                 onChange={(e) => setAddAmt(e.target.value)}
                 placeholder="กี่แต้ม"
-                className="w-20 rounded-catcha-sm border border-catcha-line bg-paper px-2 py-2 text-sm font-bold"
+                className="w-20 rounded-petflow-sm border border-petflow-line bg-paper px-2 py-2 text-sm font-bold"
               />
               <input
                 value={addReason}
                 onChange={(e) => setAddReason(e.target.value)}
                 placeholder="เหตุผล เช่น รีวิวร้าน"
-                className="min-w-0 flex-1 rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+                className="min-w-0 flex-1 rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
               />
               <button
                 type="button"
                 disabled={addBusy || !addAmt}
                 onClick={addBonusPoints}
-                className="shrink-0 rounded-catcha-sm bg-latte-deep px-4 py-2 text-sm font-extrabold text-white disabled:opacity-40"
+                className="shrink-0 rounded-petflow-sm bg-latte-deep px-4 py-2 text-sm font-extrabold text-white disabled:opacity-40"
               >
                 {addBusy ? "…" : "➕ เพิ่ม"}
               </button>
@@ -753,8 +753,8 @@ function CustomerSummaryCard({
       </div>
 
       {/* ── คอร์ส/แพ็กเกจ ── */}
-      <div className="mb-4 rounded-catcha-sm border border-sage/40 bg-sage/10 p-3">
-        <p className="mb-1.5 text-xs font-extrabold text-catcha-chocolate">
+      <div className="mb-4 rounded-petflow-sm border border-sage/40 bg-sage/10 p-3">
+        <p className="mb-1.5 text-xs font-extrabold text-petflow-chocolate">
           🎫 คอร์ส / แพ็กเกจ
         </p>
         {packages.filter((p) => p.status !== "cancelled").length > 0 && (
@@ -766,7 +766,7 @@ function CustomerSummaryCard({
                 return (
                   <li
                     key={p.id}
-                    className="flex items-center justify-between gap-2 rounded-catcha-sm bg-card px-2.5 py-1.5 text-xs"
+                    className="flex items-center justify-between gap-2 rounded-petflow-sm bg-card px-2.5 py-1.5 text-xs"
                   >
                     <span className="min-w-0 truncate font-bold text-brown">
                       {p.name}{" "}
@@ -791,7 +791,7 @@ function CustomerSummaryCard({
             value={pkgName}
             onChange={(e) => setPkgName(e.target.value)}
             placeholder="ชื่อคอร์ส เช่น อาบน้ำ 10 ครั้ง"
-            className="min-w-0 flex-1 rounded-catcha-sm border border-catcha-line bg-paper px-2.5 py-2 text-sm"
+            className="min-w-0 flex-1 rounded-petflow-sm border border-petflow-line bg-paper px-2.5 py-2 text-sm"
           />
         </div>
         <div className="mt-2 flex gap-2">
@@ -800,20 +800,20 @@ function CustomerSummaryCard({
             value={pkgUses}
             onChange={(e) => setPkgUses(e.target.value)}
             placeholder="กี่ครั้ง"
-            className="w-20 rounded-catcha-sm border border-catcha-line bg-paper px-2 py-2 text-sm"
+            className="w-20 rounded-petflow-sm border border-petflow-line bg-paper px-2 py-2 text-sm"
           />
           <input
             type="number"
             value={pkgPrice}
             onChange={(e) => setPkgPrice(e.target.value)}
             placeholder="ราคา (บาท)"
-            className="min-w-0 flex-1 rounded-catcha-sm border border-catcha-line bg-paper px-2.5 py-2 text-sm"
+            className="min-w-0 flex-1 rounded-petflow-sm border border-petflow-line bg-paper px-2.5 py-2 text-sm"
           />
           <button
             type="button"
             disabled={pkgBusy || !pkgName.trim() || !pkgUses}
             onClick={sellPackage}
-            className="shrink-0 rounded-catcha-sm bg-sage px-3 py-2 text-sm font-extrabold text-card disabled:opacity-40"
+            className="shrink-0 rounded-petflow-sm bg-sage px-3 py-2 text-sm font-extrabold text-card disabled:opacity-40"
           >
             ขายคอร์ส
           </button>
@@ -823,8 +823,8 @@ function CustomerSummaryCard({
         </p>
       </div>
 
-      <div className="space-y-3 rounded-catcha-sm border-2 border-latte/30 bg-card/70 p-3.5">
-        <p className="flex items-center gap-1.5 text-xs font-extrabold text-catcha-chocolate">
+      <div className="space-y-3 rounded-petflow-sm border-2 border-latte/30 bg-card/70 p-3.5">
+        <p className="flex items-center gap-1.5 text-xs font-extrabold text-petflow-chocolate">
           ✏️ แก้ไขข้อมูลลูกค้า
         </p>
 
@@ -838,7 +838,7 @@ function CustomerSummaryCard({
               if (trimmed && trimmed !== customer.name) save({ name: trimmed });
             }}
             placeholder="เช่น คุณแม่น้องมะลิ"
-            className="w-full rounded-catcha-sm border-2 border-catcha-line bg-paper px-3 py-2.5 text-sm font-bold text-brown outline-none transition focus:border-latte-deep focus:bg-card"
+            className="w-full rounded-petflow-sm border-2 border-petflow-line bg-paper px-3 py-2.5 text-sm font-bold text-brown outline-none transition focus:border-latte-deep focus:bg-card"
           />
         </label>
 
@@ -851,7 +851,7 @@ function CustomerSummaryCard({
               if (phone.trim() !== (customer.phone || "")) save({ phone: phone.trim() || undefined });
             }}
             placeholder="08x-xxx-xxxx"
-            className="w-full rounded-catcha-sm border-2 border-catcha-line bg-paper px-3 py-2.5 text-sm outline-none transition focus:border-latte-deep focus:bg-card"
+            className="w-full rounded-petflow-sm border-2 border-petflow-line bg-paper px-3 py-2.5 text-sm outline-none transition focus:border-latte-deep focus:bg-card"
           />
         </label>
         <label className="block text-xs font-bold text-brown-soft">
@@ -864,7 +864,7 @@ function CustomerSummaryCard({
             }}
             placeholder="เช่น บ้านเลขที่ ซอย ถนน แขวง/ตำบล เขต/อำเภอ"
             rows={2}
-            className="w-full rounded-catcha-sm border-2 border-catcha-line bg-paper px-3 py-2.5 text-sm outline-none transition focus:border-latte-deep focus:bg-card"
+            className="w-full rounded-petflow-sm border-2 border-petflow-line bg-paper px-3 py-2.5 text-sm outline-none transition focus:border-latte-deep focus:bg-card"
           />
         </label>
         <label className="block text-xs font-bold text-brown-soft">
@@ -877,7 +877,7 @@ function CustomerSummaryCard({
                 save({ addressMapUrl: addressMapUrl.trim() || undefined });
             }}
             placeholder="วางลิงก์ Google Maps ที่ลูกค้าแชร์มา"
-            className="w-full rounded-catcha-sm border-2 border-catcha-line bg-paper px-3 py-2.5 text-sm outline-none transition focus:border-latte-deep focus:bg-card"
+            className="w-full rounded-petflow-sm border-2 border-petflow-line bg-paper px-3 py-2.5 text-sm outline-none transition focus:border-latte-deep focus:bg-card"
           />
           {addressMapUrl && (
             <a
@@ -901,13 +901,13 @@ function CustomerSummaryCard({
             }}
             inputMode="numeric"
             placeholder="เช่น 10260"
-            className="w-full rounded-catcha-sm border-2 border-catcha-line bg-paper px-3 py-2.5 text-sm outline-none transition focus:border-latte-deep focus:bg-card"
+            className="w-full rounded-petflow-sm border-2 border-petflow-line bg-paper px-3 py-2.5 text-sm outline-none transition focus:border-latte-deep focus:bg-card"
           />
         </label>
         <p className="text-[10px] text-brown-faint">💾 พิมพ์แล้วแตะออกจากช่อง ระบบบันทึกให้อัตโนมัติ</p>
 
         {(inactive || customer.lineUserId) && (
-          <div className="rounded-catcha-sm border border-catcha-line bg-paper/60 p-3">
+          <div className="rounded-petflow-sm border border-petflow-line bg-paper/60 p-3">
             <p className="text-xs font-bold text-brown-soft">📲 ตามลูกค้าทาง LINE</p>
             {customer.lastFollowUpAt && (
               <p className="mt-1 text-[10px] text-brown-faint">
@@ -918,7 +918,7 @@ function CustomerSummaryCard({
               type="button"
               disabled={followUpBusy || !customer.lineUserId}
               onClick={sendFollowUp}
-              className="mt-2 w-full rounded-catcha-sm bg-sage/25 px-3 py-2.5 text-xs font-bold text-ok disabled:opacity-50"
+              className="mt-2 w-full rounded-petflow-sm bg-sage/25 px-3 py-2.5 text-xs font-bold text-ok disabled:opacity-50"
             >
               {followUpBusy
                 ? "กำลังส่ง…"
@@ -933,7 +933,7 @@ function CustomerSummaryCard({
         )}
       </div>
 
-      <label className="mt-3 block rounded-catcha-sm border-2 border-latte/30 bg-card/70 p-3.5 text-xs font-extrabold text-catcha-chocolate">
+      <label className="mt-3 block rounded-petflow-sm border-2 border-latte/30 bg-card/70 p-3.5 text-xs font-extrabold text-petflow-chocolate">
         🏷️ ระดับลูกค้า (Tier)
         <div className="mt-2 flex flex-wrap gap-2">
           {(Object.keys(TIER_LABELS) as CustomerTier[]).map((t) => (
@@ -993,7 +993,7 @@ function CustomerSummaryCard({
       <button
         type="button"
         onClick={removeCustomer}
-        className="mt-4 w-full rounded-catcha-sm border border-wait/40 bg-wait/10 py-2 text-[11px] font-bold text-wait"
+        className="mt-4 w-full rounded-petflow-sm border border-wait/40 bg-wait/10 py-2 text-[11px] font-bold text-wait"
       >
         🗑️ ลบลูกค้าคนนี้
       </button>
@@ -1045,15 +1045,15 @@ function AddCatForm({ customerId, onAdded }: { customerId: string; onAdded: () =
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full rounded-catcha-sm border border-dashed border-latte/50 bg-paper/50 py-2.5 text-xs font-extrabold text-latte-deep"
+        className="w-full rounded-petflow-sm border border-dashed border-latte/50 bg-paper/50 py-2.5 text-xs font-extrabold text-latte-deep"
       >
         ➕ เพิ่มน้องแมว
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-          <div className="w-full max-w-md rounded-catcha bg-card p-5 shadow-catcha">
-            <h2 className="mb-3 text-sm font-extrabold text-catcha-chocolate">➕ เพิ่มน้องแมว</h2>
+          <div className="w-full max-w-md rounded-petflow bg-card p-5 shadow-petflow">
+            <h2 className="mb-3 text-sm font-extrabold text-petflow-chocolate">➕ เพิ่มน้องแมว</h2>
             <form onSubmit={submit} className="space-y-3">
               <label className="block text-xs font-bold text-brown-soft">
                 ชื่อน้องแมว *
@@ -1063,7 +1063,7 @@ function AddCatForm({ customerId, onAdded }: { customerId: string; onAdded: () =
                   placeholder="เช่น น้องจู๊ด"
                   required
                   autoFocus
-                  className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm font-bold"
+                  className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm font-bold"
                 />
               </label>
               <label className="block text-xs font-bold text-brown-soft">
@@ -1073,7 +1073,7 @@ function AddCatForm({ customerId, onAdded }: { customerId: string; onAdded: () =
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="เช่น แมวดุ อาบยาก กลัวเสียง"
                   rows={3}
-                  className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-xs"
+                  className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs"
                 />
               </label>
               {error && <p className="text-xs font-bold text-wait">{error}</p>}
@@ -1081,14 +1081,14 @@ function AddCatForm({ customerId, onAdded }: { customerId: string; onAdded: () =
                 <button
                   type="button"
                   onClick={close}
-                  className="flex-1 rounded-catcha-sm bg-paper py-2.5 text-xs font-bold text-brown-soft"
+                  className="flex-1 rounded-petflow-sm bg-paper py-2.5 text-xs font-bold text-brown-soft"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="submit"
                   disabled={saving || !name.trim()}
-                  className="flex-1 rounded-catcha-sm bg-gradient-to-r from-honey to-honey-deep py-2.5 text-xs font-extrabold text-catcha-chocolate disabled:opacity-50"
+                  className="flex-1 rounded-petflow-sm bg-gradient-to-r from-honey to-honey-deep py-2.5 text-xs font-extrabold text-petflow-chocolate disabled:opacity-50"
                 >
                   {saving ? "กำลังบันทึก…" : "💾 บันทึก"}
                 </button>
@@ -1302,7 +1302,7 @@ export default function CustomersPage() {
         />
 
         <section className="mb-4 space-y-3">
-          <h2 className="text-sm font-extrabold text-catcha-chocolate">
+          <h2 className="text-sm font-extrabold text-petflow-chocolate">
             🐱 น้องแมว ({c.cats.length}) — โน้ตแยกแต่ละตัว
           </h2>
 
@@ -1312,15 +1312,15 @@ export default function CustomersPage() {
             <p className="text-xs text-brown-soft">ยังไม่มีน้องแมว — กดปุ่มด้านบนเพื่อเพิ่ม</p>
           )}
           {c.cats.map((cat) => (
-            <div key={cat.id} className="overflow-hidden rounded-catcha border-2 border-latte/30 bg-card shadow-catcha-sm">
+            <div key={cat.id} className="overflow-hidden rounded-petflow border-2 border-latte/30 bg-card shadow-petflow-sm">
               <div className="flex items-center justify-between bg-latte/10 px-4 py-2">
-                <p className="flex items-center gap-1.5 text-xs font-extrabold text-catcha-chocolate">
+                <p className="flex items-center gap-1.5 text-xs font-extrabold text-petflow-chocolate">
                   ✏️ แก้ไขข้อมูล{cat.name ? ` — ${cat.name}` : "น้องแมว"}
                 </p>
                 <button
                   type="button"
                   onClick={() => deleteCatProfile(cat)}
-                  className="rounded-full bg-card px-2.5 py-1 text-[10px] font-bold text-wait shadow-catcha-sm"
+                  className="rounded-full bg-card px-2.5 py-1 text-[10px] font-bold text-wait shadow-petflow-sm"
                 >
                   🗑️ ลบตัวนี้
                 </button>
@@ -1332,11 +1332,11 @@ export default function CustomersPage() {
                     alt={cat.name}
                     width={72}
                     height={72}
-                    className="h-[72px] w-[72px] shrink-0 rounded-catcha-sm object-cover ring-2 ring-latte/30"
+                    className="h-[72px] w-[72px] shrink-0 rounded-petflow-sm object-cover ring-2 ring-latte/30"
                     unoptimized
                   />
                 ) : (
-                  <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-catcha-sm bg-paper text-2xl ring-2 ring-latte/30">
+                  <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-petflow-sm bg-paper text-2xl ring-2 ring-latte/30">
                     🐱
                   </div>
                 )}
@@ -1349,7 +1349,7 @@ export default function CustomersPage() {
                         const v = e.target.value.trim();
                         if (v && v !== cat.name) saveCat(cat.id, { name: v });
                       }}
-                      className="w-full rounded-catcha-sm border-2 border-catcha-line bg-paper px-2.5 py-2 text-sm font-bold text-brown outline-none transition focus:border-latte-deep focus:bg-card"
+                      className="w-full rounded-petflow-sm border-2 border-petflow-line bg-paper px-2.5 py-2 text-sm font-bold text-brown outline-none transition focus:border-latte-deep focus:bg-card"
                     />
                   </label>
                   {(() => {
@@ -1367,7 +1367,7 @@ export default function CustomersPage() {
                       .join(" · ");
                     if (!meta && !cat.birthday && !cat.medical) return null;
                     return (
-                      <div className="mt-2 space-y-1 rounded-catcha-sm bg-paper/60 px-2 py-1.5 text-[10px] text-brown-soft">
+                      <div className="mt-2 space-y-1 rounded-petflow-sm bg-paper/60 px-2 py-1.5 text-[10px] text-brown-soft">
                         {meta && <p>{meta}</p>}
                         {cat.birthday && <p>🎂 วันเกิด {cat.birthday}</p>}
                         {cat.medical && (
@@ -1383,17 +1383,17 @@ export default function CustomersPage() {
                     <textarea
                       defaultValue={cat.staffNote}
                       placeholder="เช่น แมวดุ อาบยาก ชอบให้ใส่ตะกร้า"
-                      className="mt-0.5 w-full rounded-catcha-sm border border-catcha-line bg-paper px-2 py-1.5 text-xs"
+                      className="mt-0.5 w-full rounded-petflow-sm border border-petflow-line bg-paper px-2 py-1.5 text-xs"
                       rows={2}
                       onBlur={(e) => saveCatNote(cat.id, e.target.value, cat.photoDataUrl)}
                     />
                   </label>
-                  <label className="mt-2 block rounded-catcha-sm border border-wait/40 bg-wait/5 px-2 py-1.5 text-[10px] font-bold text-wait">
+                  <label className="mt-2 block rounded-petflow-sm border border-wait/40 bg-wait/5 px-2 py-1.5 text-[10px] font-bold text-wait">
                     🔒 โน้ตลับร้าน (ลูกค้าไม่เห็น)
                     <textarea
                       defaultValue={cat.staffPrivateNote}
                       placeholder="เช่น กัด ข่วน ดุมาก ระวังตอนอาบน้ำ — เฉพาะพนักงาน"
-                      className="mt-0.5 w-full rounded-catcha-sm border border-wait/30 bg-card px-2 py-1.5 text-xs font-normal text-brown"
+                      className="mt-0.5 w-full rounded-petflow-sm border border-wait/30 bg-card px-2 py-1.5 text-xs font-normal text-brown"
                       rows={2}
                       onBlur={(e) => saveCatPrivateNote(cat.id, e.target.value)}
                     />
@@ -1402,7 +1402,7 @@ export default function CustomersPage() {
                     const gi = parseGroomInfo(cat.groomHealthInfo);
                     if (!gi) {
                       return (
-                        <div className="mt-2 rounded-catcha-sm border border-catcha-line bg-paper/60 px-2 py-1.5">
+                        <div className="mt-2 rounded-petflow-sm border border-petflow-line bg-paper/60 px-2 py-1.5">
                           <p className="text-[10px] font-extrabold text-brown-faint">
                             🩺 ประวัติก่อนอาบน้ำ — ลูกค้ายังไม่ได้กรอก
                           </p>
@@ -1411,7 +1411,7 @@ export default function CustomersPage() {
                     }
                     const s = groomInfoSummary(gi);
                     return (
-                      <div className="mt-2 rounded-catcha-sm border border-sage/40 bg-sage/10 px-2 py-2">
+                      <div className="mt-2 rounded-petflow-sm border border-sage/40 bg-sage/10 px-2 py-2">
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-[10px] font-extrabold text-ok">
                             🩺 ประวัติก่อนอาบน้ำ (ลูกค้ากรอกไว้)
@@ -1473,7 +1473,7 @@ export default function CustomersPage() {
           onRefresh={() => open(c.id)}
         />
 
-        <section className="mb-4 rounded-catcha bg-card p-4">
+        <section className="mb-4 rounded-petflow bg-card p-4">
           <h2 className="mb-2 text-sm font-extrabold">📋 ประวัติใช้บริการ</h2>
           <ul className="space-y-2 text-xs text-brown-soft">
             {selected.history.services.map((s) => (
@@ -1493,7 +1493,7 @@ export default function CustomersPage() {
           </ul>
         </section>
 
-        <section className="rounded-catcha bg-card p-4">
+        <section className="rounded-petflow bg-card p-4">
           <h2 className="mb-2 text-sm font-extrabold">🎁 ประวัติแลกแต้ม</h2>
           <ul className="space-y-2 text-xs text-brown-soft">
             {selected.history.points.map((p) => (
@@ -1511,7 +1511,7 @@ export default function CustomersPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-lg font-extrabold text-catcha-chocolate">👤 ลูกค้า</h1>
+      <h1 className="mb-4 text-lg font-extrabold text-petflow-chocolate">👤 ลูกค้า</h1>
       <AddCustomerModal
         onAdded={(id) => {
           search(q);
@@ -1524,7 +1524,7 @@ export default function CustomersPage() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="🔍 พิมพ์เพื่อค้นหา ชื่อลูกค้า / แมว / เบอร์"
-          className="w-full rounded-catcha-sm border border-catcha-line bg-card px-4 py-3 text-sm"
+          className="w-full rounded-petflow-sm border border-petflow-line bg-card px-4 py-3 text-sm"
         />
         {q && (
           <button
@@ -1542,7 +1542,7 @@ export default function CustomersPage() {
         <select
           value={tierFilter}
           onChange={(e) => setTierFilter(e.target.value as CustomerTier | "all")}
-          className="rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs font-bold text-brown"
+          className="rounded-petflow-sm border border-petflow-line bg-card px-3 py-2 text-xs font-bold text-brown"
         >
           <option value="all">ทุกกลุ่ม</option>
           {(Object.keys(TIER_LABELS) as CustomerTier[]).map((t) => (
@@ -1554,7 +1554,7 @@ export default function CustomersPage() {
         <select
           value={lineFilter}
           onChange={(e) => setLineFilter(e.target.value as "all" | "linked" | "unlinked")}
-          className="rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs font-bold text-brown"
+          className="rounded-petflow-sm border border-petflow-line bg-card px-3 py-2 text-xs font-bold text-brown"
         >
           <option value="all">ทุกสถานะ LINE</option>
           <option value="linked">✅ ผูก LINE แล้ว</option>
@@ -1564,7 +1564,7 @@ export default function CustomersPage() {
           <button
             type="button"
             onClick={resetFilters}
-            className="rounded-catcha-sm bg-paper px-3 py-2 text-xs font-bold text-brown-soft"
+            className="rounded-petflow-sm bg-paper px-3 py-2 text-xs font-bold text-brown-soft"
           >
             ↺ รีเซ็ต
           </button>
@@ -1575,7 +1575,7 @@ export default function CustomersPage() {
       <button
         type="button"
         onClick={() => setShowTools((v) => !v)}
-        className="mb-3 w-full rounded-catcha-sm bg-paper px-4 py-2 text-left text-[11px] font-bold text-brown-soft"
+        className="mb-3 w-full rounded-petflow-sm bg-paper px-4 py-2 text-left text-[11px] font-bold text-brown-soft"
       >
         🛠️ เครื่องมือ (QR ลงทะเบียน · Export) {showTools ? "▲" : "▼"}
       </button>
@@ -1596,10 +1596,10 @@ export default function CustomersPage() {
           </p>
 
           {/* ── ตาราง (จอกว้าง) — คลิกหัวคอลัมน์เพื่อเรียง ── */}
-          <div className="mb-4 hidden overflow-x-auto rounded-catcha border border-catcha-line bg-card shadow-catcha-sm md:block">
+          <div className="mb-4 hidden overflow-x-auto rounded-petflow border border-petflow-line bg-card shadow-petflow-sm md:block">
             <table className="w-full min-w-[820px] text-left text-xs">
               <thead>
-                <tr className="border-b border-catcha-line bg-paper/60 text-[10px] font-extrabold uppercase tracking-wide text-brown-soft">
+                <tr className="border-b border-petflow-line bg-paper/60 text-[10px] font-extrabold uppercase tracking-wide text-brown-soft">
                   <SortableTh label="ลูกค้า" sortKey="name" active={sortKey} dir={sortDir} onSort={toggleSort} />
                   <th className="px-3 py-2.5">แมว</th>
                   <th className="px-3 py-2.5">LINE</th>
@@ -1618,7 +1618,7 @@ export default function CustomersPage() {
                   <tr
                     key={c.id}
                     onClick={() => open(c.id)}
-                    className="cursor-pointer border-b border-catcha-line last:border-0 transition hover:bg-paper/50"
+                    className="cursor-pointer border-b border-petflow-line last:border-0 transition hover:bg-paper/50"
                   >
                     <td className="px-3 py-2.5 font-bold text-brown">
                       {c.name}
@@ -1689,7 +1689,7 @@ export default function CustomersPage() {
           </div>
 
           {/* ── การ์ด (มือถือ) ── */}
-          <ul className="divide-y divide-catcha-line overflow-hidden rounded-catcha border border-catcha-line bg-card shadow-catcha-sm md:hidden">
+          <ul className="divide-y divide-petflow-line overflow-hidden rounded-petflow border border-petflow-line bg-card shadow-petflow-sm md:hidden">
             {visibleList.map((c) => {
               const photo = c.cats.find((x) => x.photoDataUrl)?.photoDataUrl;
               return (
@@ -1785,7 +1785,7 @@ function SortableTh({
       <button
         type="button"
         onClick={() => onSort(sortKey)}
-        className={`inline-flex items-center gap-0.5 ${isActive ? "text-catcha-chocolate" : "text-brown-soft"}`}
+        className={`inline-flex items-center gap-0.5 ${isActive ? "text-petflow-chocolate" : "text-brown-soft"}`}
       >
         {label}
         <span className="text-[9px]">{isActive ? (dir === "asc" ? "▲" : "▼") : "↕"}</span>

@@ -39,8 +39,8 @@ function Bar({ label, value, max, suffix }: { label: string; value: number; max:
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-catcha bg-card p-4 shadow-catcha-sm">
-      <h2 className="mb-3 text-sm font-extrabold text-catcha-chocolate">{title}</h2>
+    <section className="rounded-petflow bg-card p-4 shadow-petflow-sm">
+      <h2 className="mb-3 text-sm font-extrabold text-petflow-chocolate">{title}</h2>
       {children}
     </section>
   );
@@ -120,15 +120,15 @@ export default function InsightsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-extrabold text-catcha-chocolate">📊 สรุปข้อมูลร้าน</h1>
+      <h1 className="text-lg font-extrabold text-petflow-chocolate">📊 สรุปข้อมูลร้าน</h1>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-catcha-sm bg-card p-4 shadow-catcha-sm">
+        <div className="rounded-petflow-sm bg-card p-4 shadow-petflow-sm">
           <p className="text-lg">👥</p>
           <p className="text-lg font-extrabold text-latte-deep">{stats.totalCustomers}</p>
           <p className="text-xs font-bold text-brown-soft">ลูกค้า · 🐱 {stats.totalCats} แมว</p>
         </div>
-        <div className="rounded-catcha-sm bg-card p-4 shadow-catcha-sm">
+        <div className="rounded-petflow-sm bg-card p-4 shadow-petflow-sm">
           <p className="text-lg">💰</p>
           <p className="text-lg font-extrabold text-latte-deep">
             {stats.revenuePaid.toLocaleString()} ฿

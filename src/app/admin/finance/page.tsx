@@ -91,33 +91,33 @@ export default function FinancePage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-lg font-extrabold text-catcha-chocolate">📒 รายรับ-รายจ่าย</h1>
+      <h1 className="mb-4 text-lg font-extrabold text-petflow-chocolate">📒 รายรับ-รายจ่าย</h1>
 
       <ExportSheetsButton className="mb-4" />
 
       <div className="mb-4 grid grid-cols-3 gap-2 text-center">
-        <div className="rounded-catcha-sm bg-sage/15 p-3">
+        <div className="rounded-petflow-sm bg-sage/15 p-3">
           <p className="text-xs text-brown-soft">รายรับ</p>
           <p className="font-extrabold text-ok">{summary.income.toLocaleString()}</p>
         </div>
-        <div className="rounded-catcha-sm bg-honey/20 p-3">
+        <div className="rounded-petflow-sm bg-honey/20 p-3">
           <p className="text-xs text-brown-soft">รายจ่าย</p>
           <p className="font-extrabold text-wait">{summary.expense.toLocaleString()}</p>
         </div>
-        <div className="rounded-catcha-sm bg-latte/15 p-3">
+        <div className="rounded-petflow-sm bg-latte/15 p-3">
           <p className="text-xs text-brown-soft">สุทธิ</p>
           <p className="font-extrabold text-latte-deep">{summary.net.toLocaleString()}</p>
         </div>
       </div>
 
-      <form onSubmit={submit} className="mb-5 space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm">
+      <form onSubmit={submit} className="mb-5 space-y-3 rounded-petflow bg-card p-4 shadow-petflow-sm">
         {editingId && (
           <p className="text-xs font-extrabold text-latte-deep">✏️ กำลังแก้ไขรายการ</p>
         )}
         <select
           value={form.type}
           onChange={(e) => setForm({ ...form, type: e.target.value })}
-          className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+          className="w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
         >
           <option value="income">รายรับ</option>
           <option value="expense">รายจ่าย</option>
@@ -128,34 +128,34 @@ export default function FinancePage() {
           placeholder="จำนวนเงิน"
           value={form.amount}
           onChange={(e) => setForm({ ...form, amount: e.target.value })}
-          className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+          className="w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
         />
         <input
           placeholder="หมวด เช่น อาหารแมว, ค่าเช่า"
           value={form.category}
           onChange={(e) => setForm({ ...form, category: e.target.value })}
-          className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+          className="w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
         />
         <input
           placeholder="รายละเอียด"
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
-          className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+          className="w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
         />
         <input
           type="date"
           value={form.date}
           onChange={(e) => setForm({ ...form, date: e.target.value })}
-          className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+          className="w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
         />
-        <button type="submit" className="w-full rounded-catcha-sm bg-honey/40 py-3 text-sm font-extrabold text-catcha-chocolate">
+        <button type="submit" className="w-full rounded-petflow-sm bg-honey/40 py-3 text-sm font-extrabold text-petflow-chocolate">
           {editingId ? "💾 บันทึกการแก้ไข" : "บันทึก"}
         </button>
         {editingId && (
           <button
             type="button"
             onClick={resetForm}
-            className="w-full rounded-catcha-sm bg-paper py-2 text-xs font-bold text-brown-soft"
+            className="w-full rounded-petflow-sm bg-paper py-2 text-xs font-bold text-brown-soft"
           >
             ยกเลิกการแก้ไข
           </button>
@@ -164,7 +164,7 @@ export default function FinancePage() {
 
       <ul className="space-y-2">
         {records.map((r) => (
-          <li key={r.id} className="flex items-start justify-between gap-2 rounded-catcha-sm border border-catcha-line bg-card px-3 py-2 text-xs">
+          <li key={r.id} className="flex items-start justify-between gap-2 rounded-petflow-sm border border-petflow-line bg-card px-3 py-2 text-xs">
             <div className="min-w-0 flex-1">
               <p className="font-bold text-brown">{r.displayTitle}</p>
               <p className="text-brown-faint">{r.date} · {r.category}</p>

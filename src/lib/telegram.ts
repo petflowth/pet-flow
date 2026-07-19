@@ -249,7 +249,7 @@ export async function setTelegramBotCommands(token: string) {
 
 export function buildStartReply(chatId: number | string) {
   return (
-    `🐱 <b>สวัสดีจาก CatCha Hotel Bot</b>\n\n` +
+    `🐱 <b>สวัสดีจาก PetFlow Bot</b>\n\n` +
     `Chat ID ของคุณ: <code>${chatId}</code>\n` +
     `👇 กดปุ่มเมนูด้านล่างได้เลย\n` +
     `➕ เพิ่มนัด · 📋 สรุปลูกค้า · ✅ ส่งยืนยันนัด\n` +
@@ -264,5 +264,5 @@ export function formatBookingTelegram(
   const lines = Object.entries(detail)
     .map(([k, v]) => `<b>${k}</b>: ${v}`)
     .join("\n");
-  return `🐱 <b>CatCha Hotel</b>\n${title}\n\n${lines}`;
+  return `🐱 <b>PetFlow</b>\n${title}\n\n${lines}`;
 }

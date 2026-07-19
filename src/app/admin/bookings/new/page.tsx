@@ -96,8 +96,8 @@ function CustomerPicker({
   };
 
   return (
-    <div className="rounded-catcha-sm border border-latte/40 bg-honey/10 p-3">
-      <label className="block text-xs font-extrabold text-catcha-chocolate">
+    <div className="rounded-petflow-sm border border-latte/40 bg-honey/10 p-3">
+      <label className="block text-xs font-extrabold text-petflow-chocolate">
         🔍 ค้นหาลูกค้า (ชื่อแมว / ชื่อใน LINE)
         <input
           value={q}
@@ -106,7 +106,7 @@ function CustomerPicker({
             setOpenCustomerId(null);
           }}
           placeholder="เช่น น้องจู๊ด หรือ ชื่อที่เห็นใน LINE"
-          className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
+          className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm"
         />
       </label>
       <p className="mt-1 text-[10px] text-brown-soft">
@@ -126,8 +126,8 @@ function CustomerPicker({
           {results.map((c) => (
             <li key={c.id}>
               {openCustomerId === c.id ? (
-                <div className="rounded-catcha-sm border border-honey/50 bg-card p-2.5">
-                  <p className="mb-1.5 text-xs font-extrabold text-catcha-chocolate">
+                <div className="rounded-petflow-sm border border-honey/50 bg-card p-2.5">
+                  <p className="mb-1.5 text-xs font-extrabold text-petflow-chocolate">
                     {c.name}
                     {c.lineUserId && (
                       <span className="ml-1 text-[10px] text-ok">LINE ✓</span>
@@ -137,7 +137,7 @@ function CustomerPicker({
                     {c.cats.map((cat) => (
                       <label
                         key={cat.id}
-                        className="flex items-center gap-2 rounded-catcha-sm bg-paper px-2.5 py-1.5 text-xs"
+                        className="flex items-center gap-2 rounded-petflow-sm bg-paper px-2.5 py-1.5 text-xs"
                       >
                         <input
                           type="checkbox"
@@ -158,7 +158,7 @@ function CustomerPicker({
                           Object.fromEntries(c.cats.map((cat) => [cat.id, true]))
                         )
                       }
-                      className="rounded-full bg-honey/30 px-3 py-1 text-[10px] font-bold text-catcha-chocolate"
+                      className="rounded-full bg-honey/30 px-3 py-1 text-[10px] font-bold text-petflow-chocolate"
                     >
                       ✅ เลือกทั้งบ้าน ({c.cats.length} ตัว)
                     </button>
@@ -183,7 +183,7 @@ function CustomerPicker({
                 <button
                   type="button"
                   onClick={() => openCustomer(c)}
-                  className="w-full rounded-catcha-sm bg-card px-3 py-2 text-left text-xs hover:bg-paper"
+                  className="w-full rounded-petflow-sm bg-card px-3 py-2 text-left text-xs hover:bg-paper"
                 >
                   <span className="font-bold text-brown">{c.name}</span>
                   {c.lineUserId && (
@@ -368,13 +368,13 @@ export default function NewBookingPage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-lg font-extrabold text-catcha-chocolate">
+      <h1 className="mb-1 text-lg font-extrabold text-petflow-chocolate">
         ➕ บันทึกจองให้ลูกค้า
       </h1>
 
       {/* จองเสร็จแล้ว → ทำต่อได้เลยจากตรงนี้ */}
       {lastBookings.length > 0 && (
-        <div className="mb-4 space-y-3 rounded-catcha border border-sage/50 bg-sage/10 p-4">
+        <div className="mb-4 space-y-3 rounded-petflow border border-sage/50 bg-sage/10 p-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-extrabold text-ok">
               ✅ จองแล้ว {lastBookings.length} ตัว: {lastBookings.map((b) => b.catName).join(", ")}
@@ -382,23 +382,23 @@ export default function NewBookingPage() {
             <button
               type="button"
               onClick={() => setLastBookings([])}
-              className="shrink-0 rounded-catcha-sm bg-paper px-3 py-2 text-xs font-bold text-brown-soft"
+              className="shrink-0 rounded-petflow-sm bg-paper px-3 py-2 text-xs font-bold text-brown-soft"
             >
               จองอีกคน
             </button>
           </div>
           {lastBookings.map((b) => (
-            <div key={b.id} className="rounded-catcha-sm border border-sage/30 bg-card p-3">
+            <div key={b.id} className="rounded-petflow-sm border border-sage/30 bg-card p-3">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-extrabold text-catcha-chocolate">🐱 {b.catName}</p>
+                <p className="text-xs font-extrabold text-petflow-chocolate">🐱 {b.catName}</p>
                 <Link
                   href={`/admin/billing?bookingId=${b.id}`}
-                  className="shrink-0 rounded-catcha-sm bg-honey/45 px-3 py-1.5 text-[11px] font-extrabold text-catcha-chocolate"
+                  className="shrink-0 rounded-petflow-sm bg-honey/45 px-3 py-1.5 text-[11px] font-extrabold text-petflow-chocolate"
                 >
                   🧾 ออกบิลเลย
                 </Link>
               </div>
-              <div className="mt-2 border-t border-catcha-line pt-2">
+              <div className="mt-2 border-t border-petflow-line pt-2">
                 <CustomerSendButtons
                   bookingId={b.id}
                   customerId={b.customerId}
@@ -427,9 +427,9 @@ export default function NewBookingPage() {
             key={s.id}
             type="button"
             onClick={() => setService(s.id)}
-            className={`flex-1 rounded-catcha-sm py-3 text-sm font-bold ${
+            className={`flex-1 rounded-petflow-sm py-3 text-sm font-bold ${
               service === s.id
-                ? "bg-honey/45 text-catcha-chocolate shadow-catcha-sm"
+                ? "bg-honey/45 text-petflow-chocolate shadow-petflow-sm"
                 : "bg-paper text-brown-soft"
             }`}
           >
@@ -438,7 +438,7 @@ export default function NewBookingPage() {
         ))}
       </div>
 
-      <form onSubmit={submit} className="space-y-4 rounded-catcha bg-card p-5 shadow-catcha-sm">
+      <form onSubmit={submit} className="space-y-4 rounded-petflow bg-card p-5 shadow-petflow-sm">
         <CustomerPicker
           onSelect={(data) => {
             setCustomerId(data.customerId);
@@ -470,7 +470,7 @@ export default function NewBookingPage() {
               {catNames.map((name) => (
                 <span
                   key={name}
-                  className="flex items-center gap-1 rounded-full bg-honey/30 px-3 py-1 text-xs font-bold text-catcha-chocolate"
+                  className="flex items-center gap-1 rounded-full bg-honey/30 px-3 py-1 text-xs font-bold text-petflow-chocolate"
                 >
                   🐱 {name}
                   <button
@@ -497,13 +497,13 @@ export default function NewBookingPage() {
                 }
               }}
               placeholder="พิมพ์ชื่อแมว แล้วกด Enter หรือ ➕"
-              className="min-w-0 flex-1 rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm outline-none focus:border-latte-deep"
+              className="min-w-0 flex-1 rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm outline-none focus:border-latte-deep"
             />
             <button
               type="button"
               onClick={addCatFromInput}
               disabled={!catInput.trim()}
-              className="shrink-0 rounded-catcha-sm bg-latte/25 px-3 py-2.5 text-sm font-extrabold text-catcha-chocolate disabled:opacity-40"
+              className="shrink-0 rounded-petflow-sm bg-latte/25 px-3 py-2.5 text-sm font-extrabold text-petflow-chocolate disabled:opacity-40"
             >
               ➕
             </button>
@@ -521,7 +521,7 @@ export default function NewBookingPage() {
         </div>
 
         {lineUserId && (
-          <p className="rounded-catcha-sm bg-sage/15 px-3 py-2 text-[10px] font-bold text-ok">
+          <p className="rounded-petflow-sm bg-sage/15 px-3 py-2 text-[10px] font-bold text-ok">
             ✅ ผูก LINE แล้ว — ลูกค้าเห็นนัดในแอบอัตโนมัติ
           </p>
         )}
@@ -543,7 +543,7 @@ export default function NewBookingPage() {
                 type="time"
                 list="groom-slots"
                 defaultValue="12:30"
-                className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
+                className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm"
               />
               <datalist id="groom-slots">
                 {groomSlots.map((t) => (
@@ -561,7 +561,7 @@ export default function NewBookingPage() {
               ห้อง
               <select
                 name="room"
-                className="mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm"
+                className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm"
               >
                 {rooms.map((r) => (
                   <option key={r.id} value={r.id}>
@@ -591,8 +591,8 @@ export default function NewBookingPage() {
         )}
 
         {service === "room" && (
-        <div className="rounded-catcha-sm border border-honey/40 bg-honey/10 p-3">
-          <p className="text-xs font-extrabold text-catcha-chocolate">
+        <div className="rounded-petflow-sm border border-honey/40 bg-honey/10 p-3">
+          <p className="text-xs font-extrabold text-petflow-chocolate">
             🎁 ของแถมฟรี (ถ้าตกลงกับลูกค้าไว้)
           </p>
           <p className="mb-2 text-[10px] text-brown-soft">
@@ -612,7 +612,7 @@ export default function NewBookingPage() {
                   }
                   className={`rounded-full px-3 py-1.5 text-[11px] font-bold ${
                     on
-                      ? "bg-honey text-catcha-chocolate"
+                      ? "bg-honey text-petflow-chocolate"
                       : "bg-paper text-brown-soft"
                   }`}
                 >
@@ -629,7 +629,7 @@ export default function NewBookingPage() {
 
         <button
           type="submit"
-          className="w-full rounded-catcha-sm bg-gradient-to-r from-honey to-honey-deep py-3.5 text-sm font-extrabold text-catcha-chocolate"
+          className="w-full rounded-petflow-sm bg-gradient-to-r from-honey to-honey-deep py-3.5 text-sm font-extrabold text-petflow-chocolate"
         >
           {saved ? "✅ บันทึกแล้ว + สร้างนัด Calendar" : "🗓️ บันทึกการจอง"}
         </button>
@@ -658,7 +658,7 @@ function Field({
   onChange?: (v: string) => void;
 }) {
   const cls =
-    "mt-1 w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5 text-sm outline-none focus:border-latte-deep";
+    "mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm outline-none focus:border-latte-deep";
   return (
     <label className="block text-xs font-bold text-brown-soft">
       {label}

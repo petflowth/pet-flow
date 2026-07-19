@@ -89,14 +89,14 @@ function BookingsContent() {
   return (
     <div className="px-4 pb-6 pt-5">
       <div className="mb-5 flex items-center justify-between">
-        <h1 className="text-xl font-extrabold text-catcha-chocolate">📅 {m.title}</h1>
+        <h1 className="text-xl font-extrabold text-petflow-chocolate">📅 {m.title}</h1>
         <LangSwitch />
       </div>
 
       {loading ? (
         <p className="text-center text-sm text-brown-soft py-8">{t(locale).common.loading}</p>
       ) : bookings.length === 0 ? (
-        <p className="rounded-catcha bg-card p-6 text-center text-sm text-brown-soft shadow-catcha">
+        <p className="rounded-petflow bg-card p-6 text-center text-sm text-brown-soft shadow-petflow">
           {m.empty}
         </p>
       ) : (
@@ -105,10 +105,10 @@ function BookingsContent() {
             <li
               key={b.id}
               id={`booking-${b.id}`}
-              className={`rounded-catcha border bg-card p-4 shadow-catcha-sm ${
+              className={`rounded-petflow border bg-card p-4 shadow-petflow-sm ${
                 highlightId === b.id
                   ? "border-sage ring-2 ring-sage/30"
-                  : "border-catcha-line"
+                  : "border-petflow-line"
               }`}
             >
               <div className="mb-2 flex items-start justify-between gap-2">
@@ -142,7 +142,7 @@ function BookingsContent() {
               {b.status === "pending" && (
                 <>
                   {b.service === "room" && pickId === b.id && (
-                    <div className="mb-3 rounded-catcha-sm bg-paper p-3">
+                    <div className="mb-3 rounded-petflow-sm bg-paper p-3">
                       <p className="mb-2 text-xs font-bold text-brown">{m.checkin}</p>
                       <div className="flex flex-wrap gap-2">
                         {CHECKIN_TIMES.map((time) => (
@@ -170,7 +170,7 @@ function BookingsContent() {
                         ? setPickId(b.id)
                         : confirm(b.id)
                     }
-                    className="flex w-full items-center justify-center gap-2 rounded-catcha-sm bg-gradient-to-r from-latte to-latte-deep py-3 text-sm font-extrabold text-white disabled:opacity-70"
+                    className="flex w-full items-center justify-center gap-2 rounded-petflow-sm bg-gradient-to-r from-latte to-latte-deep py-3 text-sm font-extrabold text-white disabled:opacity-70"
                   >
                     {confirmingId === b.id ? (
                       <>

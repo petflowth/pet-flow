@@ -294,7 +294,7 @@ export async function sendBookingConfirmFromTelegram(query: string) {
       service: b.service,
       when,
       confirmUrl,
-      // ต้องส่งข้อมูลร้านจาก config เข้าไป ไม่งั้นการ์ดจะกลับไปใช้แผนที่/ชื่อของ CatCha
+      // ต้องส่งข้อมูลร้านจาก config เข้าไป ไม่งั้นการ์ดจะกลับไปใช้แผนที่/ชื่อของ PetFlow
       mapsUrl: cfgTa.business.maps,
       location: [cfgTa.business.name, cfgTa.business.location.th]
         .filter(Boolean)

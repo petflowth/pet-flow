@@ -24,7 +24,7 @@ export default function SetupPage() {
   const [loading, setLoading] = useState(true);
   const [booting, setBooting] = useState(false);
   const [msg, setMsg] = useState("");
-  const adminCode = typeof window !== "undefined" ? sessionStorage.getItem("catcha-admin") || "" : "";
+  const adminCode = typeof window !== "undefined" ? sessionStorage.getItem("petflow-admin") || "" : "";
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -71,7 +71,7 @@ export default function SetupPage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-lg font-extrabold text-catcha-chocolate">🚀 ติดตั้งระบบ</h1>
+      <h1 className="mb-1 text-lg font-extrabold text-petflow-chocolate">🚀 ติดตั้งระบบ</h1>
       <p className="mb-4 text-xs text-brown-soft">
         ทำครั้งเดียว — วาง JSON / ลิงก์ แล้วกดบันทึก ไม่ต้องไล่ใส่ Vercel ทีละตัว
       </p>
@@ -82,26 +82,26 @@ export default function SetupPage() {
       <TelegramSetupSection adminCode={adminCode} />
 
       {msg && (
-        <p className="mb-4 rounded-catcha-sm bg-paper px-3 py-2 text-xs font-bold text-brown">
+        <p className="mb-4 rounded-petflow-sm bg-paper px-3 py-2 text-xs font-bold text-brown">
           {msg}
         </p>
       )}
 
       {status?.tablesReady ? (
-        <div className="mb-4 rounded-catcha bg-sage/15 p-5 text-center">
+        <div className="mb-4 rounded-petflow bg-sage/15 p-5 text-center">
           <p className="text-2xl">✅</p>
           <p className="mt-2 font-extrabold text-ok">พร้อมใช้งานแล้ว!</p>
           <p className="mt-1 text-xs text-brown-soft">{status.message}</p>
           <a
             href="/admin/settings"
-            className="mt-4 inline-block rounded-catcha-sm bg-honey/40 px-4 py-2 text-xs font-bold"
+            className="mt-4 inline-block rounded-petflow-sm bg-honey/40 px-4 py-2 text-xs font-bold"
           >
             ไปตั้งค่าร้าน →
           </a>
         </div>
       ) : (
         <>
-          <section className="mb-4 space-y-2 rounded-catcha bg-card p-4 shadow-catcha-sm">
+          <section className="mb-4 space-y-2 rounded-petflow bg-card p-4 shadow-petflow-sm">
             <h2 className="text-sm font-extrabold">สถานะ</h2>
             <StatusRow ok={status?.supabaseUrl} label="NEXT_PUBLIC_SUPABASE_URL" />
             <StatusRow ok={status?.serviceKey} label="SUPABASE_SERVICE_ROLE_KEY" />
@@ -113,8 +113,8 @@ export default function SetupPage() {
             ) : null}
           </section>
 
-          <section className="mb-4 rounded-catcha border border-honey/50 bg-honey/10 p-4">
-            <h2 className="mb-2 text-sm font-extrabold text-catcha-chocolate">
+          <section className="mb-4 rounded-petflow border border-honey/50 bg-honey/10 p-4">
+            <h2 className="mb-2 text-sm font-extrabold text-petflow-chocolate">
               ขั้นที่ 1 — ใส่ใน Vercel (Settings → Environment)
             </h2>
             <ol className="space-y-2 text-xs text-brown-soft">
@@ -131,7 +131,7 @@ export default function SetupPage() {
             </ol>
           </section>
 
-          <section className="mb-4 space-y-2 rounded-catcha bg-card p-4 shadow-catcha-sm">
+          <section className="mb-4 space-y-2 rounded-petflow bg-card p-4 shadow-petflow-sm">
             <h2 className="text-sm font-extrabold">ขั้นที่ 2 — สร้างตาราง</h2>
             <p className="text-xs text-brown-soft">เลือกวิธีใดวิธีหนึ่ง:</p>
 
@@ -139,7 +139,7 @@ export default function SetupPage() {
               type="button"
               disabled={booting || !status?.databaseUrl}
               onClick={bootstrap}
-              className="w-full rounded-catcha-sm bg-gradient-to-r from-honey to-honey-deep py-3 text-sm font-extrabold text-catcha-chocolate disabled:opacity-40"
+              className="w-full rounded-petflow-sm bg-gradient-to-r from-honey to-honey-deep py-3 text-sm font-extrabold text-petflow-chocolate disabled:opacity-40"
             >
               {booting ? "กำลังสร้าง…" : "⚡ สร้างตารางอัตโนมัติ (ต้องมี DATABASE_URL)"}
             </button>
@@ -147,19 +147,10 @@ export default function SetupPage() {
             <button
               type="button"
               onClick={copySchema}
-              className="w-full rounded-catcha-sm border border-catcha-line bg-paper py-3 text-sm font-bold text-brown"
+              className="w-full rounded-petflow-sm border border-petflow-line bg-paper py-3 text-sm font-bold text-brown"
             >
               📋 Copy SQL ไปวางใน Supabase SQL Editor
             </button>
-
-            <a
-              href="https://github.com/stopstopw-bit/Catcha-hotel/blob/main/webapp/supabase/schema.sql"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block text-center text-xs font-bold text-latte-deep"
-            >
-              เปิด schema.sql บน GitHub →
-            </a>
           </section>
         </>
       )}
@@ -167,7 +158,7 @@ export default function SetupPage() {
       <button
         type="button"
         onClick={load}
-        className="w-full rounded-catcha-sm bg-paper py-2 text-xs font-bold text-brown-soft"
+        className="w-full rounded-petflow-sm bg-paper py-2 text-xs font-bold text-brown-soft"
       >
         🔄 ตรวจสอบอีกครั้ง
       </button>

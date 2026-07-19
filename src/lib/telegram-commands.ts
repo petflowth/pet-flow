@@ -71,7 +71,7 @@ export async function handleTelegramCommand(
     return {
       html: true,
       message:
-        `🐱 <b>วิธีใช้ CatCha Bot</b>\n\n` +
+        `🐱 <b>วิธีใช้ PetFlow Bot</b>\n\n` +
         `👇 กดปุ่มเมนูด้านล่างได้เลย\n` +
         `📅 นัดวันนี้ · 🌅 เตรียมตัวพรุ่งนี้\n` +
         `⏳ คิวรอยืนยัน · 🗓️ ตารางเดือน\n` +

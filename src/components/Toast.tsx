@@ -17,7 +17,7 @@ export function toast(msg: string, kind: ToastKind = "success") {
 const STYLE: Record<ToastKind, string> = {
   success: "bg-sage/95 text-white",
   error: "bg-wait/95 text-white",
-  info: "bg-catcha-chocolate/95 text-white",
+  info: "bg-petflow-chocolate/95 text-white",
 };
 const ICON: Record<ToastKind, string> = { success: "✅", error: "⚠️", info: "💬" };
 
@@ -44,7 +44,7 @@ export function Toaster() {
       {items.map((t) => (
         <div
           key={t.id}
-          className={`pointer-events-auto max-w-md rounded-catcha-sm px-4 py-2.5 text-sm font-bold shadow-catcha ${STYLE[t.kind]}`}
+          className={`pointer-events-auto max-w-md rounded-petflow-sm px-4 py-2.5 text-sm font-bold shadow-petflow ${STYLE[t.kind]}`}
           onClick={() => setItems((prev) => prev.filter((x) => x.id !== t.id))}
         >
           {ICON[t.kind]} {t.msg}

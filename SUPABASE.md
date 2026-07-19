@@ -1,4 +1,4 @@
-# Supabase Setup — CatCha Hotel
+# Supabase Setup — PetFlow
 
 ## วิธีง่ายสุด (แนะนำ)
 

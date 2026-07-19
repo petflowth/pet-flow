@@ -80,7 +80,7 @@ function BillButton({
     return (
       <Link
         href={`/admin/billing?bookingId=${bookingId}`}
-        className="rounded-full bg-honey/45 px-2.5 py-1 text-[10px] font-extrabold text-catcha-chocolate"
+        className="rounded-full bg-honey/45 px-2.5 py-1 text-[10px] font-extrabold text-petflow-chocolate"
       >
         🧾 แก้ไขบิล ({inv.total.toLocaleString()}฿ · ค้างอยู่)
       </Link>
@@ -89,7 +89,7 @@ function BillButton({
   return (
     <Link
       href={`/admin/billing?bookingId=${bookingId}`}
-      className="rounded-full bg-honey/45 px-2.5 py-1 text-[10px] font-extrabold text-catcha-chocolate"
+      className="rounded-full bg-honey/45 px-2.5 py-1 text-[10px] font-extrabold text-petflow-chocolate"
     >
       🧾 ออกบิล
     </Link>
@@ -231,16 +231,16 @@ export function BookingCalendar() {
         />
       )}
 
-      <section className="rounded-catcha bg-card p-4 shadow-catcha-sm">
+      <section className="rounded-petflow bg-card p-4 shadow-petflow-sm">
         <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="text-base font-extrabold text-catcha-chocolate">
+          <h2 className="text-base font-extrabold text-petflow-chocolate">
             🗓️ ตารางนัดเดือน {m}/{y}
           </h2>
           {activeDate !== today && (
             <button
               type="button"
               onClick={() => pickDate(today)}
-              className="rounded-full bg-honey/30 px-3 py-1 text-[10px] font-bold text-catcha-chocolate"
+              className="rounded-full bg-honey/30 px-3 py-1 text-[10px] font-bold text-petflow-chocolate"
             >
               กลับวันนี้
             </button>
@@ -271,9 +271,9 @@ export function BookingCalendar() {
                 onClick={() => pickDate(key)}
                 className={`flex min-h-[54px] flex-col items-center justify-center gap-0.5 rounded-xl py-2 transition ${
                   isSelected
-                    ? "bg-latte/40 text-catcha-chocolate ring-2 ring-latte-deep"
+                    ? "bg-latte/40 text-petflow-chocolate ring-2 ring-latte-deep"
                     : isToday
-                      ? "bg-honey/40 text-catcha-chocolate ring-1 ring-honey-deep"
+                      ? "bg-honey/40 text-petflow-chocolate ring-1 ring-honey-deep"
                       : stays > 0
                         ? "bg-sage/25 text-brown hover:bg-sage/35"
                         : "bg-paper/60 text-brown hover:bg-paper"
@@ -297,10 +297,10 @@ export function BookingCalendar() {
         </div>
       </section>
 
-      <section ref={queueRef} className="rounded-catcha bg-card p-4 shadow-catcha-sm">
+      <section ref={queueRef} className="rounded-petflow bg-card p-4 shadow-petflow-sm">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 className="text-sm font-extrabold text-catcha-chocolate">
+            <h2 className="text-sm font-extrabold text-petflow-chocolate">
               📋 วันที่ {formatThaiDate(activeDate)}
             </h2>
             <p className="text-[10px] text-brown-soft">
@@ -318,14 +318,14 @@ export function BookingCalendar() {
           </div>
           <Link
             href={`/admin/bookings/new?date=${activeDate}`}
-            className="rounded-catcha-sm bg-gradient-to-r from-honey to-honey-deep px-4 py-2.5 text-xs font-extrabold text-catcha-chocolate shadow-catcha-sm"
+            className="rounded-petflow-sm bg-gradient-to-r from-honey to-honey-deep px-4 py-2.5 text-xs font-extrabold text-petflow-chocolate shadow-petflow-sm"
           >
             ➕ จองคิววันนี้
           </Link>
         </div>
         <ul className="space-y-2">
           {dayBookings.length === 0 ? (
-            <li className="rounded-catcha-sm border border-dashed border-catcha-line py-6 text-center">
+            <li className="rounded-petflow-sm border border-dashed border-petflow-line py-6 text-center">
               <p className="text-xs text-brown-soft">ไม่มีนัด/การเข้าพักในวันนี้</p>
               <Link
                 href={`/admin/bookings/new?date=${activeDate}`}
@@ -343,14 +343,14 @@ export function BookingCalendar() {
               return (
               <li
                 key={group.map((x) => x.id).join(",")}
-                className={`rounded-catcha-sm border p-3 ${
+                className={`rounded-petflow-sm border p-3 ${
                   caseDone
                     ? "border-ok/50 bg-ok/5"
-                    : "border-catcha-line bg-paper/50"
+                    : "border-petflow-line bg-paper/50"
                 }`}
               >
                 {caseDone && (
-                  <p className="mb-2 flex items-center gap-1.5 rounded-catcha-sm bg-ok/15 px-2.5 py-1.5 text-[11px] font-extrabold text-ok">
+                  <p className="mb-2 flex items-center gap-1.5 rounded-petflow-sm bg-ok/15 px-2.5 py-1.5 text-[11px] font-extrabold text-ok">
                     🎉 เคสนี้จบแล้ว — ชำระครบ ปิดงานเรียบร้อย
                   </p>
                 )}
@@ -383,7 +383,7 @@ export function BookingCalendar() {
                               <img
                                 src={b.consentSignature}
                                 alt="ลายเซ็นลูกค้า — กดเพื่อดูขยาย"
-                                className="h-6 w-14 rounded border border-catcha-line bg-white object-contain"
+                                className="h-6 w-14 rounded border border-petflow-line bg-white object-contain"
                               />
                             </button>
                           )}
@@ -405,7 +405,7 @@ export function BookingCalendar() {
                       .map((x) => (
                         <p
                           key={x.id}
-                          className="mt-1 rounded-catcha-sm bg-sage/15 px-2 py-1 text-[11px] text-brown break-words"
+                          className="mt-1 rounded-petflow-sm bg-sage/15 px-2 py-1 text-[11px] text-brown break-words"
                         >
                           📝 {x.catName}: {x.careNote}
                         </p>
@@ -449,7 +449,7 @@ export function BookingCalendar() {
                         key={x.id}
                         type="button"
                         onClick={() => setEditing(x)}
-                        className="rounded-full bg-honey/25 px-2.5 py-1 text-[10px] font-bold text-catcha-chocolate"
+                        className="rounded-full bg-honey/25 px-2.5 py-1 text-[10px] font-bold text-petflow-chocolate"
                       >
                         ✏️ แก้ไข {x.catName}
                       </button>
@@ -458,7 +458,7 @@ export function BookingCalendar() {
                     <button
                       type="button"
                       onClick={() => setEditing(b)}
-                      className="rounded-full bg-honey/25 px-2.5 py-1 text-[10px] font-bold text-catcha-chocolate"
+                      className="rounded-full bg-honey/25 px-2.5 py-1 text-[10px] font-bold text-petflow-chocolate"
                     >
                       ✏️ แก้ไข
                     </button>
@@ -485,7 +485,7 @@ export function BookingCalendar() {
                     }
                   />
                 </div>
-                <div className="mt-2 border-t border-catcha-line pt-2">
+                <div className="mt-2 border-t border-petflow-line pt-2">
                   <CustomerSendButtons
                     bookingId={b.id}
                     lineUserId={b.lineUserId}
@@ -509,7 +509,7 @@ export function BookingCalendar() {
           onClick={() => setZoomSignature(null)}
         >
           <div
-            className="max-w-md rounded-catcha bg-white p-4 shadow-xl"
+            className="max-w-md rounded-petflow bg-white p-4 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <p className="mb-2 text-xs font-bold text-brown-soft">
@@ -520,7 +520,7 @@ export function BookingCalendar() {
             <button
               type="button"
               onClick={() => setZoomSignature(null)}
-              className="mt-3 w-full rounded-catcha-sm bg-paper py-2 text-xs font-bold text-brown-soft"
+              className="mt-3 w-full rounded-petflow-sm bg-paper py-2 text-xs font-bold text-brown-soft"
             >
               ปิด
             </button>

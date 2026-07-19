@@ -17,11 +17,11 @@ export default function PointsPage() {
   return (
     <div className="px-4 pb-6 pt-5">
       <div className="mb-5 flex items-center justify-between">
-        <h1 className="text-xl font-extrabold text-catcha-chocolate">⭐ {m.title}</h1>
+        <h1 className="text-xl font-extrabold text-petflow-chocolate">⭐ {m.title}</h1>
         <LangSwitch />
       </div>
 
-      <div className="mb-5 rounded-catcha bg-gradient-to-br from-honey/40 via-card to-paper p-6 text-center shadow-catcha">
+      <div className="mb-5 rounded-petflow bg-gradient-to-br from-honey/40 via-card to-paper p-6 text-center shadow-petflow">
         <p className="text-sm font-semibold text-brown-soft">{m.balance}</p>
         <p className="mt-2 text-5xl font-extrabold text-latte-deep">{points}</p>
         <p className="mt-3 text-xs text-brown-faint">
@@ -29,12 +29,12 @@ export default function PointsPage() {
         </p>
       </div>
 
-      <section className="mb-4 rounded-catcha bg-card p-5 shadow-catcha-sm">
+      <section className="mb-4 rounded-petflow bg-card p-5 shadow-petflow-sm">
         <h2 className="mb-3 text-sm font-bold text-brown">{m.redeemTitle}</h2>
         <PointsRedeem />
       </section>
 
-      <section className="rounded-catcha bg-card p-5 shadow-catcha-sm">
+      <section className="rounded-petflow bg-card p-5 shadow-petflow-sm">
         <h2 className="mb-3 text-sm font-bold text-brown">{m.history}</h2>
         {history.length === 0 ? (
           <p className="py-6 text-center text-sm text-brown-faint">{m.empty}</p>
@@ -43,7 +43,7 @@ export default function PointsPage() {
             {history.map((h) => (
               <li
                 key={h.id}
-                className="rounded-catcha-sm border border-catcha-line bg-paper/50 px-3 py-2.5 text-xs"
+                className="rounded-petflow-sm border border-petflow-line bg-paper/50 px-3 py-2.5 text-xs"
               >
                 <div className="flex justify-between gap-2">
                   <span className="font-medium text-brown">

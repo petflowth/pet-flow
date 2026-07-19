@@ -134,34 +134,34 @@ export default function AdminCouponsPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-lg font-extrabold text-catcha-chocolate">🎟️ คูปอง & แคมเปญ</h1>
+      <h1 className="mb-4 text-lg font-extrabold text-petflow-chocolate">🎟️ คูปอง & แคมเปญ</h1>
 
       {/* ── สถิติ ── */}
       {stats && (
         <div className="mb-5 space-y-3">
-          <p className="text-xs font-extrabold text-catcha-chocolate">📊 สถิติคูปอง</p>
+          <p className="text-xs font-extrabold text-petflow-chocolate">📊 สถิติคูปอง</p>
           <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-catcha-sm bg-latte/15 p-2.5">
+            <div className="rounded-petflow-sm bg-latte/15 p-2.5">
               <p className="text-[10px] font-bold text-brown-soft">ออกไปทั้งหมด</p>
               <p className="text-lg font-extrabold text-latte-deep">{stats.couponSummary.total}</p>
             </div>
-            <div className="rounded-catcha-sm bg-sage/15 p-2.5">
+            <div className="rounded-petflow-sm bg-sage/15 p-2.5">
               <p className="text-[10px] font-bold text-brown-soft">ใช้แล้ว</p>
               <p className="text-lg font-extrabold text-ok">{stats.couponSummary.used}</p>
             </div>
-            <div className="rounded-catcha-sm bg-honey/20 p-2.5">
+            <div className="rounded-petflow-sm bg-honey/20 p-2.5">
               <p className="text-[10px] font-bold text-brown-soft">ยังไม่ใช้</p>
-              <p className="text-lg font-extrabold text-catcha-chocolate">{stats.couponSummary.active}</p>
+              <p className="text-lg font-extrabold text-petflow-chocolate">{stats.couponSummary.active}</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 text-center">
-            <div className="rounded-catcha-sm bg-sage/10 p-2.5">
+            <div className="rounded-petflow-sm bg-sage/10 p-2.5">
               <p className="text-[10px] font-bold text-brown-soft">💸 ส่วนลดที่ถูกใช้ไป</p>
               <p className="text-base font-extrabold text-ok">
                 {stats.couponSummary.valueUsed.toLocaleString()} ฿
               </p>
             </div>
-            <div className="rounded-catcha-sm bg-wait/10 p-2.5">
+            <div className="rounded-petflow-sm bg-wait/10 p-2.5">
               <p className="text-[10px] font-bold text-brown-soft">⏳ คูปองค้าง (ภาระ)</p>
               <p className="text-base font-extrabold text-wait">
                 {stats.couponSummary.valueOutstanding.toLocaleString()} ฿
@@ -169,14 +169,14 @@ export default function AdminCouponsPage() {
             </div>
           </div>
 
-          <div className="rounded-catcha-sm border border-honey/40 bg-honey/10 p-3 text-xs">
-            <span className="font-extrabold text-catcha-chocolate">🎁 ชวนเพื่อน:</span>{" "}
+          <div className="rounded-petflow-sm border border-honey/40 bg-honey/10 p-3 text-xs">
+            <span className="font-extrabold text-petflow-chocolate">🎁 ชวนเพื่อน:</span>{" "}
             ออกคูปอง {stats.referral.issued} ใบ · ใช้แล้ว {stats.referral.used} ใบ · ส่วนลด{" "}
             {stats.referral.valueUsed.toLocaleString()} ฿
           </div>
 
           {stats.perOffer.length > 0 && (
-            <div className="overflow-x-auto rounded-catcha-sm border border-catcha-line">
+            <div className="overflow-x-auto rounded-petflow-sm border border-petflow-line">
               <table className="w-full text-left text-[11px]">
                 <thead className="bg-paper text-brown-soft">
                   <tr>
@@ -188,7 +188,7 @@ export default function AdminCouponsPage() {
                 </thead>
                 <tbody>
                   {stats.perOffer.map((o) => (
-                    <tr key={o.id} className="border-t border-catcha-line">
+                    <tr key={o.id} className="border-t border-petflow-line">
                       <td className="px-2 py-1.5 font-bold text-brown">
                         {o.title} <span className="text-brown-faint">฿{o.amount}</span>
                       </td>
@@ -202,13 +202,13 @@ export default function AdminCouponsPage() {
             </div>
           )}
 
-          <p className="pt-1 text-xs font-extrabold text-catcha-chocolate">✨ สถิติโปรโมชั่น</p>
+          <p className="pt-1 text-xs font-extrabold text-petflow-chocolate">✨ สถิติโปรโมชั่น</p>
           {stats.perPromo.length === 0 ? (
-            <p className="rounded-catcha-sm bg-paper px-3 py-2 text-center text-[11px] text-brown-soft">
+            <p className="rounded-petflow-sm bg-paper px-3 py-2 text-center text-[11px] text-brown-soft">
               ยังไม่มีโปรโมชั่น
             </p>
           ) : (
-            <div className="overflow-x-auto rounded-catcha-sm border border-catcha-line">
+            <div className="overflow-x-auto rounded-petflow-sm border border-petflow-line">
               <table className="w-full text-left text-[11px]">
                 <thead className="bg-paper text-brown-soft">
                   <tr>
@@ -220,7 +220,7 @@ export default function AdminCouponsPage() {
                 </thead>
                 <tbody>
                   {stats.perPromo.map((p) => (
-                    <tr key={p.id} className="border-t border-catcha-line">
+                    <tr key={p.id} className="border-t border-petflow-line">
                       <td className="px-2 py-1.5 font-bold text-brown">
                         {p.title}
                         {!p.active && <span className="text-brown-faint"> (ปิด)</span>}
@@ -240,15 +240,15 @@ export default function AdminCouponsPage() {
       )}
 
       {/* สร้างแคมเปญ */}
-      <div className="mb-5 space-y-3 rounded-catcha bg-card p-4 shadow-catcha-sm">
-        <p className="text-xs font-extrabold text-catcha-chocolate">
+      <div className="mb-5 space-y-3 rounded-petflow bg-card p-4 shadow-petflow-sm">
+        <p className="text-xs font-extrabold text-petflow-chocolate">
           ➕ สร้างแคมเปญคูปอง (ส่งการ์ดให้ลูกค้ากดรับ)
         </p>
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="ชื่อแคมเปญ เช่น ปีใหม่แจกส่วนลด 100฿"
-          className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+          className="w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
         />
         <div className="flex gap-2">
           <input
@@ -256,14 +256,14 @@ export default function AdminCouponsPage() {
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="ส่วนลด (บาท)"
-            className="min-w-0 flex-1 rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2 text-sm"
+            className="min-w-0 flex-1 rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
           />
           <div className="flex shrink-0 items-center gap-1">
             <input
               type="number"
               value={validDays}
               onChange={(e) => setValidDays(e.target.value)}
-              className="w-16 rounded-catcha-sm border border-catcha-line bg-paper px-2 py-2 text-sm"
+              className="w-16 rounded-petflow-sm border border-petflow-line bg-paper px-2 py-2 text-sm"
             />
             <span className="text-xs text-brown-soft">วัน</span>
           </div>
@@ -272,7 +272,7 @@ export default function AdminCouponsPage() {
           type="button"
           disabled={busy === "create"}
           onClick={createOffer}
-          className="w-full rounded-catcha-sm bg-honey/40 py-2.5 text-sm font-extrabold text-catcha-chocolate disabled:opacity-50"
+          className="w-full rounded-petflow-sm bg-honey/40 py-2.5 text-sm font-extrabold text-petflow-chocolate disabled:opacity-50"
         >
           สร้างแคมเปญ
         </button>
@@ -282,12 +282,12 @@ export default function AdminCouponsPage() {
       <h2 className="mb-2 text-sm font-extrabold">แคมเปญ ({offers.length})</h2>
       <ul className="mb-6 space-y-2">
         {offers.length === 0 && (
-          <li className="rounded-catcha-sm bg-paper px-3 py-3 text-center text-xs text-brown-soft">
+          <li className="rounded-petflow-sm bg-paper px-3 py-3 text-center text-xs text-brown-soft">
             ยังไม่มีแคมเปญ
           </li>
         )}
         {offers.map((o) => (
-          <li key={o.id} className="rounded-catcha border border-catcha-line bg-card p-3">
+          <li key={o.id} className="rounded-petflow border border-petflow-line bg-card p-3">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-sm font-bold text-brown">{o.title}</p>
@@ -307,7 +307,7 @@ export default function AdminCouponsPage() {
               <select
                 value={tierByOffer[o.id] || "all"}
                 onChange={(e) => setTierByOffer((p) => ({ ...p, [o.id]: e.target.value }))}
-                className="rounded-catcha-sm border border-catcha-line bg-paper px-2 py-1.5 text-xs"
+                className="rounded-petflow-sm border border-petflow-line bg-paper px-2 py-1.5 text-xs"
               >
                 {TIERS.map((t) => (
                   <option key={t} value={t}>
@@ -332,14 +332,14 @@ export default function AdminCouponsPage() {
       <h2 className="mb-2 text-sm font-extrabold">คูปองทั้งหมด ({coupons.length})</h2>
       <ul className="space-y-2">
         {coupons.length === 0 && (
-          <li className="rounded-catcha-sm bg-paper px-3 py-3 text-center text-xs text-brown-soft">
+          <li className="rounded-petflow-sm bg-paper px-3 py-3 text-center text-xs text-brown-soft">
             ยังไม่มีคูปอง
           </li>
         )}
         {coupons.map((c) => (
           <li
             key={c.id}
-            className="flex items-center justify-between gap-2 rounded-catcha-sm border border-catcha-line bg-card px-3 py-2"
+            className="flex items-center justify-between gap-2 rounded-petflow-sm border border-petflow-line bg-card px-3 py-2"
           >
             <div className="min-w-0">
               <p className="text-sm font-bold text-brown">

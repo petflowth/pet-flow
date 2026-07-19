@@ -28,7 +28,7 @@ export default function GroomingPage() {
         {posters.map((src) => (
           <div
             key={src}
-            className="overflow-hidden rounded-catcha border border-catcha-line bg-card shadow-catcha-sm"
+            className="overflow-hidden rounded-petflow border border-petflow-line bg-card shadow-petflow-sm"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={src} alt="" className="block w-full h-auto" />

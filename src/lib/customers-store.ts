@@ -1233,6 +1233,86 @@ export async function addMemberCredit(customerId: string, amount: number) {
   return topupMemberCredit(customerId, { paidAmount: amount, bonusAmount: 0 });
 }
 
+/**
+ * ยกเลิกรายการเติมเครดิต — คืนยอดที่เติมออกจากเครดิตลูกค้า + ลบรายรับที่ลงไว้
+ *
+ * บล็อกไว้ถ้าลูกค้าใช้เครดิตไปบางส่วนแล้ว (ยอดคงเหลือน้อยกว่าที่จะถอน)
+ * เพราะถ้าฝืนถอน เครดิตจะติดลบและตัวเลขจะเพี้ยนทั้งสาย —
+ * เคสนั้นให้ยกเลิกบิลที่ใช้เครดิตก่อน (ซึ่งคืนเครดิตให้อยู่แล้ว) ค่อยมายกเลิกรายการเติม
+ */
+export async function cancelMemberTopup(topupId: string) {
+  const sb = getSupabase();
+  let topup: MemberTopupRecord | undefined;
+  if (sb) {
+    const { data } = await sb
+      .from("member_topups")
+      .select("*")
+      .eq("id", topupId)
+      .eq("tenant_id", requireTenantId())
+      .maybeSingle();
+    if (data) {
+      const r = data as MemberTopupRow;
+      topup = {
+        id: r.id,
+        customerId: r.customer_id,
+        paidAmount: Number(r.paid_amount),
+        bonusAmount: Number(r.bonus_amount),
+        creditAdded: Number(r.credit_added),
+        balanceAfter: Number(r.balance_after),
+        note: r.note ?? undefined,
+        createdAt: r.created_at,
+        isLegacy: r.is_legacy ?? false,
+      };
+    }
+  } else {
+    topup = memMemberTopups.find((t) => t.id === topupId);
+  }
+  if (!topup) return { ok: false as const, error: "not_found" };
+
+  const c = await getCustomer(topup.customerId);
+  if (!c) return { ok: false as const, error: "not_found" };
+  if (c.memberCredit < topup.creditAdded) {
+    return {
+      ok: false as const,
+      error: "credit_spent",
+      balance: c.memberCredit,
+      creditAdded: topup.creditAdded,
+    };
+  }
+
+  const nextCredit = c.memberCredit - topup.creditAdded;
+  await updateCustomer(topup.customerId, { memberCredit: nextCredit });
+
+  // ลบรายรับที่ลงคู่กับการเติมครั้งนี้ — ยอดยกมาไม่เคยลงรายรับ จึงไม่ต้องหา
+  if (!topup.isLegacy && topup.paidAmount > 0) {
+    const { listFinance, deleteFinanceEntry } = await import("./finance-store");
+    const all = await listFinance();
+    const match = all.find(
+      (r) =>
+        r.type === "income" &&
+        r.category === "member" &&
+        r.customerId === topup!.customerId &&
+        r.amount === topup!.paidAmount &&
+        r.date === topup!.createdAt.slice(0, 10)
+    );
+    if (match) await deleteFinanceEntry(match.id);
+  }
+
+  if (sb) {
+    await sb
+      .from("member_topups")
+      .delete()
+      .eq("id", topupId)
+      .eq("tenant_id", requireTenantId());
+  } else {
+    const i = memMemberTopups.findIndex((t) => t.id === topupId);
+    if (i >= 0) memMemberTopups.splice(i, 1);
+  }
+
+  await recalculateCustomerTier(topup.customerId);
+  return { ok: true as const, balance: nextCredit, creditRemoved: topup.creditAdded };
+}
+
 export async function topupMemberCredit(
   customerId: string,
   data: { paidAmount: number; bonusAmount?: number; note?: string; isLegacy?: boolean }

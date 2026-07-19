@@ -343,14 +343,59 @@ function MemberTopupSection({
 }
 
 function MemberCreditHistorySection({
+  customerId,
   memberCredit,
   topups,
   usage,
+  onChanged,
 }: {
+  customerId: string;
   memberCredit: number;
   topups: MemberTopupRecord[];
   usage: MemberCreditUsageRecord[];
+  onChanged: () => void;
 }) {
+  const [busy, setBusy] = useState("");
+
+  /**
+   * ยกเลิกรายการเติม — ถอนเครดิตออกและลบรายรับที่ลงคู่กันไว้
+   * ถ้าลูกค้าใช้เครดิตไปแล้วบางส่วน เซิร์ฟเวอร์จะบล็อกและบอกให้ไปยกเลิกบิลก่อน
+   */
+  const cancelTopup = async (t: MemberTopupRecord) => {
+    const label = t.isLegacy ? "ยอดยกมา" : "การเติมเครดิต";
+    if (
+      !confirm(
+        `ยกเลิก${label} +${t.creditAdded.toLocaleString()} บาท?\n` +
+          `เครดิตลูกค้าจะถูกหักออก ${t.creditAdded.toLocaleString()} บาท` +
+          (t.isLegacy ? "" : " และลบรายรับที่ลงไว้ด้วย") +
+          "\nกู้คืนไม่ได้"
+      )
+    )
+      return;
+    setBusy(t.id);
+    try {
+      const res = await fetch("/api/customers", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: customerId, action: "cancel_topup", topupId: t.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast(`ยกเลิกแล้ว — เครดิตคงเหลือ ${(data.balance ?? 0).toLocaleString()} บาท`, "success");
+        onChanged();
+      } else if (data.error === "credit_spent") {
+        toast(
+          `ยกเลิกไม่ได้ — ลูกค้าใช้เครดิตไปแล้ว (เหลือ ${(data.balance ?? 0).toLocaleString()} จากที่เติม ${(data.creditAdded ?? 0).toLocaleString()}) · ยกเลิกบิลที่ใช้เครดิตก่อน แล้วค่อยมายกเลิกรายการนี้`,
+          "error"
+        );
+      } else {
+        toast("ยกเลิกไม่สำเร็จ", "error");
+      }
+    } finally {
+      setBusy("");
+    }
+  };
+
   const totalToppedUp = topups.reduce((s, t) => s + t.creditAdded, 0);
   const totalUsed = usage.reduce((s, u) => s + u.amount, 0);
 
@@ -411,13 +456,21 @@ function MemberCreditHistorySection({
                       <p className="text-[10px] text-brown-faint">{row.topup.note}</p>
                     )}
                   </div>
-                  <div className="text-right">
+                  <div className="shrink-0 text-right">
                     <p className="font-extrabold text-ok">
                       +{row.topup.creditAdded.toLocaleString()}
                     </p>
                     <p className="text-[10px] text-brown-faint">
                       คงเหลือ {row.topup.balanceAfter.toLocaleString()}
                     </p>
+                    <button
+                      type="button"
+                      disabled={busy === row.topup.id}
+                      onClick={() => cancelTopup(row.topup)}
+                      className="mt-1 text-[10px] font-bold text-wait disabled:opacity-40"
+                    >
+                      {busy === row.topup.id ? "…" : "🗑️ ยกเลิก"}
+                    </button>
                   </div>
                 </div>
               </li>
@@ -433,7 +486,16 @@ function MemberCreditHistorySection({
                       {row.usage.date} · {row.usage.description}
                     </p>
                   </div>
-                  <p className="font-extrabold text-wait">−{row.usage.amount.toLocaleString()}</p>
+                  <div className="shrink-0 text-right">
+                    <p className="font-extrabold text-wait">
+                      −{row.usage.amount.toLocaleString()}
+                    </p>
+                    {/* รายการนี้สร้างจากบิลที่จ่ายด้วยเครดิต ลบเดี่ยวๆ ไม่ได้
+                        ต้องไปกด "ยกเลิกการชำระ" ที่บิล ซึ่งคืนเครดิตให้อัตโนมัติอยู่แล้ว */}
+                    <p className="mt-0.5 text-[9px] text-brown-faint">
+                      ยกเลิกที่บิล → คืนเครดิตอัตโนมัติ
+                    </p>
+                  </div>
                 </div>
               </li>
             )
@@ -1580,9 +1642,11 @@ export default function CustomersPage() {
         />
 
         <MemberCreditHistorySection
+          customerId={c.id}
           memberCredit={c.memberCredit}
           topups={selected.history.memberTopups || []}
           usage={selected.history.memberCreditUsage || []}
+          onChanged={() => open(c.id)}
         />
 
         <CustomerAppointmentsSection

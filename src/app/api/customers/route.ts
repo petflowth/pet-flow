@@ -14,6 +14,7 @@ import {
   restoreCustomer,
   listTrashedCustomers,
   topupMemberCredit,
+  cancelMemberTopup,
   deleteServiceRecord,
   upsertCustomerFromBooking,
   recalculateCustomerTier,
@@ -271,6 +272,24 @@ async function handlePatch(req: NextRequest) {
       topup: result.topup,
       notifyError,
     });
+  }
+
+  // ยกเลิกรายการเติมเครดิต — ถอนยอดออกจากเครดิตลูกค้า + ลบรายรับที่ลงคู่กันไว้
+  if (action === "cancel_topup") {
+    const topupId = String(body.topupId || "");
+    if (!topupId) {
+      return NextResponse.json({ error: "topupId required" }, { status: 400 });
+    }
+    const res = await cancelMemberTopup(topupId);
+    if (!res.ok) {
+      return NextResponse.json(
+        res.error === "credit_spent"
+          ? { error: res.error, balance: res.balance, creditAdded: res.creditAdded }
+          : { error: res.error },
+        { status: res.error === "credit_spent" ? 400 : 404 }
+      );
+    }
+    return NextResponse.json({ ok: true, balance: res.balance });
   }
 
   if (action === "set_member") {

@@ -5,6 +5,7 @@ import {
   setReferredBy,
 } from "@/lib/customers-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
+import { withBootstrapTenant } from "@/lib/tenant-context";
 
 type CatBody = {
   name?: string;
@@ -21,6 +22,10 @@ type CatBody = {
 
 /** ลูกค้ากรอกฟอร์มลงทะเบียน (ผู้ปกครอง + น้องแมว + ยินยอมรับข่าวสาร) */
 export async function POST(req: NextRequest) {
+  return withBootstrapTenant(() => handlePost(req));
+}
+
+async function handlePost(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const lineUserId = String(body.lineUserId || "").trim();
   const name = String(body.name || "").trim();

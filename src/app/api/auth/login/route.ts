@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyStaffCode } from "@/lib/staff-store";
 import {
   SESSION_COOKIE,
+  getBootstrapTenantId,
   getOwnerCode,
   sessionCookieOptions,
   signSession,
@@ -33,15 +34,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "กรอกรหัสผ่าน" }, { status: 400 });
   }
 
-  let payload: { role: "owner" | "staff"; name: string; menus?: string[] } | null =
-    null;
+  const tenantId = getBootstrapTenantId();
+  if (!tenantId) {
+    return NextResponse.json(
+      { error: "ยังไม่ได้ตั้งค่า TENANT_ID — ดูขั้นตอนใน SETUP_NEW_SHOP.md" },
+      { status: 500 }
+    );
+  }
+
+  let payload:
+    | { role: "owner" | "staff"; name: string; tenantId: string; menus?: string[] }
+    | null = null;
 
   if (code === getOwnerCode()) {
-    payload = { role: "owner", name: "เจ้าของร้าน" };
+    payload = { role: "owner", name: "เจ้าของร้าน", tenantId };
   } else {
     const staff = await verifyStaffCode(code);
     if (staff) {
-      payload = { role: "staff", name: staff.name || "พนักงาน", menus: staff.menus || [] };
+      payload = {
+        role: "staff",
+        name: staff.name || "พนักงาน",
+        tenantId,
+        menus: staff.menus || [],
+      };
     }
   }
 

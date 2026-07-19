@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findCustomerByLine, updateCat } from "@/lib/customers-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
+import { withBootstrapTenant } from "@/lib/tenant-context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** GET ?lineUserId= — แมวของลูกค้า (พร้อมรูป) สำหรับหน้าโปรไฟล์ในแอป */
 export async function GET(req: NextRequest) {
+  return withBootstrapTenant(() => handleGet(req));
+}
+
+async function handleGet(req: NextRequest) {
   const lineUserId = req.nextUrl.searchParams.get("lineUserId") || "";
   if (!lineUserId) return NextResponse.json({ cats: [] });
   const customer = await findCustomerByLine(lineUserId);
@@ -23,6 +28,10 @@ export async function GET(req: NextRequest) {
 
 /** POST { lineUserId, catId, photoDataUrl } — ลูกค้าอัป/แก้รูปแมวตัวเอง */
 export async function POST(req: NextRequest) {
+  return withBootstrapTenant(() => handlePost(req));
+}
+
+async function handlePost(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const lineUserId = String(body.lineUserId || "").trim();
   const catId = String(body.catId || "").trim();

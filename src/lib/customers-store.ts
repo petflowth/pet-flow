@@ -11,6 +11,7 @@ import { getSupabase } from "./supabase/server";
 import { seedEnabled } from "./demo-seed";
 import { uploadDataUrlToStorage } from "./supabase/storage";
 import { getSiteConfig } from "./config-store";
+import { requireTenantId } from "./tenant-context";
 
 export type { CustomerTier } from "./customer-tier";
 
@@ -272,6 +273,7 @@ async function fetchAllCustomers(
     const { data } = await sb
       .from("customers")
       .select("*, cats(*)")
+      .eq("tenant_id", requireTenantId())
       .order("updated_at", { ascending: false });
     all = ((data as CustomerRow[] | null) || []).map(mapCustomer);
   } else {
@@ -292,7 +294,11 @@ async function touchCustomer(id: string) {
   const sb = getSupabase();
   const now = new Date().toISOString();
   if (sb) {
-    await sb.from("customers").update({ updated_at: now }).eq("id", id);
+    await sb
+      .from("customers")
+      .update({ updated_at: now })
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
   } else {
     const c = memCustomers.get(id);
     if (c) c.updatedAt = now;
@@ -324,6 +330,7 @@ export async function getCustomer(id: string) {
       .from("customers")
       .select("*, cats(*)")
       .eq("id", id)
+      .eq("tenant_id", requireTenantId())
       .maybeSingle();
     return data ? mapCustomer(data as CustomerRow) : undefined;
   }
@@ -336,11 +343,12 @@ export async function findCustomerByLine(lineUserId: string) {
   const sb = getSupabase();
   if (sb) {
     // ค้นตรงจาก line_user_id (รวมที่ถูกลบนุ่ม) — ป้องกันกรณีหาไม่เจอแล้วไป insert ซ้ำ
-    // จนชน unique constraint (customers_line_user_id_key)
+    // จนชน unique constraint (customers_line_user_id_tenant_key)
     const { data } = await sb
       .from("customers")
       .select("*, cats(*)")
       .eq("line_user_id", uid)
+      .eq("tenant_id", requireTenantId())
       .order("updated_at", { ascending: false })
       .limit(1);
     const row = (data as CustomerRow[] | null)?.[0];
@@ -375,7 +383,11 @@ export async function setReferredBy(customerId: string, referrerId: string) {
   const sb = getSupabase();
   if (sb) {
     try {
-      await sb.from("customers").update({ referred_by: referrerId }).eq("id", customerId);
+      await sb
+        .from("customers")
+        .update({ referred_by: referrerId })
+        .eq("id", customerId)
+        .eq("tenant_id", requireTenantId());
     } catch {
       /* ยังไม่ได้ migrate — ข้าม */
     }
@@ -442,10 +454,15 @@ export async function upsertCustomerFromLine(data: {
           line_display_name: displayName,
           updated_at: now,
         })
-        .eq("id", existing.id);
+        .eq("id", existing.id)
+        .eq("tenant_id", requireTenantId());
       // ถ้าเคยถูกลบนุ่มไว้ — กู้คืน (best-effort, ถ้ายังไม่มีคอลัมน์ deleted_at ก็ไม่พัง)
       try {
-        await sb.from("customers").update({ deleted_at: null }).eq("id", existing.id);
+        await sb
+          .from("customers")
+          .update({ deleted_at: null })
+          .eq("id", existing.id)
+          .eq("tenant_id", requireTenantId());
       } catch {
         /* ไม่มีคอลัมน์ deleted_at — ข้าม */
       }
@@ -475,6 +492,7 @@ export async function upsertCustomerFromLine(data: {
   if (sb) {
     const { error } = await sb.from("customers").insert({
       id,
+      tenant_id: requireTenantId(),
       name: displayName,
       line_user_id: lineUserId,
       line_display_name: displayName,
@@ -532,7 +550,8 @@ export async function linkCustomerToLine(data: {
         line_display_name: displayName,
         updated_at: customer.updatedAt,
       })
-      .eq("id", customerId);
+      .eq("id", customerId)
+      .eq("tenant_id", requireTenantId());
   } else {
     memCustomers.set(customerId, customer);
   }
@@ -673,6 +692,7 @@ export async function upsertCustomerFromBooking(data: {
     if (sb) {
       await sb.from("customers").insert({
         id,
+        tenant_id: requireTenantId(),
         name: data.customerName,
         phone: data.phone || null,
         line_user_id: data.lineUserId || null,
@@ -684,6 +704,7 @@ export async function upsertCustomerFromBooking(data: {
       });
       await sb.from("cats").insert({
         id: catId,
+        tenant_id: requireTenantId(),
         customer_id: id,
         name: data.catName,
         staff_note: data.staffNote || null,
@@ -703,6 +724,7 @@ export async function upsertCustomerFromBooking(data: {
     if (sb) {
       await sb.from("cats").insert({
         id: catId,
+        tenant_id: requireTenantId(),
         customer_id: existing.id,
         name: data.catName,
         staff_note: data.staffNote || null,
@@ -716,7 +738,8 @@ export async function upsertCustomerFromBooking(data: {
         await sb
           .from("cats")
           .update({ staff_note: data.staffNote })
-          .eq("id", cat.id);
+          .eq("id", cat.id)
+          .eq("tenant_id", requireTenantId());
       }
     }
   }
@@ -730,7 +753,8 @@ export async function upsertCustomerFromBooking(data: {
         phone: existing.phone || null,
         updated_at: now,
       })
-      .eq("id", existing.id);
+      .eq("id", existing.id)
+      .eq("tenant_id", requireTenantId());
   } else {
     memCustomers.set(existing.id, existing);
   }
@@ -796,7 +820,8 @@ export async function updateCustomer(
         last_follow_up_at: c.lastFollowUpAt || null,
         updated_at: c.updatedAt,
       })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
     if (
       patch.address !== undefined ||
       patch.addressMapUrl !== undefined ||
@@ -811,6 +836,7 @@ export async function updateCustomer(
           postal_code: c.postalCode || null,
         })
         .eq("id", id)
+        .eq("tenant_id", requireTenantId())
         .then(
           () => {},
           () => {}
@@ -839,7 +865,8 @@ export async function adjustDepositCredit(customerId: string, delta: number) {
       const { error } = await sb
         .from("customers")
         .update({ deposit_credit: next })
-        .eq("id", customerId);
+        .eq("id", customerId)
+        .eq("tenant_id", requireTenantId());
       if (error) {
         return { ok: false as const, error: "need_sql" as const, balance: next };
       }
@@ -905,7 +932,8 @@ export async function updateCat(
         photo_data_url: cat.photoDataUrl || null,
         staff_note: cat.staffNote || null,
       })
-      .eq("id", catId);
+      .eq("id", catId)
+      .eq("tenant_id", requireTenantId());
     try {
       await sb
         .from("cats")
@@ -920,7 +948,8 @@ export async function updateCat(
           fur_length: cat.furLength || null,
           color: cat.color || null,
         })
-        .eq("id", catId);
+        .eq("id", catId)
+        .eq("tenant_id", requireTenantId());
     } catch {
       /* ยังไม่ได้ migrate คอลัมน์เพิ่ม — ข้าม (ชื่อ/โน้ตยังบันทึกได้) */
     }
@@ -961,7 +990,8 @@ export async function setCatGroomInfo(
       const { error } = await sb
         .from("cats")
         .update({ groom_health_info: infoJson })
-        .eq("id", r.cat.id);
+        .eq("id", r.cat.id)
+        .eq("tenant_id", requireTenantId());
       if (error) return { ok: false as const, error: "need_sql", catName: r.cat.name };
     } catch {
       return { ok: false as const, error: "need_sql", catName: r.cat.name };
@@ -1017,6 +1047,7 @@ export async function addCat(
   if (sb) {
     const { error } = await sb.from("cats").insert({
       id: catId,
+      tenant_id: requireTenantId(),
       customer_id: customerId,
       name,
       gender: cat.gender || null,
@@ -1035,6 +1066,7 @@ export async function addCat(
         .from("cats")
         .update({ fur_length: cat.furLength || null, color: cat.color || null })
         .eq("id", catId)
+        .eq("tenant_id", requireTenantId())
         .then(
           () => {},
           () => {}
@@ -1058,7 +1090,11 @@ export async function deleteCat(customerId: string, catId: string) {
 
   const sb = getSupabase();
   if (sb) {
-    const { error } = await sb.from("cats").delete().eq("id", catId);
+    const { error } = await sb
+      .from("cats")
+      .delete()
+      .eq("id", catId)
+      .eq("tenant_id", requireTenantId());
     if (error) throw new Error(error.message);
   } else {
     memCustomers.set(customerId, c);
@@ -1075,11 +1111,16 @@ export async function deleteCustomer(customerId: string) {
       const { error } = await sb
         .from("customers")
         .update({ deleted_at: now })
-        .eq("id", customerId);
+        .eq("id", customerId)
+        .eq("tenant_id", requireTenantId());
       if (error) throw new Error(error.message);
     } catch {
       // ยังไม่ได้รัน migration deleted_at → ลบจริง (cascade)
-      await sb.from("customers").delete().eq("id", customerId);
+      await sb
+        .from("customers")
+        .delete()
+        .eq("id", customerId)
+        .eq("tenant_id", requireTenantId());
     }
   } else {
     const c = memCustomers.get(customerId);
@@ -1092,7 +1133,11 @@ export async function deleteCustomer(customerId: string) {
 export async function restoreCustomer(customerId: string) {
   const sb = getSupabase();
   if (sb) {
-    await sb.from("customers").update({ deleted_at: null }).eq("id", customerId);
+    await sb
+      .from("customers")
+      .update({ deleted_at: null })
+      .eq("id", customerId)
+      .eq("tenant_id", requireTenantId());
   } else {
     const c = memCustomers.get(customerId);
     if (c) c.deletedAt = undefined;
@@ -1122,7 +1167,8 @@ export async function updateCatPrivateNote(
       const { error } = await sb
         .from("cats")
         .update({ staff_private_note: trimmed || null })
-        .eq("id", catId);
+        .eq("id", catId)
+        .eq("tenant_id", requireTenantId());
       if (error) {
         return { ok: false as const, error: "need_sql", message: error.message };
       }
@@ -1163,7 +1209,11 @@ export async function updateCatMedia(
   const sb = getSupabase();
   if (sb) {
     try {
-      const { error } = await sb.from("cats").update({ media }).eq("id", catId);
+      const { error } = await sb
+        .from("cats")
+        .update({ media })
+        .eq("id", catId)
+        .eq("tenant_id", requireTenantId());
       if (error) {
         return { ok: false as const, error: "need_sql", message: error.message };
       }
@@ -1218,6 +1268,7 @@ export async function topupMemberCredit(
   if (sb) {
     await sb.from("member_topups").insert({
       id: topup.id,
+      tenant_id: requireTenantId(),
       customer_id: topup.customerId,
       paid_amount: topup.paidAmount,
       bonus_amount: topup.bonusAmount,
@@ -1268,6 +1319,7 @@ export async function addServiceRecord(
   if (sb) {
     await sb.from("service_records").insert({
       id: rec.id,
+      tenant_id: requireTenantId(),
       customer_id: rec.customerId,
       cat_name: rec.catName,
       service: rec.service,
@@ -1292,7 +1344,11 @@ export async function addServiceRecord(
 export async function deleteServiceRecordByInvoice(invoiceId: string) {
   const sb = getSupabase();
   if (sb) {
-    await sb.from("service_records").delete().eq("invoice_id", invoiceId);
+    await sb
+      .from("service_records")
+      .delete()
+      .eq("invoice_id", invoiceId)
+      .eq("tenant_id", requireTenantId());
   } else {
     for (let i = memServices.length - 1; i >= 0; i--) {
       if (memServices[i].invoiceId === invoiceId) memServices.splice(i, 1);
@@ -1307,6 +1363,7 @@ async function listServiceRecords(customerId: string) {
       .from("service_records")
       .select("*")
       .eq("customer_id", customerId)
+      .eq("tenant_id", requireTenantId())
       .order("created_at", { ascending: false });
     return ((data as ServiceRow[] | null) || []).map((r) => ({
       id: r.id,
@@ -1331,6 +1388,7 @@ async function listMemberTopups(customerId: string): Promise<MemberTopupRecord[]
       .from("member_topups")
       .select("*")
       .eq("customer_id", customerId)
+      .eq("tenant_id", requireTenantId())
       .order("created_at", { ascending: false });
     return ((data as MemberTopupRow[] | null) || []).map((r) => ({
       id: r.id,

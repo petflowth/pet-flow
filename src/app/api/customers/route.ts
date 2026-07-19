@@ -26,8 +26,24 @@ import {
   sendCustomerFollowUp,
   sendInactiveFollowUps,
 } from "@/lib/customer-crm";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-context";
+
+async function requireTenant(req: NextRequest) {
+  const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+  if (!session) return null;
+  return session.tenantId;
+}
 
 export async function GET(req: NextRequest) {
+  const tenantId = await requireTenant(req);
+  if (!tenantId) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  return withTenant(tenantId, () => handleGet(req));
+}
+
+async function handleGet(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
   const q = req.nextUrl.searchParams.get("q");
   const inactive = req.nextUrl.searchParams.get("inactive");
@@ -73,6 +89,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const tenantId = await requireTenant(req);
+  if (!tenantId) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  return withTenant(tenantId, () => handlePost(req));
+}
+
+async function handlePost(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const catName = String(body.catName || "").trim();
   const customerName = String(body.customerName || "").trim();
@@ -93,6 +117,14 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const tenantId = await requireTenant(req);
+  if (!tenantId) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  return withTenant(tenantId, () => handlePatch(req));
+}
+
+async function handlePatch(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const { id, action } = body;
 

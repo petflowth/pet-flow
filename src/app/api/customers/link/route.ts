@@ -4,9 +4,14 @@ import {
   linkCustomerToLine,
 } from "@/lib/customers-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
+import { withBootstrapTenant } from "@/lib/tenant-context";
 
 /** ดูข้อมูลลูกค้าก่อนผูก LINE (จากลิงก์เชิญ) */
 export async function GET(req: NextRequest) {
+  return withBootstrapTenant(() => handleGet(req));
+}
+
+async function handleGet(req: NextRequest) {
   const customerId = req.nextUrl.searchParams.get("customerId")?.trim();
   if (!customerId) {
     return NextResponse.json({ error: "customerId required" }, { status: 400 });
@@ -22,6 +27,10 @@ export async function GET(req: NextRequest) {
 
 /** ลูกค้าเปิดลิงก์เชิญ → ผูก LINE กับบัญชีที่ร้านสร้างไว้ */
 export async function POST(req: NextRequest) {
+  return withBootstrapTenant(() => handlePost(req));
+}
+
+async function handlePost(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const customerId = String(body.customerId || "").trim();
   const lineUserId = String(body.lineUserId || "").trim();

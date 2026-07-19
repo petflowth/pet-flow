@@ -12,11 +12,21 @@ export type SessionRole = "owner" | "staff";
 export type SessionPayload = {
   role: SessionRole;
   name: string;
+  /** ร้านที่ล็อกอินอยู่ — ทุก query ต้องกรองด้วยค่านี้ */
+  tenantId: string;
   /** เมนูที่พนักงานคนนี้เปิดดูได้ — undefined = เข้าได้ทุกเมนู (เจ้าของร้าน) */
   menus?: string[];
   /** หมดอายุ (epoch ms) */
   exp: number;
 };
+
+/**
+ * ร้านเดียวที่มีอยู่ตอนนี้ (bootstrap) — พอมีหลายร้านจริง ค่านี้จะถูกแทนที่ด้วยการ
+ * resolve จากรหัสร้าน/รหัสพนักงานที่กรอกตอนล็อกอิน (ดู T5: Super Admin สร้างร้าน)
+ */
+export function getBootstrapTenantId(): string | null {
+  return process.env.TENANT_ID || null;
+}
 
 export const SESSION_COOKIE = "petflow_session";
 const SESSION_DAYS = 7;

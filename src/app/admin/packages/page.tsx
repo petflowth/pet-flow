@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "@/components/Toast";
+import { toJpegDataUrl } from "@/lib/image-convert";
 
 type Offer = {
   id: string;
@@ -10,6 +11,7 @@ type Offer = {
   totalUses: number;
   price: number;
   description?: string;
+  imageUrl?: string;
   active: boolean;
 };
 
@@ -41,6 +43,16 @@ export default function AdminPackagesPage() {
   const [uses, setUses] = useState("");
   const [price, setPrice] = useState("");
   const [desc, setDesc] = useState("");
+  const [image, setImage] = useState("");
+
+  /** ย่อรูปก่อนส่งเสมอ — รูปจากมือถือ 5MB ยิงขึ้นไปตรงๆ จะโดนตีกลับ */
+  const pickImage = async (file: File, onDone: (dataUrl: string) => void) => {
+    try {
+      onDone(await toJpegDataUrl(file, 900));
+    } catch {
+      toast("อ่านรูปไม่ได้ ลองรูปอื่นนะคะ", "error");
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -76,6 +88,7 @@ export default function AdminPackagesPage() {
           totalUses: n,
           price: Math.round(Number(price) || 0),
           description: desc.trim() || undefined,
+          image: image || undefined,
         }),
       });
       if (res.ok) {
@@ -84,6 +97,7 @@ export default function AdminPackagesPage() {
         setUses("");
         setPrice("");
         setDesc("");
+        setImage("");
         load();
       } else {
         toast("เพิ่มไม่สำเร็จ", "error");
@@ -249,14 +263,51 @@ export default function AdminPackagesPage() {
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-brown">
-                      {o.name} {!o.active && "(ปิดขายอยู่)"}
-                    </p>
-                    <p className="text-[10px] text-brown-soft">
-                      {o.totalUses} ครั้ง · {o.price.toLocaleString()} ฿
-                      {o.description ? ` · ${o.description}` : ""}
-                    </p>
+                  <div className="flex min-w-0 gap-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <label className="relative h-12 w-12 shrink-0 cursor-pointer overflow-hidden rounded-petflow-sm bg-paper">
+                      {o.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={o.imageUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-full w-full items-center justify-center text-lg">
+                          📷
+                        </span>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          e.target.value = "";
+                          if (!f) return;
+                          pickImage(f, (dataUrl) =>
+                            patch(
+                              { action: "set_offer_image", offerId: o.id, image: dataUrl },
+                              "เปลี่ยนรูปแล้ว 📷",
+                              o.id
+                            )
+                          );
+                        }}
+                      />
+                    </label>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-brown">
+                        {o.name} {!o.active && "(ปิดขายอยู่)"}
+                      </p>
+                      <p className="text-[10px] text-brown-soft">
+                        {o.totalUses} ครั้ง · {o.price.toLocaleString()} ฿
+                        {o.description ? ` · ${o.description}` : ""}
+                      </p>
+                      <p className="text-[10px] text-brown-faint">
+                        แตะรูปเพื่อ{o.imageUrl ? "เปลี่ยน" : "ใส่"}รูป
+                      </p>
+                    </div>
                   </div>
                   <div className="flex shrink-0 gap-2">
                     <button
@@ -324,6 +375,38 @@ export default function AdminPackagesPage() {
             placeholder="คำโปรย (ถ้ามี) เช่น ประหยัดกว่าซื้อแยก 500฿"
             className={field}
           />
+
+          <label className="flex cursor-pointer items-center gap-3 rounded-petflow-sm border border-dashed border-petflow-line bg-paper px-3 py-2.5">
+            {image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={image}
+                alt="รูปหน้าปกคอร์ส"
+                className="h-14 w-14 shrink-0 rounded-petflow-sm object-cover"
+              />
+            ) : (
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-petflow-sm bg-card text-xl">
+                📷
+              </span>
+            )}
+            <span className="min-w-0 text-[11px] font-bold text-brown-soft">
+              {image ? "เปลี่ยนรูปหน้าปก" : "ใส่รูปหน้าปก (ถ้ามี)"}
+              <span className="block font-normal text-brown-faint">
+                รูปสวยๆ ช่วยให้ลูกค้ากดซื้อง่ายขึ้นเยอะเลยค่ะ
+              </span>
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) pickImage(f, setImage);
+              }}
+            />
+          </label>
+
           <button
             type="button"
             disabled={busy === "add"}

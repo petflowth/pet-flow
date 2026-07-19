@@ -3,6 +3,7 @@ import {
   listPackageOffers,
   createPackageOffer,
   setPackageOfferActive,
+  setPackageOfferImage,
   deletePackageOffer,
   listPackageOrders,
   createPackageOrder,
@@ -136,6 +137,7 @@ export async function POST(req: NextRequest) {
       totalUses: Number(body.totalUses) || 0,
       price: Number(body.price) || 0,
       description: body.description ? String(body.description) : undefined,
+      image: body.image ? String(body.image) : undefined,
     });
     if (!offer) {
       return NextResponse.json({ error: "name + totalUses required" }, { status: 400 });
@@ -204,6 +206,17 @@ export async function PATCH(req: NextRequest) {
 
   if (action === "set_offer_active") {
     await setPackageOfferActive(String(body.offerId || ""), body.active !== false);
+    return NextResponse.json({ ok: true });
+  }
+
+  if (action === "set_offer_image") {
+    const res = await setPackageOfferImage(
+      String(body.offerId || ""),
+      body.image ? String(body.image) : ""
+    );
+    if (!res.ok) {
+      return NextResponse.json({ error: res.error }, { status: 400 });
+    }
     return NextResponse.json({ ok: true });
   }
 

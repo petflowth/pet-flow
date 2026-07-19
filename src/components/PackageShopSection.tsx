@@ -10,6 +10,7 @@ type Offer = {
   totalUses: number;
   price: number;
   description?: string;
+  imageUrl?: string;
 };
 
 type Order = {
@@ -159,33 +160,60 @@ export function PackageShopSection() {
       </p>
 
       {offers.length > 0 && (
-        <div className="mb-3 space-y-2">
-          {offers.map((o) => (
-            <div key={o.id} className="rounded-petflow-sm bg-card/85 px-3 py-2.5">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-brown">{o.name}</p>
-                  <p className="text-[10px] text-brown-soft">
-                    ใช้ได้ {o.totalUses} ครั้ง
-                    {o.description ? ` · ${o.description}` : ""}
+        <div className="mb-3 grid gap-2.5 sm:grid-cols-2">
+          {offers.map((o) => {
+            const perUse = o.totalUses > 0 ? Math.round(o.price / o.totalUses) : 0;
+            return (
+              <div
+                key={o.id}
+                className="overflow-hidden rounded-petflow-sm bg-card/90 shadow-petflow-sm"
+              >
+                {o.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={o.imageUrl}
+                    alt={o.name}
+                    loading="lazy"
+                    className="h-28 w-full object-cover"
+                  />
+                )}
+                <div className="p-3">
+                  <p className="text-sm font-extrabold leading-snug text-petflow-chocolate">
+                    {o.name}
                   </p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-sm font-extrabold text-latte-deep">
-                    {o.price.toLocaleString()}฿
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[10px] font-bold text-brown-soft">
+                    <span className="rounded-full bg-sage/20 px-2 py-0.5 text-ok">
+                      ใช้ได้ {o.totalUses} ครั้ง
+                    </span>
+                    {perUse > 0 && (
+                      <span className="text-brown-faint">
+                        ตกครั้งละ {perUse.toLocaleString()}฿
+                      </span>
+                    )}
                   </p>
-                  <button
-                    type="button"
-                    disabled={buying === o.id}
-                    onClick={() => buy(o)}
-                    className="mt-1 rounded-full bg-latte-deep px-3 py-1 text-[10px] font-extrabold text-card disabled:opacity-40"
-                  >
-                    {buying === o.id ? "…" : "ซื้อเลย"}
-                  </button>
+                  {o.description && (
+                    <p className="mt-1 text-[10px] leading-relaxed text-brown-faint">
+                      {o.description}
+                    </p>
+                  )}
+                  <div className="mt-2.5 flex items-end justify-between gap-2">
+                    <p className="text-lg font-extrabold leading-none text-latte-deep">
+                      {o.price.toLocaleString()}
+                      <span className="text-xs">฿</span>
+                    </p>
+                    <button
+                      type="button"
+                      disabled={buying === o.id}
+                      onClick={() => buy(o)}
+                      className="rounded-full bg-latte-deep px-4 py-1.5 text-[11px] font-extrabold text-card shadow-petflow-sm disabled:opacity-40"
+                    >
+                      {buying === o.id ? "…" : "ซื้อเลย"}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

@@ -19,6 +19,8 @@ export type PackageOffer = {
   totalUses: number;
   price: number;
   description?: string;
+  /** รูปหน้าปกที่ลูกค้าเห็นในแอป — ไม่มีก็ไม่เป็นไร แอปจะโชว์แบบไม่มีรูปแทน */
+  imageUrl?: string;
   active: boolean;
   createdAt: string;
 };
@@ -49,6 +51,8 @@ type OfferRow = {
   total_uses: number;
   price: number;
   description: string | null;
+  /** ยังไม่มีคอลัมน์นี้ในบางร้าน — select("*") จะได้ undefined ไม่พัง */
+  image_url?: string | null;
   active: boolean;
   created_at: string;
 };
@@ -79,6 +83,7 @@ function rowToOffer(r: OfferRow): PackageOffer {
     totalUses: Number(r.total_uses) || 0,
     price: Number(r.price) || 0,
     description: r.description || undefined,
+    imageUrl: r.image_url || undefined,
     active: r.active !== false,
     createdAt: r.created_at,
   };
@@ -130,18 +135,33 @@ export async function createPackageOffer(data: {
   totalUses: number;
   price: number;
   description?: string;
+  /** data URL จากช่องอัปโหลด — จะถูกเก็บขึ้น Storage ให้ ไม่ยัด base64 ลง DB */
+  image?: string;
 }): Promise<PackageOffer | null> {
   const name = data.name.trim();
   const totalUses = Math.max(1, Math.round(data.totalUses) || 0);
   const price = Math.max(0, Math.round(data.price) || 0);
   if (!name) return null;
 
+  const id = `POF${Date.now()}${Math.floor(Math.random() * 1000)}`;
+
+  // อัปรูปก่อน แต่ถ้าอัปไม่ขึ้นก็ยังต้องสร้างคอร์สให้ได้ — รูปเป็นของแถม ไม่ใช่เงื่อนไข
+  let imageUrl: string | undefined;
+  if (data.image) {
+    try {
+      imageUrl = await uploadDataUrlToStorage(`package-offers/${id}.jpg`, data.image);
+    } catch {
+      /* ไม่มีรูปก็ขายได้ */
+    }
+  }
+
   const offer: PackageOffer = {
-    id: `POF${Date.now()}${Math.floor(Math.random() * 1000)}`,
+    id,
     name,
     totalUses,
     price,
     description: data.description?.trim() || undefined,
+    imageUrl,
     active: true,
     createdAt: new Date().toISOString(),
   };
@@ -158,10 +178,52 @@ export async function createPackageOffer(data: {
       active: true,
       created_at: offer.createdAt,
     });
+    // เขียนแยกเพราะร้านที่ยังไม่ได้รันคอลัมน์นี้จะ insert ไม่ผ่านทั้งแถว
+    if (offer.imageUrl) {
+      try {
+        await sb
+          .from("package_offers")
+          .update({ image_url: offer.imageUrl })
+          .eq("id", offer.id)
+          .eq("tenant_id", requireTenantId());
+      } catch {
+        /* ยังไม่มีคอลัมน์ image_url */
+      }
+    }
   } else {
     memOffers.push(offer);
   }
   return offer;
+}
+
+/** เปลี่ยน/ลบรูปหน้าปกของคอร์สที่ขายอยู่ — image ว่าง = เอารูปออก */
+export async function setPackageOfferImage(id: string, image: string) {
+  let imageUrl: string | null = null;
+  if (image) {
+    try {
+      imageUrl = await uploadDataUrlToStorage(`package-offers/${id}.jpg`, image);
+    } catch {
+      return { ok: false as const, error: "upload_failed" };
+    }
+  }
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      // ร้านที่ยังไม่ได้รัน migration จะได้ error กลับมา (ไม่ throw) ต้องเช็คเอง
+      const { error } = await sb
+        .from("package_offers")
+        .update({ image_url: imageUrl })
+        .eq("id", id)
+        .eq("tenant_id", requireTenantId());
+      if (error) return { ok: false as const, error: "no_column" };
+    } catch {
+      return { ok: false as const, error: "no_column" };
+    }
+  } else {
+    const o = memOffers.find((x) => x.id === id);
+    if (o) o.imageUrl = imageUrl || undefined;
+  }
+  return { ok: true as const };
 }
 
 export async function setPackageOfferActive(id: string, active: boolean) {
@@ -248,6 +310,13 @@ export async function createPackageOrder(data: {
   lineUserId?: string;
   offer: PackageOffer;
 }): Promise<PackageOrder> {
+  // กดซื้อรัวๆ ไม่ควรได้ออร์เดอร์ซ้ำ — ร้านจะเห็นรายการเดียวกันหลายแถวแล้วเผลอกดรับเงินซ้ำ
+  // ถ้ายังมีใบที่รอโอนของคอร์สเดียวกันอยู่ ให้ใช้ใบเดิม
+  const existing = (await listPackageOrders({ customerId: data.customerId })).find(
+    (o) => o.status === "pending" && o.offerId === data.offer.id
+  );
+  if (existing) return existing;
+
   const order: PackageOrder = {
     id: `POR${Date.now()}${Math.floor(Math.random() * 1000)}`,
     customerId: data.customerId,

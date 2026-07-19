@@ -180,6 +180,11 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     sql: "create index if not exists package_orders_status_idx on package_orders(status);",
   },
   {
+    // รูปหน้าปกคอร์สที่ลูกค้าเห็นในแอป
+    name: "package_offers.image_url",
+    sql: "alter table package_offers add column if not exists image_url text;",
+  },
+  {
     // คอร์สที่บิลนี้หักไป 1 ครั้ง — ใช้โชว์ประวัติการใช้คอร์ส + คืนครั้งตอนยกเลิกบิล
     name: "invoices.package_id",
     sql: "alter table invoices add column if not exists package_id text;",

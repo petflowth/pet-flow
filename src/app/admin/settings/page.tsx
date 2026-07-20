@@ -1293,13 +1293,13 @@ function ColorField({
       <div className="mt-1 flex items-center gap-1.5 rounded-petflow-sm border border-petflow-line bg-paper px-2 py-1.5">
         <input
           type="color"
-          value={/^#[0-9a-fA-F]{6}$/.test(value) ? value : "#000000"}
-          onChange={(e) => onChange(e.target.value)}
+          value={/^#[0-9a-fA-F]{6}$/.test(value.trim()) ? value.trim() : "#000000"}
+          onChange={(e) => onChange(e.target.value.trim())}
           className="h-6 w-6 shrink-0 cursor-pointer border-0 bg-transparent p-0"
         />
         <input
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => onChange(e.target.value.trim())}
           className="min-w-0 flex-1 bg-transparent text-xs font-mono outline-none"
         />
       </div>

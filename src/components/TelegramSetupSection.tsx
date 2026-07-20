@@ -117,7 +117,11 @@ export function TelegramSetupSection({ adminCode }: { adminCode: string }) {
           type="password"
           value={botToken}
           onChange={(e) => setBotToken(e.target.value)}
-          placeholder="1234567890:AAHxxxxxxxxxxxxxxxx"
+          placeholder={
+            status?.configured
+              ? "ตั้งบอทไว้แล้ว — เว้นว่างได้ถ้าแค่แก้ Chat ID"
+              : "1234567890:AAHxxxxxxxxxxxxxxxx"
+          }
           className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs font-mono"
         />
       </label>
@@ -132,7 +136,9 @@ export function TelegramSetupSection({ adminCode }: { adminCode: string }) {
           className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs"
         />
         <span className="mt-1 block text-[10px] font-normal">
-          หลายคนใส่คั่นด้วย comma เช่น 2075576799,123456789
+          หลายคนใส่คั่นด้วย comma เช่น 2075576799,123456789 ·
+          ให้แฟนทักบอทพิมพ์ <code>/start</code> บอทจะบอก Chat ID ให้เอา
+          มาต่อท้ายตรงนี้
         </span>
       </label>
 
@@ -149,11 +155,15 @@ export function TelegramSetupSection({ adminCode }: { adminCode: string }) {
 
       <button
         type="button"
-        disabled={saving || !botToken.trim()}
+        disabled={saving || (!botToken.trim() && !status?.configured)}
         onClick={save}
         className="w-full rounded-petflow-sm bg-gradient-to-r from-latte/50 to-honey/40 py-3 text-sm font-extrabold text-petflow-chocolate disabled:opacity-40"
       >
-        {saving ? "กำลังตั้งบอท…" : "💾 บันทึกและเปิดใช้บอท"}
+        {saving
+          ? "กำลังตั้งบอท…"
+          : status?.configured && !botToken.trim()
+            ? "💾 บันทึก Chat ID"
+            : "💾 บันทึกและเปิดใช้บอท"}
       </button>
     </section>
   );

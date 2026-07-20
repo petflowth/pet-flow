@@ -169,13 +169,16 @@ export function PackageShopSection() {
                 className="overflow-hidden rounded-petflow-sm bg-card/90 shadow-petflow-sm"
               >
                 {o.imageUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={o.imageUrl}
-                    alt={o.name}
-                    loading="lazy"
-                    className="h-28 w-full object-cover"
-                  />
+                  // พื้นหลังนวลๆ กันภาพสัดส่วนแปลกๆ ดูโล่ง — ตัวรูปโชว์เต็มไม่โดน crop
+                  <div className="flex items-center justify-center bg-latte/10">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={o.imageUrl}
+                      alt={o.name}
+                      loading="lazy"
+                      className="max-h-48 w-full object-contain"
+                    />
+                  </div>
                 )}
                 <div className="p-3">
                   <p className="text-sm font-extrabold leading-snug text-petflow-chocolate">

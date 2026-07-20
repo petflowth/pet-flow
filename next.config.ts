@@ -16,6 +16,16 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // หน้าแรก (/) ให้เสิร์ฟหน้าขาย PetFlow (public/petflow.html) แทนหน้า demo โรงแรมแมว
+  // ใช้ beforeFiles เพื่อให้ทำงานก่อน route page.tsx — URL ยังเป็น "/" สะอาดๆ
+  // หน้า SEO เดิมยังเข้าได้ที่ /petflow.html ไม่ได้ถูกลบ
+  async rewrites() {
+    return {
+      beforeFiles: [{ source: "/", destination: "/petflow.html" }],
+      afterFiles: [],
+      fallback: [],
+    };
+  },
 };
 
 export default nextConfig;

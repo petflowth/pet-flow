@@ -155,6 +155,10 @@ function BookPageInner() {
         setSubmitErr("ช่วงนี้เต็มไปแล้วพอดี ลองเลือกวัน/เวลาอื่นนะคะ");
       } else if (d.error === "shop_closed") {
         setSubmitErr("ร้านปิดวันที่เลือกไว้พอดี ลองเลือกวันอื่นนะคะ");
+      } else if (d.error === "duplicate_booking") {
+        setSubmitErr("น้องตัวนี้มีคิว/การจองช่วงนี้อยู่แล้วค่ะ — ดูได้ที่เมนู “คิวของฉัน” นะคะ");
+      } else if (d.error === "past_date") {
+        setSubmitErr("วันที่เลือกผ่านมาแล้วค่ะ ลองเลือกวันใหม่นะคะ");
       } else {
         setSubmitErr("จองไม่สำเร็จ — ลองใหม่อีกครั้ง");
       }

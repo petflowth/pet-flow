@@ -9,7 +9,9 @@ import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization");
   const secret = process.env.CRON_SECRET;
-  if (secret && auth !== `Bearer ${secret}`) {
+  // fail-closed: ยังไม่ตั้ง CRON_SECRET = ห้ามรัน (ไม่ใช่เปิดโล่งให้คนนอกยิงสแปมลูกค้า/สั่ง export ได้)
+  // ตั้ง CRON_SECRET ใน Vercel แล้ว Vercel Cron จะแนบ Bearer ให้เองอัตโนมัติ
+  if (!secret || auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

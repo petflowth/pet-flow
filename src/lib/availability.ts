@@ -40,13 +40,24 @@ export async function getGroomAvailability(
     bookedByTime.set(b.time, (bookedByTime.get(b.time) || 0) + 1);
   }
 
+  // รอบที่เลยเวลามาแล้วของ "วันนี้" ต้องจองไม่ได้ (เทียบเวลาไทย — server รันเป็น UTC)
+  const nowBkk = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString();
+  const todayBkk = nowBkk.slice(0, 10);
+  const timeNowBkk = nowBkk.slice(11, 16);
+
   return {
     closed,
     slots: slots.map((time) => {
       const capacity = config.groomSlotCapacity?.[time] ?? defaultCap;
       const booked = bookedByTime.get(time) || 0;
-      // วันปิด = จองไม่ได้เลย ไม่ว่าจะเหลือคิวตามตัวเลขจริงเท่าไหร่
-      return { time, capacity, booked, remaining: closed ? 0 : Math.max(0, capacity - booked) };
+      const past = date === todayBkk && time <= timeNowBkk;
+      // วันปิด/รอบที่ผ่านไปแล้ว = จองไม่ได้เลย ไม่ว่าจะเหลือคิวตามตัวเลขจริงเท่าไหร่
+      return {
+        time,
+        capacity,
+        booked,
+        remaining: closed || past ? 0 : Math.max(0, capacity - booked),
+      };
     }),
   };
 }

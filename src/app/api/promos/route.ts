@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSessionFrom } from "@/lib/auth";
 import {
   listPromos,
   getActivePromos,
@@ -20,6 +21,11 @@ export async function GET(req: NextRequest) {
   const promoId = req.nextUrl.searchParams.get("promoId") || undefined;
 
   if (withClaims) {
+    // รายชื่อ+lineUserId ของลูกค้าทุกคนที่เคยกดรับโปร — ข้อมูลส่วนตัว หลังบ้านดูได้เท่านั้น
+    // (route นี้เปิด GET สาธารณะเพื่อให้แอปลูกค้าดูโปร แต่ห้ามเปิดถึงรายชื่อคนกดรับ)
+    if (!(await getSessionFrom(req))) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
     return NextResponse.json({ claims: await listPromoClaims(promoId) });
   }
 

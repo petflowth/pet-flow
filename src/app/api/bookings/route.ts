@@ -121,6 +121,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  // หลังบ้านเท่านั้น — ลูกค้าจองเองมีเส้นทางของตัวเองที่ /api/bookings/self (ตรวจสิทธิ์+ความว่างครบ)
+  // route นี้อยู่ใน SHARED_API (middleware ปล่อยผ่าน) ถ้าไม่เช็คตรงนี้ ใครก็สร้างนัด/ลูกค้าปลอมได้
+  if (!(await isAdmin(req))) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   const body = await req.json().catch(() => ({}));
   const customer = await resolveCustomerForBooking({
     customerName: body.customerName,
@@ -189,10 +194,19 @@ export async function PATCH(req: NextRequest) {
 
   // ลูกค้าใน LINE ทำได้อย่างเดียวคือกดยืนยันนัด "ของตัวเอง"
   // การกระทำอื่นทั้งหมด (ยกเลิก แก้ไข ส่งการ์ด เรียกเก็บเงิน) ต้องล็อกอินหลังบ้าน
-  if (!(await isAdmin(req))) {
+  const admin = await isAdmin(req);
+  if (!admin) {
     const ownsBooking = !!lineUserId && b.lineUserId === lineUserId;
     if (action !== "confirm" || !ownsBooking) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+    // นัดที่ลูกค้าจองเอง — ร้านเท่านั้นที่ยืนยันได้ ต้องกันที่ API ด้วย ไม่ใช่แค่ซ่อนปุ่ม
+    // (ไม่งั้นยังจองเอง-ยืนยันเองได้ผ่านการ์ด LINE เก่าหรือยิง API ตรง)
+    if (b.selfBooked) {
+      return NextResponse.json(
+        { error: "waiting_shop_confirm", message: "รอร้านยืนยันคิวนะคะ" },
+        { status: 403 }
+      );
     }
   }
 
@@ -203,8 +217,10 @@ export async function PATCH(req: NextRequest) {
     await updateBooking(id, { status: "confirmed", checkinTime });
 
     // แจ้งลูกค้าทันทีว่าได้คิวแล้ว — คนละเรื่องกับการ์ดเตือนล่วงหน้าก่อนถึงวันจริง (send_reminder / cron)
+    // ส่งเฉพาะตอน "ร้าน" เป็นคนยืนยัน — ลูกค้ากดตอบรับเองในแอปไม่ต้องส่งซ้ำ (เขาเพิ่งกดเองเห็นผลอยู่แล้ว
+    // ส่งไปก็เปลืองโควตาข้อความ LINE ฟรี ๆ)
     // ส่งไม่สำเร็จก็ยังยืนยันนัดต่อไปได้ (ไม่บล็อก) แต่ต้องบอก staff ว่าลูกค้าไม่ได้รับ ไม่ใช่เงียบไปเฉยๆ
-    if (wasNotYetConfirmed && b.lineUserId) {
+    if (wasNotYetConfirmed && admin && b.lineUserId) {
       try {
         const cfg = await getSiteConfig();
         if (cfg.automation?.bookingApprovedEnabled !== false) {

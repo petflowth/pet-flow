@@ -16,6 +16,8 @@ type CalendarDay = EditableBooking & {
   consentSignature?: string;
   arrivalTime?: string;
   pickupTime?: string;
+  /** ลูกค้าจองเองผ่านแอป — รอร้านกดรับคิว (ไม่ใช่รอลูกค้าตอบรับ) */
+  selfBooked?: boolean;
 };
 
 function formatThaiDateTime(iso: string) {
@@ -405,6 +407,13 @@ export function BookingCalendar() {
                 {caseDone && (
                   <p className="mb-2 flex items-center gap-1.5 rounded-petflow-sm bg-ok/15 px-2.5 py-1.5 text-[11px] font-extrabold text-ok">
                     🎉 เคสนี้จบแล้ว — ชำระครบ ปิดงานเรียบร้อย
+                  </p>
+                )}
+                {/* นัดที่ลูกค้าจองเอง ต่างจากนัดที่ร้านสร้าง: "รอยืนยัน" = รอ "ร้าน" กดรับ ไม่ใช่รอลูกค้า */}
+                {!allConfirmed && group.some((x) => x.selfBooked) && (
+                  <p className="mb-2 rounded-petflow-sm bg-honey/25 px-2.5 py-1.5 text-[11px] font-extrabold text-wait">
+                    🙋 ลูกค้าจองเองผ่านแอป — กด “✔️ ยืนยันนัด” เพื่อรับคิว
+                    (ระบบจะแจ้งลูกค้าทาง LINE ให้อัตโนมัติ)
                   </p>
                 )}
                 <div className="flex items-start justify-between gap-2">

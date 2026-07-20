@@ -125,6 +125,13 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ ok: true });
   } else {
+    // สั่งงานบอทได้เฉพาะแชทเจ้าของที่ลงทะเบียนไว้ — webhook นี้เปิดสาธารณะ ใครก็ POST ได้
+    // ถ้าไม่เช็ค คนนอกยิงคำสั่ง /finance /sales ดูดยอดขาย หรือ /book /confirm สั่งจองปลอมได้เลย
+    // (/start เปิดไว้ทุกแชท — ใช้ดู chat id ตัวเองตอนตั้งค่าครั้งแรก ไม่มีข้อมูลร้าน)
+    const owners = (creds.ownerChatIds || []).map(String);
+    if (!owners.includes(String(chatId))) {
+      return NextResponse.json({ ok: true, skipped: "unauthorized_chat" });
+    }
     reply = await handleTelegramCommand(text, chatId);
   }
 

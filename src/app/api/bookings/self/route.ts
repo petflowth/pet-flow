@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withResolvedTenant } from "@/lib/tenant-context";
-import { addBooking } from "@/lib/bookings-store";
+import { addBooking, listBookings } from "@/lib/bookings-store";
 import { findCustomerByLine } from "@/lib/customers-store";
 import { getGroomAvailability, getRoomAvailability } from "@/lib/availability";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
@@ -32,11 +32,22 @@ async function handlePost(req: NextRequest) {
     return NextResponse.json({ error: "cat_not_found" }, { status: 404 });
   }
 
+  // วันนี้ตามเวลาไทย — server รันเป็น UTC ใช้ตรงๆ จะคลาดวันช่วงหลังเที่ยงคืนไทย
+  const todayBkk = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  // นัดเดิมของลูกค้าคนนี้ — ใช้กันจองซ้ำ (กดหลายรอบ/ลืมว่าจองแล้ว = กินคิวว่างฟรี)
+  const myBookings = (await listBookings(lineUserId)).filter((x) => x.status !== "cancelled");
+
   if (service === "groom") {
     const date = String(body.date || "").trim();
     const time = String(body.time || "").trim();
     if (!date || !time) {
       return NextResponse.json({ error: "date and time required" }, { status: 400 });
+    }
+    if (date < todayBkk) {
+      return NextResponse.json({ error: "past_date" }, { status: 400 });
+    }
+    if (myBookings.some((x) => x.service === "groom" && x.catName === catName && x.date === date)) {
+      return NextResponse.json({ error: "duplicate_booking" }, { status: 409 });
     }
     const { closed, slots } = await getGroomAvailability(date);
     if (closed) {
@@ -75,6 +86,23 @@ async function handlePost(req: NextRequest) {
   }
   if (checkout <= checkin) {
     return NextResponse.json({ error: "invalid_range" }, { status: 400 });
+  }
+  if (checkin < todayBkk) {
+    return NextResponse.json({ error: "past_date" }, { status: 400 });
+  }
+  // แมวตัวเดิมมีการเข้าพักช่วงทับซ้อนอยู่แล้ว = จองซ้ำ
+  if (
+    myBookings.some(
+      (x) =>
+        x.service === "room" &&
+        x.catName === catName &&
+        x.checkin &&
+        x.checkout &&
+        x.checkin < checkout &&
+        x.checkout > checkin
+    )
+  ) {
+    return NextResponse.json({ error: "duplicate_booking" }, { status: 409 });
   }
   const avail = await getRoomAvailability(room, checkin, checkout);
   if (!avail) return NextResponse.json({ error: "not_self_bookable" }, { status: 400 });

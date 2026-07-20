@@ -42,7 +42,9 @@ function addDays(dateStr: string, n: number) {
 export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization");
   const secret = process.env.CRON_SECRET;
-  if (secret && auth !== `Bearer ${secret}`) {
+  // fail-closed: ยังไม่ตั้ง CRON_SECRET = ห้ามรัน (ไม่ใช่เปิดโล่งให้คนนอกยิงสแปมลูกค้า/สั่ง export ได้)
+  // ตั้ง CRON_SECRET ใน Vercel แล้ว Vercel Cron จะแนบ Bearer ให้เองอัตโนมัติ
+  if (!secret || auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -66,6 +68,9 @@ export async function GET(req: NextRequest) {
           (b) =>
             b.lineUserId &&
             b.status !== "cancelled" &&
+            // นัดที่ลูกค้าจองเองแต่ร้านยังไม่กดรับ — ห้ามเตือนเหมือนนัดจริง
+            // (ยังไม่ถูกอนุมัติ และปุ่มยืนยันบนการ์ดจะถูก API ปฏิเสธอยู่ดี)
+            !(b.selfBooked && b.status !== "confirmed") &&
             !autoMuted(b, "confirm") &&
             (b.checkin || b.date) === confirmDate
         );
@@ -141,6 +146,8 @@ export async function GET(req: NextRequest) {
 
   for (const b of allBookings) {
     if (b.service !== "room" || !b.lineUserId || b.status === "cancelled") continue;
+    // นัดจองเองที่ร้านยังไม่กดรับ — ยังไม่ใช่นัดจริง ห้ามส่งชุดเตรียมเข้าพัก/เลือกเวลา/ทวงยอด
+    if (b.selfBooked && b.status !== "confirmed") continue;
 
     // #1 — แจ้งยอดคงเหลือ N วันก่อนเข้าพัก (ถ้ามีมัดจำ + ยังค้าง)
     if (

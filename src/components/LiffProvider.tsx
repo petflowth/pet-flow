@@ -130,6 +130,17 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!liffId) {
+        // โหมดทดสอบ (dev-user) อนุญาตเฉพาะรันในเครื่องเท่านั้น — บน production ถ้าดึง LIFF ไม่ได้
+        // (ยังไม่ตั้งค่า หรือเน็ตสะดุดชั่วคราว) ต้องบอกตรงๆ แล้วให้ลองใหม่
+        // ห้ามเงียบๆ สวมบัญชีปลอมให้เด็ดขาด — เคยทำให้เกิดนัด "dev-user" ปนในร้านจริงมาแล้ว
+        const host = typeof window !== "undefined" ? window.location.hostname : "";
+        const isLocalDev =
+          host === "localhost" || host === "127.0.0.1" || /^(10\.|192\.168\.)/.test(host);
+        if (!isLocalDev) {
+          setError("เชื่อมต่อ LINE ไม่สำเร็จ — ปิดหน้านี้แล้วเปิดใหม่จาก LINE อีกครั้งนะคะ");
+          setReady(true);
+          return;
+        }
         await applyAccount({
           lineUserId: "dev-user",
           displayName: "คุณทดสอบ",

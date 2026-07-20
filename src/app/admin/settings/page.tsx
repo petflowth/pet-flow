@@ -195,7 +195,14 @@ export default function SettingsPage() {
   );
 }
 
-const BRANDING_DEFAULT = { primary: "#a9855f", accent: "#ebc583", heading: "#5c4033" };
+const BRANDING_DEFAULT = {
+  primary: "#a9855f",
+  accent: "#ebc583",
+  heading: "#5c4033",
+  background: "#fbf6ef",
+  surface: "#fffdfa",
+  text: "#4e3e32",
+};
 
 function ShopTab({
   config,
@@ -226,7 +233,8 @@ function ShopTab({
     >
       <p className="text-xs font-extrabold text-petflow-chocolate">🎨 สีและโลโก้ประจำร้าน</p>
       <p className="text-[10px] text-brown-faint">
-        ปรับสีและโลโก้ให้เข้ากับแบรนด์ร้าน — มีผลทั้งหน้าลูกค้าและหลังบ้าน
+        ปรับสีทั้งหน้า (พื้นหลัง การ์ด ปุ่ม หัวข้อ ตัวอักษร) และโลโก้ ให้เข้ากับแบรนด์ร้าน —
+        มีผลทั้งหน้าลูกค้าและหลังบ้าน ไม่ต้องแก้โค้ด
       </p>
       <PosterField
         label="โลโก้ร้าน"
@@ -239,6 +247,7 @@ function ShopTab({
           reader.readAsDataURL(f);
         }}
       />
+      <p className="text-[10px] font-bold text-brown-soft">ปุ่ม / จุดเน้น</p>
       <div className="grid grid-cols-3 gap-2">
         <ColorField
           label="สีหลัก (ปุ่ม)"
@@ -256,19 +265,52 @@ function ShopTab({
           onChange={(v) => setBranding({ ...branding, heading: v })}
         />
       </div>
+      <p className="text-[10px] font-bold text-brown-soft">พื้นหลัง / ตัวอักษร</p>
+      <div className="grid grid-cols-3 gap-2">
+        <ColorField
+          label="พื้นหลังเว็บ"
+          value={branding.background}
+          onChange={(v) => setBranding({ ...branding, background: v })}
+        />
+        <ColorField
+          label="พื้นการ์ด"
+          value={branding.surface}
+          onChange={(v) => setBranding({ ...branding, surface: v })}
+        />
+        <ColorField
+          label="ตัวอักษร"
+          value={branding.text}
+          onChange={(v) => setBranding({ ...branding, text: v })}
+        />
+      </div>
+
       <div
-        className="flex items-center gap-2 rounded-petflow-sm p-3"
-        style={{ background: branding.accent }}
+        className="space-y-2 rounded-petflow-sm p-4"
+        style={{ background: branding.background }}
       >
-        <span
-          className="rounded-full px-3 py-1.5 text-xs font-extrabold text-white"
-          style={{ background: branding.primary }}
-        >
-          ตัวอย่างปุ่ม
-        </span>
-        <span className="text-sm font-extrabold" style={{ color: branding.heading }}>
-          ตัวอย่างหัวข้อ
-        </span>
+        <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: branding.text, opacity: 0.5 }}>
+          ตัวอย่าง
+        </p>
+        <div className="rounded-petflow-sm p-3" style={{ background: branding.surface }}>
+          <p className="text-sm font-extrabold" style={{ color: branding.heading }}>
+            ตัวอย่างหัวข้อ
+          </p>
+          <p className="mb-2 text-xs" style={{ color: branding.text }}>
+            ตัวอย่างข้อความเนื้อหาในการ์ด
+          </p>
+          <span
+            className="inline-block rounded-full px-3 py-1.5 text-xs font-extrabold text-white"
+            style={{ background: branding.primary }}
+          >
+            ตัวอย่างปุ่ม
+          </span>
+          <span
+            className="ml-2 inline-block rounded-full px-3 py-1.5 text-xs font-extrabold"
+            style={{ background: branding.accent, color: branding.heading }}
+          >
+            ไฮไลท์
+          </span>
+        </div>
       </div>
       {JSON.stringify(branding) !== JSON.stringify({ ...BRANDING_DEFAULT, ...config.branding }) && (
         <button

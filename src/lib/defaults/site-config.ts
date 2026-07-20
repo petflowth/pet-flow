@@ -92,6 +92,9 @@ export function getDefaultSiteConfig(): SiteConfig {
         primary: "#a9855f",
         accent: "#ebc583",
         heading: "#5c4033",
+        background: "#fbf6ef",
+        surface: "#fffdfa",
+        text: "#4e3e32",
       },
       options: {
         servicePresets: SERVICE_PRESETS.map((s) => ({ ...s })),

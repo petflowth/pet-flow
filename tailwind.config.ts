@@ -9,12 +9,16 @@ export default {
   theme: {
     extend: {
       colors: {
-        cream: "#fbf6ef",
-        paper: "#f4ece0",
-        card: "#fffdfa",
-        brown: { DEFAULT: "#4e3e32", soft: "#a2907e", faint: "#c4b4a2" },
-        // สามค่านี้ผูกกับ CSS var เพื่อให้แต่ละร้าน override สีได้ผ่าน <BrandingStyle> —
+        // ทุกโทนด้านล่างผูกกับ CSS var เพื่อให้แต่ละร้าน override สีได้ผ่าน <BrandingStyle> —
         // ยังใส่ opacity แบบ bg-honey/30 ได้ตามเดิมเพราะใช้ pattern rgb(var(..) / <alpha-value>)
+        cream: "rgb(var(--cream-rgb) / <alpha-value>)",
+        paper: "rgb(var(--paper-rgb) / <alpha-value>)",
+        card: "rgb(var(--card-rgb) / <alpha-value>)",
+        brown: {
+          DEFAULT: "rgb(var(--brown-rgb) / <alpha-value>)",
+          soft: "rgb(var(--brown-soft-rgb) / <alpha-value>)",
+          faint: "rgb(var(--brown-faint-rgb) / <alpha-value>)",
+        },
         honey: {
           DEFAULT: "rgb(var(--honey-rgb) / <alpha-value>)",
           deep: "rgb(var(--honey-deep-rgb) / <alpha-value>)",
@@ -26,7 +30,7 @@ export default {
         petflow: {
           yellow: "#f5d76e",
           chocolate: "rgb(var(--chocolate-rgb) / <alpha-value>)",
-          line: "#efe6d7",
+          line: "rgb(var(--line-rgb) / <alpha-value>)",
         },
         sage: "#9fb79a",
         wait: "#d9a05b",

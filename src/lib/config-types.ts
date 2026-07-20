@@ -211,6 +211,12 @@ export type SiteConfig = {
     accent: string;
     /** สีตัวอักษรหัวข้อ/โลโก้ */
     heading: string;
+    /** สีพื้นหลังหลักทั้งเว็บ */
+    background: string;
+    /** สีพื้นการ์ด/กล่อง (ทับพื้นหลังหลัก) */
+    surface: string;
+    /** สีตัวอักษรเนื้อหาทั่วไป */
+    text: string;
     /** โลโก้ร้าน — data URL หรือ URL รูป, ไม่ตั้ง = ใช้โลโก้ PetFlow เริ่มต้น */
     logoUrl?: string;
   };

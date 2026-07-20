@@ -3,25 +3,20 @@
 @tailwind utilities;
 
 :root {
-  --cream: #fbf6ef;
-  --paper: #f4ece0;
-  --card: #fffdfa;
-  --brown: #4e3e32;
-  --brown-soft: #a2907e;
-  --brown-faint: #c4b4a2;
-  --honey: #ebc583;
-  --honey-deep: #e0ad5a;
-  --latte: #c7a583;
-  --latte-deep: #a9855f;
   --yellow: #f5d76e;
-  --chocolate: #5c4033;
-  --line: #efe6d7;
+  --line-rgb: 239 230 215;
   --sage: #9fb79a;
   --wait: #d9a05b;
   --ok: #7fa876;
 
   /* สีประจำร้าน (RGB triplet เพื่อให้ Tailwind ใส่ opacity ได้ เช่น bg-honey/30) —
-     ค่าเริ่มต้นตรงกับ --honey/--latte/--chocolate ด้านบน, ถูก override ได้ต่อร้านผ่าน <BrandingStyle> */
+     ค่าเริ่มต้นตรงกับพาเลตต์เดิมของ PetFlow, ถูก override ได้ต่อร้านผ่าน <BrandingStyle> */
+  --cream-rgb: 251 246 239;
+  --paper-rgb: 244 236 224;
+  --card-rgb: 255 253 250;
+  --brown-rgb: 78 62 50;
+  --brown-soft-rgb: 162 144 126;
+  --brown-faint-rgb: 196 180 162;
   --honey-rgb: 235 197 131;
   --honey-deep-rgb: 224 173 90;
   --latte-rgb: 199 165 131;
@@ -30,8 +25,8 @@
 }
 
 body {
-  color: var(--brown);
-  background: var(--cream);
+  color: rgb(var(--brown-rgb));
+  background: rgb(var(--cream-rgb));
   font-family: "Sukhumvit Set", -apple-system, "Leelawadee UI", "Noto Sans Thai", sans-serif;
 }
 
@@ -58,14 +53,14 @@ button:disabled {
 @layer utilities {
   .bg-petflow-gradient {
     background:
-      radial-gradient(circle at 15% 0%, #fdf1dc 0, transparent 45%),
-      radial-gradient(circle at 88% 6%, #f6ede6 0, transparent 40%),
-      var(--cream);
+      radial-gradient(circle at 15% 0%, rgb(var(--honey-rgb) / 0.18) 0, transparent 45%),
+      radial-gradient(circle at 88% 6%, rgb(var(--latte-rgb) / 0.14) 0, transparent 40%),
+      rgb(var(--cream-rgb));
   }
   .shadow-petflow {
-    box-shadow: 0 8px 26px rgba(140, 110, 74, 0.1);
+    box-shadow: 0 8px 26px rgb(var(--brown-rgb) / 0.1);
   }
   .shadow-petflow-sm {
-    box-shadow: 0 4px 14px rgba(140, 110, 74, 0.08);
+    box-shadow: 0 4px 14px rgb(var(--brown-rgb) / 0.08);
   }
 }

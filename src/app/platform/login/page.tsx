@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 export default function PlatformLoginPage() {
   const router = useRouter();
   const [code, setCode] = useState("");
+  const [showCode, setShowCode] = useState(false);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -50,13 +51,23 @@ export default function PlatformLoginPage() {
         <label className="mb-2 block text-xs font-bold text-white/70">
           รหัสผู้ดูแลระบบ
         </label>
-        <input
-          type="password"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          className="mb-4 w-full rounded-petflow-sm border border-white/10 bg-[#1a1d29] px-4 py-3 text-sm text-white outline-none focus:border-latte-deep"
-          placeholder="••••••••"
-        />
+        <div className="relative mb-4">
+          <input
+            type={showCode ? "text" : "password"}
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            className="w-full rounded-petflow-sm border border-white/10 bg-[#1a1d29] px-4 py-3 pr-11 text-sm text-white outline-none focus:border-latte-deep"
+            placeholder="••••••••"
+          />
+          <button
+            type="button"
+            onClick={() => setShowCode((v) => !v)}
+            aria-label={showCode ? "ซ่อนรหัส" : "แสดงรหัส"}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-white/50"
+          >
+            {showCode ? "🙈" : "👁️"}
+          </button>
+        </div>
         {err && <p className="mb-3 text-xs font-semibold text-red-400">{err}</p>}
         <button
           type="submit"

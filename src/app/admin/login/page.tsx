@@ -9,6 +9,7 @@ export default function AdminLoginPage() {
   const params = useSearchParams();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -71,14 +72,24 @@ export default function AdminLoginPage() {
           autoComplete="username"
         />
         <label className="mb-2 block text-xs font-bold text-brown-soft">Password</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="mb-4 w-full rounded-petflow-sm border border-petflow-line bg-paper px-4 py-3 text-sm outline-none focus:border-latte-deep"
-          placeholder="••••••••"
-          autoComplete="current-password"
-        />
+        <div className="relative mb-4">
+          <input
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded-petflow-sm border border-petflow-line bg-paper px-4 py-3 pr-11 text-sm outline-none focus:border-latte-deep"
+            placeholder="••••••••"
+            autoComplete="current-password"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-brown-faint"
+          >
+            {showPassword ? "🙈" : "👁️"}
+          </button>
+        </div>
 
         {err && <p className="mb-3 text-xs font-semibold text-red-600">{err}</p>}
         <button

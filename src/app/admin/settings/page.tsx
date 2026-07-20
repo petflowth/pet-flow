@@ -1333,6 +1333,7 @@ function AdvancedTab({
     <div className="space-y-3 rounded-petflow bg-card p-4 shadow-petflow-sm">
       <MigrateSection />
       <MigratePhotosSection />
+      <CleanupBroadcastSection />
       <ExportSheetsButton />
       <p className="text-[10px] text-brown-faint">
         ส่งออก 5 แท็บ: ลูกค้า+น้องแมว · การจอง · บิล · รายรับรายจ่าย · แต้มสะสม
@@ -1421,6 +1422,53 @@ function MigratePhotosSection() {
         className="w-full rounded-petflow-sm bg-sage/70 py-2 text-xs font-extrabold text-petflow-chocolate disabled:opacity-50"
       >
         {busy ? "กำลังย้าย… (อาจใช้เวลาสักครู่)" : "🖼️ ย้ายรูปเก่าตอนนี้"}
+      </button>
+      {msg && <p className="mt-2 text-[11px] font-bold text-brown">{msg}</p>}
+    </div>
+  );
+}
+
+function CleanupBroadcastSection() {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const run = async () => {
+    setBusy(true);
+    setMsg("");
+    try {
+      const res = await fetch("/api/admin/cleanup-broadcast-images", { method: "POST" });
+      const d = await res.json();
+      if (!res.ok) {
+        setMsg(`❌ ${d.error || "ทำไม่สำเร็จ"}`);
+      } else {
+        setMsg(
+          d.removed === 0
+            ? "✅ ไม่มีรูปโปรเก่าค้างในฐานข้อมูลแล้ว"
+            : `✅ ลบรูปโปรเก่าออกจากฐานข้อมูลแล้ว ${d.removed} รูป`
+        );
+      }
+    } catch {
+      setMsg("❌ เชื่อมต่อไม่สำเร็จ");
+    }
+    setBusy(false);
+  };
+
+  return (
+    <div className="rounded-catcha-sm border border-sage/40 bg-sage/10 p-3">
+      <p className="text-xs font-extrabold text-catcha-chocolate">
+        🧹 ล้างรูปโปร broadcast เก่า
+      </p>
+      <p className="mb-2 text-[10px] text-brown-soft">
+        รูปโปรที่เคยยิงเข้า LINE แล้วเก็บ base64 ค้างในฐานข้อมูล — ลบเฉพาะที่เก่ากว่า 30 วัน
+        (LINE ดึงรูปไป cache ตั้งแต่ตอนส่งแล้ว) รีดพื้นที่ DB คืน · กดซ้ำได้ปลอดภัย
+      </p>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={run}
+        className="w-full rounded-catcha-sm bg-sage/70 py-2 text-xs font-extrabold text-catcha-chocolate disabled:opacity-50"
+      >
+        {busy ? "กำลังล้าง…" : "🧹 ล้างรูปโปรเก่าตอนนี้"}
       </button>
       {msg && <p className="mt-2 text-[11px] font-bold text-brown">{msg}</p>}
     </div>

@@ -70,6 +70,7 @@ export function getDefaultSiteConfig(): SiteConfig {
       roomInventory: { ...ROOM_INVENTORY },
       rooms: ROOMS,
       groomSlots: [...GROOM_SLOTS],
+      groomSlotDefaultCapacity: 1,
       transport: {
         th: [...TRANSPORT.th],
         en: [...TRANSPORT.en],

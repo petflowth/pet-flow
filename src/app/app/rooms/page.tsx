@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 import { useConfig } from "@/components/ConfigProvider";
@@ -18,6 +19,12 @@ export default function RoomsPage() {
         title={`🏠 ${m.title}`}
         subtitle={`${m.total} · ${inv.miniMeow}S + ${inv.midCozy}M + ${inv.catflix} Netflix`}
       />
+      <Link
+        href="/app/book?service=room"
+        className="mb-4 block rounded-petflow-sm bg-latte-deep py-3.5 text-center text-sm font-extrabold text-white shadow-petflow-sm"
+      >
+        📅 จองห้องพักเอง
+      </Link>
       <div className="grid gap-4">
         {config.rooms.map((room) => (
           <RoomCard key={room.id} room={room} locale={locale} />

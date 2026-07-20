@@ -793,7 +793,13 @@ function GroomingTab({
     bath?: { poster?: string };
     advance?: { poster?: string };
   };
-  const [slots, setSlots] = useState(config.groomSlots.join(", "));
+  const [slotRows, setSlotRows] = useState(() =>
+    config.groomSlots.map((time) => ({
+      time,
+      capacity: config.groomSlotCapacity?.[time] ?? config.groomSlotDefaultCapacity ?? 1,
+    }))
+  );
+  const [defaultCapacity, setDefaultCapacity] = useState(config.groomSlotDefaultCapacity ?? 1);
   const [bathPoster, setBathPoster] = useState(menus.bath?.poster || "");
   const [advancePoster, setAdvancePoster] = useState(menus.advance?.poster || "");
   const [transportTh, setTransportTh] = useState(config.transport.th.join("\n"));
@@ -814,8 +820,13 @@ function GroomingTab({
     const m = grooming.menus as { bath?: { poster?: string }; advance?: { poster?: string } };
     if (m.bath) m.bath.poster = bathPoster;
     if (m.advance) m.advance.poster = advancePoster;
+    const cleanRows = slotRows.filter((r) => r.time.trim());
     onSave({
-      groomSlots: slots.split(",").map((s) => s.trim()).filter(Boolean),
+      groomSlots: cleanRows.map((r) => r.time.trim()),
+      groomSlotCapacity: Object.fromEntries(
+        cleanRows.map((r) => [r.time.trim(), Math.max(1, r.capacity || 1)])
+      ),
+      groomSlotDefaultCapacity: Math.max(1, defaultCapacity || 1),
       transport: {
         th: transportTh.split("\n").filter(Boolean),
         en: transportEn.split("\n").filter(Boolean),
@@ -826,7 +837,66 @@ function GroomingTab({
 
   return (
     <div className="space-y-3 rounded-petflow bg-card p-4 shadow-petflow-sm">
-      <Field label="รอบเวลาแนะนำ (คั่นด้วย ,)" value={slots} onChange={setSlots} />
+      <div>
+        <p className="mb-1 text-xs font-extrabold text-petflow-chocolate">
+          🕒 รอบเวลาอาบน้ำ + จำนวนคิวที่รับต่อรอบ
+        </p>
+        <p className="mb-2 text-[10px] text-brown-faint">
+          ใช้กับหน้า “จองคิวเอง” ของลูกค้า — สล็อตที่เต็มแล้วลูกค้าจะเลือกไม่ได้
+        </p>
+        <div className="space-y-2">
+          {slotRows.map((row, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input
+                type="time"
+                value={row.time}
+                onChange={(e) => {
+                  const next = [...slotRows];
+                  next[i] = { ...next[i], time: e.target.value };
+                  setSlotRows(next);
+                }}
+                className="rounded-petflow-sm border border-petflow-line bg-paper px-2 py-1.5 text-sm"
+              />
+              <input
+                type="number"
+                min={1}
+                value={row.capacity}
+                onChange={(e) => {
+                  const next = [...slotRows];
+                  next[i] = { ...next[i], capacity: Number(e.target.value) || 1 };
+                  setSlotRows(next);
+                }}
+                className="w-16 rounded-petflow-sm border border-petflow-line bg-paper px-2 py-1.5 text-sm"
+              />
+              <span className="text-[10px] text-brown-faint">คิว/รอบ</span>
+              <button
+                type="button"
+                onClick={() => setSlotRows(slotRows.filter((_, k) => k !== i))}
+                className="ml-auto shrink-0 px-2 text-wait"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => setSlotRows([...slotRows, { time: "10:00", capacity: defaultCapacity }])}
+            className="w-full rounded-petflow-sm border border-dashed border-petflow-line py-2 text-xs font-bold text-latte-deep"
+          >
+            + เพิ่มรอบเวลา
+          </button>
+        </div>
+        <label className="mt-2 flex items-center gap-2 text-[11px] font-bold text-brown-soft">
+          จำนวนคิวเริ่มต้น (ใช้ตอนเพิ่มรอบใหม่)
+          <input
+            type="number"
+            min={1}
+            value={defaultCapacity}
+            onChange={(e) => setDefaultCapacity(Number(e.target.value) || 1)}
+            className="w-16 rounded-petflow-sm border border-petflow-line bg-paper px-2 py-1.5 text-sm font-normal"
+          />
+        </label>
+      </div>
 
       <PosterField
         label="รูปเมนูอาบน้ำ"

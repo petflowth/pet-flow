@@ -1,0 +1,352 @@
+"use client";
+
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useLiff } from "@/components/LiffProvider";
+import { PageHeader } from "@/components/PageHeader";
+
+type Service = "groom" | "room";
+
+type GroomSlot = { time: string; capacity: number; booked: number; remaining: number };
+type RoomAvail = { capacity: number; booked: number; remaining: number } | null;
+
+const ROOM_TYPES: { id: string; name: string }[] = [
+  { id: "mini-meow", name: "MiNi Meow" },
+  { id: "mid-cozy", name: "Mid Cozy Room" },
+  { id: "catflix", name: "Catflix & Chill" },
+];
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+function addDaysISO(iso: string, days: number) {
+  const d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+export default function BookPage() {
+  return (
+    <Suspense fallback={<p className="py-10 text-center text-sm text-brown-soft">กำลังโหลด…</p>}>
+      <BookPageInner />
+    </Suspense>
+  );
+}
+
+function BookPageInner() {
+  const params = useSearchParams();
+  const { customer, profile, ready } = useLiff();
+  const [service, setService] = useState<Service>(
+    params.get("service") === "room" ? "room" : "groom"
+  );
+  const [catName, setCatName] = useState("");
+
+  // groom state
+  const [date, setDate] = useState(todayISO());
+  const [slots, setSlots] = useState<GroomSlot[] | null>(null);
+  const [time, setTime] = useState("");
+  const [loadingSlots, setLoadingSlots] = useState(false);
+
+  // room state
+  const [roomType, setRoomType] = useState(ROOM_TYPES[0].id);
+  const [checkin, setCheckin] = useState(todayISO());
+  const [checkout, setCheckout] = useState(addDaysISO(todayISO(), 1));
+  const [roomAvail, setRoomAvail] = useState<RoomAvail>(null);
+  const [roomAvailErr, setRoomAvailErr] = useState("");
+  const [loadingRoom, setLoadingRoom] = useState(false);
+
+  const [submitting, setSubmitting] = useState(false);
+  const [submitErr, setSubmitErr] = useState("");
+  const [done, setDone] = useState<null | { service: Service }>(null);
+
+  useEffect(() => {
+    if (customer?.cats?.length && !catName) setCatName(customer.cats[0].name);
+  }, [customer, catName]);
+
+  useEffect(() => {
+    if (service !== "groom") return;
+    let alive = true;
+    setLoadingSlots(true);
+    setTime("");
+    fetch(`/api/bookings/availability?service=groom&date=${date}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (alive) setSlots(d.slots || []);
+      })
+      .catch(() => alive && setSlots([]))
+      .finally(() => alive && setLoadingSlots(false));
+    return () => {
+      alive = false;
+    };
+  }, [service, date]);
+
+  useEffect(() => {
+    if (service !== "room") return;
+    if (checkout <= checkin) return;
+    let alive = true;
+    setLoadingRoom(true);
+    setRoomAvailErr("");
+    fetch(
+      `/api/bookings/availability?service=room&roomType=${roomType}&checkin=${checkin}&checkout=${checkout}`
+    )
+      .then((r) => r.json())
+      .then((d) => {
+        if (!alive) return;
+        if (d.error) {
+          setRoomAvail(null);
+          setRoomAvailErr(
+            d.error === "not_self_bookable"
+              ? "ห้องประเภทนี้ยังจองเองไม่ได้ — ทักแชทร้านแทนนะคะ"
+              : "เช็คความว่างไม่สำเร็จ"
+          );
+        } else {
+          setRoomAvail(d);
+        }
+      })
+      .catch(() => alive && setRoomAvailErr("เช็คความว่างไม่สำเร็จ"))
+      .finally(() => alive && setLoadingRoom(false));
+    return () => {
+      alive = false;
+    };
+  }, [service, roomType, checkin, checkout]);
+
+  const canSubmit = useMemo(() => {
+    if (!catName) return false;
+    if (service === "groom") return Boolean(time);
+    return Boolean(roomAvail && roomAvail.remaining > 0 && checkout > checkin);
+  }, [catName, service, time, roomAvail, checkin, checkout]);
+
+  const submit = async () => {
+    if (!profile?.lineUserId || !canSubmit) return;
+    setSubmitting(true);
+    setSubmitErr("");
+    try {
+      const body =
+        service === "groom"
+          ? { lineUserId: profile.lineUserId, catName, service, date, time }
+          : { lineUserId: profile.lineUserId, catName, service, checkin, checkout, room: roomType };
+      const res = await fetch("/api/bookings/self", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.ok) {
+        setDone({ service });
+      } else if (d.error === "slot_full" || d.error === "room_full") {
+        setSubmitErr("ช่วงนี้เต็มไปแล้วพอดี ลองเลือกวัน/เวลาอื่นนะคะ");
+      } else {
+        setSubmitErr("จองไม่สำเร็จ — ลองใหม่อีกครั้ง");
+      }
+    } catch {
+      setSubmitErr("เชื่อมต่อไม่สำเร็จ — ลองใหม่อีกครั้ง");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!ready) {
+    return <p className="py-10 text-center text-sm text-brown-soft">กำลังโหลด…</p>;
+  }
+
+  if (done) {
+    return (
+      <div className="px-4 pb-6 pt-5">
+        <PageHeader title="✅ ส่งคำขอจองแล้ว" />
+        <div className="rounded-petflow border border-petflow-line bg-card p-5 text-center shadow-petflow-sm">
+          <p className="text-4xl">🐾</p>
+          <p className="mt-2 text-sm font-bold text-brown">
+            ส่งคำขอ{done.service === "groom" ? "จองคิวอาบน้ำ" : "จองห้องพัก"}เรียบร้อยแล้วค่ะ
+          </p>
+          <p className="mt-1 text-xs text-brown-soft">
+            รอร้านกดยืนยันอีกนิดนะคะ — เช็คสถานะได้ที่เมนู “การจอง” ด้านล่าง
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setDone(null);
+              setTime("");
+            }}
+            className="mt-4 rounded-full bg-honey/30 px-4 py-2 text-xs font-bold text-latte-deep"
+          >
+            จองอีกรายการ
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-4 pb-6 pt-5">
+      <PageHeader title="📅 จองคิวเอง" subtitle="เลือกวัน-เวลาที่ว่างได้เลย ไม่ต้องคุยกับพนักงาน" />
+
+      <div className="mb-4 flex overflow-hidden rounded-full border border-petflow-line text-xs font-bold">
+        <button
+          type="button"
+          onClick={() => setService("groom")}
+          className={`flex-1 py-2.5 transition ${
+            service === "groom" ? "bg-latte-deep text-white" : "bg-card text-brown-soft"
+          }`}
+        >
+          🛁 อาบน้ำ
+        </button>
+        <button
+          type="button"
+          onClick={() => setService("room")}
+          className={`flex-1 py-2.5 transition ${
+            service === "room" ? "bg-latte-deep text-white" : "bg-card text-brown-soft"
+          }`}
+        >
+          🏠 เข้าพักโรงแรม
+        </button>
+      </div>
+
+      {!customer?.cats?.length ? (
+        <p className="rounded-petflow-sm bg-wait/10 px-3 py-2.5 text-xs font-bold text-wait">
+          ยังไม่มีข้อมูลน้องแมวในระบบ — กรุณาลงทะเบียนก่อนจองนะคะ
+        </p>
+      ) : (
+        <>
+          <div className="rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm">
+            <label className="mb-3 block text-xs font-bold text-brown-soft">
+              🐱 น้องแมว
+              <select
+                value={catName}
+                onChange={(e) => setCatName(e.target.value)}
+                className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
+              >
+                {customer.cats.map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {service === "groom" ? (
+              <>
+                <label className="mb-3 block text-xs font-bold text-brown-soft">
+                  📅 วันที่
+                  <input
+                    type="date"
+                    value={date}
+                    min={todayISO()}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
+                  />
+                </label>
+                <p className="mb-2 text-xs font-bold text-brown-soft">🕒 เลือกเวลา</p>
+                {loadingSlots ? (
+                  <p className="text-xs text-brown-faint">กำลังเช็คความว่าง…</p>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {(slots || []).map((s) => {
+                      const full = s.remaining <= 0;
+                      const active = time === s.time;
+                      return (
+                        <button
+                          key={s.time}
+                          type="button"
+                          disabled={full}
+                          onClick={() => setTime(s.time)}
+                          className={`rounded-petflow-sm border py-2 text-center text-xs font-bold transition ${
+                            full
+                              ? "cursor-not-allowed border-petflow-line bg-paper text-brown-faint line-through"
+                              : active
+                                ? "border-latte-deep bg-latte-deep text-white"
+                                : "border-petflow-line bg-card text-brown"
+                          }`}
+                        >
+                          {s.time}
+                          <span className="block text-[9px] font-normal opacity-80">
+                            {full ? "เต็มแล้ว" : `ว่าง ${s.remaining}`}
+                          </span>
+                        </button>
+                      );
+                    })}
+                    {slots && slots.length === 0 && (
+                      <p className="col-span-3 text-xs text-brown-faint">
+                        ร้านยังไม่ได้ตั้งรอบเวลาไว้ — ทักแชทร้านแทนนะคะ
+                      </p>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <label className="mb-3 block text-xs font-bold text-brown-soft">
+                  🏠 ประเภทห้อง
+                  <select
+                    value={roomType}
+                    onChange={(e) => setRoomType(e.target.value)}
+                    className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
+                  >
+                    {ROOM_TYPES.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="mb-3 grid grid-cols-2 gap-2">
+                  <label className="block text-xs font-bold text-brown-soft">
+                    วันเข้าพัก
+                    <input
+                      type="date"
+                      value={checkin}
+                      min={todayISO()}
+                      onChange={(e) => {
+                        setCheckin(e.target.value);
+                        if (checkout <= e.target.value) setCheckout(addDaysISO(e.target.value, 1));
+                      }}
+                      className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
+                    />
+                  </label>
+                  <label className="block text-xs font-bold text-brown-soft">
+                    วันออก
+                    <input
+                      type="date"
+                      value={checkout}
+                      min={addDaysISO(checkin, 1)}
+                      onChange={(e) => setCheckout(e.target.value)}
+                      className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
+                    />
+                  </label>
+                </div>
+                {loadingRoom ? (
+                  <p className="text-xs text-brown-faint">กำลังเช็คความว่าง…</p>
+                ) : roomAvailErr ? (
+                  <p className="rounded-petflow-sm bg-wait/10 px-3 py-2 text-xs font-bold text-wait">
+                    {roomAvailErr}
+                  </p>
+                ) : roomAvail ? (
+                  <p
+                    className={`rounded-petflow-sm px-3 py-2 text-xs font-bold ${
+                      roomAvail.remaining > 0 ? "bg-sage/15 text-ok" : "bg-wait/10 text-wait"
+                    }`}
+                  >
+                    {roomAvail.remaining > 0
+                      ? `✅ ว่าง ${roomAvail.remaining} ห้อง`
+                      : "เต็มแล้วช่วงนี้ — ลองเปลี่ยนวันดูนะคะ"}
+                  </p>
+                ) : null}
+              </>
+            )}
+          </div>
+
+          {submitErr && (
+            <p className="mt-3 text-center text-xs font-bold text-wait">{submitErr}</p>
+          )}
+          <button
+            type="button"
+            disabled={!canSubmit || submitting}
+            onClick={submit}
+            className="mt-4 w-full rounded-petflow-sm bg-gradient-to-r from-honey to-honey-deep py-3.5 text-sm font-extrabold text-petflow-chocolate shadow-petflow-sm disabled:opacity-50"
+          >
+            {submitting ? "กำลังส่งคำขอ…" : "🐾 ยืนยันจองคิว"}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}

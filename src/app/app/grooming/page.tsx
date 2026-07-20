@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 import { useConfig } from "@/components/ConfigProvider";
@@ -36,6 +37,12 @@ export default function GroomingPage() {
         ))}
       </div>
 
+      <Link
+        href="/app/book?service=groom"
+        className="mt-5 block rounded-petflow-sm bg-latte-deep py-3.5 text-center text-sm font-extrabold text-white shadow-petflow-sm"
+      >
+        📅 จองคิวอาบน้ำเอง
+      </Link>
       <LineBookingCta locale={locale} />
     </div>
   );

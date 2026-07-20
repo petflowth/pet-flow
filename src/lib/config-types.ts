@@ -185,6 +185,10 @@ export type SiteConfig = {
   };
   rooms: RoomType[];
   groomSlots: string[];
+  /** จำนวนคิวที่รับพร้อมกันต่อสล็อต (key = เวลาใน groomSlots) — ไม่ตั้งไว้ = ใช้ groomSlotDefaultCapacity */
+  groomSlotCapacity?: Record<string, number>;
+  /** จำนวนคิวเริ่มต้นต่อสล็อต เมื่อไม่ได้ตั้งไว้ใน groomSlotCapacity */
+  groomSlotDefaultCapacity?: number;
   transport: LocalizedLines;
   pointsRewards: PointsRewardConfig[];
   grooming: GroomingConfig;

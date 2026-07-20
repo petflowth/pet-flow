@@ -136,7 +136,7 @@ export function StaffSection() {
             type="checkbox"
             checked={selected.includes(t.href)}
             onChange={() => onToggle(t.href)}
-            className="h-3.5 w-3.5 accent-[#4A7348]"
+            className="h-3.5 w-3.5 accent-latte-deep"
           />
           {t.icon} {t.label}
         </label>

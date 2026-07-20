@@ -101,6 +101,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       sent: result.sent,
+      // ลูกค้าที่ยังไม่มีบัญชี LINE จริงผูกอยู่ (สร้างตอน LIFF ยังไม่ตั้งค่า) — ไม่ได้รับข้อความนี้
+      skipped: result.skipped,
       tier: tier === "all" ? "ทุกระดับ" : TIER_LABELS[tier],
       maps: BUSINESS.maps,
     });

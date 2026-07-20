@@ -9,7 +9,7 @@ export function Logo({ size = 48 }: { size?: number }) {
 
   return (
     <div
-      className="overflow-hidden rounded-2xl border border-petflow-line bg-[#fbf3e0] shadow-petflow-sm"
+      className="overflow-hidden rounded-2xl border border-petflow-line bg-cream shadow-petflow-sm"
       style={{ width: size, height: size }}
     >
       <Image

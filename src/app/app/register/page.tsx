@@ -467,7 +467,7 @@ export default function RegisterPage() {
             type="checkbox"
             checked={consent}
             onChange={(e) => setConsent(e.target.checked)}
-            className="mt-0.5 h-4 w-4 flex-none accent-[#4A7348]"
+            className="mt-0.5 h-4 w-4 flex-none accent-latte-deep"
           />
           <span className="text-xs text-brown">
             ยินยอมให้ส่งข่าวสาร โปรโมชั่น และสิทธิพิเศษ

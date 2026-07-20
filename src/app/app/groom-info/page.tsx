@@ -319,7 +319,7 @@ function GroomInfoContent() {
                                     )
                                   )
                                 }
-                                className="h-4 w-4 accent-[#4A7348]"
+                                className="h-4 w-4 accent-latte-deep"
                               />
                               ไม่ทราบน้ำหนัก
                             </label>

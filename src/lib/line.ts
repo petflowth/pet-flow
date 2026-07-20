@@ -58,7 +58,23 @@ function flexDetailRow(icon: string, label: string, value: string) {
   };
 }
 
+/**
+ * LINE userId จริงต้องขึ้นต้น U ตามด้วยเลขฐาน 16 อีก 32 ตัว (เช่น U4af4980629...)
+ * ถ้า LIFF ยังไม่ได้ตั้งค่า ลูกค้าจะถูกสวมบทบาทเป็น "dev-user" (ดู LiffProvider.tsx) —
+ * เช็คตรงนี้ก่อนยิง LINE จะได้ error ที่บอกสาเหตุจริง แทนข้อความดิบจาก LINE API
+ */
+function isRealLineUserId(id: string): boolean {
+  return /^U[0-9a-f]{32}$/i.test(id);
+}
+
+const FAKE_LINE_USER_ID_HINT =
+  "ลูกค้ารายนี้ยังไม่ได้เชื่อมบัญชี LINE จริง (สร้างจากโหมดทดสอบตอน LIFF ยังไม่ตั้งค่า) — " +
+  "ไปที่ Admin → ติดตั้ง → LIFF แล้ววาง LIFF ID ให้ครบก่อน ลูกค้าที่เข้ามาใหม่หลังจากนั้นจะผูก LINE จริง";
+
 export async function pushLineMessage(to: string, messages: object[]) {
+  if (!isRealLineUserId(to)) {
+    throw new Error(FAKE_LINE_USER_ID_HINT);
+  }
   const token = await lineChannelToken();
 
   const res = await fetch("https://api.line.me/v2/bot/message/push", {
@@ -88,14 +104,18 @@ export async function pushLineMessage(to: string, messages: object[]) {
   return { ok: true };
 }
 
-/** ส่งหลายคนพร้อมกัน (สูงสุด 500 ต่อครั้ง) */
+/** ส่งหลายคนพร้อมกัน (สูงสุด 500 ต่อครั้ง)
+ * กรอง lineUserId ปลอม (เช่น "dev-user") ออกก่อน — ไม่งั้น ID เดียวในชุด 500 คน
+ * จะทำให้ทั้งชุดถูก LINE ปฏิเสธ ลูกค้าจริงอีก 499 คนพลอยไม่ได้รับข้อความไปด้วย */
 export async function multicastLineMessage(to: string[], messages: object[]) {
   const token = await lineChannelToken();
-  if (to.length === 0) return { ok: true, sent: 0 };
+  const real = to.filter(isRealLineUserId);
+  const skipped = to.length - real.length;
+  if (real.length === 0) return { ok: true, sent: 0, skipped };
 
   const chunks: string[][] = [];
-  for (let i = 0; i < to.length; i += 500) {
-    chunks.push(to.slice(i, i + 500));
+  for (let i = 0; i < real.length; i += 500) {
+    chunks.push(real.slice(i, i + 500));
   }
 
   let sent = 0;
@@ -114,7 +134,7 @@ export async function multicastLineMessage(to: string[], messages: object[]) {
     }
     sent += batch.length;
   }
-  return { ok: true, sent };
+  return { ok: true, sent, skipped };
 }
 
 export function buildAppointmentConfirmFlex(booking: {

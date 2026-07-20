@@ -299,7 +299,7 @@ export default function ProfilePage() {
 
           {/* ── ยินยอมรับข่าวสาร ── */}
           <label className="mt-4 flex items-start gap-3 rounded-petflow-sm border border-petflow-line bg-card p-3">
-            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-4 w-4 flex-none accent-[#4A7348]" />
+            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-4 w-4 flex-none accent-latte-deep" />
             <span className="text-xs text-brown">ยินยอมให้ส่งข่าวสาร โปรโมชั่น และสิทธิพิเศษ</span>
           </label>
 

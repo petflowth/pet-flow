@@ -250,7 +250,7 @@ export default function ArticlesAdminPage() {
                   type="checkbox"
                   checked={form.published}
                   onChange={(e) => patch({ published: e.target.checked })}
-                  className="h-4 w-4 accent-[#4A7348]"
+                  className="h-4 w-4 accent-latte-deep"
                 />
                 เผยแพร่ (ติ๊กออก = เก็บเป็นฉบับร่าง)
               </label>

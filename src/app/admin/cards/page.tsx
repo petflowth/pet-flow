@@ -1060,7 +1060,7 @@ export default function CardsStudioPage() {
                           type="checkbox"
                           checked={enabled}
                           onChange={(e) => patchGroomField(def.key, { enabled: e.target.checked })}
-                          className="h-4 w-4 accent-[#4A7348]"
+                          className="h-4 w-4 accent-latte-deep"
                         />
                         แสดงคำถามนี้
                       </label>
@@ -1070,7 +1070,7 @@ export default function CardsStudioPage() {
                           checked={required}
                           disabled={!enabled}
                           onChange={(e) => patchGroomField(def.key, { required: e.target.checked })}
-                          className="h-4 w-4 accent-[#4A7348]"
+                          className="h-4 w-4 accent-latte-deep"
                         />
                         บังคับตอบ
                       </label>
@@ -1242,7 +1242,7 @@ export default function CardsStudioPage() {
                       type="checkbox"
                       checked={st.show?.[f.key] !== false}
                       onChange={() => toggleField(f.key)}
-                      className="h-4 w-4 accent-[#4A7348]"
+                      className="h-4 w-4 accent-latte-deep"
                     />
                     {f.label}
                   </label>

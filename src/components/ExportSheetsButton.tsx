@@ -111,7 +111,7 @@ export function ExportSheetsButton({ className = "" }: { className?: string }) {
                   type="checkbox"
                   checked={cols.includes(c.key)}
                   onChange={() => toggle(c.key)}
-                  className="h-3.5 w-3.5 accent-[#4A7348]"
+                  className="h-3.5 w-3.5 accent-latte-deep"
                 />
                 {c.label}
               </label>

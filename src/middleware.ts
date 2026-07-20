@@ -50,7 +50,8 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // ผู้ดูแลระบบ — คนละชั้นสิทธิ์กับ /admin (เจ้าของร้าน/พนักงาน) เลยแยกด่านตรวจ
-  if (pathname.startsWith("/api/platform/")) {
+  // /api/platform/auth ต้องเปิดเสมอ — เป็นทางเข้า (login) เอง เช็ค session ในตัว route แล้ว
+  if (pathname.startsWith("/api/platform/") && pathname !== "/api/platform/auth") {
     const session = await verifyPlatformSession(
       req.cookies.get(PLATFORM_SESSION_COOKIE)?.value
     );

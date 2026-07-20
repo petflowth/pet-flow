@@ -28,6 +28,212 @@ type Order = {
   paidAt?: string;
 };
 
+/** แถวคอร์สที่เปิดขาย — กดแก้ไขแล้วกลายเป็นฟอร์มอินไลน์ (ชื่อ/ครั้ง/ราคา/คำโปรย) */
+function OfferRow({
+  offer,
+  patch,
+  pickImage,
+}: {
+  offer: Offer;
+  patch: (body: Record<string, unknown>, okMsg: string, key: string) => Promise<void>;
+  pickImage: (file: File, onDone: (dataUrl: string) => void) => Promise<void>;
+}) {
+  const o = offer;
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(o.name);
+  const [uses, setUses] = useState(String(o.totalUses));
+  const [price, setPrice] = useState(String(o.price));
+  const [desc, setDesc] = useState(o.description || "");
+  const [saving, setSaving] = useState(false);
+
+  const startEdit = () => {
+    setName(o.name);
+    setUses(String(o.totalUses));
+    setPrice(String(o.price));
+    setDesc(o.description || "");
+    setEditing(true);
+  };
+
+  const save = async () => {
+    if (!name.trim() || Math.round(Number(uses) || 0) <= 0) {
+      toast("กรอกชื่อคอร์สและจำนวนครั้ง", "error");
+      return;
+    }
+    setSaving(true);
+    try {
+      await patch(
+        {
+          action: "update_offer",
+          offerId: o.id,
+          name: name.trim(),
+          totalUses: Math.round(Number(uses) || 0),
+          price: Math.round(Number(price) || 0),
+          description: desc.trim(),
+        },
+        "แก้ไขคอร์สแล้ว ✏️",
+        o.id
+      );
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const field =
+    "w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm";
+
+  if (editing) {
+    return (
+      <li className="rounded-petflow-sm border border-latte/50 bg-paper/70 p-3">
+        <p className="mb-2 text-[11px] font-extrabold text-petflow-chocolate">
+          ✏️ แก้ไขคอร์ส
+        </p>
+        <div className="space-y-2">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="ชื่อคอร์ส"
+            className={field}
+          />
+          <div className="flex gap-2">
+            <input
+              type="number"
+              min={1}
+              value={uses}
+              onChange={(e) => setUses(e.target.value)}
+              placeholder="กี่ครั้ง"
+              className={field}
+            />
+            <input
+              type="number"
+              min={0}
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="ราคา (บาท)"
+              className={field}
+            />
+          </div>
+          <input
+            value={desc}
+            onChange={(e) => setDesc(e.target.value)}
+            placeholder="คำโปรย (ถ้ามี)"
+            className={field}
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="flex-1 rounded-petflow-sm bg-paper py-2 text-xs font-bold text-brown-soft"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={save}
+              className="flex-1 rounded-petflow-sm bg-latte-deep py-2 text-xs font-extrabold text-card disabled:opacity-40"
+            >
+              {saving ? "…" : "💾 บันทึก"}
+            </button>
+          </div>
+        </div>
+      </li>
+    );
+  }
+
+  return (
+    <li
+      className={`rounded-petflow-sm border px-3 py-2 ${
+        o.active
+          ? "border-petflow-line bg-paper/50"
+          : "border-petflow-line bg-paper/30 opacity-60"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 gap-2">
+          <label className="relative h-12 w-12 shrink-0 cursor-pointer overflow-hidden rounded-petflow-sm bg-paper">
+            {o.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={o.imageUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center text-lg">
+                📷
+              </span>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (!f) return;
+                pickImage(f, (dataUrl) =>
+                  patch(
+                    { action: "set_offer_image", offerId: o.id, image: dataUrl },
+                    "เปลี่ยนรูปแล้ว 📷",
+                    o.id
+                  )
+                );
+              }}
+            />
+          </label>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-brown">
+              {o.name} {!o.active && "(ปิดขายอยู่)"}
+            </p>
+            <p className="text-[10px] text-brown-soft">
+              {o.totalUses} ครั้ง · {o.price.toLocaleString()} ฿
+              {o.description ? ` · ${o.description}` : ""}
+            </p>
+            <p className="text-[10px] text-brown-faint">
+              แตะรูปเพื่อ{o.imageUrl ? "เปลี่ยน" : "ใส่"}รูป
+            </p>
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <button
+            type="button"
+            onClick={startEdit}
+            className="text-[10px] font-bold text-latte-deep"
+          >
+            ✏️ แก้ไข
+          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                patch(
+                  { action: "set_offer_active", offerId: o.id, active: !o.active },
+                  o.active ? "ปิดขายแล้ว" : "เปิดขายแล้ว",
+                  o.id
+                )
+              }
+              className="text-[10px] font-bold text-latte-deep"
+            >
+              {o.active ? "ปิดขาย" : "เปิดขาย"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!confirm(`ลบ "${o.name}" ออกจากรายการขาย?`)) return;
+                patch(
+                  { action: "delete_offer", offerId: o.id },
+                  "ลบออกจากรายการขายแล้ว",
+                  o.id
+                );
+              }}
+              className="text-[10px] font-bold text-wait"
+            >
+              🗑️
+            </button>
+          </div>
+        </div>
+      </div>
+    </li>
+  );
+}
+
 /**
  * 🛍️ ขายคอร์สในแอป — ตั้งว่าจะขายอะไร + ยืนยันรับเงินจากออร์เดอร์ที่ลูกค้ากดซื้อ
  * กดยืนยันแล้วระบบจะเพิ่มคอร์สให้ลูกค้า + ลงรายรับให้อัตโนมัติ
@@ -254,92 +460,7 @@ export default function AdminPackagesPage() {
         {offers.length > 0 && (
           <ul className="mb-3 space-y-2">
             {offers.map((o) => (
-              <li
-                key={o.id}
-                className={`rounded-petflow-sm border px-3 py-2 ${
-                  o.active
-                    ? "border-petflow-line bg-paper/50"
-                    : "border-petflow-line bg-paper/30 opacity-60"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex min-w-0 gap-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <label className="relative h-12 w-12 shrink-0 cursor-pointer overflow-hidden rounded-petflow-sm bg-paper">
-                      {o.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={o.imageUrl}
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <span className="flex h-full w-full items-center justify-center text-lg">
-                          📷
-                        </span>
-                      )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          e.target.value = "";
-                          if (!f) return;
-                          pickImage(f, (dataUrl) =>
-                            patch(
-                              { action: "set_offer_image", offerId: o.id, image: dataUrl },
-                              "เปลี่ยนรูปแล้ว 📷",
-                              o.id
-                            )
-                          );
-                        }}
-                      />
-                    </label>
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-brown">
-                        {o.name} {!o.active && "(ปิดขายอยู่)"}
-                      </p>
-                      <p className="text-[10px] text-brown-soft">
-                        {o.totalUses} ครั้ง · {o.price.toLocaleString()} ฿
-                        {o.description ? ` · ${o.description}` : ""}
-                      </p>
-                      <p className="text-[10px] text-brown-faint">
-                        แตะรูปเพื่อ{o.imageUrl ? "เปลี่ยน" : "ใส่"}รูป
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 gap-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        patch(
-                          { action: "set_offer_active", offerId: o.id, active: !o.active },
-                          o.active ? "ปิดขายแล้ว" : "เปิดขายแล้ว",
-                          o.id
-                        )
-                      }
-                      className="text-[10px] font-bold text-latte-deep"
-                    >
-                      {o.active ? "ปิดขาย" : "เปิดขาย"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!confirm(`ลบ "${o.name}" ออกจากรายการขาย?`)) return;
-                        patch(
-                          { action: "delete_offer", offerId: o.id },
-                          "ลบออกจากรายการขายแล้ว",
-                          o.id
-                        );
-                      }}
-                      className="text-[10px] font-bold text-wait"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </div>
-              </li>
+              <OfferRow key={o.id} offer={o} patch={patch} pickImage={pickImage} />
             ))}
           </ul>
         )}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   listPackageOffers,
   createPackageOffer,
+  updatePackageOffer,
   setPackageOfferActive,
   setPackageOfferImage,
   deletePackageOffer,
@@ -206,6 +207,19 @@ export async function PATCH(req: NextRequest) {
 
   if (action === "set_offer_active") {
     await setPackageOfferActive(String(body.offerId || ""), body.active !== false);
+    return NextResponse.json({ ok: true });
+  }
+
+  if (action === "update_offer") {
+    const res = await updatePackageOffer(String(body.offerId || ""), {
+      name: body.name !== undefined ? String(body.name) : undefined,
+      totalUses: body.totalUses !== undefined ? Number(body.totalUses) : undefined,
+      price: body.price !== undefined ? Number(body.price) : undefined,
+      description: body.description !== undefined ? String(body.description) : undefined,
+    });
+    if (!res.ok) {
+      return NextResponse.json({ error: res.error }, { status: 400 });
+    }
     return NextResponse.json({ ok: true });
   }
 

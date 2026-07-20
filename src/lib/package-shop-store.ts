@@ -226,6 +226,41 @@ export async function setPackageOfferImage(id: string, image: string) {
   return { ok: true as const };
 }
 
+/** แก้ไขคอร์สที่เปิดขาย — ชื่อ/จำนวนครั้ง/ราคา/คำโปรย (รูปแยกไปที่ setPackageOfferImage) */
+export async function updatePackageOffer(
+  id: string,
+  data: { name?: string; totalUses?: number; price?: number; description?: string }
+) {
+  const patch: Record<string, unknown> = {};
+  if (data.name !== undefined) {
+    const name = data.name.trim();
+    if (!name) return { ok: false as const, error: "name_required" };
+    patch.name = name;
+  }
+  if (data.totalUses !== undefined) patch.total_uses = Math.max(1, Math.round(data.totalUses) || 0);
+  if (data.price !== undefined) patch.price = Math.max(0, Math.round(data.price) || 0);
+  if (data.description !== undefined) patch.description = data.description.trim() || null;
+  if (Object.keys(patch).length === 0) return { ok: true as const };
+
+  const sb = getSupabase();
+  if (sb) {
+    await sb
+      .from("package_offers")
+      .update(patch)
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
+  } else {
+    const o = memOffers.find((x) => x.id === id);
+    if (o) {
+      if (patch.name !== undefined) o.name = patch.name as string;
+      if (patch.total_uses !== undefined) o.totalUses = patch.total_uses as number;
+      if (patch.price !== undefined) o.price = patch.price as number;
+      if (patch.description !== undefined) o.description = (patch.description as string) || undefined;
+    }
+  }
+  return { ok: true as const };
+}
+
 export async function setPackageOfferActive(id: string, active: boolean) {
   const sb = getSupabase();
   if (sb) {

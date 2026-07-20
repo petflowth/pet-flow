@@ -7,8 +7,11 @@ import { formatBookingWhen, formatThaiDate } from "./format-thai-date";
 import { getLineCredentials } from "./line-config";
 import type { CardStyleConfig } from "./config-types";
 
-const BRAND_GREEN = "#5A8F5A";
-const BRAND_GREEN_DARK = "#4A7348";
+// สีแบรนด์ของการ์ด LINE — เปลี่ยนจากเขียวเดิม (#5A8F5A/#4A7348) มาเป็นโทน CI ของร้าน
+// (plum หัวการ์ด + rose ปุ่ม) ให้เข้ากับหน้าแอป · ร้านที่อยากได้สีอื่นตั้ง headerColor/buttonColor
+// รายใบได้ในหน้า "ปรับแต่งการ์ด LINE"
+const BRAND_HEADER = "#6e2f48"; // แถบหัวการ์ด (ตัวอักษรขาวอ่านชัด)
+const BRAND_ACTION = "#bd3a6a"; // ปุ่ม/ตัวเลขเด่น
 
 async function lineChannelToken() {
   const creds = await getLineCredentials();
@@ -190,7 +193,7 @@ export function buildAppointmentConfirmFlex(booking: {
       header: {
         type: "box",
         layout: "vertical",
-        backgroundColor: st.headerColor || BRAND_GREEN,
+        backgroundColor: st.headerColor || BRAND_HEADER,
         paddingAll: "16px",
         contents: [
           {
@@ -290,7 +293,7 @@ export function buildAppointmentConfirmFlex(booking: {
           {
             type: "button",
             style: "primary",
-            color: st.buttonColor || BRAND_GREEN_DARK,
+            color: st.buttonColor || BRAND_ACTION,
             height: "sm",
             action: {
               type: "uri",
@@ -393,7 +396,7 @@ export function buildConsentFlex(data: {
       header: {
         type: "box",
         layout: "vertical",
-        backgroundColor: BRAND_GREEN,
+        backgroundColor: BRAND_HEADER,
         paddingAll: "16px",
         contents: [
           {
@@ -419,7 +422,7 @@ export function buildConsentFlex(data: {
           {
             type: "button",
             style: "primary",
-            color: BRAND_GREEN_DARK,
+            color: BRAND_ACTION,
             height: "sm",
             action: {
               type: "uri",
@@ -472,7 +475,7 @@ export function buildPromoFlex(data: {
     : {
         type: "box" as const,
         layout: "vertical" as const,
-        backgroundColor: style?.headerColor || BRAND_GREEN,
+        backgroundColor: style?.headerColor || BRAND_HEADER,
         paddingAll: "20px",
         contents: [
           {
@@ -512,7 +515,7 @@ export function buildPromoFlex(data: {
                   type: "text" as const,
                   text: data.discountLabel,
                   size: "sm" as const,
-                  color: style?.buttonColor || BRAND_GREEN_DARK,
+                  color: style?.buttonColor || BRAND_ACTION,
                   weight: "bold" as const,
                   margin: "md" as const,
                 },
@@ -550,7 +553,7 @@ export function buildPromoFlex(data: {
         ).map((btn, i) => ({
           type: "button" as const,
           style: (i === 0 ? "primary" : "secondary") as "primary" | "secondary",
-          color: i === 0 ? style?.buttonColor || BRAND_GREEN_DARK : undefined,
+          color: i === 0 ? style?.buttonColor || BRAND_ACTION : undefined,
           height: "sm" as const,
           action: {
             type: "uri" as const,
@@ -1274,7 +1277,7 @@ export function buildPrestayFlex(data: {
     header: {
       type: "box",
       layout: "vertical",
-      backgroundColor: style?.headerColor || BRAND_GREEN,
+      backgroundColor: style?.headerColor || BRAND_HEADER,
       paddingAll: "16px",
       contents: [
         {
@@ -1304,7 +1307,7 @@ export function buildPrestayFlex(data: {
         {
           type: "button",
           style: "primary",
-          color: style?.buttonColor || BRAND_GREEN_DARK,
+          color: style?.buttonColor || BRAND_ACTION,
           height: "sm",
           action: {
             type: "uri",
@@ -1355,7 +1358,7 @@ export function buildTimePickerFlex(data: {
     header: {
       type: "box",
       layout: "vertical",
-      backgroundColor: style?.headerColor || BRAND_GREEN,
+      backgroundColor: style?.headerColor || BRAND_HEADER,
       paddingAll: "16px",
       contents: [
         {
@@ -1384,7 +1387,7 @@ export function buildTimePickerFlex(data: {
         {
           type: "button",
           style: "primary",
-          color: style?.buttonColor || BRAND_GREEN_DARK,
+          color: style?.buttonColor || BRAND_ACTION,
           height: "sm",
           action: {
             type: "uri",
@@ -1451,7 +1454,7 @@ export function buildGroomInfoFlex(data: {
     header: {
       type: "box",
       layout: "vertical",
-      backgroundColor: st.headerColor || BRAND_GREEN,
+      backgroundColor: st.headerColor || BRAND_HEADER,
       paddingAll: "16px",
       contents: [
         {
@@ -1474,7 +1477,7 @@ export function buildGroomInfoFlex(data: {
         {
           type: "button",
           style: "primary",
-          color: st.buttonColor || BRAND_GREEN_DARK,
+          color: st.buttonColor || BRAND_ACTION,
           height: "sm",
           action: {
             type: "uri",
@@ -1837,7 +1840,7 @@ export function buildCouponOfferFlex(data: {
       header: {
         type: "box",
         layout: "vertical",
-        backgroundColor: style?.headerColor || BRAND_GREEN,
+        backgroundColor: style?.headerColor || BRAND_HEADER,
         paddingAll: "16px",
         contents: [
           {
@@ -1914,7 +1917,7 @@ export function buildCouponOfferFlex(data: {
           {
             type: "button",
             style: "primary",
-            color: style?.buttonColor || BRAND_GREEN_DARK,
+            color: style?.buttonColor || BRAND_ACTION,
             height: "sm",
             action: {
               type: "uri",

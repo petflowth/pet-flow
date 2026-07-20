@@ -28,9 +28,10 @@ export function BrandingStyle() {
     "--card-rgb": hexToRgbTriplet(b.surface),
     "--line-rgb": hexToRgbTriplet(darkenHex(b.background, 0.08)),
     // ตัวอักษร — มาจากสีตัวอักษรหลัก, ไล่อ่อนลงให้ soft/faint
+    // อ่อนแค่พอให้เห็นลำดับความสำคัญ แต่ยังอ่านออกชัด (เดิม -0.35/-0.55 อ่อนจนคอนทราสต์ตกเหลือ ~2-3:1)
     "--brown-rgb": hexToRgbTriplet(b.text),
-    "--brown-soft-rgb": hexToRgbTriplet(darkenHex(b.text, -0.35)),
-    "--brown-faint-rgb": hexToRgbTriplet(darkenHex(b.text, -0.55)),
+    "--brown-soft-rgb": hexToRgbTriplet(darkenHex(b.text, -0.13)),
+    "--brown-faint-rgb": hexToRgbTriplet(darkenHex(b.text, -0.22)),
   };
 
   // พื้นหลังไล่เฉด — เปิดใช้ก็ต่อเมื่อตั้งครบทั้งจุดเริ่ม/จุดจบ, ไม่งั้นใช้สีพื้นหลังทึบตามปกติ

@@ -55,10 +55,10 @@ const CARDS: CardMeta[] = [
     name: "📅 ยืนยันนัด",
     desc: "ส่งให้ลูกค้ากดยืนยันนัดหมาย",
     colors: [
-      { key: "headerColor", label: "สีแถบหัว", fallback: "#5A8F5A" },
+      { key: "headerColor", label: "สีแถบหัว", fallback: "#6e2f48" },
       { key: "headerTextColor", label: "สีตัวหนังสือหัว", fallback: "#FFFFFF" },
       { key: "accentColor", label: "สีชื่อบริการ", fallback: "#5C4033" },
-      { key: "buttonColor", label: "สีปุ่มยืนยัน", fallback: "#4A7348" },
+      { key: "buttonColor", label: "สีปุ่มยืนยัน", fallback: "#bd3a6a" },
     ],
     fields: [
       { key: "location", label: "📍 สถานที่ร้าน" },
@@ -92,7 +92,7 @@ const CARDS: CardMeta[] = [
     colors: [
       { key: "headerColor", label: "สีหัวข้อ", fallback: "#5C4033" },
       { key: "accentColor", label: "สียอดสุทธิ", fallback: "#C4956A" },
-      { key: "buttonColor", label: "สีปุ่มคัดลอกบัญชี", fallback: "#4A7348" },
+      { key: "buttonColor", label: "สีปุ่มคัดลอกบัญชี", fallback: "#bd3a6a" },
     ],
     fields: [
       { key: "schedule", label: "🗓️ วัน-เวลานัด" },
@@ -115,7 +115,7 @@ const CARDS: CardMeta[] = [
     colors: [
       { key: "headerColor", label: "สีหัวข้อ", fallback: "#5C4033" },
       { key: "accentColor", label: "สียอดมัดจำ", fallback: "#C4956A" },
-      { key: "buttonColor", label: "สีปุ่มคัดลอกบัญชี", fallback: "#4A7348" },
+      { key: "buttonColor", label: "สีปุ่มคัดลอกบัญชี", fallback: "#bd3a6a" },
     ],
     fields: [
       { key: "note", label: "📝 โน้ตเพิ่มเติม" },
@@ -140,7 +140,7 @@ const CARDS: CardMeta[] = [
     colors: [
       { key: "headerColor", label: "สีแถบหัว", fallback: "#C4956A" },
       { key: "headerTextColor", label: "สีตัวหนังสือหัว", fallback: "#FFFFFF" },
-      { key: "accentColor", label: "สียอดที่ชำระ", fallback: "#4A7348" },
+      { key: "accentColor", label: "สียอดที่ชำระ", fallback: "#bd3a6a" },
     ],
     fields: [
       { key: "invoiceNo", label: "🔖 เลขที่บิล" },
@@ -179,10 +179,10 @@ const CARDS: CardMeta[] = [
     name: "🩺 สอบถามประวัติก่อนอาบน้ำ",
     desc: "การ์ดลิงก์ให้ลูกค้ากรอกประวัติน้อง",
     colors: [
-      { key: "headerColor", label: "สีแถบหัว", fallback: "#5A8F5A" },
+      { key: "headerColor", label: "สีแถบหัว", fallback: "#6e2f48" },
       { key: "headerTextColor", label: "สีตัวหนังสือหัว", fallback: "#FFFFFF" },
       { key: "accentColor", label: "สีชื่อน้อง", fallback: "#5C4033" },
-      { key: "buttonColor", label: "สีปุ่มแจ้งประวัติ", fallback: "#4A7348" },
+      { key: "buttonColor", label: "สีปุ่มแจ้งประวัติ", fallback: "#bd3a6a" },
     ],
     fields: [{ key: "date", label: "📅 วันเวลานัด" }],
     texts: [
@@ -201,10 +201,10 @@ const CARDS: CardMeta[] = [
     name: "🏠 เตรียมตัวก่อนเข้าพัก",
     desc: "การ์ดใหญ่ก่อนวันเข้าพัก — วันที่ ห้อง ของที่ต้องเตรียม + ปุ่มเซ็นข้อตกลง",
     colors: [
-      { key: "headerColor", label: "สีแถบหัว", fallback: "#5A8F5A" },
+      { key: "headerColor", label: "สีแถบหัว", fallback: "#6e2f48" },
       { key: "headerTextColor", label: "สีตัวหนังสือหัว", fallback: "#FFFFFF" },
       { key: "accentColor", label: "สีชื่อน้อง", fallback: "#5C4033" },
-      { key: "buttonColor", label: "สีปุ่มยืนยันเข้าพัก", fallback: "#4A7348" },
+      { key: "buttonColor", label: "สีปุ่มยืนยันเข้าพัก", fallback: "#bd3a6a" },
     ],
     fields: [
       { key: "dates", label: "📅 กล่องวันเข้าพัก" },
@@ -233,9 +233,9 @@ const CARDS: CardMeta[] = [
     name: "🕒 เลือกเวลาเช็คอิน / เช็คเอาท์",
     desc: "การ์ดให้ลูกค้ากดเลือกเวลามาส่ง-รับน้อง",
     colors: [
-      { key: "headerColor", label: "สีแถบหัว", fallback: "#5A8F5A" },
+      { key: "headerColor", label: "สีแถบหัว", fallback: "#6e2f48" },
       { key: "headerTextColor", label: "สีตัวหนังสือหัว", fallback: "#FFFFFF" },
-      { key: "buttonColor", label: "สีปุ่มเลือกเวลา", fallback: "#4A7348" },
+      { key: "buttonColor", label: "สีปุ่มเลือกเวลา", fallback: "#bd3a6a" },
     ],
     fields: [],
     texts: [],
@@ -251,7 +251,7 @@ const CARDS: CardMeta[] = [
     desc: "ส่งหลังรับเงินมัดจำ — ยืนยันยอด + เงื่อนไขมัดจำ",
     colors: [
       { key: "headerColor", label: "สีหัวข้อ", fallback: "#5C4033" },
-      { key: "accentColor", label: "สียอดมัดจำ", fallback: "#4A7348" },
+      { key: "accentColor", label: "สียอดมัดจำ", fallback: "#bd3a6a" },
     ],
     fields: [
       { key: "percent", label: "🔢 บรรทัดบอกเปอร์เซ็นต์" },
@@ -293,7 +293,7 @@ const CARDS: CardMeta[] = [
     colors: [
       { key: "headerColor", label: "สีหัวข้อ", fallback: "#5C4033" },
       { key: "accentColor", label: "สียอดรวม", fallback: "#C4956A" },
-      { key: "buttonColor", label: "สีปุ่มคัดลอกบัญชี", fallback: "#4A7348" },
+      { key: "buttonColor", label: "สีปุ่มคัดลอกบัญชี", fallback: "#bd3a6a" },
     ],
     fields: [
       { key: "items", label: "🧾 รายการสินค้า/บริการ" },
@@ -309,10 +309,10 @@ const CARDS: CardMeta[] = [
     name: "🎟️ คูปองส่วนลด",
     desc: "ยิงแคมเปญคูปองให้ลูกค้ากดรับ",
     colors: [
-      { key: "headerColor", label: "สีแถบหัว", fallback: "#5A8F5A" },
+      { key: "headerColor", label: "สีแถบหัว", fallback: "#6e2f48" },
       { key: "headerTextColor", label: "สีตัวหนังสือหัว", fallback: "#FFFFFF" },
       { key: "accentColor", label: "สีตัวเลขส่วนลด", fallback: "#C4956A" },
-      { key: "buttonColor", label: "สีปุ่มกดรับคูปอง", fallback: "#4A7348" },
+      { key: "buttonColor", label: "สีปุ่มกดรับคูปอง", fallback: "#bd3a6a" },
     ],
     fields: [],
     texts: [],
@@ -328,10 +328,10 @@ const CARDS: CardMeta[] = [
     name: "✨ โปรโมชั่น (บรอดแคสต์)",
     desc: "การ์ดโปรที่ยิงหาลูกค้าหลายคนพร้อมกัน",
     colors: [
-      { key: "headerColor", label: "สีแถบหัว (เมื่อไม่ใส่รูป)", fallback: "#5A8F5A" },
+      { key: "headerColor", label: "สีแถบหัว (เมื่อไม่ใส่รูป)", fallback: "#6e2f48" },
       { key: "headerTextColor", label: "สีตัวหนังสือหัว", fallback: "#FFFFFF" },
       { key: "accentColor", label: "สีหัวข้อโปร", fallback: "#5C4033" },
-      { key: "buttonColor", label: "สีปุ่มหลัก", fallback: "#4A7348" },
+      { key: "buttonColor", label: "สีปุ่มหลัก", fallback: "#bd3a6a" },
     ],
     fields: [],
     texts: [],
@@ -365,7 +365,7 @@ const CARDS: CardMeta[] = [
 ];
 
 const SWATCHES = [
-  "#5A8F5A", "#4A7348", "#C4956A", "#5C4033", "#B4553B", "#3E6990",
+  "#6e2f48", "#bd3a6a", "#C4956A", "#5C4033", "#B4553B", "#3E6990",
 ];
 
 const BRAND_FALLBACK = { primary: "#a9855f", accent: "#ebc583", heading: "#5c4033" };
@@ -462,7 +462,7 @@ function Preview({
           </button>
         </div>
         <div className={bubble}>
-          <div className="px-4 py-3" style={{ background: c("headerColor", "#5A8F5A") }}>
+          <div className="px-4 py-3" style={{ background: c("headerColor", "#6e2f48") }}>
             <p className="text-xs font-extrabold" style={{ color: c("headerTextColor", "#FFFFFF") }}>📅 กำหนดการนัด</p>
           </div>
           <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
@@ -500,7 +500,7 @@ function Preview({
               </p>
             )}
           </div>
-          {btn(c("buttonColor", "#4A7348"), "🐾 ยืนยันนัด")}
+          {btn(c("buttonColor", "#bd3a6a"), "🐾 ยืนยันนัด")}
           {show("map") && <p className="pb-3 text-center text-[10px] font-bold text-[#3E6990]">🗺️ ดูแผนที่ / เส้นทาง</p>}
         </div>
       </div>
@@ -530,7 +530,7 @@ function Preview({
           {show("bank") && (
             <div className="rounded-lg bg-[#F4ECE0] px-2.5 py-2">
               <p className="font-extrabold">กรุงไทย</p>
-              <p className="text-sm font-extrabold text-[#4A7348]">664-4-43446-0</p>
+              <p className="text-sm font-extrabold text-[#bd3a6a]">664-4-43446-0</p>
               <p className="text-[10px] text-[#A2907E]">ชื่อบัญชี: PetFlow</p>
             </div>
           )}
@@ -538,7 +538,7 @@ function Preview({
             <p className="text-[10px] text-[#A2907E]">{st.closing || texts.summaryClosing || "โอนแล้วแจ้งสลิปได้เลยนะคะ 🧡"}</p>
           )}
         </div>
-        {show("bank") && btn(c("buttonColor", "#4A7348"), "📋 คัดลอกเลขบัญชี")}
+        {show("bank") && btn(c("buttonColor", "#bd3a6a"), "📋 คัดลอกเลขบัญชี")}
       </div>
     );
   }
@@ -563,12 +563,12 @@ function Preview({
           {show("bank") && (
             <div className="rounded-lg bg-[#F4ECE0] px-2.5 py-2">
               <p className="font-extrabold">กรุงไทย</p>
-              <p className="text-sm font-extrabold text-[#4A7348]">664-4-43446-0</p>
+              <p className="text-sm font-extrabold text-[#bd3a6a]">664-4-43446-0</p>
             </div>
           )}
           {st.closing && <p className="text-[10px] text-[#A2907E]">{st.closing}</p>}
         </div>
-        {btn(c("buttonColor", "#4A7348"), "📋 คัดลอกเลขบัญชี")}
+        {btn(c("buttonColor", "#bd3a6a"), "📋 คัดลอกเลขบัญชี")}
       </div>
     );
   }
@@ -585,7 +585,7 @@ function Preview({
           {show("invoiceNo") && <p>🔖 <b>เลขที่</b> — INV1784047676893</p>}
           <div className="rounded-xl bg-[#FBF4E9] px-3 py-3 text-center">
             <p className="text-[10px] text-[#A2907E]">ชำระแล้ว</p>
-            <p className="text-2xl font-extrabold" style={{ color: c("accentColor", "#4A7348") }}>855 บาท</p>
+            <p className="text-2xl font-extrabold" style={{ color: c("accentColor", "#bd3a6a") }}>855 บาท</p>
           </div>
           {show("points") && (
             <div className="flex justify-between rounded-lg bg-[#F4ECE0] px-2.5 py-2">
@@ -642,7 +642,7 @@ function Preview({
             )}
           </div>
         </div>
-        {btn("#4A7348", "📋 อ่าน + เซ็นยอมรับข้อตกลง")}
+        {btn("#bd3a6a", "📋 อ่าน + เซ็นยอมรับข้อตกลง")}
       </div>
     );
   }
@@ -650,7 +650,7 @@ function Preview({
   if (meta.key === "prestay") {
     return (
       <div className={bubble}>
-        <div className="px-4 py-3" style={{ background: c("headerColor", "#5A8F5A") }}>
+        <div className="px-4 py-3" style={{ background: c("headerColor", "#6e2f48") }}>
           <p className="text-xs font-extrabold" style={{ color: c("headerTextColor", "#FFFFFF") }}>
             {t("header", "🏠 เตรียมตัวก่อนเข้าพัก")}
           </p>
@@ -662,7 +662,7 @@ function Preview({
           {(show("dates") || show("room")) && (
             <div className="space-y-1.5 rounded-xl bg-[#F4ECE0] px-3 py-2.5">
               {show("dates") && (
-                <p>📅 <span className="text-[9px] text-[#9B8B7E]">วันเข้าพัก</span> <b className="text-[#4A7348]">20 → 26 ก.ค. 2569</b></p>
+                <p>📅 <span className="text-[9px] text-[#9B8B7E]">วันเข้าพัก</span> <b className="text-[#bd3a6a]">20 → 26 ก.ค. 2569</b></p>
               )}
               {show("room") && (
                 <p>🏠 <span className="text-[9px] text-[#9B8B7E]">ห้องพัก</span> <b>Mid Cozy</b></p>
@@ -696,7 +696,7 @@ function Preview({
           )}
           {st.closing && <p className="text-[10px] text-[#A2907E]">{st.closing}</p>}
         </div>
-        {btn(c("buttonColor", "#4A7348"), "🧡 อ่านรายละเอียด & ยืนยันการเข้าพัก")}
+        {btn(c("buttonColor", "#bd3a6a"), "🧡 อ่านรายละเอียด & ยืนยันการเข้าพัก")}
       </div>
     );
   }
@@ -704,14 +704,14 @@ function Preview({
   if (meta.key === "timePicker") {
     return (
       <div className={bubble}>
-        <div className="px-4 py-3" style={{ background: c("headerColor", "#5A8F5A") }}>
+        <div className="px-4 py-3" style={{ background: c("headerColor", "#6e2f48") }}>
           <p className={`${titleCls} font-extrabold`} style={{ color: c("headerTextColor", "#FFFFFF") }}>🕒 เลือกเวลาเข้าพัก</p>
         </div>
         <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
           <p>น้องเรเนลเข้าพัก 20 ก.ค. นะคะ 🐾{"\n"}รบกวนเลือกเวลาที่สะดวกมาส่งน้องด้วยค่ะ</p>
           {st.closing && <p className="text-[10px] text-[#A2907E]">{st.closing}</p>}
         </div>
-        {btn(c("buttonColor", "#4A7348"), t("button", "🕒 เลือกเวลาส่งน้อง"))}
+        {btn(c("buttonColor", "#bd3a6a"), t("button", "🕒 เลือกเวลาส่งน้อง"))}
       </div>
     );
   }
@@ -727,7 +727,7 @@ function Preview({
           <div className="space-y-1 rounded-lg bg-[#F4ECE0] px-2.5 py-2">
             <div className="flex justify-between">
               <span>{t("amountLabel", "มัดจำที่รับ")}</span>
-              <b className="text-sm" style={{ color: c("accentColor", "#4A7348") }}>200 บาท</b>
+              <b className="text-sm" style={{ color: c("accentColor", "#bd3a6a") }}>200 บาท</b>
             </div>
             {show("percent") && <p className="text-right text-[9px] text-[#A2907E]">(30% ของยอดรวม)</p>}
             {show("note") && <p className="text-[10px] text-[#A2907E]">จองคิววันเสาร์</p>}
@@ -782,13 +782,13 @@ function Preview({
           {show("bank") && (
             <div className="rounded-lg bg-[#F4ECE0] px-2.5 py-2">
               <p className="font-extrabold">กรุงไทย</p>
-              <p className="text-sm font-extrabold text-[#4A7348]">664-4-43446-0</p>
+              <p className="text-sm font-extrabold text-[#bd3a6a]">664-4-43446-0</p>
               <p className="text-[10px] text-[#A2907E]">ชื่อบัญชี: PetFlow</p>
             </div>
           )}
           {st.closing && <p className="text-[10px] text-[#A2907E]">{st.closing}</p>}
         </div>
-        {show("bank") && btn(c("buttonColor", "#4A7348"), "📋 คัดลอกเลขบัญชี")}
+        {show("bank") && btn(c("buttonColor", "#bd3a6a"), "📋 คัดลอกเลขบัญชี")}
       </div>
     );
   }
@@ -796,7 +796,7 @@ function Preview({
   if (meta.key === "coupon") {
     return (
       <div className={bubble}>
-        <div className="px-4 py-3" style={{ background: c("headerColor", "#5A8F5A") }}>
+        <div className="px-4 py-3" style={{ background: c("headerColor", "#6e2f48") }}>
           <p className="text-xs font-extrabold" style={{ color: c("headerTextColor", "#FFFFFF") }}>
             {t("header", "🎟️ คูปองส่วนลดพิเศษ")}
           </p>
@@ -811,7 +811,7 @@ function Preview({
             {st.closing || "กดรับแล้วเก็บไว้ในกระเป๋าคูปอง ใช้เป็นส่วนลดได้เลย"} (ใช้ได้ 30 วัน) 🧡
           </p>
         </div>
-        {btn(c("buttonColor", "#4A7348"), t("button", "🎟️ กดรับคูปอง"))}
+        {btn(c("buttonColor", "#bd3a6a"), t("button", "🎟️ กดรับคูปอง"))}
       </div>
     );
   }
@@ -819,7 +819,7 @@ function Preview({
   if (meta.key === "promo") {
     return (
       <div className={bubble}>
-        <div className="px-4 py-5" style={{ background: c("headerColor", "#5A8F5A") }}>
+        <div className="px-4 py-5" style={{ background: c("headerColor", "#6e2f48") }}>
           <p className="text-sm font-extrabold" style={{ color: c("headerTextColor", "#FFFFFF") }}>
             {t("header", "✨ โปรโมชั่น PetFlow")}
           </p>
@@ -827,11 +827,11 @@ function Preview({
         </div>
         <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
           <p className={`${titleCls} font-extrabold`} style={{ color: c("accentColor", "#5C4033") }}>โปรเดือนกรกฎา อาบน้ำลด 15%</p>
-          <p className="text-[10px] font-extrabold" style={{ color: c("buttonColor", "#4A7348") }}>ลด 15%</p>
+          <p className="text-[10px] font-extrabold" style={{ color: c("buttonColor", "#bd3a6a") }}>ลด 15%</p>
           <p>จองคิวภายในสิ้นเดือนนี้ รับส่วนลดทันทีนะคะ 🐾</p>
           {st.closing && <p className="text-[10px] text-[#A2907E]">{st.closing}</p>}
         </div>
-        {btn(c("buttonColor", "#4A7348"), "ดูรายละเอียด")}
+        {btn(c("buttonColor", "#bd3a6a"), "ดูรายละเอียด")}
       </div>
     );
   }
@@ -839,7 +839,7 @@ function Preview({
   // groomInfo
   return (
     <div className={bubble}>
-      <div className="px-4 py-3" style={{ background: c("headerColor", "#5A8F5A") }}>
+      <div className="px-4 py-3" style={{ background: c("headerColor", "#6e2f48") }}>
         <p className="text-xs font-extrabold" style={{ color: c("headerTextColor", "#FFFFFF") }}>🩺 ประวัติน้องก่อนอาบน้ำ</p>
       </div>
       <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
@@ -851,7 +851,7 @@ function Preview({
         </p>
         {st.closing && <p className="text-[10px] text-[#A2907E]">{st.closing}</p>}
       </div>
-      {btn(c("buttonColor", "#4A7348"), "🩺 แจ้งประวัติน้อง")}
+      {btn(c("buttonColor", "#bd3a6a"), "🩺 แจ้งประวัติน้อง")}
     </div>
   );
 }

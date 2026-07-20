@@ -189,6 +189,10 @@ export type SiteConfig = {
   groomSlotCapacity?: Record<string, number>;
   /** จำนวนคิวเริ่มต้นต่อสล็อต เมื่อไม่ได้ตั้งไว้ใน groomSlotCapacity */
   groomSlotDefaultCapacity?: number;
+  /** วันหยุดประจำสัปดาห์ (0=อาทิตย์ … 6=เสาร์) — ลูกค้าจองคิวเอง/ห้องพักเองในวันนี้ไม่ได้ */
+  closedWeekdays?: number[];
+  /** วันหยุดเฉพาะวัน (ปีใหม่, ปิดพักร้อน ฯลฯ) — เพิ่ม/ลบได้ในหลังบ้าน */
+  closedDates?: { date: string; note?: string }[];
   transport: LocalizedLines;
   pointsRewards: PointsRewardConfig[];
   grooming: GroomingConfig;

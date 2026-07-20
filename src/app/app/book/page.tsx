@@ -10,7 +10,7 @@ import { SELF_BOOKABLE_ROOM_IDS } from "@/lib/self-bookable-rooms";
 type Service = "groom" | "room";
 
 type GroomSlot = { time: string; capacity: number; booked: number; remaining: number };
-type RoomAvail = { capacity: number; booked: number; remaining: number } | null;
+type RoomAvail = { capacity: number; booked: number; remaining: number; closed: boolean } | null;
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -50,6 +50,7 @@ function BookPageInner() {
   // groom state
   const [date, setDate] = useState(todayISO());
   const [slots, setSlots] = useState<GroomSlot[] | null>(null);
+  const [groomClosed, setGroomClosed] = useState(false);
   const [time, setTime] = useState("");
   const [loadingSlots, setLoadingSlots] = useState(false);
 
@@ -85,7 +86,9 @@ function BookPageInner() {
     fetch(`/api/bookings/availability?service=groom&date=${date}`)
       .then((r) => r.json())
       .then((d) => {
-        if (alive) setSlots(d.slots || []);
+        if (!alive) return;
+        setSlots(d.slots || []);
+        setGroomClosed(Boolean(d.closed));
       })
       .catch(() => alive && setSlots([]))
       .finally(() => alive && setLoadingSlots(false));
@@ -150,6 +153,8 @@ function BookPageInner() {
         setDone({ service });
       } else if (d.error === "slot_full" || d.error === "room_full") {
         setSubmitErr("ช่วงนี้เต็มไปแล้วพอดี ลองเลือกวัน/เวลาอื่นนะคะ");
+      } else if (d.error === "shop_closed") {
+        setSubmitErr("ร้านปิดวันที่เลือกไว้พอดี ลองเลือกวันอื่นนะคะ");
       } else {
         setSubmitErr("จองไม่สำเร็จ — ลองใหม่อีกครั้ง");
       }
@@ -253,6 +258,10 @@ function BookPageInner() {
                 <p className="mb-2 text-xs font-bold text-brown-soft">🕒 เลือกเวลา</p>
                 {loadingSlots ? (
                   <p className="text-xs text-brown-faint">กำลังเช็คความว่าง…</p>
+                ) : groomClosed ? (
+                  <p className="rounded-petflow-sm bg-wait/10 px-3 py-2.5 text-xs font-bold text-wait">
+                    ร้านปิดวันนี้ค่ะ — ลองเลือกวันอื่นนะคะ
+                  </p>
                 ) : (
                   <div className="grid grid-cols-3 gap-2">
                     {(slots || []).map((s) => {
@@ -346,7 +355,9 @@ function BookPageInner() {
                   >
                     {roomAvail.remaining > 0
                       ? `✅ ว่าง ${roomAvail.remaining} ห้อง`
-                      : "เต็มแล้วช่วงนี้ — ลองเปลี่ยนวันดูนะคะ"}
+                      : roomAvail.closed
+                        ? "ร้านปิดวันเช็คอิน/เช็คเอาท์ที่เลือกไว้ — ลองเปลี่ยนวันดูนะคะ"
+                        : "เต็มแล้วช่วงนี้ — ลองเปลี่ยนวันดูนะคะ"}
                   </p>
                 ) : null}
               </>

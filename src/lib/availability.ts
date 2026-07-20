@@ -1,6 +1,17 @@
 import { getSiteConfig } from "./config-store";
+import type { SiteConfig } from "./config-types";
 import { listBookings } from "./bookings-store";
 import { SELF_BOOKABLE_ROOM_INVENTORY_KEY } from "./self-bookable-rooms";
+
+/**
+ * ร้านปิดในวันที่ระบุไหม (วันหยุดประจำสัปดาห์ หรือวันหยุดเฉพาะวันที่ตั้งไว้ในหลังบ้าน)
+ * ใช้เช็คก่อนให้ลูกค้าจองคิว/ห้องพักเอง — ห้องพักที่เข้าพักอยู่แล้วไม่กระทบ (แค่ปิดรับจอง/เช็คอินใหม่วันนั้น)
+ */
+export function isShopClosedOn(config: SiteConfig, dateISO: string): boolean {
+  const weekday = new Date(`${dateISO}T00:00:00`).getDay();
+  if (config.closedWeekdays?.includes(weekday)) return true;
+  return Boolean(config.closedDates?.some((d) => d.date === dateISO));
+}
 
 export type GroomSlotAvailability = {
   time: string;
@@ -14,10 +25,13 @@ export type GroomSlotAvailability = {
  * ใช้ listBookings() แทนการยิง query เอง — ให้เดินทางเดียวกับที่อื่นในระบบ (ทำงานได้ทั้งโหมด
  * Supabase จริงและโหมด in-memory ตอน dev โดยไม่ต้องเขียน fallback ซ้ำสองที่)
  */
-export async function getGroomAvailability(date: string): Promise<GroomSlotAvailability[]> {
+export async function getGroomAvailability(
+  date: string
+): Promise<{ closed: boolean; slots: GroomSlotAvailability[] }> {
   const config = await getSiteConfig();
   const slots = config.groomSlots || [];
   const defaultCap = config.groomSlotDefaultCapacity ?? 1;
+  const closed = isShopClosedOn(config, date);
 
   const all = await listBookings();
   const bookedByTime = new Map<string, number>();
@@ -26,14 +40,23 @@ export async function getGroomAvailability(date: string): Promise<GroomSlotAvail
     bookedByTime.set(b.time, (bookedByTime.get(b.time) || 0) + 1);
   }
 
-  return slots.map((time) => {
-    const capacity = config.groomSlotCapacity?.[time] ?? defaultCap;
-    const booked = bookedByTime.get(time) || 0;
-    return { time, capacity, booked, remaining: Math.max(0, capacity - booked) };
-  });
+  return {
+    closed,
+    slots: slots.map((time) => {
+      const capacity = config.groomSlotCapacity?.[time] ?? defaultCap;
+      const booked = bookedByTime.get(time) || 0;
+      // วันปิด = จองไม่ได้เลย ไม่ว่าจะเหลือคิวตามตัวเลขจริงเท่าไหร่
+      return { time, capacity, booked, remaining: closed ? 0 : Math.max(0, capacity - booked) };
+    }),
+  };
 }
 
-export type RoomAvailability = { capacity: number; booked: number; remaining: number };
+export type RoomAvailability = {
+  capacity: number;
+  booked: number;
+  remaining: number;
+  closed: boolean;
+};
 
 /**
  * ความว่างของห้องประเภทหนึ่งในช่วงวันที่ที่ขอ (checkout ไม่นับเป็นคืนที่พัก)
@@ -50,6 +73,9 @@ export async function getRoomAvailability(
   // ใช้จำนวนห้องจริงของร้านนี้ (ตั้งได้ในหลังบ้าน) ไม่ใช่ค่าเริ่มต้นของ CatCha —
   // ไม่งั้นร้านที่มีจำนวนห้องต่างจากค่าเริ่มต้นจะเช็คความว่างผิด เสี่ยง overbook หรือปิดขายทั้งที่ห้องว่าง
   const capacity = config.roomInventory?.[invKey] ?? 0;
+  // แมวที่เข้าพักอยู่แล้วไม่กระทบวันปิด — แค่ปิดรับเช็คอิน/เช็คเอาท์ใหม่ในวันนั้น
+  // (พนักงานยังดูแลน้องตามปกติ แค่ไม่มีใครอยู่หน้าร้านรับ-ส่งของใหม่)
+  const closed = isShopClosedOn(config, checkin) || isShopClosedOn(config, checkout);
 
   const all = await listBookings();
   const booked = all.filter(
@@ -62,5 +88,10 @@ export async function getRoomAvailability(
       b.checkin < checkout &&
       b.checkout > checkin
   ).length;
-  return { capacity, booked, remaining: Math.max(0, capacity - booked) };
+  return {
+    capacity,
+    booked,
+    remaining: closed ? 0 : Math.max(0, capacity - booked),
+    closed,
+  };
 }

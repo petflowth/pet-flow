@@ -35,6 +35,9 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "advanced", label: "ขั้นสูง", icon: "⚙️" },
 ];
 
+// index ต้องตรงกับ Date.prototype.getDay() (0=อาทิตย์ … 6=เสาร์) — ใช้เทียบกับ config.closedWeekdays
+const WEEKDAY_LABELS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+
 export default function SettingsPage() {
   const [config, setConfig] = useState<SiteConfig | null>(null);
   const [tab, setTab] = useState<Tab>("shop");
@@ -800,6 +803,10 @@ function GroomingTab({
     }))
   );
   const [defaultCapacity, setDefaultCapacity] = useState(config.groomSlotDefaultCapacity ?? 1);
+  const [closedWeekdays, setClosedWeekdays] = useState<number[]>(config.closedWeekdays ?? []);
+  const [closedDates, setClosedDates] = useState<{ date: string; note?: string }[]>(
+    config.closedDates ?? []
+  );
   const [bathPoster, setBathPoster] = useState(menus.bath?.poster || "");
   const [advancePoster, setAdvancePoster] = useState(menus.advance?.poster || "");
   const [transportTh, setTransportTh] = useState(config.transport.th.join("\n"));
@@ -827,6 +834,8 @@ function GroomingTab({
         cleanRows.map((r) => [r.time.trim(), Math.max(1, r.capacity || 1)])
       ),
       groomSlotDefaultCapacity: Math.max(1, defaultCapacity || 1),
+      closedWeekdays,
+      closedDates: closedDates.filter((d) => d.date.trim()),
       transport: {
         th: transportTh.split("\n").filter(Boolean),
         en: transportEn.split("\n").filter(Boolean),
@@ -896,6 +905,77 @@ function GroomingTab({
             className="w-16 rounded-petflow-sm border border-petflow-line bg-paper px-2 py-1.5 text-sm font-normal"
           />
         </label>
+      </div>
+
+      <div>
+        <p className="mb-1 text-xs font-extrabold text-petflow-chocolate">🚫 วันที่ร้านปิด</p>
+        <p className="mb-2 text-[10px] text-brown-faint">
+          มีผลกับ “จองคิวเอง” ทั้งอาบน้ำและห้องพัก — ลูกค้าจองวันนี้ไม่ได้ (แมวที่เข้าพักอยู่แล้วไม่กระทบ)
+        </p>
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {WEEKDAY_LABELS.map((label, idx) => {
+            const active = closedWeekdays.includes(idx);
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() =>
+                  setClosedWeekdays(
+                    active ? closedWeekdays.filter((d) => d !== idx) : [...closedWeekdays, idx]
+                  )
+                }
+                className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+                  active
+                    ? "border-wait bg-wait/15 text-wait"
+                    : "border-petflow-line bg-paper text-brown-soft"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="space-y-2">
+          {closedDates.map((row, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input
+                type="date"
+                value={row.date}
+                onChange={(e) => {
+                  const next = [...closedDates];
+                  next[i] = { ...next[i], date: e.target.value };
+                  setClosedDates(next);
+                }}
+                className="rounded-petflow-sm border border-petflow-line bg-paper px-2 py-1.5 text-sm"
+              />
+              <input
+                type="text"
+                placeholder="หมายเหตุ (ไม่บังคับ) เช่น ปิดปีใหม่"
+                value={row.note || ""}
+                onChange={(e) => {
+                  const next = [...closedDates];
+                  next[i] = { ...next[i], note: e.target.value };
+                  setClosedDates(next);
+                }}
+                className="flex-1 rounded-petflow-sm border border-petflow-line bg-paper px-2 py-1.5 text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => setClosedDates(closedDates.filter((_, k) => k !== i))}
+                className="shrink-0 px-2 text-wait"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => setClosedDates([...closedDates, { date: "", note: "" }])}
+            className="w-full rounded-petflow-sm border border-dashed border-petflow-line py-2 text-xs font-bold text-latte-deep"
+          >
+            + เพิ่มวันหยุด
+          </button>
+        </div>
       </div>
 
       <PosterField

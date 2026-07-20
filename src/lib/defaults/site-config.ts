@@ -71,6 +71,8 @@ export function getDefaultSiteConfig(): SiteConfig {
       rooms: ROOMS,
       groomSlots: [...GROOM_SLOTS],
       groomSlotDefaultCapacity: 1,
+      closedWeekdays: [],
+      closedDates: [],
       transport: {
         th: [...TRANSPORT.th],
         en: [...TRANSPORT.en],

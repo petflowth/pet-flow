@@ -16,8 +16,8 @@ async function handleGet(req: NextRequest) {
   if (service === "groom") {
     const date = sp.get("date")?.trim();
     if (!date) return NextResponse.json({ error: "date required" }, { status: 400 });
-    const slots = await getGroomAvailability(date);
-    return NextResponse.json({ slots });
+    const { closed, slots } = await getGroomAvailability(date);
+    return NextResponse.json({ closed, slots });
   }
 
   if (service === "room") {

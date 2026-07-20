@@ -38,7 +38,10 @@ async function handlePost(req: NextRequest) {
     if (!date || !time) {
       return NextResponse.json({ error: "date and time required" }, { status: 400 });
     }
-    const slots = await getGroomAvailability(date);
+    const { closed, slots } = await getGroomAvailability(date);
+    if (closed) {
+      return NextResponse.json({ error: "shop_closed" }, { status: 409 });
+    }
     const slot = slots.find((s) => s.time === time);
     if (!slot || slot.remaining <= 0) {
       return NextResponse.json({ error: "slot_full" }, { status: 409 });
@@ -74,6 +77,9 @@ async function handlePost(req: NextRequest) {
   }
   const avail = await getRoomAvailability(room, checkin, checkout);
   if (!avail) return NextResponse.json({ error: "not_self_bookable" }, { status: 400 });
+  if (avail.closed) {
+    return NextResponse.json({ error: "shop_closed" }, { status: 409 });
+  }
   if (avail.remaining <= 0) {
     return NextResponse.json({ error: "room_full" }, { status: 409 });
   }

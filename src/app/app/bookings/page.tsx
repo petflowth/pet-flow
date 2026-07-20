@@ -139,7 +139,17 @@ function BookingsContent() {
                 </span>
               </div>
 
-              {b.status === "pending" && (
+              {/* นัดที่ลูกค้าจองเอง → รอร้านยืนยัน ลูกค้ายืนยันเองไม่ได้ (กัน "จองเอง ยืนยันเอง") */}
+              {b.status === "pending" && b.selfBooked && (
+                <p className="rounded-petflow-sm bg-honey/25 px-3 py-2.5 text-center text-xs font-bold text-wait">
+                  ⏳{" "}
+                  {locale === "th"
+                    ? "รอร้านยืนยันคิว — จะแจ้งกลับทาง LINE ทันทีที่ยืนยันนะคะ"
+                    : "Waiting for the shop to confirm — we'll notify you on LINE"}
+                </p>
+              )}
+              {/* นัดที่ร้านสร้างให้ → ลูกค้ากดยืนยันเข้าร่วม (ตอบรับ) ได้ตามเดิม */}
+              {b.status === "pending" && !b.selfBooked && (
                 <>
                   {b.service === "room" && pickId === b.id && (
                     <div className="mb-3 rounded-petflow-sm bg-paper p-3">

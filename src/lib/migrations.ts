@@ -161,6 +161,11 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     sql: "alter table bookings add column if not exists auto_off text[] not null default array[]::text[];",
   },
   {
+    // นัดที่ลูกค้าจองเองผ่านแอป — ต้องรอร้านยืนยัน (ลูกค้ายืนยันเองไม่ได้)
+    name: "bookings.self_booked",
+    sql: "alter table bookings add column if not exists self_booked boolean not null default false;",
+  },
+  {
     // ยอดยกมาจากระบบเก่า — ไม่ใช่รายรับเดือนนี้ ต้องแยกได้ว่าเติมครั้งไหนเป็นยอดยกมา
     name: "member_topups.is_legacy",
     sql: "alter table member_topups add column if not exists is_legacy boolean not null default false;",

@@ -53,6 +53,7 @@ async function handlePost(req: NextRequest) {
       date,
       time,
       lineUserId,
+      selfBooked: true,
     });
     await sendTelegram(
       formatBookingTelegram("🐾 ลูกค้าจองคิวอาบน้ำเอง (รอยืนยัน)", {
@@ -92,6 +93,7 @@ async function handlePost(req: NextRequest) {
     checkout,
     room,
     lineUserId,
+    selfBooked: true,
   });
   await sendTelegram(
     formatBookingTelegram("🏠 ลูกค้าจองห้องพักเอง (รอยืนยัน)", {

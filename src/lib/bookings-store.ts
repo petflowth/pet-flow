@@ -28,6 +28,8 @@ export type StoredBooking = Booking & {
    * ค่าที่ใช้ได้: ดู AUTO_MESSAGE_TOPICS
    */
   autoOff?: string[];
+  /** true = ลูกค้าจองเองผ่านแอป — ต้องรอร้านกดยืนยัน (ลูกค้ายืนยันเองไม่ได้) */
+  selfBooked?: boolean;
 };
 
 export { AUTO_MESSAGE_TOPICS, autoMuted } from "./auto-messages";
@@ -55,6 +57,7 @@ type BookingRow = {
   pickup_time?: string | null;
   groom_health_info?: string | null;
   auto_off?: string[] | null;
+  self_booked?: boolean | null;
 };
 
 const mem: StoredBooking[] = seedEnabled()
@@ -97,6 +100,7 @@ function rowToStored(r: BookingRow): StoredBooking {
     pickupTime: r.pickup_time || undefined,
     groomHealthInfo: r.groom_health_info || undefined,
     autoOff: r.auto_off || undefined,
+    selfBooked: r.self_booked || undefined,
   };
 }
 
@@ -289,6 +293,15 @@ export async function addBooking(
   if (sb) {
     const { error } = await sb.from("bookings").insert(storedToRow(booking));
     if (error) throw new Error(`addBooking failed: ${error.message}`);
+    // ธงจองเอง — เขียนแยกแบบ best-effort เผื่อคอลัมน์ self_booked ยังไม่ถูก migrate
+    // (ยังไม่ migrate ก็ไม่พัง แค่ธงยังไม่ติด ครั้งหน้าที่เปิดหลังบ้าน migration จะรันเอง)
+    if (booking.selfBooked) {
+      await sb
+        .from("bookings")
+        .update({ self_booked: true })
+        .eq("id", booking.id)
+        .eq("tenant_id", requireTenantId());
+    }
     return booking;
   }
 
@@ -419,5 +432,6 @@ export function toBooking(b: StoredBooking): Booking {
     roomType: b.room,
     status: b.status as BookingStatus,
     checkinTime: b.checkinTime,
+    selfBooked: b.selfBooked,
   };
 }

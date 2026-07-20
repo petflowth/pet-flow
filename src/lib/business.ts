@@ -307,6 +307,8 @@ export type Booking = {
   roomType?: string;
   status: BookingStatus;
   checkinTime?: string;
+  /** true = ลูกค้าจองเองผ่านแอป (ต้องรอร้านยืนยัน ลูกค้ายืนยันเองไม่ได้) */
+  selfBooked?: boolean;
 };
 
 export type CustomerProfile = {

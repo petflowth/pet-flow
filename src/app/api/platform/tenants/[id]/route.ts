@@ -77,6 +77,9 @@ export async function PATCH(
         owner_username: username,
         owner_password_hash: passwordHash,
         owner_password_salt: salt,
+        // ล้างรหัสร้านแบบเก่า (owner_code_hash) ทิ้ง — ไม่งั้นรหัสเดิมยัง login ได้คู่กับ password ใหม่
+        // (เช่นรหัส default petflow2026 ที่เผลอฝังไว้ตอนตั้งค่าแรก จะไม่ตายจนกว่าจะเคลียร์ตรงนี้)
+        owner_code_hash: null,
       })
       .eq("id", id);
     if (error) {

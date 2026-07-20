@@ -6,13 +6,14 @@ import { ADMIN_TABS } from "@/components/AdminNav";
 export type StaffItem = {
   id: string;
   name: string;
-  code: string;
+  username: string;
   menus: string[];
   active: boolean;
 };
 
 /**
  * จัดการบัญชีพนักงาน — เจ้าของเท่านั้นที่เห็น (API ตอบ 403 ให้พนักงาน)
+ * ล็อกอินด้วย username + password — username ต้อง unique ทั้งแพลตฟอร์ม (ข้ามร้าน)
  *
  * แยกออกมาจากหน้าตั้งค่าเพราะมันเป็นงานคนละเรื่องกับการตั้งค่าระบบ
  * และเจ้าของร้านหาไม่เจอเวลามันซ่อนอยู่ท้ายหน้า
@@ -23,7 +24,8 @@ export function StaffSection() {
   const [loaded, setLoaded] = useState(false);
   const [msg, setMsg] = useState("");
   const [newName, setNewName] = useState("");
-  const [newCode, setNewCode] = useState("");
+  const [newUsername, setNewUsername] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [newMenus, setNewMenus] = useState<string[]>([
     "/admin",
     "/admin/schedule",
@@ -69,13 +71,20 @@ export function StaffSection() {
       const res = await fetch("/api/admin/staff", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-admin-code": adminCode },
-        body: JSON.stringify({ action: "add", name: newName, code: newCode, menus: newMenus }),
+        body: JSON.stringify({
+          action: "add",
+          name: newName,
+          username: newUsername,
+          password: newPassword,
+          menus: newMenus,
+        }),
       });
       const d = await res.json().catch(() => ({}));
       if (res.ok) {
-        setMsg(`✅ เพิ่ม "${newName}" แล้ว — ให้พนักงานใช้รหัสนี้ล็อกอินได้เลย`);
+        setMsg(`✅ เพิ่ม "${newName}" แล้ว — ให้พนักงานล็อกอินด้วย username/password นี้ได้เลย`);
         setNewName("");
-        setNewCode("");
+        setNewUsername("");
+        setNewPassword("");
         load();
       } else {
         setMsg(`❌ ${d.error || "เพิ่มไม่สำเร็จ"}`);
@@ -86,11 +95,16 @@ export function StaffSection() {
   };
 
   const patchStaff = async (id: string, patch: Record<string, unknown>) => {
-    await fetch("/api/admin/staff", {
+    const res = await fetch("/api/admin/staff", {
       method: "PATCH",
       headers: { "Content-Type": "application/json", "x-admin-code": adminCode },
       body: JSON.stringify({ id, ...patch }),
     });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setMsg(`❌ ${d.error || "แก้ไขไม่สำเร็จ"}`);
+      return;
+    }
     load();
   };
 
@@ -137,8 +151,8 @@ export function StaffSection() {
           👥 บัญชีพนักงาน ({staff.length})
         </h2>
         <p className="mb-3 text-[10px] text-brown-soft">
-          สร้างรหัสให้พนักงานแต่ละคน แล้วติ๊กเลือกว่าให้เห็นเมนูไหนบ้าง —
-          พนักงานล็อกอินด้วยรหัสของตัวเองที่หน้าเดิม จะเห็นเฉพาะเมนูที่เลือกไว้
+          ตั้ง username/password ให้พนักงานแต่ละคน แล้วติ๊กเลือกว่าให้เห็นเมนูไหนบ้าง —
+          username ต้องไม่ซ้ำกับใครในระบบเลย (ข้ามร้านด้วย)
         </p>
 
         {staff.length === 0 && (
@@ -156,7 +170,7 @@ export function StaffSection() {
               <span className="min-w-0 truncate text-xs font-bold text-brown">
                 {s.active ? "🟢" : "⏸️"} {s.name}
                 <span className="ml-2 font-normal text-brown-faint">
-                  รหัส: {s.code} · เห็น {s.menus.length} เมนู
+                  @{s.username} · เห็น {s.menus.length} เมนู
                 </span>
               </span>
               <span className="shrink-0 text-[10px] font-bold text-latte-deep">แก้ไข ▾</span>
@@ -176,12 +190,26 @@ export function StaffSection() {
                 <button
                   type="button"
                   onClick={() => {
-                    const code = prompt("ตั้งรหัสใหม่ (อย่างน้อย 4 ตัว):", s.code);
-                    if (code && code.trim().length >= 4) patchStaff(s.id, { code: code.trim() });
+                    const username = prompt("ตั้ง username ใหม่ (อย่างน้อย 3 ตัว):", s.username);
+                    if (username && username.trim().length >= 3) {
+                      patchStaff(s.id, { username: username.trim() });
+                    }
                   }}
                   className="rounded-full bg-card px-3 py-1 text-[10px] font-bold text-brown-soft"
                 >
-                  🔑 เปลี่ยนรหัส
+                  ✏️ เปลี่ยน username
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const password = prompt("ตั้ง password ใหม่ (อย่างน้อย 6 ตัว):");
+                    if (password && password.trim().length >= 6) {
+                      patchStaff(s.id, { password: password.trim() });
+                    }
+                  }}
+                  className="rounded-full bg-card px-3 py-1 text-[10px] font-bold text-brown-soft"
+                >
+                  🔑 เปลี่ยน password
                 </button>
                 <button
                   type="button"
@@ -200,7 +228,7 @@ export function StaffSection() {
         <h2 className="mb-2 text-sm font-extrabold text-petflow-chocolate">
           ➕ เพิ่มพนักงานใหม่
         </h2>
-        <div className="mb-2 grid gap-2 sm:grid-cols-2">
+        <div className="mb-2 grid gap-2 sm:grid-cols-3">
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
@@ -208,9 +236,17 @@ export function StaffSection() {
             className="rounded-petflow-sm border border-petflow-line bg-paper px-2.5 py-2 text-xs"
           />
           <input
-            value={newCode}
-            onChange={(e) => setNewCode(e.target.value)}
-            placeholder="รหัสเข้าใช้ (4 ตัวขึ้นไป)"
+            value={newUsername}
+            onChange={(e) => setNewUsername(e.target.value)}
+            placeholder="username (3 ตัวขึ้นไป)"
+            autoCapitalize="none"
+            className="rounded-petflow-sm border border-petflow-line bg-paper px-2.5 py-2 text-xs"
+          />
+          <input
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="password (6 ตัวขึ้นไป)"
+            type="text"
             className="rounded-petflow-sm border border-petflow-line bg-paper px-2.5 py-2 text-xs"
           />
         </div>
@@ -218,7 +254,12 @@ export function StaffSection() {
         {menuPicker(newMenus, (href) => setNewMenus((prev) => toggleMenu(prev, href)))}
         <button
           type="button"
-          disabled={busy || !newName.trim() || newCode.trim().length < 4}
+          disabled={
+            busy ||
+            !newName.trim() ||
+            newUsername.trim().length < 3 ||
+            newPassword.trim().length < 6
+          }
           onClick={addStaff}
           className="mt-2 w-full rounded-petflow-sm bg-latte-deep py-2.5 text-xs font-extrabold text-card disabled:opacity-40"
         >

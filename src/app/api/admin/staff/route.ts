@@ -1,24 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  listStaff,
-  addStaff,
-  updateStaff,
-  deleteStaff,
-  verifyStaffCode,
-} from "@/lib/staff-store";
-import { getOwnerCode, getSessionFrom } from "@/lib/auth";
+import { listStaff, addStaff, updateStaff, deleteStaff } from "@/lib/staff-store";
+import { getSessionFrom } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
-
-// รหัสเจ้าของอ่านฝั่งเซิร์ฟเวอร์เท่านั้น (ห้ามใช้ NEXT_PUBLIC_ เพราะจะติดไปกับไฟล์ JS)
-const OWNER_CODE = getOwnerCode();
 
 async function isOwner(req: NextRequest) {
   // จัดการบัญชีพนักงานได้เฉพาะ "เจ้าของร้าน" เท่านั้น พนักงานตั้งสิทธิ์ให้ตัวเองไม่ได้
   return (await getSessionFrom(req))?.role === "owner";
 }
 
-/** รายชื่อพนักงาน — เฉพาะเจ้าของ (มีรหัสเข้าใช้ของแต่ละคนอยู่ในผลลัพธ์) */
+/** รายชื่อพนักงาน — เฉพาะเจ้าของ */
 export async function GET(req: NextRequest) {
   if (!(await isOwner(req))) {
     return NextResponse.json({ error: "owner_only" }, { status: 403 });
@@ -26,45 +17,26 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ staff: await listStaff() });
 }
 
-/**
- * POST:
- * - { action: "login", code } — พนักงาน/เจ้าของล็อกอิน (ไม่ต้องมีสิทธิ์)
- * - { action: "add", name, code, menus } — เจ้าของเพิ่มพนักงาน
- */
+/** POST: { action: "add", name, username, password, menus } — เจ้าของเพิ่มพนักงาน */
 export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => ({}));
-
-  if (body.action === "login") {
-    const code = String(body.code || "").trim();
-    if (!code) return NextResponse.json({ ok: false }, { status: 400 });
-    if (code === OWNER_CODE) {
-      return NextResponse.json({ ok: true, role: "owner", name: "เจ้าของร้าน" });
-    }
-    const staff = await verifyStaffCode(code);
-    if (!staff) return NextResponse.json({ ok: false }, { status: 401 });
-    return NextResponse.json({
-      ok: true,
-      role: "staff",
-      name: staff.name,
-      menus: staff.menus,
-    });
-  }
-
   if (!(await isOwner(req))) {
     return NextResponse.json({ error: "owner_only" }, { status: 403 });
   }
+  const body = await req.json().catch(() => ({}));
 
   if (body.action === "add") {
     const res = await addStaff({
       name: String(body.name || ""),
-      code: String(body.code || ""),
+      username: String(body.username || ""),
+      password: String(body.password || ""),
       menus: Array.isArray(body.menus) ? body.menus.map(String) : [],
     });
     if (!res.ok) {
       const messages: Record<string, string> = {
-        missing_fields: "กรอกชื่อและรหัสให้ครบ",
-        code_too_short: "รหัสต้องยาวอย่างน้อย 4 ตัว",
-        code_in_use: "รหัสนี้ถูกใช้แล้ว — ตั้งรหัสอื่น",
+        missing_fields: "กรอกชื่อ, username และ password ให้ครบ",
+        username_too_short: "username ต้องยาวอย่างน้อย 3 ตัว",
+        password_too_short: "password ต้องยาวอย่างน้อย 6 ตัว",
+        username_in_use: "username นี้ถูกใช้แล้ว — ตั้งชื่ออื่น",
         need_sql: "ต้องอัปเดตฐานข้อมูลก่อน (ตั้งค่า → ขั้นสูง → อัปเดตฐานข้อมูล)",
       };
       return NextResponse.json(
@@ -87,11 +59,22 @@ export async function PATCH(req: NextRequest) {
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
   const res = await updateStaff(id, {
     ...(body.name !== undefined ? { name: String(body.name) } : {}),
-    ...(body.code !== undefined ? { code: String(body.code) } : {}),
+    ...(body.username !== undefined ? { username: String(body.username) } : {}),
+    ...(body.password !== undefined ? { password: String(body.password) } : {}),
     ...(Array.isArray(body.menus) ? { menus: body.menus.map(String) } : {}),
     ...(typeof body.active === "boolean" ? { active: body.active } : {}),
   });
-  if (!res.ok) return NextResponse.json({ error: res.error }, { status: 400 });
+  if (!res.ok) {
+    const messages: Record<string, string> = {
+      username_too_short: "username ต้องยาวอย่างน้อย 3 ตัว",
+      password_too_short: "password ต้องยาวอย่างน้อย 6 ตัว",
+      username_in_use: "username นี้ถูกใช้แล้ว — ตั้งชื่ออื่น",
+    };
+    return NextResponse.json(
+      { error: messages[res.error] || res.error },
+      { status: 400 }
+    );
+  }
   return NextResponse.json({ ok: true });
 }
 

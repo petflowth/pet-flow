@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyStaffCode, findStaffAcrossTenants } from "@/lib/staff-store";
+import { verifyStaffLogin } from "@/lib/staff-store";
 import {
   SESSION_COOKIE,
   getBootstrapTenantId,
@@ -33,6 +33,9 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const code = String(body.code || "").trim();
+  // พนักงานล็อกอินด้วย username (ใส่ในช่อง code เดิม) + password —
+  // เจ้าของร้านเว้นช่องนี้ว่างแล้วใส่แค่รหัสร้านช่องเดียวเหมือนเดิม
+  const password = String(body.password || "");
   if (!code) {
     return NextResponse.json({ error: "กรอกรหัสผ่าน" }, { status: 400 });
   }
@@ -41,16 +44,9 @@ export async function POST(req: NextRequest) {
     | { role: "owner" | "staff"; name: string; tenantId: string; menus?: string[] }
     | null = null;
 
-  // 1) รหัสร้าน — ค้นข้ามทุกร้านด้วยแฮช (ร้านที่สร้างผ่าน /platform ตั้งรหัสของตัวเองได้)
-  const ownerHash = await hashOwnerCode(code);
-  const tenantByCode = await findTenantByOwnerCodeHash(ownerHash);
-  if (tenantByCode) {
-    payload = { role: "owner", name: "เจ้าของร้าน", tenantId: tenantByCode.id };
-  }
-
-  // 2) รหัสพนักงาน — ค้นข้ามทุกร้านเช่นกัน
-  if (!payload) {
-    const staff = await findStaffAcrossTenants(code);
+  if (password) {
+    // พนักงาน — username + password ค้นข้ามทุกร้าน (username unique ทั้งแพลตฟอร์ม)
+    const staff = await verifyStaffLogin(code, password);
     if (staff) {
       payload = {
         role: "staff",
@@ -59,22 +55,19 @@ export async function POST(req: NextRequest) {
         menus: staff.menus || [],
       };
     }
-  }
+  } else {
+    // 1) รหัสร้าน — ค้นข้ามทุกร้านด้วยแฮช (ร้านที่สร้างผ่าน /platform ตั้งรหัสของตัวเองได้)
+    const ownerHash = await hashOwnerCode(code);
+    const tenantByCode = await findTenantByOwnerCodeHash(ownerHash);
+    if (tenantByCode) {
+      payload = { role: "owner", name: "เจ้าของร้าน", tenantId: tenantByCode.id };
+    }
 
-  // 3) ร้าน bootstrap เดิม (ตั้งค่าผ่าน env ADMIN_CODE/TENANT_ID) — คงไว้ให้ร้านที่ตั้งไว้ก่อน T5 ยังใช้ได้
-  if (!payload) {
-    const bootstrapTenantId = getBootstrapTenantId();
-    if (bootstrapTenantId && code === getOwnerCode()) {
-      payload = { role: "owner", name: "เจ้าของร้าน", tenantId: bootstrapTenantId };
-    } else if (bootstrapTenantId) {
-      const staff = await verifyStaffCode(code);
-      if (staff) {
-        payload = {
-          role: "staff",
-          name: staff.name || "พนักงาน",
-          tenantId: bootstrapTenantId,
-          menus: staff.menus || [],
-        };
+    // 2) ร้าน bootstrap เดิม (ตั้งค่าผ่าน env ADMIN_CODE/TENANT_ID) — คงไว้ให้ร้านที่ตั้งไว้ก่อน T5 ยังใช้ได้
+    if (!payload) {
+      const bootstrapTenantId = getBootstrapTenantId();
+      if (bootstrapTenantId && code === getOwnerCode()) {
+        payload = { role: "owner", name: "เจ้าของร้าน", tenantId: bootstrapTenantId };
       }
     }
   }

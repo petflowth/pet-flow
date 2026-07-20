@@ -82,6 +82,18 @@ export async function hashOwnerCode(code: string): Promise<string> {
   return b64url(digest);
 }
 
+/** สุ่ม salt สำหรับรหัสผ่านพนักงาน — คนละอันต่อคน กัน rainbow table */
+export function generateSalt(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return b64url(bytes);
+}
+
+/** แฮชรหัสผ่านพนักงานด้วย salt เฉพาะคน */
+export async function hashPassword(password: string, salt: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", enc.encode(`${salt}::${password}`));
+  return b64url(digest);
+}
+
 /** สร้างโทเคนสำหรับใส่คุกกี้ */
 export async function signSession(
   payload: Omit<SessionPayload, "exp">

@@ -1,17 +1,17 @@
 import { getSupabase } from "./supabase/server";
 import { requireTenantId } from "./tenant-context";
+import { generateSalt, hashPassword } from "./auth";
 
 /**
  * บัญชีพนักงาน — เจ้าของสร้างให้ พร้อมเลือกเมนูที่พนักงานคนนั้นมองเห็นได้
- * รหัสเข้าใช้เก็บในตาราง staff_users (ไม่อยู่ใน site config ที่เปิด public)
+ * ล็อกอินด้วย username + password (ไม่ใช่อีเมล) — username ต้อง unique ทั้งแพลตฟอร์ม
+ * ไม่ใช่แค่ในร้านตัวเอง เพราะตอนล็อกอินยังไม่รู้ว่าเป็นร้านไหนจนกว่าจะหา username เจอ
  */
 
 export type StaffUser = {
   id: string;
   name: string;
-  /** รหัสเข้าใช้งานของพนักงานคนนี้ (ใช้แทนรหัสเจ้าของ) */
-  code: string;
-  /** เมนูที่เห็นได้ — เก็บเป็น href ของแท็บ เช่น "/admin/billing" */
+  username: string;
   menus: string[];
   active: boolean;
   createdAt: string;
@@ -20,23 +20,30 @@ export type StaffUser = {
 type StaffRow = {
   id: string;
   name: string;
-  code: string;
+  username: string;
+  password_hash: string;
+  password_salt: string;
   menus: string[] | null;
   active: boolean;
   created_at: string;
+  tenant_id?: string;
 };
 
-const mem: StaffUser[] = [];
+const mem: (StaffUser & { passwordHash: string; passwordSalt: string })[] = [];
 
 function rowToStaff(r: StaffRow): StaffUser {
   return {
     id: r.id,
     name: r.name,
-    code: r.code,
+    username: r.username,
     menus: Array.isArray(r.menus) ? r.menus : [],
     active: r.active !== false,
     createdAt: r.created_at,
   };
+}
+
+function normUsername(s: string) {
+  return s.trim().toLowerCase();
 }
 
 export async function listStaff(): Promise<StaffUser[]> {
@@ -54,28 +61,46 @@ export async function listStaff(): Promise<StaffUser[]> {
       return [];
     }
   }
-  return [...mem];
+  return mem.map(({ passwordHash: _h, passwordSalt: _s, ...s }) => s);
+}
+
+/** username ต้องไม่ซ้ำกับใครเลยทั้งแพลตฟอร์ม (ข้ามร้าน) — เช็คก่อนสร้าง/แก้ไขทุกครั้ง */
+async function usernameTaken(username: string, excludeId?: string): Promise<boolean> {
+  const sb = getSupabase();
+  const norm = normUsername(username);
+  if (sb) {
+    let q = sb.from("staff_users").select("id").eq("username", norm).limit(1);
+    if (excludeId) q = q.neq("id", excludeId);
+    const { data } = await q.maybeSingle();
+    return Boolean(data);
+  }
+  return mem.some((s) => normUsername(s.username) === norm && s.id !== excludeId);
 }
 
 export async function addStaff(data: {
   name: string;
-  code: string;
+  username: string;
+  password: string;
   menus: string[];
 }): Promise<{ ok: true; staff: StaffUser } | { ok: false; error: string }> {
   const name = data.name.trim();
-  const code = data.code.trim();
-  if (!name || !code) return { ok: false, error: "missing_fields" };
-  if (code.length < 4) return { ok: false, error: "code_too_short" };
+  const username = normUsername(data.username);
+  const password = data.password;
+  if (!name || !username || !password) return { ok: false, error: "missing_fields" };
+  if (username.length < 3) return { ok: false, error: "username_too_short" };
+  if (password.length < 6) return { ok: false, error: "password_too_short" };
 
-  const existing = await listStaff();
-  if (existing.some((s) => s.code === code)) {
-    return { ok: false, error: "code_in_use" };
+  if (await usernameTaken(username)) {
+    return { ok: false, error: "username_in_use" };
   }
+
+  const salt = generateSalt();
+  const passwordHash = await hashPassword(password, salt);
 
   const staff: StaffUser = {
     id: `ST${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
     name,
-    code,
+    username,
     menus: data.menus,
     active: true,
     createdAt: new Date().toISOString(),
@@ -88,46 +113,83 @@ export async function addStaff(data: {
         id: staff.id,
         tenant_id: requireTenantId(),
         name: staff.name,
-        code: staff.code,
+        username: staff.username,
+        password_hash: passwordHash,
+        password_salt: salt,
         menus: staff.menus,
         active: true,
         created_at: staff.createdAt,
       });
-      if (error) return { ok: false, error: "need_sql" };
+      if (error) {
+        return {
+          ok: false,
+          error: error.code === "23505" ? "username_in_use" : "need_sql",
+        };
+      }
     } catch {
       return { ok: false, error: "need_sql" };
     }
   } else {
-    mem.push(staff);
+    mem.push({ ...staff, passwordHash, passwordSalt: salt });
   }
   return { ok: true, staff };
 }
 
 export async function updateStaff(
   id: string,
-  patch: Partial<Pick<StaffUser, "name" | "code" | "menus" | "active">>
+  patch: Partial<Pick<StaffUser, "name" | "username" | "menus" | "active">> & {
+    password?: string;
+  }
 ) {
   const sb = getSupabase();
+
+  if (patch.username !== undefined) {
+    const norm = normUsername(patch.username);
+    if (norm.length < 3) return { ok: false as const, error: "username_too_short" };
+    if (await usernameTaken(norm, id)) return { ok: false as const, error: "username_in_use" };
+    patch.username = norm;
+  }
+  if (patch.password !== undefined && patch.password.length < 6) {
+    return { ok: false as const, error: "password_too_short" };
+  }
+
   if (sb) {
     try {
       const row: Record<string, unknown> = {};
       if (patch.name !== undefined) row.name = patch.name.trim();
-      if (patch.code !== undefined) row.code = patch.code.trim();
+      if (patch.username !== undefined) row.username = patch.username;
       if (patch.menus !== undefined) row.menus = patch.menus;
       if (patch.active !== undefined) row.active = patch.active;
+      if (patch.password !== undefined) {
+        const salt = generateSalt();
+        row.password_salt = salt;
+        row.password_hash = await hashPassword(patch.password, salt);
+      }
       const { error } = await sb
         .from("staff_users")
         .update(row)
         .eq("id", id)
         .eq("tenant_id", requireTenantId());
-      if (error) return { ok: false as const, error: "need_sql" };
+      if (error) {
+        return {
+          ok: false as const,
+          error: error.code === "23505" ? "username_in_use" : "need_sql",
+        };
+      }
     } catch {
       return { ok: false as const, error: "need_sql" };
     }
   } else {
     const s = mem.find((x) => x.id === id);
     if (!s) return { ok: false as const, error: "not_found" };
-    Object.assign(s, patch);
+    if (patch.name !== undefined) s.name = patch.name.trim();
+    if (patch.username !== undefined) s.username = patch.username;
+    if (patch.menus !== undefined) s.menus = patch.menus;
+    if (patch.active !== undefined) s.active = patch.active;
+    if (patch.password !== undefined) {
+      s.passwordSalt = generateSalt();
+      s.passwordHash = await hashPassword(patch.password, s.passwordSalt);
+    }
   }
   return { ok: true as const };
 }
@@ -151,35 +213,38 @@ export async function deleteStaff(id: string) {
   return { ok: true as const };
 }
 
-/** เช็ครหัสพนักงานตอนล็อกอิน — คืนข้อมูลสิทธิ์ถ้าเจอและยังเปิดใช้งาน */
-export async function verifyStaffCode(code: string): Promise<StaffUser | null> {
-  const trimmed = code.trim();
-  if (!trimmed) return null;
-  const all = await listStaff();
-  return all.find((s) => s.code === trimmed && s.active) || null;
-}
-
 /**
- * หาพนักงานจากรหัส "ข้ามทุกร้าน" — ใช้เฉพาะตอนล็อกอินเท่านั้น (ยังไม่รู้ว่าเป็นร้านไหน
- * จนกว่าจะเจอรหัส) ที่อื่นห้ามเรียกฟังก์ชันนี้ ต้องผ่าน listStaff/verifyStaffCode ที่กรอง
- * ด้วย tenant_id เสมอ — คืน tenant_id มาด้วยเพื่อผูก session ให้ถูกร้าน
+ * ตรวจ username+password ตอนล็อกอิน — ค้น "ข้ามทุกร้าน" เพราะยังไม่รู้ว่าเป็นร้านไหน
+ * จนกว่าจะเจอ username (unique ทั้งแพลตฟอร์มอยู่แล้ว) คืน tenantId มาด้วยเพื่อผูก session
+ * ที่อื่นห้ามเรียกฟังก์ชันนี้ ต้องผ่าน listStaff ที่กรองด้วย tenant_id เสมอ
  */
-export async function findStaffAcrossTenants(
-  code: string
+export async function verifyStaffLogin(
+  username: string,
+  password: string
 ): Promise<(StaffUser & { tenantId: string }) | null> {
-  const trimmed = code.trim();
-  if (!trimmed) return null;
+  const norm = normUsername(username);
+  if (!norm || !password) return null;
+
   const sb = getSupabase();
-  if (!sb) return null;
-  const { data } = await sb
-    .from("staff_users")
-    .select("*")
-    .eq("code", trimmed)
-    .eq("active", true)
-    .limit(1)
-    .maybeSingle();
-  if (!data) return null;
-  const row = data as StaffRow & { tenant_id: string };
-  if (!row.tenant_id) return null;
-  return { ...rowToStaff(row), tenantId: row.tenant_id };
+  if (sb) {
+    const { data } = await sb
+      .from("staff_users")
+      .select("*")
+      .eq("username", norm)
+      .eq("active", true)
+      .limit(1)
+      .maybeSingle();
+    if (!data) return null;
+    const row = data as StaffRow & { tenant_id: string };
+    if (!row.tenant_id || !row.password_hash || !row.password_salt) return null;
+    const hash = await hashPassword(password, row.password_salt);
+    if (hash !== row.password_hash) return null;
+    return { ...rowToStaff(row), tenantId: row.tenant_id };
+  }
+
+  const s = mem.find((x) => normUsername(x.username) === norm && x.active);
+  if (!s) return null;
+  const hash = await hashPassword(password, s.passwordSalt);
+  if (hash !== s.passwordHash) return null;
+  return { ...s, tenantId: requireTenantId() };
 }

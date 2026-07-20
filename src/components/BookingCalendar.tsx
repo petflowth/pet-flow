@@ -191,7 +191,9 @@ export function BookingCalendar() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: b.id, action: "confirm", lineUserId: b.lineUserId }),
     });
-    return res.ok;
+    const d = await res.json().catch(() => ({}));
+    // notifyError = ยืนยันนัดสำเร็จ แต่แจ้งลูกค้าทาง LINE ไม่สำเร็จ (คนละเรื่องกับ res.ok)
+    return { ok: res.ok, notifyError: d.notifyError as string | undefined };
   };
 
   const cancelBooking = async (b: CalendarDay) => {
@@ -206,8 +208,10 @@ export function BookingCalendar() {
   // การ์ดที่รวมหลายตัวในบ้านเดียวกัน (นัดเดียวกัน) — ยืนยัน/ยกเลิกให้ครบทุกตัวในทีเดียว
   const confirmGroup = async (group: CalendarDay[]) => {
     const results = await Promise.all(group.map(confirmBooking));
-    if (results.every(Boolean)) toast("ยืนยันนัดแล้ว ✔️", "success");
+    if (results.every((r) => r.ok)) toast("ยืนยันนัดแล้ว ✔️", "success");
     else toast("ยืนยันไม่สำเร็จบางรายการ", "error");
+    const notifyErr = results.find((r) => r.notifyError)?.notifyError;
+    if (notifyErr) toast(`⚠️ ยืนยันนัดแล้ว แต่แจ้งลูกค้าทาง LINE ไม่สำเร็จ: ${notifyErr}`, "error");
     load();
   };
 

@@ -53,6 +53,7 @@ export function getDefaultSiteConfig(): SiteConfig {
         birthdayEnabled: true,
         birthdayCouponEnabled: true,
         birthdayCouponAmount: 100,
+        bookingApprovedEnabled: true,
       },
       business: { ...BUSINESS },
       payment: {

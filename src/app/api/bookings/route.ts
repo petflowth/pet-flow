@@ -196,8 +196,33 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
+  let notifyError: string | undefined;
   if (action === "confirm") {
+    // ต้องเช็คสถานะ "ก่อน" อัปเดต — กันส่งข้อความซ้ำถ้ากดยืนยันซ้ำ/ลูกค้ากดยืนยันหลังร้านยืนยันไปแล้ว
+    const wasNotYetConfirmed = b.status !== "confirmed";
     await updateBooking(id, { status: "confirmed", checkinTime });
+
+    // แจ้งลูกค้าทันทีว่าได้คิวแล้ว — คนละเรื่องกับการ์ดเตือนล่วงหน้าก่อนถึงวันจริง (send_reminder / cron)
+    // ส่งไม่สำเร็จก็ยังยืนยันนัดต่อไปได้ (ไม่บล็อก) แต่ต้องบอก staff ว่าลูกค้าไม่ได้รับ ไม่ใช่เงียบไปเฉยๆ
+    if (wasNotYetConfirmed && b.lineUserId) {
+      try {
+        const cfg = await getSiteConfig();
+        if (cfg.automation?.bookingApprovedEnabled !== false) {
+          const text = renderTemplate(
+            cfg.messages.bookingApprovedText || DEFAULT_MESSAGES.bookingApprovedText,
+            {
+              shop: cfg.business.name,
+              cat: b.catName,
+              when: bookingScheduleText(b),
+            }
+          );
+          await pushLineMessage(b.lineUserId, [{ type: "text", text }]);
+        }
+      } catch (e) {
+        notifyError = e instanceof Error ? e.message : String(e);
+      }
+    }
+
     if (b.calendarEventId) {
       await updateCalendarEventConfirmed(b.calendarEventId, {
         summary: `${b.service === "room" ? "🏠" : "🛁"} ${b.catName} (${b.customerName})`,
@@ -220,7 +245,7 @@ export async function PATCH(req: NextRequest) {
     const matched = await findCustomerForBooking(b);
     if (matched) await recalculateCustomerTier(matched.id);
     const updated = await getBooking(id);
-    return NextResponse.json({ ok: true, booking: toBooking(updated!) });
+    return NextResponse.json({ ok: true, booking: toBooking(updated!), notifyError });
   }
 
   if (action === "send_reminder") {

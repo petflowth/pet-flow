@@ -329,8 +329,8 @@ function ShopTab({
           onChange={(v) =>
             setBranding((b) => ({
               ...b,
-              backgroundGradientFrom: v ? b.background : undefined,
-              backgroundGradientTo: v ? b.accent : undefined,
+              backgroundGradientFrom: v ? b.background : "",
+              backgroundGradientTo: v ? b.accent : "",
             }))
           }
         />
@@ -1618,6 +1618,7 @@ const AUTOMATION_DEFAULT = {
   birthdayEnabled: true,
   birthdayCouponEnabled: true,
   birthdayCouponAmount: 100,
+  bookingApprovedEnabled: true,
 };
 
 function Toggle({
@@ -1677,7 +1678,18 @@ function AutomationTab({
 
       <div className="rounded-petflow-sm border border-petflow-line p-3">
         <Toggle
-          label="✅ ส่งการ์ดยืนยันนัดอัตโนมัติ"
+          label="🎉 แจ้งลูกค้าทันทีที่ร้านกดยืนยันคิว"
+          checked={form.bookingApprovedEnabled}
+          onChange={(v) => set({ bookingApprovedEnabled: v })}
+        />
+        <p className="mt-1 text-[10px] text-brown-faint">
+          ส่งทันทีตอนกดปุ่ม “✔️ ยืนยันนัด” — คนละอันกับการ์ดเตือนล่วงหน้าด้านล่างที่ส่งใกล้ถึงวันจริง
+        </p>
+      </div>
+
+      <div className="rounded-petflow-sm border border-petflow-line p-3">
+        <Toggle
+          label="✅ ส่งการ์ดยืนยันนัดอัตโนมัติ (เตือนล่วงหน้า)"
           checked={form.confirmTomorrowEnabled}
           onChange={(v) => set({ confirmTomorrowEnabled: v })}
         />

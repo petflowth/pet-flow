@@ -16,6 +16,8 @@ export type SessionPayload = {
   tenantId: string;
   /** เมนูที่พนักงานคนนี้เปิดดูได้ — undefined = เข้าได้ทุกเมนู (เจ้าของร้าน) */
   menus?: string[];
+  /** session นี้มาจากผู้ดูแลระบบกด "เข้าดูแทน" ไม่ใช่เจ้าของร้านล็อกอินเอง — โชว์แถบเตือนใน UI */
+  impersonating?: boolean;
   /** หมดอายุ (epoch ms) */
   exp: number;
 };

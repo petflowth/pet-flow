@@ -18,6 +18,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [ok, setOk] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [impersonating, setImpersonating] = useState(false);
 
   useEffect(() => {
     if (pathname === "/admin/login") {
@@ -40,6 +41,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
       if (!alive || !me?.ok) return;
       sessionStorage.setItem("petflow-role", me.role);
       sessionStorage.setItem("petflow-staff-name", me.name || "พนักงาน");
+      setImpersonating(Boolean(me.impersonating));
       if (me.role === "staff") {
         sessionStorage.setItem("petflow-menus", JSON.stringify(me.menus || []));
       } else {
@@ -72,6 +74,22 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-petflow-gradient">
       <Toaster />
+      {impersonating && (
+        <div className="relative z-[60] flex items-center justify-between gap-2 bg-[#1a1d29] px-4 py-2 text-xs font-bold text-white">
+          <span>🛡️ กำลังเข้าดูแทนร้านนี้ในฐานะผู้ดูแลระบบ</span>
+          <button
+            type="button"
+            onClick={async () => {
+              await fetch("/api/auth/login", { method: "DELETE" }).catch(() => {});
+              sessionStorage.clear();
+              router.push("/platform");
+            }}
+            className="shrink-0 rounded-full bg-white/15 px-3 py-1 hover:bg-white/25"
+          >
+            ออกจากโหมดเข้าดูแทน
+          </button>
+        </div>
+      )}
       <header className="sticky top-0 z-50 border-b border-petflow-line bg-card/90 backdrop-blur-md">
         <div className="relative mx-auto max-w-3xl lg:max-w-6xl">
           <div className="flex items-center gap-3 px-4 py-3">

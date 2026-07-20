@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
     role: session.role,
     name: session.name,
     menus: session.menus,
+    impersonating: session.impersonating || false,
   });
 }
 

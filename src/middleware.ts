@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { PLATFORM_SESSION_COOKIE, verifyPlatformSession } from "@/lib/platform-auth";
 
 /**
  * ด่านตรวจสิทธิ์ก่อนเข้าถึงหลังบ้าน
@@ -48,6 +49,29 @@ function matches(path: string, list: string[]) {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // ผู้ดูแลระบบ — คนละชั้นสิทธิ์กับ /admin (เจ้าของร้าน/พนักงาน) เลยแยกด่านตรวจ
+  if (pathname.startsWith("/api/platform/")) {
+    const session = await verifyPlatformSession(
+      req.cookies.get(PLATFORM_SESSION_COOKIE)?.value
+    );
+    if (!session) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith("/platform") && pathname !== "/platform/login") {
+    const session = await verifyPlatformSession(
+      req.cookies.get(PLATFORM_SESSION_COOKIE)?.value
+    );
+    if (!session) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/platform/login";
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  }
+
   if (pathname.startsWith("/api/")) {
     if (matches(pathname, PUBLIC_API)) return NextResponse.next();
     if (req.method === "GET" && matches(pathname, PUBLIC_GET)) {
@@ -80,5 +104,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/:path*", "/admin/:path*"],
+  matcher: ["/api/:path*", "/admin/:path*", "/platform/:path*"],
 };

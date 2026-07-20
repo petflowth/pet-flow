@@ -4,12 +4,11 @@ import {
   SESSION_COOKIE,
   getBootstrapTenantId,
   getOwnerCode,
-  hashOwnerCode,
   sessionCookieOptions,
   signSession,
   verifySession,
 } from "@/lib/auth";
-import { findTenantByOwnerCodeHash } from "@/lib/tenant-directory";
+import { findTenantByLegacyOwnerCode, findTenantByOwnerLogin } from "@/lib/tenant-directory";
 
 export const dynamic = "force-dynamic";
 
@@ -27,26 +26,33 @@ export async function GET(req: NextRequest) {
 }
 
 /**
- * ล็อกอินหลังบ้าน — ตรวจรหัสที่เซิร์ฟเวอร์ แล้ววางคุกกี้ httpOnly ที่เซ็นชื่อไว้
+ * ล็อกอินหลังบ้าน — ตรวจ username+password ที่เซิร์ฟเวอร์ แล้ววางคุกกี้ httpOnly ที่เซ็นชื่อไว้
  * เบราว์เซอร์แก้เองไม่ได้ และ JS อ่านไม่ได้
+ *
+ * เจ้าของร้านและพนักงานล็อกอินด้วย username+password เหมือนกันหมด (ตั้งแต่ T5b) —
+ * username ต้อง unique ทั้งแพลตฟอร์ม (ข้ามร้าน) เพราะยังไม่รู้ว่าเป็นร้านไหนจนกว่าจะเจอ
  */
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  const code = String(body.code || "").trim();
-  // พนักงานล็อกอินด้วย username (ใส่ในช่อง code เดิม) + password —
-  // เจ้าของร้านเว้นช่องนี้ว่างแล้วใส่แค่รหัสร้านช่องเดียวเหมือนเดิม
+  const username = String(body.username || "").trim();
   const password = String(body.password || "");
-  if (!code) {
-    return NextResponse.json({ error: "กรอกรหัสผ่าน" }, { status: 400 });
+  if (!username) {
+    return NextResponse.json({ error: "กรอก username" }, { status: 400 });
   }
 
   let payload:
     | { role: "owner" | "staff"; name: string; tenantId: string; menus?: string[] }
     | null = null;
 
-  if (password) {
-    // พนักงาน — username + password ค้นข้ามทุกร้าน (username unique ทั้งแพลตฟอร์ม)
-    const staff = await verifyStaffLogin(code, password);
+  // 1) เจ้าของร้าน — username+password ค้นข้ามทุกร้าน
+  const tenant = await findTenantByOwnerLogin(username, password);
+  if (tenant) {
+    payload = { role: "owner", name: "เจ้าของร้าน", tenantId: tenant.id };
+  }
+
+  // 2) พนักงาน — username+password ค้นข้ามทุกร้านเช่นกัน
+  if (!payload) {
+    const staff = await verifyStaffLogin(username, password);
     if (staff) {
       payload = {
         role: "staff",
@@ -55,25 +61,24 @@ export async function POST(req: NextRequest) {
         menus: staff.menus || [],
       };
     }
-  } else {
-    // 1) รหัสร้าน — ค้นข้ามทุกร้านด้วยแฮช (ร้านที่สร้างผ่าน /platform ตั้งรหัสของตัวเองได้)
-    const ownerHash = await hashOwnerCode(code);
-    const tenantByCode = await findTenantByOwnerCodeHash(ownerHash);
-    if (tenantByCode) {
-      payload = { role: "owner", name: "เจ้าของร้าน", tenantId: tenantByCode.id };
-    }
+  }
 
-    // 2) ร้าน bootstrap เดิม (ตั้งค่าผ่าน env ADMIN_CODE/TENANT_ID) — คงไว้ให้ร้านที่ตั้งไว้ก่อน T5 ยังใช้ได้
-    if (!payload) {
+  // 3) ร้านเก่าที่ยังไม่ได้ตั้ง username/password ใหม่ — พิมพ์รหัสร้านเดิมลงช่อง username
+  //    เว้น password ว่างได้ (เผื่อร้านที่ตั้งไว้ก่อน T5b ยังไม่ได้อัปเดต)
+  if (!payload && !password) {
+    const legacyTenant = await findTenantByLegacyOwnerCode(username);
+    if (legacyTenant) {
+      payload = { role: "owner", name: "เจ้าของร้าน", tenantId: legacyTenant.id };
+    } else {
       const bootstrapTenantId = getBootstrapTenantId();
-      if (bootstrapTenantId && code === getOwnerCode()) {
+      if (bootstrapTenantId && username === getOwnerCode()) {
         payload = { role: "owner", name: "เจ้าของร้าน", tenantId: bootstrapTenantId };
       }
     }
   }
 
   if (!payload) {
-    return NextResponse.json({ error: "รหัสไม่ถูกต้อง" }, { status: 401 });
+    return NextResponse.json({ error: "username หรือ password ไม่ถูกต้อง" }, { status: 401 });
   }
 
   const res = NextResponse.json({ ok: true, ...payload });

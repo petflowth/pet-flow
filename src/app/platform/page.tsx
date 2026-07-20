@@ -11,6 +11,7 @@ type Tenant = {
   template: string | null;
   trialEndsAt: string | null;
   createdAt: string;
+  ownerUsername: string | null;
 };
 
 const STATUS_LABEL: Record<Tenant["status"], string> = {
@@ -36,9 +37,11 @@ export default function PlatformDashboard() {
   const [creating, setCreating] = useState(false);
   const [msg, setMsg] = useState("");
   const [busyId, setBusyId] = useState("");
-  const [newOwnerCode, setNewOwnerCode] = useState<{ tenantName: string; code: string } | null>(
-    null
-  );
+  const [ownerLogin, setOwnerLogin] = useState<{
+    tenantName: string;
+    username: string;
+    password: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/platform/tenants").catch(() => null);
@@ -67,7 +70,11 @@ export default function PlatformDashboard() {
       const d = await res.json().catch(() => ({}));
       if (res.ok) {
         setMsg("");
-        setNewOwnerCode({ tenantName: d.tenant.name, code: d.ownerCode });
+        setOwnerLogin({
+          tenantName: d.tenant.name,
+          username: d.tenant.ownerUsername,
+          password: d.ownerPassword,
+        });
         setName("");
         setSlug("");
         load();
@@ -88,6 +95,32 @@ export default function PlatformDashboard() {
         body: JSON.stringify({ action: "set_status", status }),
       });
       load();
+    } finally {
+      setBusyId("");
+    }
+  };
+
+  const resetOwnerLogin = async (t: Tenant) => {
+    if (
+      !confirm(
+        `ตั้ง/รีเซ็ต username+password ของ "${t.name}" ใหม่? password เก่า (ถ้ามี) จะใช้ไม่ได้อีก`
+      )
+    )
+      return;
+    setBusyId(t.id);
+    try {
+      const res = await fetch(`/api/platform/tenants/${t.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reset_owner_login" }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setOwnerLogin({ tenantName: t.name, username: d.ownerUsername, password: d.ownerPassword });
+        load();
+      } else {
+        setMsg(`❌ ${d.error || "ตั้งไม่สำเร็จ"}`);
+      }
     } finally {
       setBusyId("");
     }
@@ -130,7 +163,7 @@ export default function PlatformDashboard() {
           <input
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
-            placeholder="slug (เว้นว่าง = สร้างจากชื่อ)"
+            placeholder="slug (เว้นว่าง = สร้างจากชื่อ) — ใช้เป็น username เจ้าของด้วย"
             className="rounded-petflow-sm border border-white/10 bg-[#1a1d29] px-3 py-2 text-sm text-white outline-none focus:border-latte-deep"
           />
         </div>
@@ -144,30 +177,45 @@ export default function PlatformDashboard() {
         {msg && <p className="mt-2 text-xs font-bold text-white/70">{msg}</p>}
       </form>
 
-      {newOwnerCode && (
+      {ownerLogin && (
         <div className="mb-6 rounded-petflow border-2 border-honey/50 bg-honey/10 p-4">
           <p className="mb-1 text-sm font-extrabold text-honey">
-            ✅ สร้างร้าน &quot;{newOwnerCode.tenantName}&quot; แล้ว
+            ✅ &quot;{ownerLogin.tenantName}&quot; — username/password ของเจ้าของร้าน
           </p>
           <p className="mb-2 text-xs text-white/60">
-            รหัสร้าน — ก็อปไปให้เจ้าของร้านนี้เลย{" "}
-            <b className="text-white">เห็นได้ครั้งนี้ครั้งเดียว</b> (ระบบเก็บแค่แฮชไว้ ดึงกลับมาดูอีกไม่ได้)
+            ก็อปไปให้เจ้าของร้านนี้เลย <b className="text-white">password เห็นได้ครั้งนี้ครั้งเดียว</b>{" "}
+            (ระบบเก็บแค่แฮชไว้ ดึงกลับมาดูอีกไม่ได้)
           </p>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 rounded-petflow-sm bg-[#1a1d29] px-3 py-2 text-lg font-extrabold tracking-widest text-honey">
-              {newOwnerCode.code}
-            </code>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="w-20 shrink-0 text-xs text-white/50">Username</span>
+              <code className="flex-1 rounded-petflow-sm bg-[#1a1d29] px-3 py-2 text-sm font-extrabold text-honey">
+                {ownerLogin.username}
+              </code>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-20 shrink-0 text-xs text-white/50">Password</span>
+              <code className="flex-1 rounded-petflow-sm bg-[#1a1d29] px-3 py-2 text-lg font-extrabold tracking-widest text-honey">
+                {ownerLogin.password}
+              </code>
+            </div>
+          </div>
+          <div className="mt-2 flex items-center gap-2">
             <button
               type="button"
-              onClick={() => navigator.clipboard.writeText(newOwnerCode.code)}
-              className="shrink-0 rounded-petflow-sm bg-honey/25 px-3 py-2 text-xs font-bold text-honey"
+              onClick={() =>
+                navigator.clipboard.writeText(
+                  `username: ${ownerLogin.username}\npassword: ${ownerLogin.password}`
+                )
+              }
+              className="rounded-petflow-sm bg-honey/25 px-3 py-2 text-xs font-bold text-honey"
             >
-              📋 ก็อป
+              📋 ก็อปทั้งคู่
             </button>
             <button
               type="button"
-              onClick={() => setNewOwnerCode(null)}
-              className="shrink-0 rounded-petflow-sm bg-white/10 px-3 py-2 text-xs font-bold text-white/60"
+              onClick={() => setOwnerLogin(null)}
+              className="rounded-petflow-sm bg-white/10 px-3 py-2 text-xs font-bold text-white/60"
             >
               ปิด
             </button>
@@ -199,10 +247,19 @@ export default function PlatformDashboard() {
                     </span>
                   </p>
                   <p className="text-[10px] text-white/40">
-                    /{t.slug} · สร้างเมื่อ {t.createdAt.slice(0, 10)}
+                    /{t.slug} · {t.ownerUsername ? `username: ${t.ownerUsername}` : "ยังไม่ได้ตั้ง login"} · สร้างเมื่อ{" "}
+                    {t.createdAt.slice(0, 10)}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    disabled={busyId === t.id}
+                    onClick={() => resetOwnerLogin(t)}
+                    className="rounded-full bg-honey/20 px-3 py-1.5 text-[11px] font-extrabold text-honey disabled:opacity-40"
+                  >
+                    🔐 {t.ownerUsername ? "รีเซ็ต" : "ตั้ง"} login
+                  </button>
                   <button
                     type="button"
                     disabled={busyId === t.id}

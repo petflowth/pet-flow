@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPlatformSessionFrom } from "@/lib/platform-auth";
 import { getSupabase } from "@/lib/supabase/server";
 import { logAudit } from "@/lib/audit-log";
-import { hashOwnerCode } from "@/lib/auth";
+import { generateSalt, hashPassword } from "@/lib/auth";
 
-/** สุ่มรหัสร้านให้อ่านง่าย จำง่าย — ตัวอักษร/ตัวเลขที่ไม่สับสน (ตัด 0/O, 1/I ออก) */
-function generateOwnerCode(): string {
+/** สุ่มรหัสผ่านให้อ่านง่าย จำง่าย — ตัวอักษร/ตัวเลขที่ไม่สับสน (ตัด 0/O, 1/I ออก) */
+function generatePassword(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let s = "";
   for (let i = 0; i < 8; i++) s += chars[Math.floor(Math.random() * chars.length)];
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await sb
     .from("tenants")
-    .select("id, slug, name, status, template, trial_ends_at, created_at")
+    .select("id, slug, name, status, template, trial_ends_at, created_at, owner_username")
     .order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
       template: t.template,
       trialEndsAt: t.trial_ends_at,
       createdAt: t.created_at,
+      ownerUsername: t.owner_username,
     })),
   });
 }
@@ -53,7 +54,7 @@ function slugify(s: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-/** สร้างร้านใหม่ — แค่ชื่อ + slug ตอนนี้ ค่าอื่นตั้งทีหลังได้ */
+/** สร้างร้านใหม่ — username เจ้าของ = slug โดย default, password สุ่มให้ */
 export async function POST(req: NextRequest) {
   if (!(await requirePlatform(req))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -71,14 +72,23 @@ export async function POST(req: NextRequest) {
   const sb = getSupabase();
   if (!sb) return NextResponse.json({ error: "no_db" }, { status: 500 });
 
-  // สุ่มรหัสร้านให้เลย — เก็บแค่แฮชใน DB ตัวจริงโชว์ครั้งเดียวตอนสร้างเสร็จ ก็อปไปให้เจ้าของร้านได้เลย
-  const ownerCode = generateOwnerCode();
-  const ownerCodeHash = await hashOwnerCode(ownerCode);
+  // username ของเจ้าของร้าน = slug (unique อยู่แล้ว), password สุ่มให้ — เก็บแค่แฮช
+  // โชว์ password ตัวจริงครั้งเดียวตอนสร้างเสร็จ ก็อปไปให้เจ้าของร้านได้เลย
+  const ownerPassword = generatePassword();
+  const salt = generateSalt();
+  const ownerPasswordHash = await hashPassword(ownerPassword, salt);
 
   const { data, error } = await sb
     .from("tenants")
-    .insert({ name, slug, status: "trial", owner_code_hash: ownerCodeHash })
-    .select("id, slug, name, status, created_at")
+    .insert({
+      name,
+      slug,
+      status: "trial",
+      owner_username: slug,
+      owner_password_hash: ownerPasswordHash,
+      owner_password_salt: salt,
+    })
+    .select("id, slug, name, status, created_at, owner_username")
     .single();
 
   if (error) {
@@ -93,7 +103,7 @@ export async function POST(req: NextRequest) {
     action: "create_tenant",
     resourceType: "tenant",
     resourceId: data.id,
-    afterState: data,
+    afterState: { name: data.name, slug: data.slug, status: data.status },
   });
 
   return NextResponse.json({
@@ -104,8 +114,9 @@ export async function POST(req: NextRequest) {
       name: data.name,
       status: data.status,
       createdAt: data.created_at,
+      ownerUsername: data.owner_username,
     },
-    // โชว์ให้เห็นครั้งเดียวตอนนี้เท่านั้น — ใน DB เก็บแค่แฮช ดึงกลับมาดูอีกไม่ได้
-    ownerCode,
+    // โชว์ password ให้เห็นครั้งเดียวตอนนี้เท่านั้น — ใน DB เก็บแค่แฮช ดึงกลับมาดูอีกไม่ได้
+    ownerPassword,
   });
 }

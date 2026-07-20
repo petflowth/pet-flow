@@ -2,7 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPlatformSessionFrom } from "@/lib/platform-auth";
 import { getSupabase } from "@/lib/supabase/server";
 import { logAudit } from "@/lib/audit-log";
-import { SESSION_COOKIE, sessionCookieOptions, signSession } from "@/lib/auth";
+import {
+  SESSION_COOKIE,
+  generateSalt,
+  hashPassword,
+  sessionCookieOptions,
+  signSession,
+} from "@/lib/auth";
+
+/** สุ่มรหัสผ่านให้อ่านง่าย จำง่าย — ตัวอักษร/ตัวเลขที่ไม่สับสน (ตัด 0/O, 1/I ออก) */
+function generatePassword(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let s = "";
+  for (let i = 0; i < 8; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +62,38 @@ export async function PATCH(
       afterState: { status },
     });
     return NextResponse.json({ ok: true });
+  }
+
+  if (action === "reset_owner_login") {
+    // ตั้ง/รีเซ็ต username+password ของเจ้าของร้าน — ใช้กับร้านเก่าที่ยังไม่มี หรือลืม password
+    const username = String(body.username || tenant.slug).trim().toLowerCase();
+    const password = generatePassword();
+    const salt = generateSalt();
+    const passwordHash = await hashPassword(password, salt);
+
+    const { error } = await sb
+      .from("tenants")
+      .update({
+        owner_username: username,
+        owner_password_hash: passwordHash,
+        owner_password_salt: salt,
+      })
+      .eq("id", id);
+    if (error) {
+      const msg = error.code === "23505" ? "username นี้ถูกใช้แล้ว" : error.message;
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
+
+    await logAudit({
+      tenantId: id,
+      actorType: "platform",
+      actorId: "platform_owner",
+      action: "reset_owner_login",
+      resourceType: "tenant",
+      resourceId: id,
+    });
+
+    return NextResponse.json({ ok: true, ownerUsername: username, ownerPassword: password });
   }
 
   if (action === "impersonate") {

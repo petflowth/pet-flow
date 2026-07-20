@@ -7,9 +7,8 @@ import { Logo } from "@/components/Logo";
 export default function AdminLoginPage() {
   const router = useRouter();
   const params = useSearchParams();
-  const [code, setCode] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [isStaff, setIsStaff] = useState(false);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -17,13 +16,13 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setErr("");
     setBusy(true);
-    // ตรวจรหัสที่เซิร์ฟเวอร์เสมอ แล้วรับคุกกี้ที่เซ็นชื่อกลับมา
+    // ตรวจที่เซิร์ฟเวอร์เสมอ แล้วรับคุกกี้ที่เซ็นชื่อกลับมา
     // (เมื่อก่อนเทียบรหัสในเบราว์เซอร์ = รหัสจริงติดไปกับไฟล์ JS ให้ใครก็เปิดดูได้)
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(isStaff ? { code, password } : { code }),
+        body: JSON.stringify({ username, password }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {
@@ -39,7 +38,7 @@ export default function AdminLoginPage() {
           router.push(next || "/admin");
         }
       } else {
-        setErr(data.error || "รหัสไม่ถูกต้อง");
+        setErr(data.error || "username หรือ password ไม่ถูกต้อง");
       }
     } catch {
       setErr("เชื่อมต่อไม่สำเร็จ — ลองใหม่อีกครั้ง");
@@ -62,58 +61,24 @@ export default function AdminLoginPage() {
           <p className="mt-1 text-xs text-brown-soft">เข้าสู่ระบบเจ้าของ / พนักงาน</p>
         </div>
 
-        <div className="mb-4 flex rounded-full bg-paper p-1 text-xs font-bold">
-          <button
-            type="button"
-            onClick={() => setIsStaff(false)}
-            className={`flex-1 rounded-full py-1.5 ${
-              !isStaff ? "bg-latte-deep text-white" : "text-brown-soft"
-            }`}
-          >
-            เจ้าของร้าน
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsStaff(true)}
-            className={`flex-1 rounded-full py-1.5 ${
-              isStaff ? "bg-latte-deep text-white" : "text-brown-soft"
-            }`}
-          >
-            พนักงาน
-          </button>
-        </div>
-
-        {isStaff ? (
-          <>
-            <label className="mb-2 block text-xs font-bold text-brown-soft">Username</label>
-            <input
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="mb-3 w-full rounded-petflow-sm border border-petflow-line bg-paper px-4 py-3 text-sm outline-none focus:border-latte-deep"
-              placeholder="username"
-              autoCapitalize="none"
-            />
-            <label className="mb-2 block text-xs font-bold text-brown-soft">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mb-4 w-full rounded-petflow-sm border border-petflow-line bg-paper px-4 py-3 text-sm outline-none focus:border-latte-deep"
-              placeholder="••••••••"
-            />
-          </>
-        ) : (
-          <>
-            <label className="mb-2 block text-xs font-bold text-brown-soft">รหัสร้าน</label>
-            <input
-              type="password"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="mb-4 w-full rounded-petflow-sm border border-petflow-line bg-paper px-4 py-3 text-sm outline-none focus:border-latte-deep"
-              placeholder="••••••••"
-            />
-          </>
-        )}
+        <label className="mb-2 block text-xs font-bold text-brown-soft">Username</label>
+        <input
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          className="mb-3 w-full rounded-petflow-sm border border-petflow-line bg-paper px-4 py-3 text-sm outline-none focus:border-latte-deep"
+          placeholder="username"
+          autoCapitalize="none"
+          autoComplete="username"
+        />
+        <label className="mb-2 block text-xs font-bold text-brown-soft">Password</label>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="mb-4 w-full rounded-petflow-sm border border-petflow-line bg-paper px-4 py-3 text-sm outline-none focus:border-latte-deep"
+          placeholder="••••••••"
+          autoComplete="current-password"
+        />
 
         {err && <p className="mb-3 text-xs font-semibold text-red-600">{err}</p>}
         <button
@@ -124,7 +89,7 @@ export default function AdminLoginPage() {
           {busy ? "กำลังตรวจสอบ…" : "เข้าใช้งาน 🐾"}
         </button>
         <p className="mt-4 text-center text-[10px] text-brown-faint">
-          พนักงานใช้ username/password ที่เจ้าของสร้างให้ (ตั้งค่า → ขั้นสูง → พนักงาน)
+          username/password ของเจ้าของร้านได้จาก /platform — ของพนักงานเจ้าของร้านตั้งให้ (ตั้งค่า → ขั้นสูง → พนักงาน)
         </p>
       </form>
     </div>

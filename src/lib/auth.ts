@@ -47,6 +47,17 @@ export function getOwnerCode(): string {
   );
 }
 
+/**
+ * ตั้งรหัสเจ้าของร้านเอง (ผ่าน env) แล้วหรือยัง
+ * ถ้ายัง getOwnerCode() จะคืนค่า default "petflow2026" ที่ทุก clone รู้ — ห้ามให้ล็อกอินด้วยค่านี้
+ * (ใช้กันช่อง bootstrap login: ยอมรับรหัส env ต่อเมื่อร้านตั้งเองจริงเท่านั้น)
+ */
+export function isOwnerCodeConfigured(): boolean {
+  return Boolean(
+    process.env.ADMIN_CODE?.trim() || process.env.NEXT_PUBLIC_ADMIN_CODE?.trim()
+  );
+}
+
 function secretKey(): string {
   return process.env.SESSION_SECRET || `petflow-session::${getOwnerCode()}`;
 }

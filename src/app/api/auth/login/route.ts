@@ -4,6 +4,7 @@ import {
   SESSION_COOKIE,
   getBootstrapTenantId,
   getOwnerCode,
+  isOwnerCodeConfigured,
   sessionCookieOptions,
   signSession,
   verifySession,
@@ -70,8 +71,14 @@ export async function POST(req: NextRequest) {
     if (legacyTenant) {
       payload = { role: "owner", name: "เจ้าของร้าน", tenantId: legacyTenant.id };
     } else {
+      // bootstrap login (env ADMIN_CODE) — ยอมรับต่อเมื่อร้าน "ตั้งรหัสเอง" จริงเท่านั้น
+      // ถ้ายังไม่ตั้ง getOwnerCode() จะเป็น default "petflow2026" ที่ทุก clone รู้ = ห้ามให้ผ่าน
       const bootstrapTenantId = getBootstrapTenantId();
-      if (bootstrapTenantId && username === getOwnerCode()) {
+      if (
+        bootstrapTenantId &&
+        isOwnerCodeConfigured() &&
+        username === getOwnerCode()
+      ) {
         payload = { role: "owner", name: "เจ้าของร้าน", tenantId: bootstrapTenantId };
       }
     }

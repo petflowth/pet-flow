@@ -4,6 +4,7 @@ import { getLineCredentials } from "@/lib/line-config";
 import { findCustomerByLine } from "@/lib/customers-store";
 import { sendTelegram, sendTelegramPhoto } from "@/lib/telegram";
 import { shouldNotifyUnanswered } from "@/lib/chat-watch-store";
+import { withResolvedTenant } from "@/lib/tenant-context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -84,7 +85,7 @@ export async function GET() {
   return NextResponse.json({ ok: true, endpoint: "line-webhook" });
 }
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   const raw = await req.text();
 
   const secret = process.env.LINE_CHANNEL_SECRET?.trim();
@@ -140,3 +141,6 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ ok: true });
 }
+
+// R1/R3: resolve ร้านจาก /s/<slug>/api/line/webhook (header x-tenant-slug) → bootstrap ถ้าไม่มี
+export function POST(req: NextRequest) { return withResolvedTenant(req, () => postHandler(req)); }

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { withResolvedTenant } from "@/lib/tenant-context";
 import { getBooking, setBookingTime } from "@/lib/bookings-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 
 /** ดึงข้อมูลนัดสำหรับหน้าเลือกเวลา */
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id")?.trim();
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
   const b = await getBooking(id);
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
 }
 
 /** ลูกค้าเลือกเวลามาส่ง/รับน้อง */
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const bookingId = String(body.bookingId || "").trim();
   const type = body.type === "checkout" ? "checkout" : "checkin";
@@ -58,3 +59,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ ok: res.ok, needSql: !res.ok && res.error === "need_sql" });
 }
+
+// R1/R3: resolve ร้านจาก request (header/cookie) ก่อนเข้า handler
+export function GET(req: NextRequest) { return withResolvedTenant(req, () => getHandler(req)); }
+export function POST(req: NextRequest) { return withResolvedTenant(req, () => postHandler(req)); }

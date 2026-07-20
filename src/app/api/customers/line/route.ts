@@ -5,7 +5,7 @@ import {
 } from "@/lib/customers-store";
 import { isProfileComplete } from "@/lib/customer-tier";
 import type { CatRecord } from "@/lib/customers-store";
-import { withBootstrapTenant } from "@/lib/tenant-context";
+import { withResolvedTenant } from "@/lib/tenant-context";
 
 /** ตัด staffPrivateNote (โน้ตลับร้าน) ออกก่อนส่งให้ฝั่งลูกค้าเสมอ */
 function catsForCustomer(cats: CatRecord[]) {
@@ -18,7 +18,7 @@ function catsForCustomer(cats: CatRecord[]) {
 
 /** ลูกค้าเปิดแอปจาก LINE → สร้าง/ผูกบัญชีอัตโนมัติ */
 export async function POST(req: NextRequest) {
-  return withBootstrapTenant(() => handlePost(req));
+  return withResolvedTenant(req, () => handlePost(req));
 }
 
 async function handlePost(req: NextRequest) {
@@ -60,7 +60,7 @@ async function handlePost(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  return withBootstrapTenant(() => handleGet(req));
+  return withResolvedTenant(req, () => handleGet(req));
 }
 
 async function handleGet(req: NextRequest) {

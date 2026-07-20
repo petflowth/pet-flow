@@ -5,11 +5,11 @@ import {
   updateCat,
 } from "@/lib/customers-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
-import { withBootstrapTenant } from "@/lib/tenant-context";
+import { withResolvedTenant } from "@/lib/tenant-context";
 
 /** ลูกค้าดึงข้อมูลตัวเอง (สำหรับหน้าแก้ไขโปรไฟล์ใน LINE) — ครบทุกฟิลด์ที่กรอกตอนสมัคร */
 export async function GET(req: NextRequest) {
-  return withBootstrapTenant(() => handleGet(req));
+  return withResolvedTenant(req, () => handleGet(req));
 }
 
 async function handleGet(req: NextRequest) {
@@ -49,7 +49,7 @@ async function handleGet(req: NextRequest) {
 
 /** ลูกค้าแก้ไขข้อมูลตัวเอง — ผู้ปกครอง + น้องแมว (ยืนยันตัวจาก lineUserId ของ LIFF) */
 export async function POST(req: NextRequest) {
-  return withBootstrapTenant(() => handlePost(req));
+  return withResolvedTenant(req, () => handlePost(req));
 }
 
 async function handlePost(req: NextRequest) {

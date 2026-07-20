@@ -1,5 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import type { NextRequest } from "next/server";
 import { getBootstrapTenantId } from "./auth";
+import { resolveTenantId } from "./tenant-resolve";
 
 /**
  * ตัวร้านที่กำลังประมวลผลอยู่ตอนนี้ — เซ็ตครั้งเดียวตอนเข้า API route
@@ -43,5 +45,20 @@ export function withBootstrapTenant<T>(fn: () => Promise<T>): Promise<T> {
   if (!tenantId) {
     throw new Error("ยังไม่ได้ตั้งค่า TENANT_ID — ดูขั้นตอนใน SETUP_NEW_SHOP.md");
   }
+  return storage.run(tenantId, fn);
+}
+
+/**
+ * ใช้ใน API route ฝั่งลูกค้า (LIFF) แบบ multi-tenant — resolve ร้านจาก request
+ * (header x-tenant-slug ที่ middleware ใส่ / cookie pf_tenant) แล้ว fallback ไป
+ * ร้าน bootstrap ถ้าไม่มี slug (ร้านเดิม/CatCha) ดู tenant-resolve.ts
+ *
+ * แทนที่ withBootstrapTenant() ในทุก route ลูกค้า เพื่อให้ร้านที่ 2 แยกข้อมูลได้จริง
+ */
+export async function withResolvedTenant<T>(
+  req: NextRequest,
+  fn: () => Promise<T>
+): Promise<T> {
+  const tenantId = await resolveTenantId(req);
   return storage.run(tenantId, fn);
 }

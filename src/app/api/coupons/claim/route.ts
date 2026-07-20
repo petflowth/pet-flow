@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { withResolvedTenant } from "@/lib/tenant-context";
 import { findCustomerByLine } from "@/lib/customers-store";
 import { getOffer, claimOffer } from "@/lib/coupons-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 
 /** ข้อมูลแคมเปญคูปอง (สำหรับหน้ากดรับ) */
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   const offerId = req.nextUrl.searchParams.get("offer")?.trim();
   if (!offerId) return NextResponse.json({ error: "offer required" }, { status: 400 });
   const offer = await getOffer(offerId);
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
 }
 
 /** ลูกค้ากดรับคูปอง */
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const offerId = String(body.offerId || "").trim();
   const lineUserId = String(body.lineUserId || "").trim();
@@ -51,3 +52,7 @@ export async function POST(req: NextRequest) {
   );
   return NextResponse.json({ ok: true, coupon: res.coupon });
 }
+
+// R1/R3: resolve ร้านจาก request (header/cookie) ก่อนเข้า handler
+export function GET(req: NextRequest) { return withResolvedTenant(req, () => getHandler(req)); }
+export function POST(req: NextRequest) { return withResolvedTenant(req, () => postHandler(req)); }

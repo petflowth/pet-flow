@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { withResolvedTenant } from "@/lib/tenant-context";
 import { acceptBookingConsent, getBooking } from "@/lib/bookings-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 
 /** ลูกค้ากด "ยอมรับข้อตกลง" ก่อนเข้าพัก */
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const bookingId = String(body.bookingId || "").trim();
   const lineUserId = String(body.lineUserId || "").trim();
@@ -42,3 +43,6 @@ export async function POST(req: NextRequest) {
     needSql: !res.ok && res.error === "need_sql",
   });
 }
+
+// R1/R3: resolve ร้านจาก request (header/cookie) ก่อนเข้า handler
+export function POST(req: NextRequest) { return withResolvedTenant(req, () => postHandler(req)); }

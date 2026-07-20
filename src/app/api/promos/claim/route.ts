@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { withResolvedTenant } from "@/lib/tenant-context";
 import { claimCustomerPromo } from "@/lib/promos-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 
 /** ลูกค้ากดใช้โปรจากหน้าแอป */
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const promoId = String(body.promoId || "").trim();
   const lineUserId = String(body.lineUserId || "").trim();
@@ -35,3 +36,6 @@ export async function POST(req: NextRequest) {
     newPoints: result.newPoints,
   });
 }
+
+// R1/R3: resolve ร้านจาก request (header/cookie) ก่อนเข้า handler
+export function POST(req: NextRequest) { return withResolvedTenant(req, () => postHandler(req)); }

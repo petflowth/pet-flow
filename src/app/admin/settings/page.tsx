@@ -7,6 +7,7 @@ import type { SiteConfig } from "@/lib/config-types";
 import type { RoomType } from "@/lib/business";
 import { adminJson } from "@/lib/admin-fetch";
 import { toJpegDataUrl } from "@/lib/image-convert";
+import { extractLogoColors } from "@/lib/color-extract";
 import { ExportSheetsButton } from "@/components/ExportSheetsButton";
 
 type Tab =
@@ -216,6 +217,21 @@ function ShopTab({
   const [form, setForm] = useState(config.business);
   const [branding, setBranding] = useState({ ...BRANDING_DEFAULT, ...config.branding });
   const gradientOn = Boolean(branding.backgroundGradientFrom && branding.backgroundGradientTo);
+  const [extracting, setExtracting] = useState(false);
+  const [extractErr, setExtractErr] = useState("");
+
+  const autoDetectColors = async () => {
+    if (!branding.logoUrl) return;
+    setExtracting(true);
+    setExtractErr("");
+    const picked = await extractLogoColors(branding.logoUrl);
+    setExtracting(false);
+    if (!picked) {
+      setExtractErr("ดึงสีจากโลโก้ไม่สำเร็จ — ลองอัปโหลดรูปใหม่ หรือปรับสีเองด้านล่างได้เลย");
+      return;
+    }
+    setBranding((b) => ({ ...b, ...picked }));
+  };
 
   useEffect(() => {
     setForm(config.business);
@@ -243,11 +259,29 @@ function ShopTab({
         onChange={(v) => setBranding({ ...branding, logoUrl: v })}
         onUpload={(f) => {
           const reader = new FileReader();
-          reader.onload = () =>
-            setBranding((b) => ({ ...b, logoUrl: String(reader.result) }));
+          reader.onload = () => {
+            const url = String(reader.result);
+            setBranding((b) => ({ ...b, logoUrl: url }));
+            extractLogoColors(url).then((picked) => {
+              if (picked) setBranding((b) => ({ ...b, ...picked }));
+            });
+          };
           reader.readAsDataURL(f);
         }}
       />
+      {branding.logoUrl && (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={extracting}
+            onClick={autoDetectColors}
+            className="rounded-full bg-honey/30 px-3 py-1.5 text-[11px] font-bold text-latte-deep disabled:opacity-50"
+          >
+            {extracting ? "กำลังดึงสี…" : "🪄 ดึงสีจากโลโก้อัตโนมัติ"}
+          </button>
+          {extractErr && <span className="text-[10px] font-bold text-wait">{extractErr}</span>}
+        </div>
+      )}
       <p className="text-[10px] font-bold text-brown-soft">ปุ่ม / จุดเน้น</p>
       <div className="grid grid-cols-3 gap-2">
         <ColorField

@@ -16,7 +16,7 @@ export function LinkLineContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const customerId = searchParams.get("customerId") || "";
-  const { profile, ready, refreshCustomer } = useLiff();
+  const { profile, ready, refreshCustomer, error: liffError } = useLiff();
   const [preview, setPreview] = useState<Preview | null>(null);
   const [loading, setLoading] = useState(true);
   const [linking, setLinking] = useState(false);
@@ -137,6 +137,18 @@ export function LinkLineContent() {
       {error && (
         <p className="mb-3 rounded-petflow-sm bg-red-50 px-3 py-2 text-xs font-bold text-red-700">
           {error}
+        </p>
+      )}
+
+      {/* ปุ่มด้านล่างจะกดไม่ได้เงียบๆ ถ้า LIFF ดึงโปรไฟล์ LINE ไม่สำเร็จ (profile.lineUserId ว่าง)
+          — ต้องโชว์สาเหตุตรงนี้ ไม่งั้นดูเหมือนปุ่มพังโดยไม่รู้ว่าทำไม */}
+      {!profile?.lineUserId && (
+        <p className="mb-3 rounded-petflow-sm bg-red-50 px-3 py-2 text-xs font-bold text-red-700">
+          ⚠️ ดึงโปรไฟล์ LINE ไม่สำเร็จ — กดปุ่มด้านล่างไม่ได้จนกว่าจะแก้
+          {liffError ? ` (${liffError})` : ""}
+          <br />
+          มักเกิดจาก LIFF app ยังไม่ได้ติ๊ก Scope “profile” — เช็คที่ LINE Developers → Channel
+          → LIFF → เลือกแอปนี้ → Scopes → ติ๊ก profile (และ openid ถ้ามี) → Update
         </p>
       )}
 

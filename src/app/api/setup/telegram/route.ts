@@ -65,7 +65,23 @@ export async function POST(req: NextRequest) {
 async function handlePost(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   try {
-    const botToken = parseBotToken(String(body.botToken || ""));
+    // ปล่อยช่อง Token ว่างได้ถ้าตั้งบอทไว้แล้ว — ใช้ token เดิม
+    // (จะได้เพิ่ม/ลบคนรับแจ้งเตือนโดยไม่ต้องไปขุด token จาก BotFather มาใหม่)
+    // สำคัญ: parseBotToken จะ throw ถ้าเรียกด้วยค่าว่าง — ต้องเช็คว่ามีค่าก่อนถึงจะ parse
+    const rawToken = String(body.botToken || "").trim();
+    let botToken = "";
+    if (rawToken) {
+      botToken = parseBotToken(rawToken);
+    } else {
+      const existing = await getTelegramCredentials();
+      if (existing?.botToken) botToken = existing.botToken;
+    }
+    if (!botToken) {
+      return NextResponse.json({
+        ok: false,
+        message: "ยังไม่มีบอท — วาง Bot Token จาก @BotFather ก่อนนะคะ",
+      });
+    }
     const ownerChatIds = parseOwnerChatIds(String(body.ownerChatIds || "")).join(
       ","
     );

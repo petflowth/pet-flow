@@ -203,6 +203,31 @@ function looksLikeMissingFunction(msg: string) {
     /(does not exist|could not find|schema cache|PGRST202|not found|404)/i.test(msg);
 }
 
+/**
+ * รัน migration ตัวเดียวตามชื่อ แล้วบอก PostgREST ให้รีโหลด schema
+ *
+ * ใช้ตอนฟีเจอร์ไปเจอคอลัมน์ที่ยังไม่มี (เช่น ใส่รูปคอร์สแล้วยังไม่มี image_url) —
+ * จะได้ซ่อมให้เองแล้วลองใหม่ทันที ไม่ต้องให้ร้านไปกดตั้งค่าก่อน
+ * คืน true ถ้าคอลัมน์พร้อมใช้ (idempotent — "add column if not exists")
+ */
+export async function ensureMigration(name: string): Promise<boolean> {
+  const sb = getSupabase();
+  if (!sb) return false;
+  const m = MIGRATIONS.find((x) => x.name === name);
+  if (!m) return false;
+  try {
+    const { error } = await sb.rpc("exec_sql", { sql: m.sql });
+    if (error) return false;
+    await sb.rpc("exec_sql", { sql: "notify pgrst, 'reload schema';" }).then(
+      () => {},
+      () => {}
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** รันทุก migration ผ่าน exec_sql (idempotent — ปลอดภัยรันซ้ำ) */
 export async function runMigrations(): Promise<MigrateResult> {
   const sb = getSupabase();

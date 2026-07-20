@@ -332,6 +332,11 @@ export default function AdminPackagesPage() {
       } else if (d.error === "not_pending") {
         toast("ออร์เดอร์นี้ถูกจัดการไปแล้ว (อาจกดซ้ำ) — รีเฟรชให้แล้ว", "error");
         load();
+      } else if (d.error === "no_column") {
+        toast(
+          "ยังบันทึกรูปไม่ได้ — ไปที่ ตั้งค่า แล้วกด 'อัปเดตฐานข้อมูล' ครั้งเดียว แล้วลองใหม่นะคะ",
+          "error"
+        );
       } else {
         toast("ไม่สำเร็จ", "error");
       }

@@ -181,13 +181,24 @@ export async function createPackageOffer(data: {
     // เขียนแยกเพราะร้านที่ยังไม่ได้รันคอลัมน์นี้จะ insert ไม่ผ่านทั้งแถว
     if (offer.imageUrl) {
       try {
-        await sb
+        const { error } = await sb
           .from("package_offers")
           .update({ image_url: offer.imageUrl })
           .eq("id", offer.id)
           .eq("tenant_id", requireTenantId());
+        if (error) {
+          // ยังไม่มีคอลัมน์ — ซ่อมให้เองแล้วลองใหม่ (คอร์สสร้างสำเร็จไปแล้ว รูปเป็นของแถม)
+          const { ensureMigration } = await import("./migrations");
+          if (await ensureMigration("package_offers.image_url")) {
+            await sb
+              .from("package_offers")
+              .update({ image_url: offer.imageUrl })
+              .eq("id", offer.id)
+              .eq("tenant_id", requireTenantId());
+          }
+        }
       } catch {
-        /* ยังไม่มีคอลัมน์ image_url */
+        /* ยังไม่มีคอลัมน์ image_url — คอร์สยังขายได้ แค่ไม่มีรูป */
       }
     }
   } else {
@@ -215,7 +226,18 @@ export async function setPackageOfferImage(id: string, image: string) {
         .update({ image_url: imageUrl })
         .eq("id", id)
         .eq("tenant_id", requireTenantId());
-      if (error) return { ok: false as const, error: "no_column" };
+      if (error) {
+        // ยังไม่มีคอลัมน์ image_url — ซ่อมให้เองแล้วลองใหม่ 1 ครั้ง
+        const { ensureMigration } = await import("./migrations");
+        const healed = await ensureMigration("package_offers.image_url");
+        if (!healed) return { ok: false as const, error: "no_column" };
+        const retry = await sb
+          .from("package_offers")
+          .update({ image_url: imageUrl })
+          .eq("id", id)
+          .eq("tenant_id", requireTenantId());
+        if (retry.error) return { ok: false as const, error: "no_column" };
+      }
     } catch {
       return { ok: false as const, error: "no_column" };
     }

@@ -1,6 +1,7 @@
 import { LocaleProvider } from "@/components/LocaleProvider";
 import { LiffProvider } from "@/components/LiffProvider";
 import { ConfigProvider } from "@/components/ConfigProvider";
+import { BrandingStyle } from "@/components/BrandingStyle";
 import { CustomerNav } from "@/components/CustomerNav";
 import { LiffStuckBanner } from "@/components/LiffStuckBanner";
 
@@ -12,6 +13,7 @@ export default function CustomerLayout({
   return (
     <LocaleProvider>
       <ConfigProvider>
+        <BrandingStyle />
         <LiffProvider>
           <div className="bg-petflow-gradient min-h-screen pb-28">
             <LiffStuckBanner />

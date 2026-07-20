@@ -13,9 +13,21 @@ export default {
         paper: "#f4ece0",
         card: "#fffdfa",
         brown: { DEFAULT: "#4e3e32", soft: "#a2907e", faint: "#c4b4a2" },
-        honey: { DEFAULT: "#ebc583", deep: "#e0ad5a" },
-        latte: { DEFAULT: "#c7a583", deep: "#a9855f" },
-        petflow: { yellow: "#f5d76e", chocolate: "#5c4033", line: "#efe6d7" },
+        // สามค่านี้ผูกกับ CSS var เพื่อให้แต่ละร้าน override สีได้ผ่าน <BrandingStyle> —
+        // ยังใส่ opacity แบบ bg-honey/30 ได้ตามเดิมเพราะใช้ pattern rgb(var(..) / <alpha-value>)
+        honey: {
+          DEFAULT: "rgb(var(--honey-rgb) / <alpha-value>)",
+          deep: "rgb(var(--honey-deep-rgb) / <alpha-value>)",
+        },
+        latte: {
+          DEFAULT: "rgb(var(--latte-rgb) / <alpha-value>)",
+          deep: "rgb(var(--latte-deep-rgb) / <alpha-value>)",
+        },
+        petflow: {
+          yellow: "#f5d76e",
+          chocolate: "rgb(var(--chocolate-rgb) / <alpha-value>)",
+          line: "#efe6d7",
+        },
         sage: "#9fb79a",
         wait: "#d9a05b",
         ok: "#7fa876",

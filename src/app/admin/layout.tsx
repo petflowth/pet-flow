@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { LocaleProvider } from "@/components/LocaleProvider";
+import { ConfigProvider } from "@/components/ConfigProvider";
+import { BrandingStyle } from "@/components/BrandingStyle";
 import { Logo } from "@/components/Logo";
 import {
   AdminMenuButton,
@@ -135,7 +137,10 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <LocaleProvider>
-      <AdminShell>{children}</AdminShell>
+      <ConfigProvider>
+        <BrandingStyle />
+        <AdminShell>{children}</AdminShell>
+      </ConfigProvider>
     </LocaleProvider>
   );
 }

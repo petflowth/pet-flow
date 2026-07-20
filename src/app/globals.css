@@ -19,6 +19,14 @@
   --sage: #9fb79a;
   --wait: #d9a05b;
   --ok: #7fa876;
+
+  /* สีประจำร้าน (RGB triplet เพื่อให้ Tailwind ใส่ opacity ได้ เช่น bg-honey/30) —
+     ค่าเริ่มต้นตรงกับ --honey/--latte/--chocolate ด้านบน, ถูก override ได้ต่อร้านผ่าน <BrandingStyle> */
+  --honey-rgb: 235 197 131;
+  --honey-deep-rgb: 224 173 90;
+  --latte-rgb: 199 165 131;
+  --latte-deep-rgb: 169 133 95;
+  --chocolate-rgb: 92 64 51;
 }
 
 body {

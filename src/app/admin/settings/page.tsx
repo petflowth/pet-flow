@@ -195,6 +195,8 @@ export default function SettingsPage() {
   );
 }
 
+const BRANDING_DEFAULT = { primary: "#a9855f", accent: "#ebc583", heading: "#5c4033" };
+
 function ShopTab({
   config,
   saving,
@@ -205,19 +207,80 @@ function ShopTab({
   onSave: (p: Partial<SiteConfig>) => void;
 }) {
   const [form, setForm] = useState(config.business);
+  const [branding, setBranding] = useState({ ...BRANDING_DEFAULT, ...config.branding });
 
   useEffect(() => {
     setForm(config.business);
   }, [config.business]);
+  useEffect(() => {
+    setBranding({ ...BRANDING_DEFAULT, ...config.branding });
+  }, [config.branding]);
 
   return (
     <form
       className="space-y-3 rounded-petflow bg-card p-4 shadow-petflow-sm"
       onSubmit={(e) => {
         e.preventDefault();
-        onSave({ business: form });
+        onSave({ business: form, branding });
       }}
     >
+      <p className="text-xs font-extrabold text-petflow-chocolate">🎨 สีและโลโก้ประจำร้าน</p>
+      <p className="text-[10px] text-brown-faint">
+        ปรับสีและโลโก้ให้เข้ากับแบรนด์ร้าน — มีผลทั้งหน้าลูกค้าและหลังบ้าน
+      </p>
+      <PosterField
+        label="โลโก้ร้าน"
+        value={branding.logoUrl || ""}
+        onChange={(v) => setBranding({ ...branding, logoUrl: v })}
+        onUpload={(f) => {
+          const reader = new FileReader();
+          reader.onload = () =>
+            setBranding((b) => ({ ...b, logoUrl: String(reader.result) }));
+          reader.readAsDataURL(f);
+        }}
+      />
+      <div className="grid grid-cols-3 gap-2">
+        <ColorField
+          label="สีหลัก (ปุ่ม)"
+          value={branding.primary}
+          onChange={(v) => setBranding({ ...branding, primary: v })}
+        />
+        <ColorField
+          label="สีไฮไลท์"
+          value={branding.accent}
+          onChange={(v) => setBranding({ ...branding, accent: v })}
+        />
+        <ColorField
+          label="สีหัวข้อ"
+          value={branding.heading}
+          onChange={(v) => setBranding({ ...branding, heading: v })}
+        />
+      </div>
+      <div
+        className="flex items-center gap-2 rounded-petflow-sm p-3"
+        style={{ background: branding.accent }}
+      >
+        <span
+          className="rounded-full px-3 py-1.5 text-xs font-extrabold text-white"
+          style={{ background: branding.primary }}
+        >
+          ตัวอย่างปุ่ม
+        </span>
+        <span className="text-sm font-extrabold" style={{ color: branding.heading }}>
+          ตัวอย่างหัวข้อ
+        </span>
+      </div>
+      {JSON.stringify(branding) !== JSON.stringify({ ...BRANDING_DEFAULT, ...config.branding }) && (
+        <button
+          type="button"
+          onClick={() => setBranding(BRANDING_DEFAULT)}
+          className="text-[10px] font-bold text-brown-faint underline"
+        >
+          รีเซ็ตเป็นสีเริ่มต้น
+        </button>
+      )}
+
+      <hr className="border-petflow-line" />
       <Field label="ชื่อร้าน" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
       <Field label="LINE OA" value={form.lineOa} onChange={(v) => setForm({ ...form, lineOa: v })} />
       <Field
@@ -1211,6 +1274,35 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
       />
+    </label>
+  );
+}
+
+function ColorField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="block text-[10px] font-bold text-brown-soft">
+      {label}
+      <div className="mt-1 flex items-center gap-1.5 rounded-petflow-sm border border-petflow-line bg-paper px-2 py-1.5">
+        <input
+          type="color"
+          value={/^#[0-9a-fA-F]{6}$/.test(value) ? value : "#000000"}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-6 w-6 shrink-0 cursor-pointer border-0 bg-transparent p-0"
+        />
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="min-w-0 flex-1 bg-transparent text-xs font-mono outline-none"
+        />
+      </div>
     </label>
   );
 }

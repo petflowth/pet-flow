@@ -203,4 +203,15 @@ export type SiteConfig = {
   cards?: Record<string, CardStyleConfig>;
   /** คำถาม/ตัวเลือกในฟอร์มประวัติน้องก่อนอาบน้ำ — แก้เองได้ในหลังบ้าน */
   groomForm?: GroomFormConfig;
+  /** สีประจำร้าน — แต่ละร้านปรับเองได้ ไม่ตั้ง = ใช้โทนสีเริ่มต้นของ PetFlow */
+  branding?: {
+    /** สีหลัก (ปุ่ม, ลิงก์เด่น) */
+    primary: string;
+    /** สีไฮไลท์ (พื้นหลังนุ่ม ๆ, แถบ, badge) */
+    accent: string;
+    /** สีตัวอักษรหัวข้อ/โลโก้ */
+    heading: string;
+    /** โลโก้ร้าน — data URL หรือ URL รูป, ไม่ตั้ง = ใช้โลโก้ PetFlow เริ่มต้น */
+    logoUrl?: string;
+  };
 };

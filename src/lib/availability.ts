@@ -1,17 +1,6 @@
 import { getSiteConfig } from "./config-store";
 import { listBookings } from "./bookings-store";
-import { ROOM_INVENTORY } from "./business";
-
-/**
- * ประเภทห้องที่คำนวณความว่างอัตโนมัติได้ (มีจำนวนยูนิตชัดเจนใน ROOM_INVENTORY)
- * ห้องเชื่อม (mini-duo/cozy-duo/cat-tower) กินยูนิตห้องเดี่ยวร่วมกัน คำนวณอัตโนมัติไม่ได้ในเวอร์ชันนี้
- * — ให้ลูกค้าติดต่อร้านแทน (getRoomAvailability คืนค่า null)
- */
-const SELF_BOOKABLE_ROOMS: Record<string, keyof typeof ROOM_INVENTORY> = {
-  "mini-meow": "miniMeow",
-  "mid-cozy": "midCozy",
-  catflix: "catflix",
-};
+import { SELF_BOOKABLE_ROOM_INVENTORY_KEY } from "./self-bookable-rooms";
 
 export type GroomSlotAvailability = {
   time: string;
@@ -55,9 +44,12 @@ export async function getRoomAvailability(
   checkin: string,
   checkout: string
 ): Promise<RoomAvailability | null> {
-  const invKey = SELF_BOOKABLE_ROOMS[roomTypeId];
+  const invKey = SELF_BOOKABLE_ROOM_INVENTORY_KEY[roomTypeId];
   if (!invKey) return null;
-  const capacity = ROOM_INVENTORY[invKey];
+  const config = await getSiteConfig();
+  // ใช้จำนวนห้องจริงของร้านนี้ (ตั้งได้ในหลังบ้าน) ไม่ใช่ค่าเริ่มต้นของ CatCha —
+  // ไม่งั้นร้านที่มีจำนวนห้องต่างจากค่าเริ่มต้นจะเช็คความว่างผิด เสี่ยง overbook หรือปิดขายทั้งที่ห้องว่าง
+  const capacity = config.roomInventory?.[invKey] ?? 0;
 
   const all = await listBookings();
   const booked = all.filter(

@@ -3,18 +3,14 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLiff } from "@/components/LiffProvider";
+import { useConfig } from "@/components/ConfigProvider";
 import { PageHeader } from "@/components/PageHeader";
+import { SELF_BOOKABLE_ROOM_IDS } from "@/lib/self-bookable-rooms";
 
 type Service = "groom" | "room";
 
 type GroomSlot = { time: string; capacity: number; booked: number; remaining: number };
 type RoomAvail = { capacity: number; booked: number; remaining: number } | null;
-
-const ROOM_TYPES: { id: string; name: string }[] = [
-  { id: "mini-meow", name: "MiNi Meow" },
-  { id: "mid-cozy", name: "Mid Cozy Room" },
-  { id: "catflix", name: "Catflix & Chill" },
-];
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -36,6 +32,16 @@ export default function BookPage() {
 function BookPageInner() {
   const params = useSearchParams();
   const { customer, profile, ready } = useLiff();
+  const { config } = useConfig();
+  // ชื่อ/รายการห้องดึงจากตั้งค่าของร้านนี้ ไม่ใช่ค่าเริ่มต้นของ CatCha —
+  // ร้านที่เปลี่ยนชื่อห้องหรือลบห้องประเภทใดออกจะเห็นรายการที่ตรงกับร้านตัวเอง
+  const roomTypes = useMemo(
+    () =>
+      config.rooms
+        .filter((r) => SELF_BOOKABLE_ROOM_IDS.includes(r.id))
+        .map((r) => ({ id: r.id, name: r.name })),
+    [config.rooms]
+  );
   const [service, setService] = useState<Service>(
     params.get("service") === "room" ? "room" : "groom"
   );
@@ -48,7 +54,7 @@ function BookPageInner() {
   const [loadingSlots, setLoadingSlots] = useState(false);
 
   // room state
-  const [roomType, setRoomType] = useState(ROOM_TYPES[0].id);
+  const [roomType, setRoomType] = useState("");
   const [checkin, setCheckin] = useState(todayISO());
   const [checkout, setCheckout] = useState(addDaysISO(todayISO(), 1));
   const [roomAvail, setRoomAvail] = useState<RoomAvail>(null);
@@ -62,6 +68,14 @@ function BookPageInner() {
   useEffect(() => {
     if (customer?.cats?.length && !catName) setCatName(customer.cats[0].name);
   }, [customer, catName]);
+
+  useEffect(() => {
+    // roomType เริ่มว่างเพราะรอโหลด config ก่อน — เลือกห้องแรกที่ร้านนี้เปิดให้จองเองได้
+    // และสลับให้อัตโนมัติถ้าห้องที่เลือกไว้ถูกลบ/เปลี่ยนชื่อจนไม่อยู่ในลิสต์แล้ว
+    if (roomTypes.length && !roomTypes.some((r) => r.id === roomType)) {
+      setRoomType(roomTypes[0].id);
+    }
+  }, [roomTypes, roomType]);
 
   useEffect(() => {
     if (service !== "groom") return;
@@ -82,6 +96,7 @@ function BookPageInner() {
 
   useEffect(() => {
     if (service !== "room") return;
+    if (!roomType) return;
     if (checkout <= checkin) return;
     let alive = true;
     setLoadingRoom(true);
@@ -113,8 +128,8 @@ function BookPageInner() {
   const canSubmit = useMemo(() => {
     if (!catName) return false;
     if (service === "groom") return Boolean(time);
-    return Boolean(roomAvail && roomAvail.remaining > 0 && checkout > checkin);
-  }, [catName, service, time, roomAvail, checkin, checkout]);
+    return Boolean(roomType && roomAvail && roomAvail.remaining > 0 && checkout > checkin);
+  }, [catName, service, time, roomType, roomAvail, checkin, checkout]);
 
   const submit = async () => {
     if (!profile?.lineUserId || !canSubmit) return;
@@ -272,6 +287,10 @@ function BookPageInner() {
                   </div>
                 )}
               </>
+            ) : roomTypes.length === 0 ? (
+              <p className="rounded-petflow-sm bg-wait/10 px-3 py-2.5 text-xs font-bold text-wait">
+                ยังจองห้องพักเองไม่ได้ตอนนี้ — ทักแชทร้านแทนนะคะ
+              </p>
             ) : (
               <>
                 <label className="mb-3 block text-xs font-bold text-brown-soft">
@@ -281,7 +300,7 @@ function BookPageInner() {
                     onChange={(e) => setRoomType(e.target.value)}
                     className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
                   >
-                    {ROOM_TYPES.map((r) => (
+                    {roomTypes.map((r) => (
                       <option key={r.id} value={r.id}>
                         {r.name}
                       </option>

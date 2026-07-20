@@ -514,3 +514,28 @@ export async function cancelPackageOrder(id: string) {
   }
   return { ok: true as const };
 }
+
+/**
+ * ลบออร์เดอร์ที่จบแล้วออกจากประวัติ — แค่ลบ record ทิ้ง ไม่แตะคอร์สที่ลูกค้าได้ไปแล้ว
+ * (ออร์เดอร์ที่จ่ายแล้วสร้างคอร์สแยกไว้ต่างหาก การลบประวัติจึงไม่กระทบสิทธิ์ลูกค้า)
+ * กันลบออร์เดอร์ที่ยังรอโอนอยู่ — ต้องยกเลิกก่อนถึงจะลบได้ ไม่งั้นของค้างหาย
+ */
+export async function deletePackageOrder(id: string) {
+  const order = await getPackageOrder(id);
+  if (!order) return { ok: false as const, error: "not_found" };
+  if (order.status === "pending") {
+    return { ok: false as const, error: "still_pending" };
+  }
+  const sb = getSupabase();
+  if (sb) {
+    await sb
+      .from("package_orders")
+      .delete()
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
+  } else {
+    const i = memOrders.findIndex((x) => x.id === id);
+    if (i >= 0) memOrders.splice(i, 1);
+  }
+  return { ok: true as const };
+}

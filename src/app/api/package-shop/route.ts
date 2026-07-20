@@ -3,6 +3,7 @@ import {
   listPackageOffers,
   createPackageOffer,
   updatePackageOffer,
+  deletePackageOrder,
   setPackageOfferActive,
   setPackageOfferImage,
   deletePackageOffer,
@@ -207,6 +208,14 @@ export async function PATCH(req: NextRequest) {
 
   if (action === "set_offer_active") {
     await setPackageOfferActive(String(body.offerId || ""), body.active !== false);
+    return NextResponse.json({ ok: true });
+  }
+
+  if (action === "delete_order") {
+    const res = await deletePackageOrder(String(body.orderId || ""));
+    if (!res.ok) {
+      return NextResponse.json({ error: res.error }, { status: 400 });
+    }
     return NextResponse.json({ ok: true });
   }
 

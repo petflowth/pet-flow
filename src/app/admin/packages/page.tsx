@@ -550,21 +550,37 @@ export default function AdminPackagesPage() {
           <h2 className="mb-2 text-sm font-extrabold text-petflow-chocolate">
             📋 ออร์เดอร์ที่จบแล้ว
           </h2>
-          <ul className="space-y-1.5">
+          <ul className="space-y-1">
             {done.map((o) => (
               <li
                 key={o.id}
-                className="flex items-center justify-between gap-2 rounded-petflow-sm bg-paper/50 px-3 py-2 text-xs"
+                className="flex items-center justify-between gap-2 rounded-petflow-sm bg-paper/50 px-2.5 py-1 text-[11px]"
               >
                 <span className="min-w-0 truncate text-brown-soft">
                   {(o.paidAt || o.createdAt).slice(0, 10)} · {o.customerName} · {o.name}
                 </span>
-                <span
-                  className={`shrink-0 font-bold ${
-                    o.status === "paid" ? "text-ok" : "text-wait"
-                  }`}
-                >
-                  {o.status === "paid" ? `✅ ${o.price.toLocaleString()}฿` : "ยกเลิก"}
+                <span className="flex shrink-0 items-center gap-1.5">
+                  <span
+                    className={`font-bold ${o.status === "paid" ? "text-ok" : "text-wait"}`}
+                  >
+                    {o.status === "paid" ? `✅ ${o.price.toLocaleString()}฿` : "ยกเลิก"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!confirm("ลบออร์เดอร์นี้ออกจากประวัติ? (ไม่กระทบคอร์สที่ลูกค้าได้ไปแล้ว)"))
+                        return;
+                      patch(
+                        { action: "delete_order", orderId: o.id },
+                        "ลบออกจากประวัติแล้ว",
+                        o.id
+                      );
+                    }}
+                    className="text-[11px] text-brown-faint hover:text-wait"
+                    aria-label="ลบออร์เดอร์นี้"
+                  >
+                    🗑️
+                  </button>
                 </span>
               </li>
             ))}

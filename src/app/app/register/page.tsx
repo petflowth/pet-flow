@@ -170,7 +170,7 @@ export default function RegisterPage() {
 
   return (
     <div className="px-4 pb-6 pt-5">
-      <div className="mb-5 rounded-petflow bg-sage/20 p-4 text-center">
+      <div className="mb-5 overflow-hidden rounded-petflow bg-gradient-to-br from-honey/45 via-card to-latte/15 p-4 text-center shadow-petflow">
         <p className="text-2xl">🐾</p>
         <h1 className="mt-2 font-extrabold leading-tight text-petflow-chocolate">
           <span className="block text-2xl">สมัครสมาชิก</span>
@@ -486,7 +486,7 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={saving}
-          className="w-full rounded-petflow-sm bg-gradient-to-r from-sage to-[#4A7348] py-3.5 text-sm font-extrabold text-white disabled:opacity-60"
+          className="w-full rounded-petflow-sm bg-latte-deep py-3.5 text-sm font-extrabold text-card disabled:opacity-60"
         >
           {saving ? "กำลังบันทึก…" : "✅ บันทึกข้อมูล"}
         </button>

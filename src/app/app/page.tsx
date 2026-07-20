@@ -85,6 +85,20 @@ export default function CustomerHome() {
       </header>
 
       <Link
+        href="/app/book"
+        className="mb-3 flex items-center gap-3 rounded-petflow bg-gradient-to-r from-honey to-honey-deep p-4 text-petflow-chocolate shadow-petflow-sm transition active:scale-[0.98]"
+      >
+        <span className="text-2xl">📅</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-extrabold">จองคิวเอง</span>
+          <span className="block text-[11px] opacity-80">
+            เลือกวัน-เวลาว่างเอง ไม่ต้องคุยกับพนักงาน
+          </span>
+        </span>
+        <span>→</span>
+      </Link>
+
+      <Link
         href="/app/coupons"
         className="mb-3 flex items-center justify-between gap-3 rounded-petflow border-2 border-honey/60 bg-gradient-to-r from-honey/35 to-latte/20 p-4 shadow-petflow"
       >

@@ -476,7 +476,8 @@ export async function upsertCustomerFromLine(data: {
     return existing;
   }
 
-  const id = `C${Date.now()}`;
+  // สุ่มท้าย id — id นี้ทำหน้าที่เป็น "โทเคนเชิญ" ในลิงก์ผูก LINE ถ้าเดาได้ = คนอื่นยึดบัญชีลูกค้าที่ยังไม่ผูกได้
+  const id = `C${Date.now()}${Math.random().toString(36).slice(2, 7)}`;
   const customer: CustomerRecord = {
     id,
     name: displayName,
@@ -675,7 +676,8 @@ export async function upsertCustomerFromBooking(data: {
   const now = new Date().toISOString();
 
   if (!existing) {
-    const id = `C${Date.now()}`;
+    // สุ่มท้าย id — id นี้ทำหน้าที่เป็น "โทเคนเชิญ" ในลิงก์ผูก LINE ถ้าเดาได้ = คนอื่นยึดบัญชีลูกค้าที่ยังไม่ผูกได้
+  const id = `C${Date.now()}${Math.random().toString(36).slice(2, 7)}`;
     const catId = `CAT${Date.now()}`;
     existing = {
       id,

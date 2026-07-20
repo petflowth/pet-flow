@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionFrom } from "@/lib/auth";
 import {
   runMigrations,
   EXEC_SQL_BOOTSTRAP,
@@ -20,7 +21,12 @@ export async function GET() {
  * ปลอดภัย: endpoint นี้รันเฉพาะ SQL ที่ hardcode ในโค้ด (ไม่รับ SQL จากภายนอก)
  * และ exec_sql เรียกได้เฉพาะ service role.
  */
-export async function POST() {
+export async function POST(req: NextRequest) {
+  // เจ้าของร้านเท่านั้น — แก้โครงสร้าง DB ไม่ควรให้พนักงานที่จำกัดเมนูรันได้
+  const session = await getSessionFrom(req);
+  if (session?.role !== "owner") {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   const res = await runMigrations();
   return NextResponse.json({ ...res, bootstrapSql: res.bootstrapNeeded ? EXEC_SQL_BOOTSTRAP : undefined });
 }

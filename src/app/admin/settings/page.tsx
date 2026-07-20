@@ -195,7 +195,7 @@ export default function SettingsPage() {
   );
 }
 
-const BRANDING_DEFAULT = {
+const BRANDING_DEFAULT: NonNullable<SiteConfig["branding"]> = {
   primary: "#a9855f",
   accent: "#ebc583",
   heading: "#5c4033",
@@ -215,6 +215,7 @@ function ShopTab({
 }) {
   const [form, setForm] = useState(config.business);
   const [branding, setBranding] = useState({ ...BRANDING_DEFAULT, ...config.branding });
+  const gradientOn = Boolean(branding.backgroundGradientFrom && branding.backgroundGradientTo);
 
   useEffect(() => {
     setForm(config.business);
@@ -268,7 +269,7 @@ function ShopTab({
       <p className="text-[10px] font-bold text-brown-soft">พื้นหลัง / ตัวอักษร</p>
       <div className="grid grid-cols-3 gap-2">
         <ColorField
-          label="พื้นหลังเว็บ"
+          label={gradientOn ? "พื้นหลัง (ทึบ — สำรอง)" : "พื้นหลังเว็บ"}
           value={branding.background}
           onChange={(v) => setBranding({ ...branding, background: v })}
         />
@@ -284,9 +285,41 @@ function ShopTab({
         />
       </div>
 
+      <div className="rounded-petflow-sm border border-petflow-line p-3">
+        <Toggle
+          label="🌈 พื้นหลังไล่เฉด (gradient) แทนสีทึบ"
+          checked={gradientOn}
+          onChange={(v) =>
+            setBranding((b) => ({
+              ...b,
+              backgroundGradientFrom: v ? b.background : undefined,
+              backgroundGradientTo: v ? b.accent : undefined,
+            }))
+          }
+        />
+        {gradientOn && (
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <ColorField
+              label="จุดเริ่มไล่สี"
+              value={branding.backgroundGradientFrom || branding.background}
+              onChange={(v) => setBranding({ ...branding, backgroundGradientFrom: v })}
+            />
+            <ColorField
+              label="จุดจบไล่สี"
+              value={branding.backgroundGradientTo || branding.accent}
+              onChange={(v) => setBranding({ ...branding, backgroundGradientTo: v })}
+            />
+          </div>
+        )}
+      </div>
+
       <div
         className="space-y-2 rounded-petflow-sm p-4"
-        style={{ background: branding.background }}
+        style={{
+          background: gradientOn
+            ? `linear-gradient(135deg, ${branding.backgroundGradientFrom} 0%, ${branding.backgroundGradientTo} 100%)`
+            : branding.background,
+        }}
       >
         <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: branding.text, opacity: 0.5 }}>
           ตัวอย่าง

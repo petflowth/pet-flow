@@ -33,9 +33,17 @@ export function BrandingStyle() {
     "--brown-faint-rgb": hexToRgbTriplet(darkenHex(b.text, -0.55)),
   };
 
+  // พื้นหลังไล่เฉด — เปิดใช้ก็ต่อเมื่อตั้งครบทั้งจุดเริ่ม/จุดจบ, ไม่งั้นใช้สีพื้นหลังทึบตามปกติ
+  const gradientFrom = b.backgroundGradientFrom;
+  const gradientTo = b.backgroundGradientTo;
+  const bgImage =
+    gradientFrom && gradientTo && isValidHex(gradientFrom) && isValidHex(gradientTo)
+      ? `linear-gradient(135deg, ${gradientFrom} 0%, ${gradientTo} 100%)`
+      : "none";
+
   const css = `:root { ${Object.entries(vars)
     .map(([k, v]) => `${k}: ${v};`)
-    .join(" ")} }`;
+    .join(" ")} --brand-bg-image: ${bgImage}; }`;
 
   return <style dangerouslySetInnerHTML={{ __html: css }} />;
 }

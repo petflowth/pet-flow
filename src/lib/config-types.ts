@@ -211,8 +211,12 @@ export type SiteConfig = {
     accent: string;
     /** สีตัวอักษรหัวข้อ/โลโก้ */
     heading: string;
-    /** สีพื้นหลังหลักทั้งเว็บ */
+    /** สีพื้นหลังหลักทั้งเว็บ (ใช้เป็นค่าตั้งต้น/สีทึบเมื่อไม่ได้เปิดไล่เฉด) */
     background: string;
+    /** จุดเริ่มไล่สีพื้นหลัง — ใส่คู่กับ backgroundGradientTo เพื่อเปิดพื้นหลังไล่เฉด */
+    backgroundGradientFrom?: string;
+    /** จุดจบไล่สีพื้นหลัง */
+    backgroundGradientTo?: string;
     /** สีพื้นการ์ด/กล่อง (ทับพื้นหลังหลัก) */
     surface: string;
     /** สีตัวอักษรเนื้อหาทั่วไป */

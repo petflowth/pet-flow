@@ -22,6 +22,8 @@
   --latte-rgb: 199 165 131;
   --latte-deep-rgb: 169 133 95;
   --chocolate-rgb: 92 64 51;
+  /* พื้นหลังไล่เฉด (ไม่บังคับ) — ตั้งผ่าน <BrandingStyle> เมื่อร้านเปิดใช้พื้นหลังไล่สี */
+  --brand-bg-image: none;
 }
 
 body {
@@ -53,6 +55,7 @@ button:disabled {
 @layer utilities {
   .bg-petflow-gradient {
     background:
+      var(--brand-bg-image),
       radial-gradient(circle at 15% 0%, rgb(var(--honey-rgb) / 0.18) 0, transparent 45%),
       radial-gradient(circle at 88% 6%, rgb(var(--latte-rgb) / 0.14) 0, transparent 40%),
       rgb(var(--cream-rgb));

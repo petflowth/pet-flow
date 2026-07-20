@@ -119,7 +119,9 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
       let liffId = process.env.NEXT_PUBLIC_LIFF_ID?.trim() || "";
       if (!liffId) {
         try {
-          const res = await fetch("/api/line/liff");
+          // no-store — LINE's in-app webview can hold onto a stale cached response,
+          // ทำให้ตกไปเป็น "dev-user" ค้างแม้ร้านตั้ง LIFF ID เสร็จแล้วก็ตาม
+          const res = await fetch("/api/line/liff", { cache: "no-store" });
           const data = await res.json();
           liffId = data.liffId || "";
         } catch {

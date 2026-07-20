@@ -7,6 +7,8 @@ import {
 } from "@/lib/supabase/bootstrap";
 
 export const runtime = "nodejs";
+// GET เดิมไม่มี query ที่แปรผัน (เหมือน /api/line/liff ที่เจอบั๊ก cache ค้าง) — บังคับ dynamic กันแคชค้าง
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const action = req.nextUrl.searchParams.get("action");

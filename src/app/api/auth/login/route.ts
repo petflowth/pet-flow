@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyStaffCode } from "@/lib/staff-store";
+import { verifyStaffCode, findStaffAcrossTenants } from "@/lib/staff-store";
 import {
   SESSION_COOKIE,
   getBootstrapTenantId,
   getOwnerCode,
+  hashOwnerCode,
   sessionCookieOptions,
   signSession,
   verifySession,
 } from "@/lib/auth";
+import { findTenantByOwnerCodeHash } from "@/lib/tenant-directory";
 
 export const dynamic = "force-dynamic";
 
@@ -35,29 +37,45 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "กรอกรหัสผ่าน" }, { status: 400 });
   }
 
-  const tenantId = getBootstrapTenantId();
-  if (!tenantId) {
-    return NextResponse.json(
-      { error: "ยังไม่ได้ตั้งค่า TENANT_ID — ดูขั้นตอนใน SETUP_NEW_SHOP.md" },
-      { status: 500 }
-    );
-  }
-
   let payload:
     | { role: "owner" | "staff"; name: string; tenantId: string; menus?: string[] }
     | null = null;
 
-  if (code === getOwnerCode()) {
-    payload = { role: "owner", name: "เจ้าของร้าน", tenantId };
-  } else {
-    const staff = await verifyStaffCode(code);
+  // 1) รหัสร้าน — ค้นข้ามทุกร้านด้วยแฮช (ร้านที่สร้างผ่าน /platform ตั้งรหัสของตัวเองได้)
+  const ownerHash = await hashOwnerCode(code);
+  const tenantByCode = await findTenantByOwnerCodeHash(ownerHash);
+  if (tenantByCode) {
+    payload = { role: "owner", name: "เจ้าของร้าน", tenantId: tenantByCode.id };
+  }
+
+  // 2) รหัสพนักงาน — ค้นข้ามทุกร้านเช่นกัน
+  if (!payload) {
+    const staff = await findStaffAcrossTenants(code);
     if (staff) {
       payload = {
         role: "staff",
         name: staff.name || "พนักงาน",
-        tenantId,
+        tenantId: staff.tenantId,
         menus: staff.menus || [],
       };
+    }
+  }
+
+  // 3) ร้าน bootstrap เดิม (ตั้งค่าผ่าน env ADMIN_CODE/TENANT_ID) — คงไว้ให้ร้านที่ตั้งไว้ก่อน T5 ยังใช้ได้
+  if (!payload) {
+    const bootstrapTenantId = getBootstrapTenantId();
+    if (bootstrapTenantId && code === getOwnerCode()) {
+      payload = { role: "owner", name: "เจ้าของร้าน", tenantId: bootstrapTenantId };
+    } else if (bootstrapTenantId) {
+      const staff = await verifyStaffCode(code);
+      if (staff) {
+        payload = {
+          role: "staff",
+          name: staff.name || "พนักงาน",
+          tenantId: bootstrapTenantId,
+          menus: staff.menus || [],
+        };
+      }
     }
   }
 

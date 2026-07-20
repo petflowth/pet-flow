@@ -76,6 +76,12 @@ async function hmac(data: string): Promise<string> {
   return b64url(await crypto.subtle.sign("HMAC", key, enc.encode(data)));
 }
 
+/** แฮชรหัสร้าน (owner code) ก่อนเก็บลง DB — เทียบตอนล็อกอินด้วยการแฮชใหม่แล้วเทียบสตริง */
+export async function hashOwnerCode(code: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", enc.encode(code.trim()));
+  return b64url(digest);
+}
+
 /** สร้างโทเคนสำหรับใส่คุกกี้ */
 export async function signSession(
   payload: Omit<SessionPayload, "exp">

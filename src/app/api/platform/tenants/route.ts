@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPlatformSessionFrom } from "@/lib/platform-auth";
 import { getSupabase } from "@/lib/supabase/server";
 import { logAudit } from "@/lib/audit-log";
+import { hashOwnerCode } from "@/lib/auth";
+
+/** สุ่มรหัสร้านให้อ่านง่าย จำง่าย — ตัวอักษร/ตัวเลขที่ไม่สับสน (ตัด 0/O, 1/I ออก) */
+function generateOwnerCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let s = "";
+  for (let i = 0; i < 8; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -62,9 +71,13 @@ export async function POST(req: NextRequest) {
   const sb = getSupabase();
   if (!sb) return NextResponse.json({ error: "no_db" }, { status: 500 });
 
+  // สุ่มรหัสร้านให้เลย — เก็บแค่แฮชใน DB ตัวจริงโชว์ครั้งเดียวตอนสร้างเสร็จ ก็อปไปให้เจ้าของร้านได้เลย
+  const ownerCode = generateOwnerCode();
+  const ownerCodeHash = await hashOwnerCode(ownerCode);
+
   const { data, error } = await sb
     .from("tenants")
-    .insert({ name, slug, status: "trial" })
+    .insert({ name, slug, status: "trial", owner_code_hash: ownerCodeHash })
     .select("id, slug, name, status, created_at")
     .single();
 
@@ -92,5 +105,7 @@ export async function POST(req: NextRequest) {
       status: data.status,
       createdAt: data.created_at,
     },
+    // โชว์ให้เห็นครั้งเดียวตอนนี้เท่านั้น — ใน DB เก็บแค่แฮช ดึงกลับมาดูอีกไม่ได้
+    ownerCode,
   });
 }

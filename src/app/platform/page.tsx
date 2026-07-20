@@ -36,6 +36,9 @@ export default function PlatformDashboard() {
   const [creating, setCreating] = useState(false);
   const [msg, setMsg] = useState("");
   const [busyId, setBusyId] = useState("");
+  const [newOwnerCode, setNewOwnerCode] = useState<{ tenantName: string; code: string } | null>(
+    null
+  );
 
   const load = useCallback(async () => {
     const res = await fetch("/api/platform/tenants").catch(() => null);
@@ -63,7 +66,8 @@ export default function PlatformDashboard() {
       });
       const d = await res.json().catch(() => ({}));
       if (res.ok) {
-        setMsg(`✅ สร้างร้าน "${d.tenant.name}" แล้ว`);
+        setMsg("");
+        setNewOwnerCode({ tenantName: d.tenant.name, code: d.ownerCode });
         setName("");
         setSlug("");
         load();
@@ -139,6 +143,37 @@ export default function PlatformDashboard() {
         </button>
         {msg && <p className="mt-2 text-xs font-bold text-white/70">{msg}</p>}
       </form>
+
+      {newOwnerCode && (
+        <div className="mb-6 rounded-petflow border-2 border-honey/50 bg-honey/10 p-4">
+          <p className="mb-1 text-sm font-extrabold text-honey">
+            ✅ สร้างร้าน &quot;{newOwnerCode.tenantName}&quot; แล้ว
+          </p>
+          <p className="mb-2 text-xs text-white/60">
+            รหัสร้าน — ก็อปไปให้เจ้าของร้านนี้เลย{" "}
+            <b className="text-white">เห็นได้ครั้งนี้ครั้งเดียว</b> (ระบบเก็บแค่แฮชไว้ ดึงกลับมาดูอีกไม่ได้)
+          </p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 rounded-petflow-sm bg-[#1a1d29] px-3 py-2 text-lg font-extrabold tracking-widest text-honey">
+              {newOwnerCode.code}
+            </code>
+            <button
+              type="button"
+              onClick={() => navigator.clipboard.writeText(newOwnerCode.code)}
+              className="shrink-0 rounded-petflow-sm bg-honey/25 px-3 py-2 text-xs font-bold text-honey"
+            >
+              📋 ก็อป
+            </button>
+            <button
+              type="button"
+              onClick={() => setNewOwnerCode(null)}
+              className="shrink-0 rounded-petflow-sm bg-white/10 px-3 py-2 text-xs font-bold text-white/60"
+            >
+              ปิด
+            </button>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <p className="text-center text-sm text-white/40">กำลังโหลด…</p>

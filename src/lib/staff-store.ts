@@ -158,3 +158,28 @@ export async function verifyStaffCode(code: string): Promise<StaffUser | null> {
   const all = await listStaff();
   return all.find((s) => s.code === trimmed && s.active) || null;
 }
+
+/**
+ * หาพนักงานจากรหัส "ข้ามทุกร้าน" — ใช้เฉพาะตอนล็อกอินเท่านั้น (ยังไม่รู้ว่าเป็นร้านไหน
+ * จนกว่าจะเจอรหัส) ที่อื่นห้ามเรียกฟังก์ชันนี้ ต้องผ่าน listStaff/verifyStaffCode ที่กรอง
+ * ด้วย tenant_id เสมอ — คืน tenant_id มาด้วยเพื่อผูก session ให้ถูกร้าน
+ */
+export async function findStaffAcrossTenants(
+  code: string
+): Promise<(StaffUser & { tenantId: string }) | null> {
+  const trimmed = code.trim();
+  if (!trimmed) return null;
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data } = await sb
+    .from("staff_users")
+    .select("*")
+    .eq("code", trimmed)
+    .eq("active", true)
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+  const row = data as StaffRow & { tenant_id: string };
+  if (!row.tenant_id) return null;
+  return { ...rowToStaff(row), tenantId: row.tenant_id };
+}

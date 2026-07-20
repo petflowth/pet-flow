@@ -368,6 +368,28 @@ const SWATCHES = [
   "#5A8F5A", "#4A7348", "#C4956A", "#5C4033", "#B4553B", "#3E6990",
 ];
 
+const BRAND_FALLBACK = { primary: "#a9855f", accent: "#ebc583", heading: "#5c4033" };
+
+/**
+ * แปลงสีร้าน (branding) เป็นสีของการ์ดใบหนึ่ง — การ์ดที่มีแถบหัว (มี headerTextColor)
+ * ใช้สีหลักเป็นพื้นแถบ + ตัวหนังสือขาว, ส่วนการ์ดที่ headerColor คือสีตัวหนังสือหัวข้อตรงๆ
+ * (ไม่มีแถบพื้น) ใช้สีหัวข้อของร้านแทน
+ */
+function brandCardColors(
+  meta: CardMeta,
+  branding: { primary: string; accent: string; heading: string }
+): Partial<CardStyleConfig> {
+  const hasBar = meta.colors.some((r) => r.key === "headerTextColor");
+  const next: Partial<CardStyleConfig> = {};
+  for (const role of meta.colors) {
+    if (role.key === "headerColor") next.headerColor = hasBar ? branding.primary : branding.heading;
+    if (role.key === "headerTextColor") next.headerTextColor = "#FFFFFF";
+    if (role.key === "accentColor") next.accentColor = branding.accent;
+    if (role.key === "buttonColor") next.buttonColor = branding.primary;
+  }
+  return next;
+}
+
 const TITLE_SIZES: { value: "" | "sm" | "md" | "lg" | "xl"; label: string }[] = [
   { value: "", label: "ค่าเริ่มต้น" },
   { value: "sm", label: "เล็ก" },
@@ -838,6 +860,7 @@ export default function CardsStudioPage() {
   const [cards, setCards] = useState<Record<string, CardStyleConfig>>({});
   const [texts, setTexts] = useState<Record<string, string>>({});
   const [groomForm, setGroomForm] = useState<GroomFormConfig>({});
+  const [branding, setBranding] = useState(BRAND_FALLBACK);
   const [activeKey, setActiveKey] = useState(CARDS[0].key);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -850,6 +873,7 @@ export default function CardsStudioPage() {
         const cfg = d.config || {};
         setCards(cfg.cards || {});
         setGroomForm(cfg.groomForm || {});
+        setBranding({ ...BRAND_FALLBACK, ...cfg.branding });
         setTexts({
           summaryBookingTitle: cfg.billing?.summaryBookingTitle || "",
           summaryDepositTitle: cfg.billing?.summaryDepositTitle || "",
@@ -952,14 +976,41 @@ export default function CardsStudioPage() {
             สี ขนาดตัวอักษร ข้อความ เงื่อนไข และส่วนประกอบของการ์ดแต่ละใบ — พรีวิวสดทางขวา
           </p>
         </div>
-        <button
-          type="button"
-          disabled={saving || !dirty}
-          onClick={save}
-          className="rounded-petflow-sm bg-gradient-to-r from-latte-deep to-petflow-chocolate px-5 py-2.5 text-sm font-extrabold text-white disabled:opacity-40"
-        >
-          {saving ? "กำลังบันทึก…" : dirty ? "💾 บันทึกการเปลี่ยนแปลง" : "✅ บันทึกแล้ว"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                !confirm(
+                  "ทับสีการ์ดทุกใบ (แถบหัว/ตัวหนังสือ/ไฮไลท์/ปุ่ม) ด้วยสีร้านที่ตั้งไว้ในแท็บ 🏪 ร้าน — สีที่ปรับแยกไว้เฉพาะการ์ดจะหายไป ทำต่อไหม?"
+                )
+              ) {
+                return;
+              }
+              setCards((prev) => {
+                const next = { ...prev };
+                for (const c of CARDS) {
+                  if (c.colors.length === 0) continue;
+                  next[c.key] = { ...next[c.key], ...brandCardColors(c, branding) };
+                }
+                return next;
+              });
+              setDirty(true);
+              toast("🎨 ปรับสีการ์ดทุกใบตามสีร้านแล้ว — อย่าลืมกดบันทึก", "success");
+            }}
+            className="rounded-petflow-sm border border-petflow-line bg-card px-4 py-2.5 text-xs font-extrabold text-latte-deep"
+          >
+            🎨 ใช้สีร้านกับการ์ดทุกใบ
+          </button>
+          <button
+            type="button"
+            disabled={saving || !dirty}
+            onClick={save}
+            className="rounded-petflow-sm bg-gradient-to-r from-latte-deep to-petflow-chocolate px-5 py-2.5 text-sm font-extrabold text-white disabled:opacity-40"
+          >
+            {saving ? "กำลังบันทึก…" : dirty ? "💾 บันทึกการเปลี่ยนแปลง" : "✅ บันทึกแล้ว"}
+          </button>
+        </div>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-1.5">

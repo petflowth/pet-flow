@@ -1,17 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionFrom } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-context";
 import { exportToGoogleSheets } from "@/lib/google-sheets-export";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => ({}));
   // middleware ตรวจคุกกี้มาแล้ว — ตรวจซ้ำกันพลาด
-  if (!(await getSessionFrom(req))) {
+  const session = await getSessionFrom(req);
+  if (!session) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+  return withTenant(session.tenantId, () => handlePost(req));
+}
 
+async function handlePost(req: NextRequest) {
+  const body = await req.json().catch(() => ({}));
   const columns = Array.isArray(body.columns)
     ? body.columns.map(String)
     : undefined;

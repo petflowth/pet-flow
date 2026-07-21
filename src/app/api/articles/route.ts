@@ -7,19 +7,23 @@ import {
 } from "@/lib/articles-store";
 import { BLOG_POSTS } from "@/lib/blog-posts";
 import { getSessionFrom } from "@/lib/auth";
+import { withResolvedTenant, withTenant } from "@/lib/tenant-context";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-// เขียน/แก้บทความได้เฉพาะคนที่ล็อกอินหลังบ้าน (ตรวจจากคุกกี้ที่เซ็นชื่อ)
-const isAdmin = async (req: NextRequest) => !!(await getSessionFrom(req));
 
 /**
  * รายการบทความ — สาธารณะเห็นเฉพาะที่เผยแพร่
  * แอดมิน (?all=1 + header) เห็นฉบับร่าง + บทความ SEO เดิม (ที่ฝังในโค้ด) เพื่อแก้ไข/นำเข้าได้
  */
 export async function GET(req: NextRequest) {
-  const wantAll = req.nextUrl.searchParams.get("all") === "1" && (await isAdmin(req));
+  const session = await getSessionFrom(req);
+  if (session) return withTenant(session.tenantId, () => handleGet(req, true));
+  return withResolvedTenant(req, () => handleGet(req, false));
+}
+
+async function handleGet(req: NextRequest, admin: boolean) {
+  const wantAll = req.nextUrl.searchParams.get("all") === "1" && admin;
   const articles = await listArticles(wantAll);
 
   if (!wantAll) {
@@ -45,9 +49,14 @@ export async function GET(req: NextRequest) {
 
 /** เพิ่ม/แก้บทความ — เฉพาะแอดมิน */
 export async function POST(req: NextRequest) {
-  if (!(await isAdmin(req))) {
+  const session = await getSessionFrom(req);
+  if (!session) {
     return NextResponse.json({ error: "admin_only" }, { status: 403 });
   }
+  return withTenant(session.tenantId, () => handlePost(req));
+}
+
+async function handlePost(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const res = await saveArticle({
     id: body.id ? String(body.id) : undefined,
@@ -75,9 +84,14 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  if (!(await isAdmin(req))) {
+  const session = await getSessionFrom(req);
+  if (!session) {
     return NextResponse.json({ error: "admin_only" }, { status: 403 });
   }
+  return withTenant(session.tenantId, () => handleDelete(req));
+}
+
+async function handleDelete(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id") || "";
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
   await deleteArticle(id);

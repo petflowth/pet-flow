@@ -1,0 +1,298 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+type Rec = {
+  id: string;
+  type: "income" | "expense";
+  amount: number;
+  category: string;
+  description: string;
+  date: string;
+  customerName?: string;
+  catName?: string;
+  displayTitle: string;
+};
+
+const THAI_MONTHS = [
+  "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+  "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
+];
+
+const baht = (n: number) => n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+export default function TaxPage() {
+  const nowYear = new Date().getFullYear();
+  const [year, setYear] = useState(nowYear);
+  const [records, setRecords] = useState<Rec[]>([]);
+  const [shopName, setShopName] = useState("CatCha Hotel");
+  const [view, setView] = useState<"summary" | "ledger">("summary");
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/finance?from=${year}-01-01&to=${year}-12-31`);
+      const d = await res.json();
+      setRecords(d.records || []);
+    } catch {
+      /* โหลดไม่ได้ = โชว์ว่าง */
+    } finally {
+      setLoading(false);
+    }
+  }, [year]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useEffect(() => {
+    fetch("/api/config")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.config?.business?.name) setShopName(d.config.business.name);
+      })
+      .catch(() => {});
+  }, []);
+
+  const totals = useMemo(() => {
+    const income = records.filter((r) => r.type === "income").reduce((s, r) => s + r.amount, 0);
+    const expense = records.filter((r) => r.type === "expense").reduce((s, r) => s + r.amount, 0);
+    return { income, expense, net: income - expense };
+  }, [records]);
+
+  // แยกยอดรายเดือน — รายรับ/รายจ่าย/สุทธิ ทีละเดือน
+  const monthly = useMemo(() => {
+    const rows = THAI_MONTHS.map((label, i) => ({ label, month: i + 1, income: 0, expense: 0 }));
+    for (const r of records) {
+      const m = Number(r.date.slice(5, 7)) - 1;
+      if (m < 0 || m > 11) continue;
+      if (r.type === "income") rows[m].income += r.amount;
+      else rows[m].expense += r.amount;
+    }
+    return rows;
+  }, [records]);
+
+  // แยกรายรับตามหมวด — ไว้ดูว่ารายได้มาจากอะไรบ้าง
+  const byCategory = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of records) {
+      if (r.type !== "income") continue;
+      const key = r.category?.trim() || "อื่นๆ";
+      map.set(key, (map.get(key) || 0) + r.amount);
+    }
+    return [...map.entries()].sort((a, b) => b[1] - a[1]);
+  }, [records]);
+
+  const ledger = useMemo(
+    () => [...records].sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id)),
+    [records]
+  );
+
+  const years = useMemo(() => {
+    const set = new Set<number>([nowYear]);
+    for (const r of records) set.add(Number(r.date.slice(0, 4)));
+    // เผื่อปีที่แล้วไว้ให้เลือกเสมอ
+    set.add(nowYear - 1);
+    return [...set].filter((y) => y > 2000).sort((a, b) => b - a);
+  }, [records, nowYear]);
+
+  return (
+    <div>
+      {/* แถบเครื่องมือ — ซ่อนตอนพิมพ์ */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 print:hidden">
+        <h1 className="text-lg font-extrabold text-petflow-chocolate">📑 เอกสารรายได้ / ภาษี</h1>
+        <div className="flex items-center gap-2">
+          <select
+            value={year}
+            onChange={(e) => setYear(Number(e.target.value))}
+            className="rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm font-bold"
+          >
+            {years.map((y) => (
+              <option key={y} value={y}>
+                ปี {y} ({y + 543})
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="rounded-petflow-sm bg-latte-deep px-4 py-2 text-sm font-extrabold text-card"
+          >
+            🖨️ พิมพ์ / บันทึก PDF
+          </button>
+        </div>
+      </div>
+
+      <div className="mb-4 flex gap-2 print:hidden">
+        {([
+          { id: "summary", label: "📊 สรุปรายเดือน / รายปี" },
+          { id: "ledger", label: "📋 บัญชีรายรับ-รายจ่าย รายวัน" },
+        ] as const).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setView(t.id)}
+            className={`flex-1 rounded-petflow-sm py-2.5 text-xs font-bold ${
+              view === t.id ? "bg-honey/45 text-petflow-chocolate shadow-petflow-sm" : "bg-paper text-brown-soft"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* เอกสาร — โชว์บนจอและตอนพิมพ์ */}
+      <div className="rounded-petflow bg-card p-5 text-brown shadow-petflow-sm print:rounded-none print:p-0 print:shadow-none">
+        {/* หัวเอกสารทางการ */}
+        <div className="mb-4 border-b border-petflow-line pb-3 text-center">
+          <p className="text-base font-extrabold text-petflow-chocolate">{shopName}</p>
+          <p className="text-sm font-bold">
+            {view === "summary"
+              ? "รายงานสรุปรายรับ-รายจ่าย"
+              : "บัญชีรายรับ-รายจ่าย (รายวัน)"}
+          </p>
+          <p className="text-xs text-brown-soft">
+            ประจำปี {year} (พ.ศ. {year + 543})
+          </p>
+        </div>
+
+        {loading ? (
+          <p className="py-8 text-center text-sm text-brown-soft">กำลังโหลด…</p>
+        ) : records.length === 0 ? (
+          <p className="py-8 text-center text-sm text-brown-soft">ปีนี้ยังไม่มีรายการในบัญชีค่ะ</p>
+        ) : view === "summary" ? (
+          <>
+            {/* ยอดรวมทั้งปี */}
+            <div className="mb-4 grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-petflow-sm bg-sage/15 p-3">
+                <p className="text-[11px] text-brown-soft">รายรับรวม</p>
+                <p className="text-sm font-extrabold text-ok">{baht(totals.income)}</p>
+              </div>
+              <div className="rounded-petflow-sm bg-honey/20 p-3">
+                <p className="text-[11px] text-brown-soft">รายจ่ายรวม</p>
+                <p className="text-sm font-extrabold text-wait">{baht(totals.expense)}</p>
+              </div>
+              <div className="rounded-petflow-sm bg-latte/15 p-3">
+                <p className="text-[11px] text-brown-soft">กำไรสุทธิ</p>
+                <p className="text-sm font-extrabold text-latte-deep">{baht(totals.net)}</p>
+              </div>
+            </div>
+
+            {/* ตารางรายเดือน */}
+            <table className="w-full border-collapse text-xs">
+              <thead>
+                <tr className="border-y border-petflow-line text-brown-soft">
+                  <th className="py-2 text-left font-bold">เดือน</th>
+                  <th className="py-2 text-right font-bold">รายรับ</th>
+                  <th className="py-2 text-right font-bold">รายจ่าย</th>
+                  <th className="py-2 text-right font-bold">สุทธิ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monthly.map((m) => {
+                  const empty = m.income === 0 && m.expense === 0;
+                  return (
+                    <tr
+                      key={m.month}
+                      className={`border-b border-petflow-line/60 ${empty ? "text-brown-faint" : ""}`}
+                    >
+                      <td className="py-1.5">{m.label}</td>
+                      <td className="py-1.5 text-right">{m.income ? baht(m.income) : "-"}</td>
+                      <td className="py-1.5 text-right">{m.expense ? baht(m.expense) : "-"}</td>
+                      <td className="py-1.5 text-right font-bold">
+                        {empty ? "-" : baht(m.income - m.expense)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-petflow-chocolate font-extrabold text-petflow-chocolate">
+                  <td className="py-2">รวมทั้งปี</td>
+                  <td className="py-2 text-right">{baht(totals.income)}</td>
+                  <td className="py-2 text-right">{baht(totals.expense)}</td>
+                  <td className="py-2 text-right">{baht(totals.net)}</td>
+                </tr>
+              </tfoot>
+            </table>
+
+            {/* รายรับแยกตามหมวด */}
+            {byCategory.length > 0 && (
+              <div className="mt-6">
+                <p className="mb-2 text-sm font-bold text-petflow-chocolate">รายรับแยกตามหมวด</p>
+                <table className="w-full border-collapse text-xs">
+                  <tbody>
+                    {byCategory.map(([cat, amt]) => (
+                      <tr key={cat} className="border-b border-petflow-line/60">
+                        <td className="py-1.5">{cat}</td>
+                        <td className="py-1.5 text-right">{baht(amt)}</td>
+                        <td className="w-16 py-1.5 text-right text-brown-faint">
+                          {totals.income ? Math.round((amt / totals.income) * 100) : 0}%
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        ) : (
+          /* บัญชีรายวัน (ledger) — เรียงตามวันที่ มีเลขที่รายการ + ยอดสะสม */
+          <table className="w-full border-collapse text-[11px]">
+            <thead>
+              <tr className="border-y border-petflow-line text-brown-soft">
+                <th className="py-2 text-left font-bold">ลำดับ</th>
+                <th className="py-2 text-left font-bold">วันที่</th>
+                <th className="py-2 text-left font-bold">รายการ</th>
+                <th className="py-2 text-right font-bold">รายรับ</th>
+                <th className="py-2 text-right font-bold">รายจ่าย</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ledger.map((r, i) => (
+                <tr key={r.id} className="border-b border-petflow-line/60 align-top">
+                  <td className="py-1.5 pr-2 text-brown-faint">{i + 1}</td>
+                  <td className="whitespace-nowrap py-1.5 pr-2">{r.date}</td>
+                  <td className="py-1.5 pr-2">
+                    {r.displayTitle}
+                    {r.category && (
+                      <span className="block text-brown-faint">{r.category}</span>
+                    )}
+                  </td>
+                  <td className="py-1.5 text-right text-ok">
+                    {r.type === "income" ? baht(r.amount) : "-"}
+                  </td>
+                  <td className="py-1.5 text-right text-wait">
+                    {r.type === "expense" ? baht(r.amount) : "-"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-petflow-chocolate font-extrabold text-petflow-chocolate">
+                <td className="py-2" colSpan={3}>
+                  รวมทั้งปี ({ledger.length} รายการ)
+                </td>
+                <td className="py-2 text-right">{baht(totals.income)}</td>
+                <td className="py-2 text-right">{baht(totals.expense)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        )}
+
+        {/* ท้ายเอกสาร — วันที่ออกเอกสาร */}
+        {!loading && records.length > 0 && (
+          <p className="mt-6 text-right text-[10px] text-brown-faint">
+            เอกสารสร้างจากระบบ {shopName} · ยอดสุทธิทั้งปี {baht(totals.net)} บาท
+          </p>
+        )}
+      </div>
+
+      <p className="mt-3 text-[11px] text-brown-faint print:hidden">
+        💡 กด “พิมพ์ / บันทึก PDF” เพื่อออกเอกสารสำหรับยื่นภาษีหรือส่งให้บัญชี ·
+        ตัวเลขดึงจากบัญชีรายรับ-รายจ่ายชุดเดียวกับหน้า “รายรับ-รายจ่าย”
+      </p>
+    </div>
+  );
+}

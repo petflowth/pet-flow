@@ -77,7 +77,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-petflow-gradient">
       <Toaster />
       {impersonating && (
-        <div className="relative z-[60] flex items-center justify-between gap-2 bg-[#1a1d29] px-4 py-2 text-xs font-bold text-white">
+        <div className="relative z-[60] flex items-center justify-between gap-2 bg-[#1a1d29] px-4 py-2 text-xs font-bold text-white print:hidden">
           <span>🛡️ กำลังเข้าดูแทนร้านนี้ในฐานะผู้ดูแลระบบ</span>
           <button
             type="button"
@@ -92,7 +92,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       )}
-      <header className="sticky top-0 z-50 border-b border-petflow-line bg-card/90 backdrop-blur-md">
+      <header className="sticky top-0 z-50 border-b border-petflow-line bg-card/90 backdrop-blur-md print:hidden">
         <div className="relative mx-auto max-w-3xl lg:max-w-6xl">
           <div className="flex items-center gap-3 px-4 py-3">
             <Logo size={40} />

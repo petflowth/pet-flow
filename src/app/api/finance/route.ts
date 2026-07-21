@@ -7,8 +7,22 @@ import {
   deleteFinanceEntry,
   financeSummary,
 } from "@/lib/finance-store";
+import { getSessionFrom } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-context";
+
+async function requireTenantSession(req: NextRequest) {
+  const session = await getSessionFrom(req);
+  if (!session) return null;
+  return session;
+}
 
 export async function GET(req: NextRequest) {
+  const session = await requireTenantSession(req);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, () => handleGet(req));
+}
+
+async function handleGet(req: NextRequest) {
   const from = req.nextUrl.searchParams.get("from") || undefined;
   const to = req.nextUrl.searchParams.get("to") || undefined;
   const summary = req.nextUrl.searchParams.get("summary") === "1";
@@ -21,6 +35,12 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const session = await requireTenantSession(req);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, () => handlePost(req));
+}
+
+async function handlePost(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const rec = await addFinanceEntry({
     type: body.type,
@@ -35,6 +55,12 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const session = await requireTenantSession(req);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, () => handlePatch(req));
+}
+
+async function handlePatch(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   if (!body.id) return NextResponse.json({ error: "id required" }, { status: 400 });
   await updateFinanceEntry(body.id, {
@@ -48,6 +74,12 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const session = await requireTenantSession(req);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, () => handleDelete(req));
+}
+
+async function handleDelete(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
   await deleteFinanceEntry(id);

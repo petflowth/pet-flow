@@ -25,6 +25,7 @@ export default function FinancePage() {
   const [summary, setSummary] = useState({ income: 0, expense: 0, net: 0 });
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/finance?summary=1");
@@ -91,7 +92,15 @@ export default function FinancePage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-lg font-extrabold text-petflow-chocolate">📒 รายรับ-รายจ่าย</h1>
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <h1 className="text-lg font-extrabold text-petflow-chocolate">📒 รายรับ-รายจ่าย</h1>
+        <Link
+          href="/admin/tax"
+          className="shrink-0 rounded-petflow-sm bg-latte/25 px-3 py-2 text-xs font-extrabold text-latte-deep"
+        >
+          📑 เอกสารภาษี →
+        </Link>
+      </div>
 
       <ExportSheetsButton className="mb-4" />
 
@@ -162,44 +171,68 @@ export default function FinancePage() {
         )}
       </form>
 
-      <ul className="space-y-2">
-        {records.map((r) => (
-          <li key={r.id} className="flex items-start justify-between gap-2 rounded-petflow-sm border border-petflow-line bg-card px-3 py-2 text-xs">
-            <div className="min-w-0 flex-1">
-              <p className="font-bold text-brown">{r.displayTitle}</p>
-              <p className="text-brown-faint">{r.date} · {r.category}</p>
-              {r.customerId && (
-                <Link
-                  href={`/admin/customers?id=${r.customerId}`}
-                  className="mt-0.5 inline-block text-[10px] font-bold text-latte-deep underline"
-                >
-                  👤 {r.customerName || "ดูลูกค้า"}
-                </Link>
+      <ul className="space-y-1.5">
+        {records.map((r) => {
+          const open = openId === r.id;
+          // ชื่อย่อ — โชว์แค่แมว·เจ้าของ (หรือหมวด) ให้แถวสั้น กดค่อยกางดูรายละเอียดเต็ม
+          const compact = r.customerName
+            ? `${r.catName ? `🐱 ${r.catName} · ` : "👤 "}${r.customerName}`
+            : r.category || r.displayTitle;
+          return (
+            <li key={r.id} className="overflow-hidden rounded-petflow-sm border border-petflow-line bg-card text-xs">
+              <button
+                type="button"
+                onClick={() => setOpenId(open ? null : r.id)}
+                className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left"
+              >
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="shrink-0 text-brown-faint">{open ? "▾" : "▸"}</span>
+                  <span className="min-w-0 truncate font-bold text-brown">{compact}</span>
+                </span>
+                <span className="flex shrink-0 items-center gap-2">
+                  <span className="text-[10px] text-brown-faint">{r.date}</span>
+                  <span className={`font-extrabold ${r.type === "income" ? "text-ok" : "text-wait"}`}>
+                    {r.type === "income" ? "+" : "-"}
+                    {r.amount.toLocaleString()}
+                  </span>
+                </span>
+              </button>
+
+              {open && (
+                <div className="border-t border-petflow-line/60 bg-paper/40 px-3 py-2">
+                  <p className="font-bold text-brown">{r.displayTitle}</p>
+                  <p className="mt-0.5 text-brown-faint">
+                    {r.date} · หมวด: {r.category || "-"}
+                  </p>
+                  {r.customerId && (
+                    <Link
+                      href={`/admin/customers?id=${r.customerId}`}
+                      className="mt-1 inline-block text-[10px] font-bold text-latte-deep underline"
+                    >
+                      👤 {r.customerName || "ดูลูกค้า"}
+                    </Link>
+                  )}
+                  <div className="mt-2 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => startEdit(r)}
+                      className="text-[11px] font-bold text-latte-deep"
+                    >
+                      ✏️ แก้ไข
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => del(r.id, r.displayTitle)}
+                      className="text-[11px] font-bold text-wait/80 hover:text-wait"
+                    >
+                      🗑️ ลบ
+                    </button>
+                  </div>
+                </div>
               )}
-            </div>
-            <div className="flex shrink-0 flex-col items-end gap-1">
-              <p className={`font-extrabold ${r.type === "income" ? "text-ok" : "text-wait"}`}>
-                {r.type === "income" ? "+" : "-"}{r.amount.toLocaleString()}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => startEdit(r)}
-                  className="text-[10px] font-bold text-latte-deep"
-                >
-                  ✏️ แก้ไข
-                </button>
-                <button
-                  type="button"
-                  onClick={() => del(r.id, r.displayTitle)}
-                  className="text-[10px] font-bold text-wait/80 hover:text-wait"
-                >
-                  🗑️ ลบ
-                </button>
-              </div>
-            </div>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

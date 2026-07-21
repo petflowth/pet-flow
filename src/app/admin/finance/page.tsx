@@ -324,7 +324,13 @@ export default function FinancePage() {
                     )}
                   </div>
 
-                  <div className="mt-2 flex gap-3">
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
+                    <Link
+                      href={`/admin/voucher/${r.id}`}
+                      className="text-[11px] font-bold text-latte-deep"
+                    >
+                      {r.type === "expense" ? "🧾 ใบสำคัญจ่าย" : "🧾 ใบสำคัญรับ"}
+                    </Link>
                     <button
                       type="button"
                       onClick={() => startEdit(r)}

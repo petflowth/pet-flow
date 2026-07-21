@@ -26,7 +26,10 @@ export default function TaxPage() {
   const nowYear = new Date().getFullYear();
   const [year, setYear] = useState(nowYear);
   const [records, setRecords] = useState<Rec[]>([]);
-  const [shopName, setShopName] = useState("CatCha Hotel");
+  const [shopName, setShopName] = useState("PetFlow");
+  const [shopAddress, setShopAddress] = useState("");
+  const [shopTaxId, setShopTaxId] = useState("");
+  const [shopPhone, setShopPhone] = useState("");
   const [view, setView] = useState<"summary" | "ledger">("summary");
   const [loading, setLoading] = useState(true);
 
@@ -51,7 +54,11 @@ export default function TaxPage() {
     fetch("/api/config")
       .then((r) => r.json())
       .then((d) => {
-        if (d.config?.business?.name) setShopName(d.config.business.name);
+        const b = d.config?.business;
+        if (b?.name) setShopName(b.name);
+        if (b?.location?.th) setShopAddress(b.location.th);
+        if (b?.taxId) setShopTaxId(b.taxId);
+        if (b?.phones?.length) setShopPhone(b.phones[0]);
       })
       .catch(() => {});
   }, []);
@@ -148,7 +155,13 @@ export default function TaxPage() {
         {/* หัวเอกสารทางการ */}
         <div className="mb-4 border-b border-petflow-line pb-3 text-center">
           <p className="text-base font-extrabold text-petflow-chocolate">{shopName}</p>
-          <p className="text-sm font-bold">
+          {shopAddress && <p className="text-[11px] text-brown-soft">{shopAddress}</p>}
+          <p className="text-[11px] text-brown-soft">
+            {shopTaxId && `เลขประจำตัวผู้เสียภาษี: ${shopTaxId}`}
+            {shopTaxId && shopPhone && " · "}
+            {shopPhone && `โทร. ${shopPhone}`}
+          </p>
+          <p className="mt-1.5 text-sm font-bold">
             {view === "summary"
               ? "รายงานสรุปรายรับ-รายจ่าย"
               : "บัญชีรายรับ-รายจ่าย (รายวัน)"}
@@ -257,19 +270,28 @@ export default function TaxPage() {
                   <td className="whitespace-nowrap py-1.5 pr-2">{r.date}</td>
                   <td className="py-1.5 pr-2">
                     {r.displayTitle}
-                    {r.category && (
-                      <span className="block text-brown-faint">{r.category}</span>
+                    {/* โชว์หมวดต่อท้ายเฉพาะตอนที่ไม่ซ้ำกับชื่อรายการอยู่แล้ว — กันบรรทัดซ้ำ */}
+                    {r.category && !r.displayTitle.includes(r.category) && (
+                      <span className="block text-brown-faint">หมวด: {r.category}</span>
                     )}
-                    {r.receiptUrl && (
+                    <span className="flex flex-wrap gap-2 print:hidden">
                       <a
-                        href={r.receiptUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[10px] font-bold text-latte-deep underline print:hidden"
+                        href={`/admin/voucher/${r.id}`}
+                        className="text-[10px] font-bold text-latte-deep underline"
                       >
-                        🧾 ดูรูปบิล
+                        📄 ใบสำคัญ
                       </a>
-                    )}
+                      {r.receiptUrl && (
+                        <a
+                          href={r.receiptUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[10px] font-bold text-latte-deep underline"
+                        >
+                          🧾 ดูรูปบิล
+                        </a>
+                      )}
+                    </span>
                   </td>
                   <td className="py-1.5 text-right text-ok">
                     {r.type === "income" ? baht(r.amount) : "-"}
@@ -292,11 +314,23 @@ export default function TaxPage() {
           </table>
         )}
 
-        {/* ท้ายเอกสาร — วันที่ออกเอกสาร */}
+        {/* ท้ายเอกสาร — ช่องเซ็นชื่อ (ไว้ให้บัญชี/ผู้จัดทำ) + วันที่ออกเอกสาร */}
         {!loading && records.length > 0 && (
-          <p className="mt-6 text-right text-[10px] text-brown-faint">
-            เอกสารสร้างจากระบบ {shopName} · ยอดสุทธิทั้งปี {baht(totals.net)} บาท
-          </p>
+          <>
+            <div className="mt-8 hidden grid-cols-2 gap-8 text-center text-[11px] text-brown-soft print:grid">
+              <div>
+                <div className="mx-auto mb-1 w-40 border-b border-dashed border-petflow-line" />
+                ผู้จัดทำ / เจ้าของกิจการ
+              </div>
+              <div>
+                <div className="mx-auto mb-1 w-40 border-b border-dashed border-petflow-line" />
+                ผู้ตรวจสอบ / ผู้ทำบัญชี
+              </div>
+            </div>
+            <p className="mt-6 text-right text-[10px] text-brown-faint">
+              เอกสารสร้างจากระบบ {shopName} · ยอดสุทธิทั้งปี {baht(totals.net)} บาท
+            </p>
+          </>
         )}
       </div>
 

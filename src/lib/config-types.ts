@@ -170,6 +170,8 @@ export type SiteConfig = {
     reviewButtonText: string;
     location: { th: string; en: string };
     pointsRate: number;
+    /** เลขประจำตัวผู้เสียภาษี — โชว์บนเอกสารรายได้/ใบสำคัญจ่าย (ไม่บังคับ) */
+    taxId?: string;
   };
   payment: {
     bankName: string;

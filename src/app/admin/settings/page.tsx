@@ -415,6 +415,11 @@ function ShopTab({
       <Field label="ที่อยู่ (ไทย)" value={form.location.th} onChange={(v) => setForm({ ...form, location: { ...form.location, th: v } })} />
       <Field label="ที่อยู่ (EN)" value={form.location.en} onChange={(v) => setForm({ ...form, location: { ...form.location, en: v } })} />
       <Field
+        label="เลขประจำตัวผู้เสียภาษี (โชว์บนเอกสารภาษี · ไม่บังคับ)"
+        value={form.taxId || ""}
+        onChange={(v) => setForm({ ...form, taxId: v })}
+      />
+      <Field
         label="อัตราแต้ม (บาท = 1 แต้ม)"
         type="number"
         value={String(form.pointsRate)}

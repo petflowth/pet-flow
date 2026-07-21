@@ -80,7 +80,7 @@ function summaryFlexFromInvoice(
       : mode === "full"
         ? billing.summaryFullTitle
         : mode === "remaining"
-          ? "แจ้งยอดคงเหลือที่ต้องโอน"
+          ? cardStyle?.texts?.remainingTitle || "แจ้งยอดคงเหลือที่ต้องโอน"
           : billing.summaryBookingTitle;
   return buildBillSummaryFlex({
     mode,
@@ -355,7 +355,7 @@ export async function PATCH(req: NextRequest) {
         it.kind === "grooming" || /อาบน้ำ|กรูม|premium|malaseb/i.test(it.label)
     );
     const hasRoom = (inv.items || []).some((it) => /คืน|ห้อง/.test(it.label));
-    const msg = reviewMessageFor(hasGroom, hasRoom, biz.name);
+    const msg = reviewMessageFor(hasGroom, hasRoom, biz.name, cfg.cards?.review);
     await pushLineMessage(inv.lineUserId, [
       buildReviewRequestFlex({
         title: msg.title,
@@ -421,7 +421,7 @@ export async function PATCH(req: NextRequest) {
             it.kind === "grooming" || /อาบน้ำ|กรูม|premium|malaseb/i.test(it.label)
         );
         const hasRoomRc = (paid.items || []).some((it) => /คืน|ห้อง/.test(it.label));
-        const msgRc = reviewMessageFor(hasGroomRc, hasRoomRc, cfgRc.business.name);
+        const msgRc = reviewMessageFor(hasGroomRc, hasRoomRc, cfgRc.business.name, cfgRc.cards?.review);
         receiptMsgs.push(
           buildReviewRequestFlex({
             title: msgRc.title,

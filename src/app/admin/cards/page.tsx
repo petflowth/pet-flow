@@ -69,6 +69,20 @@ const CARDS: CardMeta[] = [
     ],
     texts: [],
     styleTexts: [
+      { key: "header", label: "ข้อความบนแถบหัว", placeholder: "📅 กำหนดการนัด" },
+      { key: "subtitle", label: "ข้อความรอง (ต่อด้วยชื่อลูกค้าอัตโนมัติ)", placeholder: "แจ้งกำหนดการนัด 🗓️" },
+      { key: "dateLabel", label: "หัวข้อแถววันที่", placeholder: "วันที่" },
+      { key: "timeLabel", label: "หัวข้อแถวเวลา", placeholder: "เวลา / รายละเอียด" },
+      { key: "locationLabel", label: "หัวข้อแถวสถานที่", placeholder: "สถานที่" },
+      { key: "notesLabel", label: "หัวข้อแถวหมายเหตุ", placeholder: "หมายเหตุ" },
+      {
+        key: "notesFallback",
+        label: "ข้อความหมายเหตุเริ่มต้น (ถ้านัดนั้นไม่ได้ใส่หมายเหตุเอง)",
+        placeholder: "หากมีรายละเอียดอื่นๆ เพิ่มเติม สามารถแจ้งในแชท LINE ได้เลยนะคะ",
+        multiline: true,
+      },
+      { key: "confirmButton", label: "คำในปุ่มยืนยัน", placeholder: "🐾 ยืนยันนัด" },
+      { key: "mapButton", label: "คำในปุ่มดูแผนที่", placeholder: "🗺️ ดูแผนที่ / เส้นทาง" },
       {
         key: "groomPrepNote",
         label: "ข้อความเตือนพกขนม/ตะกร้า (เฉพาะนัดอาบน้ำ)",
@@ -106,6 +120,20 @@ const CARDS: CardMeta[] = [
       { stateKey: "summaryFullTitle", label: "หัวข้อการ์ดแจ้งยอดชำระ" },
       { stateKey: "summaryClosing", label: "ข้อความปิดท้าย (ค่าเริ่มต้น)", multiline: true },
     ],
+    styleTexts: [
+      { key: "remainingTitle", label: "หัวข้อการ์ด (แบบแจ้งยอดคงเหลือ)", placeholder: "แจ้งยอดคงเหลือที่ต้องโอน" },
+      { key: "discountLabel", label: "หัวข้อแถวส่วนลด", placeholder: "ส่วนลด" },
+      { key: "totalLabel", label: "หัวข้อแถวยอดสุทธิ", placeholder: "ยอดสุทธิ" },
+      { key: "freebiesLabel", label: "หัวข้อกล่องของแถมฟรี", placeholder: "🎁 ของแถมฟรี" },
+      { key: "depositPaidLabelBooking", label: "หัวข้อ \"มัดจำ\" (แบบสรุปการจอง)", placeholder: "มัดจำ" },
+      { key: "depositPaidLabelFull", label: "หัวข้อ \"มัดจำที่ต้องโอน\" (แบบแจ้งยอดชำระ)", placeholder: "มัดจำที่ต้องโอน" },
+      { key: "depositPaidLabelRemaining", label: "หัวข้อ \"มัดจำที่ชำระแล้ว\" (แบบแจ้งยอดคงเหลือ)", placeholder: "มัดจำที่ชำระแล้ว" },
+      { key: "depositDueLabelBooking", label: "หัวข้อ \"ยอดคงเหลือ\" (แบบสรุปการจอง)", placeholder: "ยอดคงเหลือ" },
+      { key: "depositDueLabelFull", label: "หัวข้อ \"ยอดคงเหลือ (ก่อนเข้าพัก)\" (แบบแจ้งยอดชำระ)", placeholder: "ยอดคงเหลือ (ก่อนเข้าพัก)" },
+      { key: "depositDueLabelRemaining", label: "หัวข้อ \"ยอดที่ต้องโอนตอนนี้\" (แบบแจ้งยอดคงเหลือ)", placeholder: "ยอดที่ต้องโอนตอนนี้" },
+      { key: "accountNameLabel", label: "คำนำหน้าชื่อบัญชี", placeholder: "ชื่อบัญชี:" },
+      { key: "copyButton", label: "คำในปุ่มคัดลอกเลขบัญชี", placeholder: "📋 คัดลอกเลขบัญชี" },
+    ],
     hasTitleSize: true,
   },
   {
@@ -130,6 +158,11 @@ const CARDS: CardMeta[] = [
         hint: "ใช้ได้: {name} {cat} {amount} {pct}",
       },
     ],
+    styleTexts: [
+      { key: "amountLabel", label: "คำนำหน้ายอดมัดจำ", placeholder: "มัดจำที่ต้องโอน" },
+      { key: "accountNameLabel", label: "คำนำหน้าชื่อบัญชี", placeholder: "ชื่อบัญชี:" },
+      { key: "copyButton", label: "คำในปุ่มคัดลอกเลขบัญชี", placeholder: "📋 คัดลอกเลขบัญชี" },
+    ],
     closingLabel: "ข้อความปิดท้าย (ไม่บังคับ)",
     hasTitleSize: true,
   },
@@ -149,6 +182,13 @@ const CARDS: CardMeta[] = [
       { key: "reviewBundle", label: "⭐ แนบการ์ดขอรีวิวไปด้วย (นับ 1 ข้อความ)" },
     ],
     texts: [],
+    styleTexts: [
+      { key: "header", label: "ข้อความบนแถบหัว", placeholder: "🧾 ใบเสร็จรับเงิน" },
+      { key: "customerLabel", label: "หัวข้อแถวลูกค้า", placeholder: "ลูกค้า" },
+      { key: "invoiceNoLabel", label: "หัวข้อแถวเลขที่บิล", placeholder: "เลขที่" },
+      { key: "paidLabel", label: "หัวข้อกล่องยอดชำระ", placeholder: "ชำระแล้ว" },
+      { key: "pointsLabel", label: "หัวข้อแถวแต้มสะสม", placeholder: "🎁 แต้มสะสมที่ได้รับ" },
+    ],
     closingLabel: "ข้อความขอบคุณท้ายใบเสร็จ",
     hasTitleSize: true,
   },
@@ -169,6 +209,44 @@ const CARDS: CardMeta[] = [
         label: "เนื้อความขอรีวิว (แบบอัตโนมัติหลังเช็คเอาท์)",
         multiline: true,
         hint: "ใช้ได้: {shop} {cat}",
+      },
+    ],
+    styleTexts: [
+      { key: "stars", label: "แถวดาว (ข้อความ)", placeholder: "⭐ ⭐ ⭐ ⭐ ⭐" },
+      {
+        key: "titleBoth",
+        label: "หัวข้อ — ใช้ทั้งอาบน้ำและเข้าพัก (แนบท้ายใบเสร็จ)",
+        placeholder: "🧡 ขอบคุณที่เลือกร้านดูแลน้องนะคะ",
+      },
+      {
+        key: "bodyBoth",
+        label: "เนื้อความ — ใช้ทั้งอาบน้ำและเข้าพัก (แนบท้ายใบเสร็จ)",
+        placeholder:
+          "หวังว่าน้องจะกลับบ้านไปพร้อมความสุข และคุณพ่อคุณแม่จะอุ่นใจทุกครั้งที่ใช้บริการกับเรานะคะ 🐾\nถ้าประทับใจในการดูแลของเรา ฝากรีวิวให้ทีมงานสักนิดนะคะ",
+        multiline: true,
+      },
+      {
+        key: "titleRoom",
+        label: "หัวข้อ — เข้าพักโรงแรมอย่างเดียว (แนบท้ายใบเสร็จ)",
+        placeholder: "ขอบคุณที่ไว้วางใจร้านนะคะ 🧡",
+      },
+      {
+        key: "bodyRoom",
+        label: "เนื้อความ — เข้าพักโรงแรมอย่างเดียว (แนบท้ายใบเสร็จ)",
+        placeholder:
+          "ตลอดช่วงที่น้องเข้าพัก พวกเราตั้งใจดูแลเหมือนเป็นหนึ่งในครอบครัว\nหวังว่าน้องจะกลับบ้านไปอย่างมีความสุขนะคะ 🐱✨",
+        multiline: true,
+      },
+      {
+        key: "titleGroom",
+        label: "หัวข้อ — อาบน้ำอย่างเดียว (แนบท้ายใบเสร็จ)",
+        placeholder: "ขอบคุณที่ไว้วางใจร้านนะคะ 🧡",
+      },
+      {
+        key: "bodyGroom",
+        label: "เนื้อความ — อาบน้ำอย่างเดียว (แนบท้ายใบเสร็จ)",
+        placeholder: "หวังว่าน้องจะกลับบ้านไปตัวหอม นุ่มฟู และมีความสุขนะคะ 🐱✨",
+        multiline: true,
       },
     ],
     closingLabel: "ประโยคเสริมท้ายการ์ด (ไม่บังคับ)",
@@ -192,6 +270,11 @@ const CARDS: CardMeta[] = [
         multiline: true,
         hint: "ใช้ได้: {shop} {cat}",
       },
+    ],
+    styleTexts: [
+      { key: "header", label: "ข้อความบนแถบหัว", placeholder: "🩺 ประวัติน้องก่อนอาบน้ำ" },
+      { key: "datePrefix", label: "คำนำหน้าวันนัด", placeholder: "📅 นัดอาบน้ำ:" },
+      { key: "button", label: "คำในปุ่ม", placeholder: "🩺 แจ้งประวัติน้อง" },
     ],
     closingLabel: "ประโยคเสริมท้ายการ์ด (ไม่บังคับ)",
     hasTitleSize: true,
@@ -217,6 +300,8 @@ const CARDS: CardMeta[] = [
     texts: [],
     styleTexts: [
       { key: "header", label: "ข้อความบนแถบหัว", placeholder: "🏠 เตรียมตัวก่อนเข้าพัก" },
+      { key: "dateLabel", label: "หัวข้อ \"วันเข้าพัก\"", placeholder: "วันเข้าพัก" },
+      { key: "roomLabel", label: "หัวข้อ \"ห้องพัก\"", placeholder: "ห้องพัก" },
       { key: "prepTitle", label: "หัวข้อรายการของที่ต้องเตรียม", placeholder: "🧳 สิ่งที่ต้องเตรียมมาด้วย" },
       {
         key: "carrierNote",
@@ -224,6 +309,7 @@ const CARDS: CardMeta[] = [
         placeholder: "🧺 รบกวนพาน้องใส่ตะกร้า/กระเป๋าทุกครั้งที่มาใช้บริการด้วยนะคะ",
         multiline: true,
       },
+      { key: "confirmButton", label: "คำในปุ่มยืนยันเข้าพัก", placeholder: "🧡 อ่านรายละเอียด & ยืนยันการเข้าพัก" },
     ],
     closingLabel: "ข้อความปิดท้ายการ์ด (ไม่บังคับ)",
     hasTitleSize: true,
@@ -238,8 +324,22 @@ const CARDS: CardMeta[] = [
       { key: "buttonColor", label: "สีปุ่มเลือกเวลา", fallback: "#bd3a6a" },
     ],
     fields: [],
-    texts: [],
+    texts: [
+      {
+        stateKey: "checkinReminder",
+        label: "เนื้อความการ์ด — เลือกเวลาเข้าพัก (ก่อนวันเข้าพัก)",
+        multiline: true,
+        hint: "ใช้ได้: {shop} {cat} {checkin} {room} {litterNote}",
+      },
+      {
+        stateKey: "checkoutReminder",
+        label: "เนื้อความการ์ด — เลือกเวลารับน้อง (ก่อนวันออก)",
+        multiline: true,
+        hint: "ใช้ได้: {shop} {cat} {checkout}",
+      },
+    ],
     styleTexts: [
+      { key: "title", label: "หัวข้อการ์ด (ใช้ทั้งเข้าพัก/รับน้อง)", placeholder: "🕒 เลือกเวลาเข้าพัก / รับน้อง" },
       { key: "button", label: "คำในปุ่ม (ว่าง = ใช้คำเดิมของแต่ละแบบ)", placeholder: "🕒 เลือกเวลาส่งน้อง" },
     ],
     closingLabel: "ข้อความปิดท้ายการ์ด (ไม่บังคับ)",
@@ -282,6 +382,7 @@ const CARDS: CardMeta[] = [
     styleTexts: [
       { key: "title", label: "หัวข้อการ์ด", placeholder: "💎 สรุปยอด Member" },
       { key: "balanceLabel", label: "คำนำหน้ายอดคงเหลือ", placeholder: "คงเหลือ" },
+      { key: "usedTodayPrefix", label: "คำนำหน้าบรรทัด \"ใช้วันนี้\"", placeholder: "ใช้วันนี้" },
     ],
     closingLabel: "ข้อความปิดท้ายการ์ด (ไม่บังคับ)",
     hasTitleSize: true,
@@ -300,7 +401,13 @@ const CARDS: CardMeta[] = [
       { key: "bank", label: "🏦 กล่องเลขบัญชี + ปุ่มคัดลอก" },
     ],
     texts: [],
-    styleTexts: [{ key: "title", label: "หัวข้อการ์ด", placeholder: "💳 แจ้งชำระเงิน" }],
+    styleTexts: [
+      { key: "title", label: "หัวข้อการ์ด", placeholder: "💳 แจ้งชำระเงิน" },
+      { key: "totalLabel", label: "คำนำหน้ายอดรวม", placeholder: "รวม" },
+      { key: "accountNameLabel", label: "คำนำหน้าชื่อบัญชี", placeholder: "ชื่อบัญชี:" },
+      { key: "copyButton", label: "คำในปุ่มคัดลอกเลขบัญชี", placeholder: "📋 คัดลอกเลขบัญชี" },
+      { key: "detailButton", label: "คำในปุ่มดูรายละเอียด", placeholder: "ดูรายละเอียด" },
+    ],
     closingLabel: "ข้อความปิดท้ายการ์ด (ไม่บังคับ)",
     hasTitleSize: true,
   },
@@ -318,6 +425,7 @@ const CARDS: CardMeta[] = [
     texts: [],
     styleTexts: [
       { key: "header", label: "ข้อความบนแถบหัว", placeholder: "🎟️ คูปองส่วนลดพิเศษ" },
+      { key: "amountLabel", label: "คำนำหน้ายอดส่วนลด", placeholder: "ส่วนลด" },
       { key: "button", label: "คำในปุ่ม", placeholder: "🎟️ กดรับคูปอง" },
     ],
     closingLabel: "ข้อความอธิบายวิธีใช้ (ไม่บังคับ)",
@@ -335,7 +443,10 @@ const CARDS: CardMeta[] = [
     ],
     fields: [],
     texts: [],
-    styleTexts: [{ key: "header", label: "ข้อความบนแถบหัว", placeholder: "✨ โปรโมชั่น PetFlow" }],
+    styleTexts: [
+      { key: "header", label: "ข้อความบนแถบหัว", placeholder: "✨ โปรโมชั่น PetFlow" },
+      { key: "detailButton", label: "คำในปุ่ม (เมื่อไม่ได้กำหนดปุ่มเอง)", placeholder: "ดูรายละเอียด" },
+    ],
     closingLabel: "ข้อความปิดท้ายการ์ด (ไม่บังคับ)",
     hasTitleSize: true,
   },
@@ -885,6 +996,8 @@ export default function CardsStudioPage() {
           groomInfoIntro: cfg.messages?.groomInfoIntro || "",
           consentTitle: cfg.messages?.consentTitle || "",
           consentTerms: (cfg.messages?.consentTerms || []).join("\n"),
+          checkinReminder: cfg.messages?.checkinReminder || "",
+          checkoutReminder: cfg.messages?.checkoutReminder || "",
         });
       })
       .finally(() => setLoaded(true));
@@ -948,6 +1061,8 @@ export default function CardsStudioPage() {
                 .split("\n")
                 .map((t) => t.trim())
                 .filter(Boolean),
+              checkinReminder: texts.checkinReminder,
+              checkoutReminder: texts.checkoutReminder,
             },
           },
         }),

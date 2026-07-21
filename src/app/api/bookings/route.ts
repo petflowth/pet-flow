@@ -326,10 +326,12 @@ async function handlePatch(req: NextRequest, admin: boolean) {
     const url = await getGroomInfoUrl(b.id);
     const flex = buildGroomInfoFlex({
       catName: String(b.catName),
-      dateText: b.date ? `📅 นัดอาบน้ำ: ${b.date}${b.time ? ` ${b.time}` : ""}` : undefined,
+      dateText: b.date
+        ? `${cfg.cards?.groomInfo?.texts?.datePrefix || "📅 นัดอาบน้ำ:"} ${b.date}${b.time ? ` ${b.time}` : ""}`
+        : undefined,
       body: buildGroomInfoBody(b, cfg),
       url: url || undefined,
-      label: "🩺 แจ้งประวัติน้อง",
+      label: cfg.cards?.groomInfo?.texts?.button || "🩺 แจ้งประวัติน้อง",
     }, cfg.cards?.groomInfo);
     try {
       await pushLineMessage(to, [flex]);
@@ -358,7 +360,9 @@ async function handlePatch(req: NextRequest, admin: boolean) {
     const catNames = bookings.map((x) => x.catName).join(", ");
     const flex = buildGroomInfoFlex({
       catName: catNames,
-      dateText: b.date ? `📅 นัดอาบน้ำ: ${b.date}${b.time ? ` ${b.time}` : ""}` : undefined,
+      dateText: b.date
+        ? `${cfg.cards?.groomInfo?.texts?.datePrefix || "📅 นัดอาบน้ำ:"} ${b.date}${b.time ? ` ${b.time}` : ""}`
+        : undefined,
       body: buildGroomInfoBody(
         { catName: bookings.length > 1 ? `น้องๆ ${bookings.length} ตัว` : catNames },
         cfg
@@ -366,8 +370,8 @@ async function handlePatch(req: NextRequest, admin: boolean) {
       url: url || undefined,
       label:
         bookings.length > 1
-          ? `🩺 แจ้งประวัติน้อง (${bookings.length} ตัว)`
-          : "🩺 แจ้งประวัติน้อง",
+          ? `${cfg.cards?.groomInfo?.texts?.button || "🩺 แจ้งประวัติน้อง"} (${bookings.length} ตัว)`
+          : cfg.cards?.groomInfo?.texts?.button || "🩺 แจ้งประวัติน้อง",
     }, cfg.cards?.groomInfo);
     try {
       await pushLineMessage(to, [flex]);
@@ -545,7 +549,7 @@ async function handlePatch(req: NextRequest, admin: boolean) {
                 /อาบน้ำ|กรูม|premium|malaseb/i.test(it.label)
             );
             const hasRoom = (inv.items || []).some((it) => /คืน|ห้อง/.test(it.label));
-            const msg = reviewMessageFor(hasGroom, hasRoom, cfg.business.name);
+            const msg = reviewMessageFor(hasGroom, hasRoom, cfg.business.name, cfg.cards?.review);
             messages.push(
               buildReviewRequestFlex({
                 title: msg.title,
@@ -570,11 +574,11 @@ async function handlePatch(req: NextRequest, admin: boolean) {
             buildGroomInfoFlex({
               catName: String(b.catName),
               dateText: b.date
-                ? `📅 นัดอาบน้ำ: ${b.date}${b.time ? ` ${b.time}` : ""}`
+                ? `${cfg.cards?.groomInfo?.texts?.datePrefix || "📅 นัดอาบน้ำ:"} ${b.date}${b.time ? ` ${b.time}` : ""}`
                 : undefined,
               body: buildGroomInfoBody(b, cfg),
               url: url || undefined,
-              label: "🩺 แจ้งประวัติน้อง",
+              label: cfg.cards?.groomInfo?.texts?.button || "🩺 แจ้งประวัติน้อง",
             }, cfg.cards?.groomInfo)
           );
         }
@@ -640,7 +644,7 @@ async function handlePatch(req: NextRequest, admin: boolean) {
               mode,
               title:
                 mode === "remaining"
-                  ? "แจ้งยอดคงเหลือที่ต้องโอน"
+                  ? cfg.cards?.billSummary?.texts?.remainingTitle || "แจ้งยอดคงเหลือที่ต้องโอน"
                   : cfg.billing.summaryFullTitle,
               closing: "",
               customerName: inv.customerName,

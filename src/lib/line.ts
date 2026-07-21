@@ -180,6 +180,7 @@ export function buildAppointmentConfirmFlex(booking: {
 
   const noteText =
     booking.notes?.trim() ||
+    st.texts?.notesFallback ||
     "หากมีรายละเอียดอื่นๆ เพิ่มเติม สามารถแจ้งในแชท LINE ได้เลยนะคะ";
 
   const altText = `ยืนยันนัด ${booking.catName} — ${dateText}`;
@@ -198,7 +199,7 @@ export function buildAppointmentConfirmFlex(booking: {
         contents: [
           {
             type: "text",
-            text: "📅 กำหนดการนัด",
+            text: st.texts?.header || "📅 กำหนดการนัด",
             color: st.headerTextColor || "#FFFFFF",
             weight: "bold",
             size: "sm",
@@ -220,18 +221,20 @@ export function buildAppointmentConfirmFlex(booking: {
           },
           {
             type: "text",
-            text: `แจ้งกำหนดการนัด 🗓️\n${booking.customerName}`,
+            text: `${st.texts?.subtitle || "แจ้งกำหนดการนัด 🗓️"}\n${booking.customerName}`,
             size: "xs",
             color: "#A2907E",
             margin: "md",
             wrap: true,
           },
-          flexDetailRow("🗓️", "วันที่", dateText),
-          flexDetailRow("⏰", "เวลา / รายละเอียด", timeText),
+          flexDetailRow("🗓️", st.texts?.dateLabel || "วันที่", dateText),
+          flexDetailRow("⏰", st.texts?.timeLabel || "เวลา / รายละเอียด", timeText),
           ...(show("location") && booking.location
-            ? [flexDetailRow("📍", "สถานที่", booking.location)]
+            ? [flexDetailRow("📍", st.texts?.locationLabel || "สถานที่", booking.location)]
             : []),
-          ...(show("notes") ? [flexDetailRow("📝", "หมายเหตุ", noteText)] : []),
+          ...(show("notes")
+            ? [flexDetailRow("📝", st.texts?.notesLabel || "หมายเหตุ", noteText)]
+            : []),
           // เฉพาะนัดอาบน้ำ — เตือนเรื่องขนมกับตะกร้า ให้เห็นเด่นแยกจากหมายเหตุทั่วไป
           ...(!isRoom && show("groomPrep")
             ? [
@@ -297,7 +300,7 @@ export function buildAppointmentConfirmFlex(booking: {
             height: "sm",
             action: {
               type: "uri",
-              label: "🐾 ยืนยันนัด",
+              label: st.texts?.confirmButton || "🐾 ยืนยันนัด",
               uri: booking.confirmUrl,
             },
           },
@@ -309,7 +312,7 @@ export function buildAppointmentConfirmFlex(booking: {
                   height: "sm",
                   action: {
                     type: "uri",
-                    label: "🗺️ ดูแผนที่ / เส้นทาง",
+                    label: st.texts?.mapButton || "🗺️ ดูแผนที่ / เส้นทาง",
                     uri: booking.mapsUrl,
                   },
                 },
@@ -549,7 +552,7 @@ export function buildPromoFlex(data: {
         spacing: "sm",
         contents: (data.buttons?.length
           ? data.buttons.slice(0, 3)
-          : [{ label: "ดูรายละเอียด", uri: data.promoUrl }]
+          : [{ label: style?.texts?.detailButton || "ดูรายละเอียด", uri: data.promoUrl }]
         ).map((btn, i) => ({
           type: "button" as const,
           style: (i === 0 ? "primary" : "secondary") as "primary" | "secondary",
@@ -626,7 +629,7 @@ export function buildPaymentFlex(data: {
           },
           {
             type: "text",
-            text: `รวม ${data.total.toLocaleString()} บาท`,
+            text: `${style?.texts?.totalLabel || "รวม"} ${data.total.toLocaleString()} บาท`,
             weight: "bold",
             size: "xl",
             color: style?.accentColor || "#C4956A",
@@ -660,7 +663,7 @@ export function buildPaymentFlex(data: {
                     },
                     {
                       type: "text",
-                      text: `ชื่อบัญชี: ${data.accountName}`,
+                      text: `${style?.texts?.accountNameLabel || "ชื่อบัญชี:"} ${data.accountName}`,
                       size: "sm",
                       color: "#A2907E",
                       wrap: true,
@@ -697,7 +700,7 @@ export function buildPaymentFlex(data: {
                   height: "sm" as const,
                   action: {
                     type: "clipboard" as const,
-                    label: "📋 คัดลอกเลขบัญชี",
+                    label: style?.texts?.copyButton || "📋 คัดลอกเลขบัญชี",
                     clipboardText: data.accountNumber,
                   },
                 },
@@ -709,7 +712,7 @@ export function buildPaymentFlex(data: {
             height: "sm",
             action: {
               type: "uri",
-              label: "ดูรายละเอียด",
+              label: style?.texts?.detailButton || "ดูรายละเอียด",
               uri: data.payUrl,
             },
           },
@@ -832,7 +835,7 @@ export function buildBillSummaryFlex(data: {
       layout: "horizontal",
       margin: "md",
       contents: [
-        { type: "text", text: "ส่วนลด", size: "sm", color: "#C08A2E", flex: 4 },
+        { type: "text", text: st.texts?.discountLabel || "ส่วนลด", size: "sm", color: "#C08A2E", flex: 4 },
         {
           type: "text",
           text: `-${money(data.discount)}`,
@@ -853,7 +856,7 @@ export function buildBillSummaryFlex(data: {
     contents: [
       {
         type: "text",
-        text: "ยอดสุทธิ",
+        text: st.texts?.totalLabel || "ยอดสุทธิ",
         weight: "bold",
         size: "md",
         color: "#5C4033",
@@ -884,7 +887,7 @@ export function buildBillSummaryFlex(data: {
       contents: [
         {
           type: "text",
-          text: "🎁 ของแถมฟรี",
+          text: st.texts?.freebiesLabel || "🎁 ของแถมฟรี",
           weight: "bold",
           size: "xs",
           color: "#5C4033",
@@ -908,15 +911,15 @@ export function buildBillSummaryFlex(data: {
     const isRemaining = data.mode === "remaining";
     const isBooking = data.mode === "booking";
     const paidLabel = isRemaining
-      ? "มัดจำที่ชำระแล้ว"
+      ? st.texts?.depositPaidLabelRemaining || "มัดจำที่ชำระแล้ว"
       : isBooking
-        ? "มัดจำ"
-        : "มัดจำที่ต้องโอน";
+        ? st.texts?.depositPaidLabelBooking || "มัดจำ"
+        : st.texts?.depositPaidLabelFull || "มัดจำที่ต้องโอน";
     const dueLabel = isRemaining
-      ? "ยอดที่ต้องโอนตอนนี้"
+      ? st.texts?.depositDueLabelRemaining || "ยอดที่ต้องโอนตอนนี้"
       : isBooking
-        ? "ยอดคงเหลือ"
-        : "ยอดคงเหลือ (ก่อนเข้าพัก)";
+        ? st.texts?.depositDueLabelBooking || "ยอดคงเหลือ"
+        : st.texts?.depositDueLabelFull || "ยอดคงเหลือ (ก่อนเข้าพัก)";
     body.push({
       type: "box",
       layout: "vertical",
@@ -989,7 +992,7 @@ export function buildBillSummaryFlex(data: {
         },
         {
           type: "text",
-          text: `ชื่อบัญชี: ${data.accountName || ""}`,
+          text: `${st.texts?.accountNameLabel || "ชื่อบัญชี:"} ${data.accountName || ""}`,
           size: "sm",
           color: "#A2907E",
           wrap: true,
@@ -1027,7 +1030,7 @@ export function buildBillSummaryFlex(data: {
           height: "sm",
           action: {
             type: "clipboard",
-            label: "📋 คัดลอกเลขบัญชี",
+            label: st.texts?.copyButton || "📋 คัดลอกเลขบัญชี",
             clipboardText: data.accountNumber || "",
           },
         },
@@ -1099,7 +1102,7 @@ export function buildPrestayFlex(data: {
           layout: "vertical",
           flex: 5,
           contents: [
-            { type: "text", text: "วันเข้าพัก", size: "xxs", color: "#9B8B7E" },
+            { type: "text", text: style?.texts?.dateLabel || "วันเข้าพัก", size: "xxs", color: "#9B8B7E" },
             {
               type: "text",
               text: data.dateText,
@@ -1126,7 +1129,7 @@ export function buildPrestayFlex(data: {
           layout: "vertical",
           flex: 5,
           contents: [
-            { type: "text", text: "ห้องพัก", size: "xxs", color: "#9B8B7E" },
+            { type: "text", text: style?.texts?.roomLabel || "ห้องพัก", size: "xxs", color: "#9B8B7E" },
             {
               type: "text",
               text: data.room,
@@ -1311,7 +1314,10 @@ export function buildPrestayFlex(data: {
           height: "sm",
           action: {
             type: "uri",
-            label: data.consentLabel || "🧡 อ่านรายละเอียด & ยืนยันการเข้าพัก",
+            label:
+              data.consentLabel ||
+              style?.texts?.confirmButton ||
+              "🧡 อ่านรายละเอียด & ยืนยันการเข้าพัก",
             uri: data.consentUrl,
           },
         },
@@ -1363,7 +1369,7 @@ export function buildTimePickerFlex(data: {
       contents: [
         {
           type: "text",
-          text: data.title,
+          text: style?.texts?.title || data.title,
           color: style?.headerTextColor || "#FFFFFF",
           weight: "bold",
           size: style?.titleSize || "sm",
@@ -1400,7 +1406,7 @@ export function buildTimePickerFlex(data: {
   }
   return {
     type: "flex",
-    altText: `${data.title} 🕒`,
+    altText: `${style?.texts?.title || data.title} 🕒`,
     contents: bubble,
   };
 }
@@ -1459,7 +1465,7 @@ export function buildGroomInfoFlex(data: {
       contents: [
         {
           type: "text",
-          text: "🩺 ประวัติน้องก่อนอาบน้ำ",
+          text: st.texts?.header || "🩺 ประวัติน้องก่อนอาบน้ำ",
           color: st.headerTextColor || "#FFFFFF",
           weight: "bold",
           size: "sm",
@@ -1481,7 +1487,7 @@ export function buildGroomInfoFlex(data: {
           height: "sm",
           action: {
             type: "uri",
-            label: data.label || "🩺 แจ้งประวัติน้อง",
+            label: data.label || st.texts?.button || "🩺 แจ้งประวัติน้อง",
             uri: data.url,
           },
         },
@@ -1524,7 +1530,7 @@ export function buildDepositRequestFlex(data: {
     cornerRadius: "12px",
     spacing: "xs",
     contents: [
-      { type: "text", text: "มัดจำที่ต้องโอน", size: "sm", color: "#A2907E", align: "center" },
+      { type: "text", text: st.texts?.amountLabel || "มัดจำที่ต้องโอน", size: "sm", color: "#A2907E", align: "center" },
       {
         type: "text",
         text: `${data.amount.toLocaleString()} บาท`,
@@ -1558,7 +1564,7 @@ export function buildDepositRequestFlex(data: {
       contents: [
         { type: "text", text: data.bankName, weight: "bold", size: "md", color: "#5C4033" },
         { type: "text", text: data.accountNumber, weight: "bold", size: "xl", color: "#4A7348", wrap: true },
-        { type: "text", text: `ชื่อบัญชี: ${data.accountName}`, size: "sm", color: "#A2907E", wrap: true },
+        { type: "text", text: `${st.texts?.accountNameLabel || "ชื่อบัญชี:"} ${data.accountName}`, size: "sm", color: "#A2907E", wrap: true },
       ],
     });
   }
@@ -1584,7 +1590,7 @@ export function buildDepositRequestFlex(data: {
             height: "sm",
             action: {
               type: "clipboard",
-              label: "📋 คัดลอกเลขบัญชี",
+              label: st.texts?.copyButton || "📋 คัดลอกเลขบัญชี",
               clipboardText: data.accountNumber,
             },
           },
@@ -1734,7 +1740,7 @@ export function buildReceiptFlex(data: {
       backgroundColor: st.headerColor || "#C4956A",
       paddingAll: "18px",
       contents: [
-        { type: "text", text: "🧾 ใบเสร็จรับเงิน", color: st.headerTextColor || "#FFFFFF", weight: "bold", size: st.titleSize || "lg" },
+        { type: "text", text: st.texts?.header || "🧾 ใบเสร็จรับเงิน", color: st.headerTextColor || "#FFFFFF", weight: "bold", size: st.titleSize || "lg" },
         ...(data.shopName
           ? [{ type: "text", text: data.shopName, color: st.headerTextColor || "#FFFFFF", size: "xs", margin: "xs" }]
           : []),
@@ -1745,8 +1751,10 @@ export function buildReceiptFlex(data: {
       layout: "vertical",
       paddingAll: "18px",
       contents: [
-        flexDetailRow("🐱", "ลูกค้า", `${data.catName} · ${data.customerName}`),
-        ...(show("invoiceNo") ? [flexDetailRow("🔖", "เลขที่", data.invoiceId)] : []),
+        flexDetailRow("🐱", st.texts?.customerLabel || "ลูกค้า", `${data.catName} · ${data.customerName}`),
+        ...(show("invoiceNo")
+          ? [flexDetailRow("🔖", st.texts?.invoiceNoLabel || "เลขที่", data.invoiceId)]
+          : []),
         { type: "separator", margin: "lg", color: "#EFE3D2" },
         {
           type: "box",
@@ -1757,7 +1765,7 @@ export function buildReceiptFlex(data: {
           cornerRadius: "12px",
           spacing: "xs",
           contents: [
-            { type: "text", text: "ชำระแล้ว", size: "sm", color: "#A2907E", align: "center" },
+            { type: "text", text: st.texts?.paidLabel || "ชำระแล้ว", size: "sm", color: "#A2907E", align: "center" },
             {
               type: "text",
               text: `${data.total.toLocaleString()} บาท`,
@@ -1785,7 +1793,7 @@ export function buildReceiptFlex(data: {
                 backgroundColor: "#F4ECE0",
                 cornerRadius: "10px",
                 contents: [
-                  { type: "text", text: "🎁 แต้มสะสมที่ได้รับ", size: "sm", color: "#5C4033", flex: 3 },
+                  { type: "text", text: st.texts?.pointsLabel || "🎁 แต้มสะสมที่ได้รับ", size: "sm", color: "#5C4033", flex: 3 },
                   {
                     type: "text",
                     text: `+${data.pointsEarned}`,
@@ -1874,7 +1882,13 @@ export function buildCouponOfferFlex(data: {
             backgroundColor: "#FBF4E9",
             cornerRadius: "12px",
             contents: [
-              { type: "text", text: "ส่วนลด", size: "sm", color: "#A2907E", align: "center" },
+              {
+                type: "text",
+                text: style?.texts?.amountLabel || "ส่วนลด",
+                size: "sm",
+                color: "#A2907E",
+                align: "center",
+              },
               {
                 type: "text",
                 text: `${data.amount.toLocaleString()} บาท`,
@@ -1936,28 +1950,37 @@ export function reviewMessageFor(
   hasGroom: boolean,
   hasRoom: boolean,
   /** ชื่อร้านจาก config — ไม่ส่งมาจะใช้คำว่า "เรา" แทน (ดีกว่าโฆษณาชื่อร้านอื่น) */
-  shopName?: string
+  shopName?: string,
+  /** ให้แก้ข้อความทั้ง 3 แบบ (ทั้งบ้าน/ห้องพัก/อาบน้ำ) เองได้จากตั้งค่า → การ์ด → ขอรีวิว */
+  style?: CardStyleConfig
 ): {
   title: string;
   body: string;
 } {
+  const t = style?.texts || {};
   const shop = shopName || "เรา";
   if (hasRoom && hasGroom) {
     return {
-      title: `🧡 ขอบคุณที่เลือก${shopName ? ` ${shopName}` : ""} ดูแลน้องนะคะ`,
-      body: "หวังว่าน้องจะกลับบ้านไปพร้อมความสุข และคุณพ่อคุณแม่จะอุ่นใจทุกครั้งที่ใช้บริการกับเรานะคะ 🐾\nถ้าประทับใจในการดูแลของเรา ฝากรีวิวให้ทีมงานสักนิดนะคะ\nทุกรีวิวมีความหมายกับพวกเรามาก และเป็นกำลังใจให้ตั้งใจดูแลน้อง ๆ ทุกตัวต่อไปค่ะ 🤍",
+      title: t.titleBoth || `🧡 ขอบคุณที่เลือก${shopName ? ` ${shopName}` : ""} ดูแลน้องนะคะ`,
+      body:
+        t.bodyBoth ||
+        "หวังว่าน้องจะกลับบ้านไปพร้อมความสุข และคุณพ่อคุณแม่จะอุ่นใจทุกครั้งที่ใช้บริการกับเรานะคะ 🐾\nถ้าประทับใจในการดูแลของเรา ฝากรีวิวให้ทีมงานสักนิดนะคะ\nทุกรีวิวมีความหมายกับพวกเรามาก และเป็นกำลังใจให้ตั้งใจดูแลน้อง ๆ ทุกตัวต่อไปค่ะ 🤍",
     };
   }
   if (hasRoom) {
     return {
-      title: `ขอบคุณที่ไว้วางใจ${shopName ? ` ${shopName}` : "เรา"} นะคะ 🧡`,
-      body: `ตลอดช่วงที่น้องเข้าพัก พวกเราตั้งใจดูแลเหมือนเป็นหนึ่งในครอบครัว\nหวังว่าน้องจะกลับบ้านไปอย่างมีความสุขนะคะ 🐱✨\nหากประทับใจการเข้าพักของน้อง ฝากรีวิวให้${shop} สัก 1 รีวิวนะคะ\nทุกรีวิวมีความหมายกับพวกเรามาก และเป็นกำลังใจให้ตั้งใจดูแลน้อง ๆ ทุกตัวต่อไปค่ะ`,
+      title: t.titleRoom || `ขอบคุณที่ไว้วางใจ${shopName ? ` ${shopName}` : "เรา"} นะคะ 🧡`,
+      body:
+        t.bodyRoom ||
+        `ตลอดช่วงที่น้องเข้าพัก พวกเราตั้งใจดูแลเหมือนเป็นหนึ่งในครอบครัว\nหวังว่าน้องจะกลับบ้านไปอย่างมีความสุขนะคะ 🐱✨\nหากประทับใจการเข้าพักของน้อง ฝากรีวิวให้${shop} สัก 1 รีวิวนะคะ\nทุกรีวิวมีความหมายกับพวกเรามาก และเป็นกำลังใจให้ตั้งใจดูแลน้อง ๆ ทุกตัวต่อไปค่ะ`,
     };
   }
   // อาบน้ำล้วน (ค่าเริ่มต้นถ้าตรวจไม่พบรายการห้องพัก)
   return {
-    title: `ขอบคุณที่ไว้วางใจ${shopName ? ` ${shopName}` : "เรา"} นะคะ 🧡`,
-    body: "หวังว่าน้องจะกลับบ้านไปตัวหอม นุ่มฟู และมีความสุขนะคะ 🐱✨\nถ้าประทับใจบริการของเรา ฝากรีวิวสั้น ๆ ให้ทีมงานหน่อยนะคะ\nรีวิวของคุณคือกำลังใจเล็ก ๆ\nที่ทำให้พวกเราตั้งใจดูแลน้องแมวทุกตัวให้ดีที่สุดเลยค่ะ 💕",
+    title: t.titleGroom || `ขอบคุณที่ไว้วางใจ${shopName ? ` ${shopName}` : "เรา"} นะคะ 🧡`,
+    body:
+      t.bodyGroom ||
+      "หวังว่าน้องจะกลับบ้านไปตัวหอม นุ่มฟู และมีความสุขนะคะ 🐱✨\nถ้าประทับใจบริการของเรา ฝากรีวิวสั้น ๆ ให้ทีมงานหน่อยนะคะ\nรีวิวของคุณคือกำลังใจเล็ก ๆ\nที่ทำให้พวกเราตั้งใจดูแลน้องแมวทุกตัวให้ดีที่สุดเลยค่ะ 💕",
   };
 }
 
@@ -1995,7 +2018,7 @@ export function buildReviewRequestFlex(data: {
             ? [
                 {
                   type: "text",
-                  text: "⭐ ⭐ ⭐ ⭐ ⭐",
+                  text: st.texts?.stars || "⭐ ⭐ ⭐ ⭐ ⭐",
                   size: "md",
                   align: "center",
                   color: st.accentColor || "#C4956A",
@@ -2091,7 +2114,7 @@ export function buildMemberBalanceFlex(data: {
   if (show("usedToday") && data.usedToday) {
     contents.push({
       type: "text",
-      text: `ใช้วันนี้ ${data.usedToday.toLocaleString()} บาท${data.catName ? ` · ${data.catName}` : ""}`,
+      text: `${style?.texts?.usedTodayPrefix || "ใช้วันนี้"} ${data.usedToday.toLocaleString()} บาท${data.catName ? ` · ${data.catName}` : ""}`,
       size: "xs",
       color: "#4E3E32",
       margin: "md",

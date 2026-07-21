@@ -63,15 +63,20 @@ export async function getGroomInfoUrl(bookingIds: string | string[]): Promise<st
   return liffId ? buildGroomInfoUrl(liffId, bookingIds) : "";
 }
 
+/** ขอให้ลูกค้าถ่ายรูปน้องปัจจุบันส่งมาด้วย — ต่อท้ายทุกการ์ดขอประวัติ ไม่ว่า config จะเป็นแบบไหน */
+const GROOM_PHOTO_REQUEST =
+  "และรบกวนถ่ายรูปน้องในปัจจุบันส่งให้ทางร้านด้วยนะคะ 📸🐱 เพื่อให้เราเตรียมดูแลน้องได้อย่างเหมาะสมค่ะ";
+
 /** เนื้อความการ์ดสอบถามประวัติน้องก่อนอาบน้ำ */
 export function buildGroomInfoBody(
   b: Pick<StoredBooking, "catName">,
   cfg: SiteConfig
 ): string {
-  return renderTemplate(cfg.messages.groomInfoIntro ?? DEFAULT_MESSAGES.groomInfoIntro, {
+  const intro = renderTemplate(cfg.messages.groomInfoIntro ?? DEFAULT_MESSAGES.groomInfoIntro, {
     shop: cfg.business.name,
     cat: b.catName,
   });
+  return `${intro}\n\n${GROOM_PHOTO_REQUEST}`;
 }
 
 /** เนื้อความการ์ดเลือกเวลารับน้อง (เช็คเอาท์) */

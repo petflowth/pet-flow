@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionFrom } from "@/lib/auth";
+import { withResolvedTenant, withTenant } from "@/lib/tenant-context";
 import {
   listPromos,
   getActivePromos,
@@ -14,20 +15,25 @@ import {
 } from "@/lib/promos-store";
 
 export async function GET(req: NextRequest) {
-  const active = req.nextUrl.searchParams.get("active") === "1";
-  const forCustomer = req.nextUrl.searchParams.get("forCustomer") === "1";
-  const lineUserId = req.nextUrl.searchParams.get("lineUserId") || "";
   const withClaims = req.nextUrl.searchParams.get("claims") === "1";
-  const promoId = req.nextUrl.searchParams.get("promoId") || undefined;
-
   if (withClaims) {
     // รายชื่อ+lineUserId ของลูกค้าทุกคนที่เคยกดรับโปร — ข้อมูลส่วนตัว หลังบ้านดูได้เท่านั้น
-    // (route นี้เปิด GET สาธารณะเพื่อให้แอปลูกค้าดูโปร แต่ห้ามเปิดถึงรายชื่อคนกดรับ)
-    if (!(await getSessionFrom(req))) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-    return NextResponse.json({ claims: await listPromoClaims(promoId) });
+    const session = await getSessionFrom(req);
+    if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    const promoId = req.nextUrl.searchParams.get("promoId") || undefined;
+    return withTenant(session.tenantId, async () =>
+      NextResponse.json({ claims: await listPromoClaims(promoId) })
+    );
   }
+
+  // ที่เหลือ — แอปลูกค้าเปิดสาธารณะได้ (ดู PUBLIC_GET ใน middleware) จับร้านจาก slug/cookie
+  return withResolvedTenant(req, () => handlePublicGet(req));
+}
+
+async function handlePublicGet(req: NextRequest) {
+  const forCustomer = req.nextUrl.searchParams.get("forCustomer") === "1";
+  const lineUserId = req.nextUrl.searchParams.get("lineUserId") || "";
+  const active = req.nextUrl.searchParams.get("active") === "1";
 
   if (forCustomer && lineUserId) {
     return NextResponse.json({ promos: await getCustomerPromos(lineUserId) });
@@ -50,6 +56,12 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const session = await getSessionFrom(req);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, () => handlePost(req));
+}
+
+async function handlePost(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const promo = await addPromo({
     title: body.title,
@@ -73,6 +85,12 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const session = await getSessionFrom(req);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, () => handlePatch(req));
+}
+
+async function handlePatch(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const promo = await updatePromo(body.id, body.patch || body);
   if (!promo) return NextResponse.json({ error: "not found" }, { status: 404 });
@@ -80,6 +98,12 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const session = await getSessionFrom(req);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, () => handleDelete(req));
+}
+
+async function handleDelete(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
   await deletePromo(id);

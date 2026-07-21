@@ -1,27 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listStaff, addStaff, updateStaff, deleteStaff } from "@/lib/staff-store";
 import { getSessionFrom } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-context";
 
 export const dynamic = "force-dynamic";
 
-async function isOwner(req: NextRequest) {
-  // จัดการบัญชีพนักงานได้เฉพาะ "เจ้าของร้าน" เท่านั้น พนักงานตั้งสิทธิ์ให้ตัวเองไม่ได้
-  return (await getSessionFrom(req))?.role === "owner";
+/** จัดการบัญชีพนักงานได้เฉพาะ "เจ้าของร้าน" เท่านั้น พนักงานตั้งสิทธิ์ให้ตัวเองไม่ได้ */
+async function requireOwnerSession(req: NextRequest) {
+  const session = await getSessionFrom(req);
+  return session?.role === "owner" ? session : null;
 }
 
 /** รายชื่อพนักงาน — เฉพาะเจ้าของ */
 export async function GET(req: NextRequest) {
-  if (!(await isOwner(req))) {
-    return NextResponse.json({ error: "owner_only" }, { status: 403 });
-  }
-  return NextResponse.json({ staff: await listStaff() });
+  const session = await requireOwnerSession(req);
+  if (!session) return NextResponse.json({ error: "owner_only" }, { status: 403 });
+  return withTenant(session.tenantId, async () =>
+    NextResponse.json({ staff: await listStaff() })
+  );
 }
 
 /** POST: { action: "add", name, username, password, menus } — เจ้าของเพิ่มพนักงาน */
 export async function POST(req: NextRequest) {
-  if (!(await isOwner(req))) {
-    return NextResponse.json({ error: "owner_only" }, { status: 403 });
-  }
+  const session = await requireOwnerSession(req);
+  if (!session) return NextResponse.json({ error: "owner_only" }, { status: 403 });
+  return withTenant(session.tenantId, () => handlePost(req));
+}
+
+async function handlePost(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
 
   if (body.action === "add") {
@@ -51,9 +57,12 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  if (!(await isOwner(req))) {
-    return NextResponse.json({ error: "owner_only" }, { status: 403 });
-  }
+  const session = await requireOwnerSession(req);
+  if (!session) return NextResponse.json({ error: "owner_only" }, { status: 403 });
+  return withTenant(session.tenantId, () => handlePatch(req));
+}
+
+async function handlePatch(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const id = String(body.id || "");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
@@ -79,9 +88,12 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  if (!(await isOwner(req))) {
-    return NextResponse.json({ error: "owner_only" }, { status: 403 });
-  }
+  const session = await requireOwnerSession(req);
+  if (!session) return NextResponse.json({ error: "owner_only" }, { status: 403 });
+  return withTenant(session.tenantId, () => handleDelete(req));
+}
+
+async function handleDelete(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id") || "";
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
   await deleteStaff(id);

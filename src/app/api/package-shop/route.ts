@@ -19,25 +19,30 @@ import { getSiteConfig } from "@/lib/config-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import { pushLineMessage, buildPackageFlex } from "@/lib/line";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { withResolvedTenant, withTenant } from "@/lib/tenant-context";
 
 export const dynamic = "force-dynamic";
-
-/** ล็อกอินหลังบ้านอยู่ไหม — route นี้ใช้ร่วมกันทั้งแอปลูกค้าและหลังบ้าน */
-async function isAdmin(req: NextRequest) {
-  return !!(await verifySession(req.cookies.get(SESSION_COOKIE)?.value));
-}
 
 /**
  * GET — แอปลูกค้า: ?lineUserId=... ได้รายการที่เปิดขาย + บัญชีโอน + ออร์เดอร์ของตัวเอง
  *       หลังบ้าน: ไม่ต้องส่ง lineUserId ได้ทุกออร์เดอร์ + รายการขายทั้งหมด (รวมที่ปิดอยู่)
  */
 export async function GET(req: NextRequest) {
+  const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
   const lineUserId = req.nextUrl.searchParams.get("lineUserId")?.trim();
-  const admin = await isAdmin(req);
 
-  if (!lineUserId && !admin) {
+  if (!lineUserId && !session) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+
+  if (session) {
+    return withTenant(session.tenantId, () => handleGet(req, true));
+  }
+  return withResolvedTenant(req, () => handleGet(req, false));
+}
+
+async function handleGet(req: NextRequest, isAdminSession: boolean) {
+  const lineUserId = req.nextUrl.searchParams.get("lineUserId")?.trim();
 
   if (lineUserId) {
     // ลูกค้า — เห็นเฉพาะที่เปิดขาย และเห็นเฉพาะออร์เดอร์ของตัวเอง
@@ -52,6 +57,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ offers, orders, payment });
   }
 
+  if (!isAdminSession) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   const [offers, orders] = await Promise.all([
     listPackageOffers(),
     listPackageOrders(),
@@ -60,6 +68,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+  if (session) {
+    return withTenant(session.tenantId, () => handlePost(req, true));
+  }
+  return withResolvedTenant(req, () => handlePost(req, false));
+}
+
+async function handlePost(req: NextRequest, isAdminSession: boolean) {
   const body = await req.json().catch(() => ({}));
   const action = String(body.action || "");
 
@@ -131,7 +147,7 @@ export async function POST(req: NextRequest) {
 
   /* ── หลังบ้าน: เพิ่มแพ็กเกจที่จะขาย ── */
   if (action === "create_offer") {
-    if (!(await isAdmin(req))) {
+    if (!isAdminSession) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
     const offer = await createPackageOffer({
@@ -152,9 +168,12 @@ export async function POST(req: NextRequest) {
 
 /** หลังบ้านทั้งหมด — ยืนยันรับเงิน / ยกเลิกออร์เดอร์ / เปิด-ปิด-ลบรายการขาย */
 export async function PATCH(req: NextRequest) {
-  if (!(await isAdmin(req))) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, () => handlePatch(req));
+}
+
+async function handlePatch(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const action = String(body.action || "");
 

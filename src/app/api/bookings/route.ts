@@ -18,6 +18,7 @@ import {
 import { AUTO_MESSAGE_TOPICS } from "@/lib/auto-messages";
 import { bookingMatchesCustomer } from "@/lib/booking-customer-match";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { withResolvedTenant, withTenant } from "@/lib/tenant-context";
 import { listCustomers, resolveCustomerForBooking } from "@/lib/customers-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import {
@@ -86,16 +87,22 @@ const NO_LINE_ERROR =
   "ยังไม่มี LINE User ID — ให้ลูกค้าเปิดแอปจาก LINE หรือผูกในโปรไฟล์ลูกค้า";
 
 /** ล็อกอินหลังบ้านอยู่ไหม — route นี้ใช้ร่วมกันทั้งแอปลูกค้าและหลังบ้าน */
-async function isAdmin(req: NextRequest) {
-  return !!(await verifySession(req.cookies.get(SESSION_COOKIE)?.value));
+async function getAdminSession(req: NextRequest) {
+  return verifySession(req.cookies.get(SESSION_COOKIE)?.value);
 }
 
 export async function GET(req: NextRequest) {
   const lineUserId = req.nextUrl.searchParams.get("lineUserId") || undefined;
+  const session = await getAdminSession(req);
   // ไม่ได้ล็อกอิน = แอปลูกค้า → ดูได้เฉพาะนัดของตัวเอง ห้ามดึงทั้งร้าน
-  if (!lineUserId && !(await isAdmin(req))) {
+  if (!lineUserId && !session) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+  if (session) return withTenant(session.tenantId, () => handleGet(lineUserId));
+  return withResolvedTenant(req, () => handleGet(lineUserId));
+}
+
+async function handleGet(lineUserId?: string) {
   const allCustomers = lineUserId ? [] : await listCustomers();
   const items = (await listBookings(lineUserId)).map((b) => {
     const customer = allCustomers.find((c) => bookingMatchesCustomer(b, c));
@@ -123,9 +130,14 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   // หลังบ้านเท่านั้น — ลูกค้าจองเองมีเส้นทางของตัวเองที่ /api/bookings/self (ตรวจสิทธิ์+ความว่างครบ)
   // route นี้อยู่ใน SHARED_API (middleware ปล่อยผ่าน) ถ้าไม่เช็คตรงนี้ ใครก็สร้างนัด/ลูกค้าปลอมได้
-  if (!(await isAdmin(req))) {
+  const session = await getAdminSession(req);
+  if (!session) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+  return withTenant(session.tenantId, () => handlePost(req));
+}
+
+async function handlePost(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const customer = await resolveCustomerForBooking({
     customerName: body.customerName,
@@ -187,6 +199,12 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const session = await getAdminSession(req);
+  if (session) return withTenant(session.tenantId, () => handlePatch(req, true));
+  return withResolvedTenant(req, () => handlePatch(req, false));
+}
+
+async function handlePatch(req: NextRequest, admin: boolean) {
   const body = await req.json().catch(() => ({}));
   const { id, action, lineUserId, checkinTime } = body;
   const b = await getBooking(id);
@@ -194,7 +212,6 @@ export async function PATCH(req: NextRequest) {
 
   // ลูกค้าใน LINE ทำได้อย่างเดียวคือกดยืนยันนัด "ของตัวเอง"
   // การกระทำอื่นทั้งหมด (ยกเลิก แก้ไข ส่งการ์ด เรียกเก็บเงิน) ต้องล็อกอินหลังบ้าน
-  const admin = await isAdmin(req);
   if (!admin) {
     const ownsBooking = !!lineUserId && b.lineUserId === lineUserId;
     if (action !== "confirm" || !ownsBooking) {

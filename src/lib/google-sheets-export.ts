@@ -80,10 +80,12 @@ const DEFAULT_CUSTOMER_KEYS = CUSTOMER_COLUMNS.map((c) => c.key);
 const FINANCE_HEADERS = [
   "ID",
   "วันที่",
+  "เดือน",
   "ประเภท",
   "จำนวน (บาท)",
   "หมวด",
   "รายละเอียด",
+  "ลิงก์รูปบิล",
   "รหัสลูกค้า",
   "รหัสบิล",
   "บันทึกเมื่อ",
@@ -110,10 +112,12 @@ function financeRows(records: FinanceRecord[]): string[][] {
   return records.map((r) => [
     r.id,
     r.date,
+    r.date.slice(0, 7), // เดือน (YYYY-MM) — ไว้กรอง/สรุปยอดตามเดือนใน Sheet
     r.type === "income" ? "รายรับ" : "รายจ่าย",
     String(r.amount),
     r.category,
     r.description,
+    r.receiptUrl || "", // ลิงก์รูปบิล — กดเปิดดูรูปได้จากในชีต
     r.customerId || "",
     r.invoiceId || "",
     r.createdAt.slice(0, 19).replace("T", " "),

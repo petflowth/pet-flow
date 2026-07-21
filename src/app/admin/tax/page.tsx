@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ExportSheetsButton } from "@/components/ExportSheetsButton";
 
 type Rec = {
   id: string;
@@ -334,10 +335,14 @@ export default function TaxPage() {
         )}
       </div>
 
-      <p className="mt-3 text-[11px] text-brown-faint print:hidden">
-        💡 กด “พิมพ์ / บันทึก PDF” เพื่อออกเอกสารสำหรับยื่นภาษีหรือส่งให้บัญชี ·
-        ตัวเลขดึงจากบัญชีรายรับ-รายจ่ายชุดเดียวกับหน้า “รายรับ-รายจ่าย”
-      </p>
+      {/* ส่งออกเข้า Google Sheet — แท็บ "รายรับรายจ่าย" มีคอลัมน์เดือน + ลิงก์รูปบิลให้ด้วย */}
+      <div className="mt-4 print:hidden">
+        <ExportSheetsButton />
+        <p className="mt-2 text-[11px] text-brown-faint">
+          💡 “พิมพ์ / บันทึก PDF” = ออกเอกสารยื่นภาษี/ส่งบัญชี · “ส่งออก Google Sheets” =
+          ยกทุกรายการเข้าชีต (แท็บรายรับรายจ่าย มีคอลัมน์เดือนไว้สรุป + ลิงก์รูปบิลกดเปิดได้)
+        </p>
+      </div>
     </div>
   );
 }

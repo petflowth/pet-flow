@@ -72,6 +72,8 @@ type Booking = {
   time?: string;
   status: string;
   autoOff?: string[];
+  /** โปรแกรมอาบน้ำที่เลือกไว้ตอนจอง (id ใน GROOM_PROGRAMS) — ถ้ามีจะเลือกไว้ให้อัตโนมัติตอนออกบิล */
+  groomProgram?: string;
 };
 
 type ItemKind = "grooming" | "room" | "service" | "custom" | "freebie";
@@ -91,8 +93,9 @@ type Item = {
   qty?: number;
 };
 
-function newGrooming(): Item {
-  const prog = GROOM_PROGRAMS[0];
+/** programId มาจากนัด (booking.groomProgram) ถ้ามี — ให้เลือกโปรแกรมที่ลูกค้าเลือกไว้ตอนจองอัตโนมัติ */
+function newGrooming(programId?: string): Item {
+  const prog = (programId && GROOM_PROGRAMS.find((p) => p.id === programId)) || GROOM_PROGRAMS[0];
   return {
     kind: "grooming",
     program: prog.id,
@@ -614,7 +617,10 @@ export default function BillingPage() {
       );
     } else {
       setItems(
-        group.map((g) => ({ ...newGrooming(), catName: many ? g.catName : undefined }))
+        group.map((g) => ({
+          ...newGrooming(g.groomProgram),
+          catName: many ? g.catName : undefined,
+        }))
       );
     }
     if (many) {

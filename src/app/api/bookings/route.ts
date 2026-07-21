@@ -121,6 +121,7 @@ async function handleGet(lineUserId?: string) {
       pickupTime: b.pickupTime,
       groomHealthInfo: b.groomHealthInfo,
       autoOff: b.autoOff || [],
+      groomProgram: b.groomProgram,
       customerId: customer?.id,
     };
   });
@@ -162,6 +163,7 @@ async function handlePost(req: NextRequest) {
     room: body.room,
     lineUserId: customer.lineUserId,
     notes: body.notes,
+    groomProgram: body.groomProgram ? String(body.groomProgram) : undefined,
   });
 
   const cal = await createCalendarEvent({
@@ -306,6 +308,7 @@ async function handlePatch(req: NextRequest, admin: boolean) {
         checkout: b.checkout,
         room: b.room,
         notes: b.notes,
+        groomProgram: b.groomProgram,
       });
 
       await pushLineMessage(to, [flex]);
@@ -448,6 +451,7 @@ async function handlePatch(req: NextRequest, admin: boolean) {
             checkout: b.checkout,
             room: b.room,
             notes: b.notes,
+            groomProgram: b.groomProgram,
           })
         );
       } else if (part === "consent") {
@@ -785,6 +789,7 @@ async function handlePatch(req: NextRequest, admin: boolean) {
     if (body.room != null) patch.room = String(body.room) || undefined;
     if (body.notes != null) patch.notes = String(body.notes) || undefined;
     if (body.status != null) patch.status = body.status;
+    if (body.groomProgram != null) patch.groomProgram = String(body.groomProgram) || undefined;
     // หัวข้อข้อความอัตโนมัติที่นัดนี้ไม่ต้องส่ง
     if (Array.isArray(body.autoOff)) {
       const valid = new Set(AUTO_MESSAGE_TOPICS.map((t) => t.id));

@@ -166,6 +166,11 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     sql: "alter table bookings add column if not exists self_booked boolean not null default false;",
   },
   {
+    // โปรแกรมอาบน้ำที่เลือกไว้ตอนจอง (id ใน GROOM_PROGRAMS) — ให้ลิงก์ไปการ์ดแจ้งเตือน + ออกบิลได้เลย ไม่ต้องถามซ้ำ
+    name: "bookings.groom_program",
+    sql: "alter table bookings add column if not exists groom_program text;",
+  },
+  {
     // ยอดยกมาจากระบบเก่า — ไม่ใช่รายรับเดือนนี้ ต้องแยกได้ว่าเติมครั้งไหนเป็นยอดยกมา
     name: "member_topups.is_legacy",
     sql: "alter table member_topups add column if not exists is_legacy boolean not null default false;",

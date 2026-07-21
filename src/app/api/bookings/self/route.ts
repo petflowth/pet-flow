@@ -4,6 +4,7 @@ import { addBooking, listBookings } from "@/lib/bookings-store";
 import { findCustomerByLine } from "@/lib/customers-store";
 import { getGroomAvailability, getRoomAvailability } from "@/lib/availability";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
+import { groomProgram } from "@/lib/grooming-prices";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,7 @@ async function handlePost(req: NextRequest) {
     if (!slot || slot.remaining <= 0) {
       return NextResponse.json({ error: "slot_full" }, { status: 409 });
     }
+    const programId = String(body.groomProgram || "").trim() || undefined;
     const booking = await addBooking({
       customerName: customer.name,
       catName,
@@ -65,6 +67,7 @@ async function handlePost(req: NextRequest) {
       time,
       lineUserId,
       selfBooked: true,
+      groomProgram: programId,
     });
     await sendTelegram(
       formatBookingTelegram("🐾 ลูกค้าจองคิวอาบน้ำเอง (รอยืนยัน)", {
@@ -72,6 +75,7 @@ async function handlePost(req: NextRequest) {
         น้อง: catName,
         วันที่: date,
         เวลา: time,
+        ...(programId ? { โปรแกรม: groomProgram(programId)?.name || programId } : {}),
       })
     );
     return NextResponse.json({ ok: true, booking });

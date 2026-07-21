@@ -3,6 +3,7 @@ import { getSiteConfig } from "./config-store";
 import { bookingConfirmUrl as buildConfirmUrl } from "./line-config";
 import { getLineCredentials } from "./line-config";
 import { buildAppointmentConfirmFlex } from "./line";
+import { groomProgram } from "./grooming-prices";
 
 export async function bookingConfirmUrl(bookingId: string) {
   const creds = await getLineCredentials();
@@ -21,6 +22,8 @@ export async function buildBookingConfirmFlex(
     checkout?: string;
     room?: string;
     notes?: string;
+    /** id ใน GROOM_PROGRAMS (เช่น "bath-dry") — โชว์ชื่อโปรแกรมในการ์ดยืนยันนัด */
+    groomProgram?: string;
   }
 ) {
   const config = await getSiteConfig();
@@ -28,8 +31,11 @@ export async function buildBookingConfirmFlex(
     config.business.location.th || BUSINESS.location.th;
   const mapsUrl = config.business.maps || BUSINESS.maps;
 
+  const { groomProgram: groomProgramId, ...rest } = booking;
+
   return buildAppointmentConfirmFlex({
-    ...booking,
+    ...rest,
+    program: groomProgramId ? groomProgram(groomProgramId)?.name : undefined,
     confirmUrl: await bookingConfirmUrl(booking.id),
     mapsUrl,
     location: [config.business.name, location].filter(Boolean).join(" · "),

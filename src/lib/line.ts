@@ -156,13 +156,15 @@ export function buildAppointmentConfirmFlex(booking: {
   mapsUrl?: string;
   location?: string;
   businessName?: string;
+  /** ชื่อโปรแกรมอาบน้ำที่เลือกไว้ตอนจอง (ถ้ามี) — เฉพาะนัดอาบน้ำ */
+  program?: string;
 }, style?: CardStyleConfig) {
   const st = style || {};
   const show = (k: string) => st.show?.[k] !== false;
   const isRoom = booking.service === "room";
   const serviceTitle = isRoom
     ? `ห้องพัก · ${booking.catName}`
-    : `อาบน้ำ & กรูมมิ่ง · ${booking.catName}`;
+    : `อาบน้ำ & กรูมมิ่ง · ${booking.catName}${booking.program ? ` (${booking.program})` : ""}`;
   const dateText = isRoom
     ? formatBookingWhen({
         service: booking.service,

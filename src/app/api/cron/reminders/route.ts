@@ -90,6 +90,7 @@ export async function GET(req: NextRequest) {
           checkout: b.checkout,
           room: b.room,
           notes: b.notes,
+          groomProgram: b.groomProgram,
         }),
       ];
 

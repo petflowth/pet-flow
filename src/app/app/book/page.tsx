@@ -6,6 +6,7 @@ import { useLiff } from "@/components/LiffProvider";
 import { useConfig } from "@/components/ConfigProvider";
 import { PageHeader } from "@/components/PageHeader";
 import { SELF_BOOKABLE_ROOM_IDS } from "@/lib/self-bookable-rooms";
+import { GROOM_PROGRAMS } from "@/lib/grooming-prices";
 
 type Service = "groom" | "room";
 
@@ -53,6 +54,7 @@ function BookPageInner() {
   const [groomClosed, setGroomClosed] = useState(false);
   const [time, setTime] = useState("");
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [groomProgram, setGroomProgram] = useState("");
 
   // room state
   const [roomType, setRoomType] = useState("");
@@ -141,7 +143,14 @@ function BookPageInner() {
     try {
       const body =
         service === "groom"
-          ? { lineUserId: profile.lineUserId, catName, service, date, time }
+          ? {
+              lineUserId: profile.lineUserId,
+              catName,
+              service,
+              date,
+              time,
+              groomProgram: groomProgram || undefined,
+            }
           : { lineUserId: profile.lineUserId, catName, service, checkin, checkout, room: roomType };
       const res = await fetch("/api/bookings/self", {
         method: "POST",
@@ -190,6 +199,7 @@ function BookPageInner() {
             onClick={() => {
               setDone(null);
               setTime("");
+              setGroomProgram("");
             }}
             className="mt-4 rounded-full bg-honey/30 px-4 py-2 text-xs font-bold text-latte-deep"
           >
@@ -249,6 +259,21 @@ function BookPageInner() {
 
             {service === "groom" ? (
               <>
+                <label className="mb-3 block text-xs font-bold text-brown-soft">
+                  🧴 โปรแกรมอาบน้ำ (ไม่บังคับ)
+                  <select
+                    value={groomProgram}
+                    onChange={(e) => setGroomProgram(e.target.value)}
+                    className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
+                  >
+                    <option value="">ยังไม่เลือก — ให้ทางร้านแนะนำหน้างาน</option>
+                    {GROOM_PROGRAMS.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <label className="mb-3 block text-xs font-bold text-brown-soft">
                   📅 วันที่
                   <input

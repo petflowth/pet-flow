@@ -30,6 +30,8 @@ export type StoredBooking = Booking & {
   autoOff?: string[];
   /** true = ลูกค้าจองเองผ่านแอป — ต้องรอร้านกดยืนยัน (ลูกค้ายืนยันเองไม่ได้) */
   selfBooked?: boolean;
+  /** โปรแกรมอาบน้ำที่เลือกไว้ตอนจอง (id ใน GROOM_PROGRAMS เช่น "bath-dry") — เฉพาะ service=groom */
+  groomProgram?: string;
 };
 
 export { AUTO_MESSAGE_TOPICS, autoMuted } from "./auto-messages";
@@ -58,6 +60,7 @@ type BookingRow = {
   groom_health_info?: string | null;
   auto_off?: string[] | null;
   self_booked?: boolean | null;
+  groom_program?: string | null;
 };
 
 const mem: StoredBooking[] = seedEnabled()
@@ -101,6 +104,7 @@ function rowToStored(r: BookingRow): StoredBooking {
     groomHealthInfo: r.groom_health_info || undefined,
     autoOff: r.auto_off || undefined,
     selfBooked: r.self_booked || undefined,
+    groomProgram: r.groom_program || undefined,
   };
 }
 
@@ -293,12 +297,15 @@ export async function addBooking(
   if (sb) {
     const { error } = await sb.from("bookings").insert(storedToRow(booking));
     if (error) throw new Error(`addBooking failed: ${error.message}`);
-    // ธงจองเอง — เขียนแยกแบบ best-effort เผื่อคอลัมน์ self_booked ยังไม่ถูก migrate
-    // (ยังไม่ migrate ก็ไม่พัง แค่ธงยังไม่ติด ครั้งหน้าที่เปิดหลังบ้าน migration จะรันเอง)
-    if (booking.selfBooked) {
+    // คอลัมน์ที่เพิ่มมาทีหลัง — เขียนแยกแบบ best-effort เผื่อยังไม่ถูก migrate
+    // (ยังไม่ migrate ก็ไม่พัง แค่ค่ายังไม่ติด ครั้งหน้าที่เปิดหลังบ้าน migration จะรันเอง)
+    const extra: Record<string, unknown> = {};
+    if (booking.selfBooked) extra.self_booked = true;
+    if (booking.groomProgram) extra.groom_program = booking.groomProgram;
+    if (Object.keys(extra).length) {
       await sb
         .from("bookings")
-        .update({ self_booked: true })
+        .update(extra)
         .eq("id", booking.id)
         .eq("tenant_id", requireTenantId());
     }
@@ -328,6 +335,7 @@ export async function updateBooking(
       | "notes"
       | "lineUserId"
       | "autoOff"
+      | "groomProgram"
     >
   >
 ) {
@@ -364,6 +372,17 @@ export async function updateBooking(
         await sb
           .from("bookings")
           .update({ auto_off: merged.autoOff || [] })
+          .eq("id", id)
+          .eq("tenant_id", requireTenantId());
+      } catch {
+        /* ยังไม่มีคอลัมน์ — ข้ามไป ฟีเจอร์จะทำงานเมื่ออัปเดตฐานข้อมูลแล้ว */
+      }
+    }
+    if (patch.groomProgram !== undefined) {
+      try {
+        await sb
+          .from("bookings")
+          .update({ groom_program: merged.groomProgram || null })
           .eq("id", id)
           .eq("tenant_id", requireTenantId());
       } catch {

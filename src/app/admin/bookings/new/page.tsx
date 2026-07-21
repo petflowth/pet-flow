@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { RoomType } from "@/lib/business";
 import type { CustomerRecord } from "@/lib/customers-store";
+import { GROOM_PROGRAMS } from "@/lib/grooming-prices";
 import { CustomerSendButtons } from "@/components/CustomerSendButtons";
 import { toast } from "@/components/Toast";
 
@@ -233,6 +234,7 @@ export default function NewBookingPage() {
   const [catInput, setCatInput] = useState("");
   const [lineUserId, setLineUserId] = useState("");
   const [freebies, setFreebies] = useState<string[]>([]);
+  const [groomProgram, setGroomProgram] = useState("");
   const [appointmentDate, setAppointmentDate] = useState(presetDate);
   const [checkoutDate, setCheckoutDate] = useState(() => {
     if (!presetDate) return "";
@@ -310,6 +312,7 @@ export default function NewBookingPage() {
       room: service === "room" ? String(fd.get("room") || "") : undefined,
       checkin: service === "room" ? String(fd.get("checkin") || "") : undefined,
       checkout: service === "room" ? String(fd.get("checkout") || "") : undefined,
+      groomProgram: service === "groom" ? groomProgram || undefined : undefined,
       notes,
     };
 
@@ -353,6 +356,7 @@ export default function NewBookingPage() {
       setCatInput("");
       setLineUserId("");
       setFreebies([]);
+      setGroomProgram("");
       form.reset();
       setTimeout(() => setSaved(false), 2500);
     }
@@ -552,6 +556,24 @@ export default function NewBookingPage() {
               </datalist>
               <p className="mt-1 text-[10px] text-brown-faint">
                 เลือกจากรอบแนะนำ หรือพิมพ์เวลาเองได้
+              </p>
+            </label>
+            <label className="block text-xs font-bold text-brown-soft">
+              โปรแกรมอาบน้ำ (ไม่บังคับ)
+              <select
+                value={groomProgram}
+                onChange={(e) => setGroomProgram(e.target.value)}
+                className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm"
+              >
+                <option value="">ยังไม่เลือก — ถามหน้างาน</option>
+                {GROOM_PROGRAMS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-[10px] text-brown-faint">
+                เลือกไว้แล้วจะแจ้งในการ์ดยืนยันนัดให้ลูกค้าเห็นเลย และตอนออกบิลจะเลือกโปรแกรมนี้ไว้ให้อัตโนมัติ
               </p>
             </label>
           </>

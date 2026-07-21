@@ -12,6 +12,7 @@ type Rec = {
   customerName?: string;
   catName?: string;
   displayTitle: string;
+  receiptUrl?: string;
 };
 
 const THAI_MONTHS = [
@@ -258,6 +259,16 @@ export default function TaxPage() {
                     {r.displayTitle}
                     {r.category && (
                       <span className="block text-brown-faint">{r.category}</span>
+                    )}
+                    {r.receiptUrl && (
+                      <a
+                        href={r.receiptUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] font-bold text-latte-deep underline print:hidden"
+                      >
+                        🧾 ดูรูปบิล
+                      </a>
                     )}
                   </td>
                   <td className="py-1.5 text-right text-ok">

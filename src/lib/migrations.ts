@@ -199,6 +199,11 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     name: "invoices.package_id",
     sql: "alter table invoices add column if not exists package_id text;",
   },
+  {
+    // รูปบิล/ใบเสร็จที่แนบกับรายการเงิน — หลักฐานตอนยื่นภาษี
+    name: "finance_records.receipt_url",
+    sql: "alter table finance_records add column if not exists receipt_url text;",
+  },
 ];
 
 export type MigrateResult = {

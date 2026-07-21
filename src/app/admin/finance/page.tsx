@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ExportSheetsButton } from "@/components/ExportSheetsButton";
+import { toJpegDataUrl } from "@/lib/image-convert";
+import { toast } from "@/components/Toast";
 
 type Record = {
   id: string;
@@ -15,6 +17,7 @@ type Record = {
   customerName?: string;
   catName?: string;
   displayTitle: string;
+  receiptUrl?: string;
 };
 
 const TODAY = () => new Date().toISOString().slice(0, 10);
@@ -26,6 +29,9 @@ export default function FinancePage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [receipt, setReceipt] = useState("");
+  const [zoomUrl, setZoomUrl] = useState<string | null>(null);
+  const [busyReceipt, setBusyReceipt] = useState(false);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/finance?summary=1");
@@ -43,6 +49,7 @@ export default function FinancePage() {
   const resetForm = () => {
     setForm({ ...EMPTY_FORM, date: TODAY() });
     setEditingId(null);
+    setReceipt("");
   };
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -53,6 +60,8 @@ export default function FinancePage() {
       category: form.category,
       description: form.description,
       date: form.date || TODAY(),
+      // ส่ง receipt เฉพาะตอนแนบใหม่ (data URL) — ตอนแก้ไขไม่แนบใหม่ก็ไม่แตะรูปเดิม
+      ...(receipt.startsWith("data:") ? { receipt } : {}),
     };
     if (editingId) {
       await fetch("/api/finance", {
@@ -80,7 +89,38 @@ export default function FinancePage() {
       description: r.description || "",
       date: r.date,
     });
+    setReceipt(r.receiptUrl || "");
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  /** เลือกรูปบิล — ย่อก่อนเสมอ กันไฟล์ใหญ่เปลืองที่ */
+  const pickReceipt = async (file: File) => {
+    setBusyReceipt(true);
+    try {
+      setReceipt(await toJpegDataUrl(file, 1400));
+    } catch {
+      toast("อ่านรูปไม่ได้ ลองรูปอื่นนะคะ", "error");
+    } finally {
+      setBusyReceipt(false);
+    }
+  };
+
+  /** แนบ/เปลี่ยนรูปบิลของรายการที่มีอยู่แล้ว (จากแถวที่กางอยู่) */
+  const attachToRow = async (id: string, file: File) => {
+    setBusyReceipt(true);
+    try {
+      const dataUrl = await toJpegDataUrl(file, 1400);
+      await fetch("/api/finance", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, receipt: dataUrl }),
+      });
+      load();
+    } catch {
+      toast("แนบรูปไม่สำเร็จ", "error");
+    } finally {
+      setBusyReceipt(false);
+    }
   };
 
   const del = async (id: string, title: string) => {
@@ -157,6 +197,47 @@ export default function FinancePage() {
           onChange={(e) => setForm({ ...form, date: e.target.value })}
           className="w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
         />
+
+        {/* แนบรูปบิล/ใบเสร็จ — ไว้เป็นหลักฐานตอนยื่นภาษี (ย่อรูปให้อัตโนมัติ) */}
+        <label className="flex cursor-pointer items-center gap-3 rounded-petflow-sm border border-dashed border-petflow-line bg-paper px-3 py-2.5">
+          {receipt ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={receipt} alt="บิล" className="h-12 w-12 shrink-0 rounded-petflow-sm object-cover" />
+          ) : (
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-petflow-sm bg-card text-xl">
+              🧾
+            </span>
+          )}
+          <span className="min-w-0 text-[11px] font-bold text-brown-soft">
+            {busyReceipt ? "กำลังย่อรูป…" : receipt ? "เปลี่ยนรูปบิล/ใบเสร็จ" : "แนบรูปบิล/ใบเสร็จ (ถ้ามี)"}
+            <span className="block font-normal text-brown-faint">
+              เก็บไว้เป็นหลักฐานยื่นภาษี · ระบบย่อรูปให้ ไม่เปลืองที่
+            </span>
+          </span>
+          {receipt && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                setReceipt("");
+              }}
+              className="shrink-0 text-[11px] font-bold text-wait"
+            >
+              เอาออก
+            </button>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) pickReceipt(f);
+            }}
+          />
+        </label>
+
         <button type="submit" className="w-full rounded-petflow-sm bg-honey/40 py-3 text-sm font-extrabold text-petflow-chocolate">
           {editingId ? "💾 บันทึกการแก้ไข" : "บันทึก"}
         </button>
@@ -188,6 +269,7 @@ export default function FinancePage() {
                 <span className="flex min-w-0 items-center gap-1.5">
                   <span className="shrink-0 text-brown-faint">{open ? "▾" : "▸"}</span>
                   <span className="min-w-0 truncate font-bold text-brown">{compact}</span>
+                  {r.receiptUrl && <span className="shrink-0" title="มีรูปบิลแนบ">🧾</span>}
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
                   <span className="text-[10px] text-brown-faint">{r.date}</span>
@@ -212,6 +294,36 @@ export default function FinancePage() {
                       👤 {r.customerName || "ดูลูกค้า"}
                     </Link>
                   )}
+
+                  {/* รูปบิล/ใบเสร็จ — แตะดูเต็มจอ หรือแนบถ้ายังไม่มี */}
+                  <div className="mt-2">
+                    {r.receiptUrl ? (
+                      <button
+                        type="button"
+                        onClick={() => setZoomUrl(r.receiptUrl!)}
+                        className="flex items-center gap-2 rounded-petflow-sm bg-sage/15 px-2.5 py-1.5 text-[11px] font-bold text-ok"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={r.receiptUrl} alt="บิล" className="h-8 w-8 rounded object-cover" />
+                        🧾 ดูรูปบิล (แตะเพื่อขยาย)
+                      </button>
+                    ) : (
+                      <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-petflow-sm bg-paper px-2.5 py-1.5 text-[11px] font-bold text-brown-soft">
+                        {busyReceipt ? "กำลังแนบ…" : "📎 แนบรูปบิล/ใบเสร็จ"}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            e.target.value = "";
+                            if (f) attachToRow(r.id, f);
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+
                   <div className="mt-2 flex gap-3">
                     <button
                       type="button"
@@ -234,6 +346,18 @@ export default function FinancePage() {
           );
         })}
       </ul>
+
+      {/* ดูรูปบิลเต็มจอ */}
+      {zoomUrl && (
+        <button
+          type="button"
+          onClick={() => setZoomUrl(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={zoomUrl} alt="รูปบิล" className="max-h-full max-w-full rounded-petflow object-contain" />
+        </button>
+      )}
     </div>
   );
 }

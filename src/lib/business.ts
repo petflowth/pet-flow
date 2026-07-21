@@ -309,6 +309,8 @@ export type Booking = {
   checkinTime?: string;
   /** true = ลูกค้าจองเองผ่านแอป (ต้องรอร้านยืนยัน ลูกค้ายืนยันเองไม่ได้) */
   selfBooked?: boolean;
+  /** โปรแกรมอาบน้ำที่เลือกไว้ตอนจอง (id ใน GROOM_PROGRAMS) — เฉพาะ service=groom */
+  groomProgram?: string;
 };
 
 export type CustomerProfile = {

@@ -452,5 +452,6 @@ export function toBooking(b: StoredBooking): Booking {
     status: b.status as BookingStatus,
     checkinTime: b.checkinTime,
     selfBooked: b.selfBooked,
+    groomProgram: b.groomProgram,
   };
 }

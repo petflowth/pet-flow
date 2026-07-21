@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Booking } from "@/lib/business";
 import { relevantAutoMessageTopics } from "@/lib/auto-messages";
+import { GROOM_PROGRAMS } from "@/lib/grooming-prices";
 
 export type EditableBooking = Booking & {
   lineUserId?: string;
@@ -65,6 +66,7 @@ export function BookingEditModal({
     booking.service || (booking.roomType || booking.checkin ? "room" : "groom")
   );
   const [saving, setSaving] = useState(false);
+  const [groomProgram, setGroomProgram] = useState(booking.groomProgram || "");
   // ปิดข้อความอัตโนมัติเฉพาะนัดนี้ (คนละเรื่องกับปิดทั้งร้านในหน้าตั้งค่า)
   const [autoOff, setAutoOff] = useState<string[]>(booking.autoOff || []);
   const toggleAuto = (id: string) =>
@@ -86,6 +88,7 @@ export function BookingEditModal({
             date: String(fd.get("date") || ""),
             time: String(fd.get("time") || "") || undefined,
             notes: String(fd.get("notes") || "") || undefined,
+            groomProgram: groomProgram || undefined,
             autoOff,
           }
         : {
@@ -158,6 +161,21 @@ export function BookingEditModal({
                     <option key={t} value={t} />
                   ))}
                 </datalist>
+              </label>
+              <label className="block text-xs font-bold text-brown-soft">
+                โปรแกรมอาบน้ำ (ไม่บังคับ)
+                <select
+                  value={groomProgram}
+                  onChange={(e) => setGroomProgram(e.target.value)}
+                  className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
+                >
+                  <option value="">ยังไม่เลือก — ถามหน้างาน</option>
+                  {GROOM_PROGRAMS.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
               </label>
             </>
           ) : (

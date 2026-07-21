@@ -7,6 +7,7 @@ import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 import { useLiff } from "@/components/LiffProvider";
 import { LangSwitch } from "@/components/LangSwitch";
+import { groomProgram } from "@/lib/grooming-prices";
 
 const CHECKIN_TIMES = ["10:00", "12:00", "14:00", "16:00", "18:00"];
 
@@ -121,6 +122,11 @@ function BookingsContent() {
                     {b.service === "groom" ? m.groom : m.room} · {b.date}
                     {b.time ? ` · ${b.time}` : ""}
                   </p>
+                  {b.groomProgram && (
+                    <p className="mt-0.5 text-[11px] font-bold text-latte-deep">
+                      🧴 {groomProgram(b.groomProgram)?.name || b.groomProgram}
+                    </p>
+                  )}
                 </div>
                 <span
                   className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${

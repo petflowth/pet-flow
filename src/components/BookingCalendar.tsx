@@ -8,6 +8,7 @@ import { InvoiceActionButtons } from "@/components/InvoiceActionButtons";
 import { bookingOnDate } from "@/lib/booking-customer-match";
 import { toast } from "@/components/Toast";
 import { groupBookings } from "@/lib/booking-group";
+import { groomProgram } from "@/lib/grooming-prices";
 
 type CalendarDay = EditableBooking & {
   customerId?: string;
@@ -428,6 +429,11 @@ export function BookingCalendar() {
                     <p className="text-xs text-brown-soft break-words">
                       {b.service === "room" ? "🏠 ห้องพัก" : "🛁 อาบน้ำ"} · {bookingWhen(b)}
                     </p>
+                    {b.groomProgram && (
+                      <p className="text-[11px] font-bold text-latte-deep">
+                        🧴 {groomProgram(b.groomProgram)?.name || b.groomProgram}
+                      </p>
+                    )}
                     {b.service === "room" &&
                       (b.consentAcceptedAt ? (
                         <div className="mt-1 flex items-center gap-2">

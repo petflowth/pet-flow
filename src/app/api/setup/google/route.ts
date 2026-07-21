@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionFrom } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-context";
 import {
   getGoogleCredentials,
   getGoogleIds,
@@ -14,13 +15,13 @@ import { getSecrets, saveGoogleSecrets } from "@/lib/secrets-store";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// สิทธิ์ถูกตรวจที่ middleware ด้วยคุกกี้ที่เซ็นชื่อแล้ว — ตรวจซ้ำที่นี่กันพลาด
-// (ของเดิมเทียบกับ NEXT_PUBLIC_ADMIN_CODE ซึ่งถูกฝังไปในไฟล์ JS ฝั่งเบราว์เซอร์)
-async function checkAdmin(req: NextRequest) {
-  return !!(await getSessionFrom(req));
+export async function GET(req: NextRequest) {
+  const session = await getSessionFrom(req);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, handleGet);
 }
 
-export async function GET() {
+async function handleGet() {
   const configured = await isGoogleConfigured();
   const ids = await getGoogleIds();
   const secrets = await getSecrets();
@@ -43,11 +44,13 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => ({}));
-  if (!(await checkAdmin(req))) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const session = await getSessionFrom(req);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, () => handlePost(req));
+}
 
+async function handlePost(req: NextRequest) {
+  const body = await req.json().catch(() => ({}));
   try {
     const { serviceAccountEmail, privateKey } = parseServiceAccountJson(
       String(body.jsonText || "")

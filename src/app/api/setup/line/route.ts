@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionFrom } from "@/lib/auth";
+import { requireTenantId, withTenant } from "@/lib/tenant-context";
+import { getSupabase } from "@/lib/supabase/server";
 import { getSecrets, saveLineSecrets } from "@/lib/secrets-store";
 import {
   getAppUrlFromEnv,
@@ -15,13 +17,30 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// สิทธิ์ถูกตรวจที่ middleware ด้วยคุกกี้ที่เซ็นชื่อแล้ว — ตรวจซ้ำที่นี่กันพลาด
-// (ของเดิมเทียบกับ NEXT_PUBLIC_ADMIN_CODE ซึ่งถูกฝังไปในไฟล์ JS ฝั่งเบราว์เซอร์)
-async function checkAdmin(req: NextRequest) {
-  return !!(await getSessionFrom(req));
+/**
+ * ลิงก์ endpoint เฉพาะร้าน — ก่อนหน้านี้ handler นี้ไม่เคยห่อด้วย withTenant() เลย
+ * requireTenantId() จึงตกไปใช้ร้าน bootstrap เดียวเสมอ ไม่ว่าใครล็อกอินอยู่
+ * (ทุกร้านเห็น LIFF ID/endpoint ก้อนเดียวกันหมด — บั๊กคนละเรื่องกับแค่ไม่มี slug ในลิงก์)
+ */
+async function endpointUrlForCurrentTenant(appUrl: string): Promise<string> {
+  const sb = getSupabase();
+  if (!sb) return `${appUrl}/app`;
+  const { data } = await sb
+    .from("tenants")
+    .select("slug")
+    .eq("id", requireTenantId())
+    .maybeSingle();
+  const slug = (data as { slug?: string } | null)?.slug;
+  return slug ? `${appUrl}/s/${slug}/app` : `${appUrl}/app`;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const session = await getSessionFrom(req);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, handleGet);
+}
+
+async function handleGet() {
   const configured = await isLineConfigured();
   const liffConfigured = await isLiffConfigured();
   const creds = await getLineCredentials();
@@ -43,7 +62,7 @@ export async function GET() {
     liffConfigured,
     source: creds?.source || "none",
     liffId: creds?.liffId || "",
-    endpointUrl: `${appUrl}/app`,
+    endpointUrl: await endpointUrlForCurrentTenant(appUrl),
     testLiffUrl: creds?.liffId ? `https://liff.line.me/${creds.liffId}` : "",
     displayName,
     basicId,
@@ -51,11 +70,13 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => ({}));
-  if (!(await checkAdmin(req))) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const session = await getSessionFrom(req);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, () => handlePost(req));
+}
 
+async function handlePost(req: NextRequest) {
+  const body = await req.json().catch(() => ({}));
   const action = String(body.action || "save_token");
 
   try {

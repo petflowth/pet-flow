@@ -11,20 +11,28 @@ import {
 
 import { parseTelegramCommand } from "@/lib/telegram";
 
-/** สร้างข้อความ "เตรียมตัวพรุ่งนี้" — ใช้ทั้งคำสั่ง /tomorrow และ digest อัตโนมัติตอนเช้า */
-export async function buildTomorrowPrepMessage(tomorrow: string) {
+/**
+ * สร้างข้อความตารางงานของวันหนึ่ง — อาบน้ำ + เช็คอิน + เช็คเอาท์
+ * ปรับหัวข้อได้ (heading) และข้อความตอนว่างได้ (emptyText) เพื่อใช้ซ้ำทั้ง
+ * "เตรียมตัวพรุ่งนี้", "สรุปเช้าวันนี้", และท้ายสรุปปิดวัน
+ */
+export async function buildDayScheduleMessage(
+  date: string,
+  opts?: { heading?: string; emptyText?: string }
+) {
+  const heading = opts?.heading ?? `🗓️ ตารางงาน (${date})`;
   const all = await listBookings();
   const live = all.filter((b) => b.status !== "cancelled");
-  const groom = live.filter((b) => b.service === "groom" && b.date === tomorrow);
-  const checkin = live.filter((b) => b.service === "room" && b.checkin === tomorrow);
-  const checkout = live.filter((b) => b.service === "room" && b.checkout === tomorrow);
+  const groom = live.filter((b) => b.service === "groom" && b.date === date);
+  const checkin = live.filter((b) => b.service === "room" && b.checkin === date);
+  const checkout = live.filter((b) => b.service === "room" && b.checkout === date);
   const total = groom.length + checkin.length + checkout.length;
 
   if (total === 0) {
-    return `🗓️ เตรียมตัวพรุ่งนี้ (${tomorrow})\n\nยังไม่มีนัด/เข้าพัก-ออกพักในระบบค่ะ 🎉`;
+    return `${heading}\n\n${opts?.emptyText ?? "ยังไม่มีนัด/เข้าพัก-ออกพักในระบบค่ะ 🎉"}`;
   }
 
-  const lines: string[] = [`🗓️ เตรียมตัวพรุ่งนี้ (${tomorrow})`];
+  const lines: string[] = [heading];
   if (groom.length) {
     lines.push(
       `\n🛁 นัดอาบน้ำ (${groom.length}):\n` +
@@ -55,7 +63,46 @@ export async function buildTomorrowPrepMessage(tomorrow: string) {
           .join("\n")
     );
   }
-  lines.push(`\nรวมงานพรุ่งนี้: ${total} รายการ`);
+  lines.push(`\nรวมทั้งหมด: ${total} รายการ`);
+  return lines.join("\n");
+}
+
+/** สร้างข้อความ "เตรียมตัวพรุ่งนี้" — ใช้ทั้งคำสั่ง /tomorrow และ digest อัตโนมัติตอนเช้า */
+export async function buildTomorrowPrepMessage(tomorrow: string) {
+  return buildDayScheduleMessage(tomorrow, {
+    heading: `🗓️ เตรียมตัวพรุ่งนี้ (${tomorrow})`,
+  });
+}
+
+/** สรุปเช้า — งานของวันนี้ทั้งหมด ส่งให้ร้านตอนเช้าทุกวัน */
+export async function buildMorningSummaryMessage(today: string) {
+  return buildDayScheduleMessage(today, {
+    heading: `☀️ สรุปเช้า — งานวันนี้ (${today})`,
+    emptyText: "วันนี้ยังไม่มีนัด/เข้าพัก-ออกพักในระบบค่ะ พักผ่อนได้เต็มที่ 🐱",
+  });
+}
+
+/**
+ * สรุปปิดวัน — ยอดรายรับ-รายจ่ายของวันนี้ + ตารางงานพรุ่งนี้ ส่งตอนเย็นทุกวัน
+ * ตัวเลขดึงจากบัญชีรายรับ-รายจ่ายชุดเดียวกับหน้า /finance
+ */
+export async function buildEndOfDaySummaryMessage(today: string, tomorrow: string) {
+  const fin = await todayFinance();
+  const lines: string[] = [
+    `🌙 สรุปปิดวัน (${today})`,
+    "",
+    `💰 รายรับวันนี้: ${fin.income.toLocaleString()} บาท`,
+  ];
+  if (fin.expense > 0) {
+    lines.push(`💸 รายจ่ายวันนี้: ${fin.expense.toLocaleString()} บาท`);
+    lines.push(`🧮 คงเหลือสุทธิ: ${fin.net.toLocaleString()} บาท`);
+  }
+  lines.push(`📑 รายการทั้งหมด: ${fin.count} รายการ`);
+  lines.push("");
+  lines.push(await buildDayScheduleMessage(tomorrow, {
+    heading: `🗓️ ตารางพรุ่งนี้ (${tomorrow})`,
+    emptyText: "พรุ่งนี้ยังไม่มีนัดในระบบค่ะ 🎉",
+  }));
   return lines.join("\n");
 }
 

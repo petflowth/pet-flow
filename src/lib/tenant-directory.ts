@@ -1,5 +1,6 @@
 import { getSupabase } from "./supabase/server";
 import { hashOwnerCode, hashPassword } from "./auth";
+import { getBootstrapTenantId } from "./auth";
 
 /**
  * ค้นหาร้านข้ามทุกร้าน — ใช้เฉพาะตอนล็อกอิน (ยังไม่รู้ว่าเป็นร้านไหนจนกว่าจะเจอ username)
@@ -55,4 +56,19 @@ export async function findTenantByLegacyOwnerCode(
     .limit(1)
     .maybeSingle();
   return data || null;
+}
+
+/**
+ * ทุกร้านที่ยังใช้งานอยู่ (trial/active) — ใช้เฉพาะ cron ที่ต้องรันแทนทุกร้าน
+ * (เตือนนัด, สรุปเช้า/เย็น ฯลฯ) ไม่มี Supabase (dev) = เหลือแค่ร้าน bootstrap เดียว
+ */
+export async function listActiveTenantIds(): Promise<string[]> {
+  const sb = getSupabase();
+  const bootstrap = getBootstrapTenantId();
+  if (!sb) return bootstrap ? [bootstrap] : [];
+  const { data } = await sb.from("tenants").select("id").in("status", ["trial", "active"]);
+  const ids = (data || []).map((t: { id: string }) => t.id);
+  // ร้าน bootstrap อาจไม่มีแถวใน tenants (ร้านเดิมก่อน multi-tenant) — เติมเข้าไปกันตกหล่น
+  if (bootstrap && !ids.includes(bootstrap)) ids.push(bootstrap);
+  return ids;
 }

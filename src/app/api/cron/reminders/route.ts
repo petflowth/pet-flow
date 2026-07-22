@@ -31,6 +31,8 @@ import { parseGroomInfo, groomInfoSummary } from "@/lib/groom-info";
 import { resolveGroomForm } from "@/lib/groom-form";
 import { renderTemplate } from "@/lib/messages";
 import { buildTomorrowPrepMessage } from "@/lib/telegram-commands";
+import { withTenant } from "@/lib/tenant-context";
+import { listActiveTenantIds } from "@/lib/tenant-directory";
 
 function addDays(dateStr: string, n: number) {
   const dt = new Date(`${dateStr}T12:00:00Z`);
@@ -38,7 +40,11 @@ function addDays(dateStr: string, n: number) {
   return dt.toISOString().slice(0, 10);
 }
 
-/** Cron 12:00 น. ไทย (05:00 UTC) — ยืนยันนัดพรุ่งนี้ + เตือนมัดจำ 7 วัน + รายละเอียดเข้าพัก 3 วันก่อน */
+/**
+ * Cron 12:00 น. ไทย (05:00 UTC) — ยืนยันนัดพรุ่งนี้ + เตือนมัดจำ 7 วัน + รายละเอียดเข้าพัก 3 วันก่อน
+ * รันแทนทุกร้านที่ยังใช้งานอยู่ — เดิม (จาก CatCha เดี่ยว) รันแค่ร้าน bootstrap ร้านเดียว
+ * ทำให้ร้านอื่นในระบบ multi-tenant ไม่เคยได้รับการเตือนอัตโนมัติเลย
+ */
 export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization");
   const secret = process.env.CRON_SECRET;
@@ -48,6 +54,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const tenantIds = await listActiveTenantIds();
+  const results = await Promise.all(
+    tenantIds.map(async (tenantId) => {
+      try {
+        return { tenantId, ...(await withTenant(tenantId, runForTenant)) };
+      } catch (e) {
+        return { tenantId, ok: false, error: e instanceof Error ? e.message : String(e) };
+      }
+    })
+  );
+  return NextResponse.json({ ok: true, tenants: results.length, results });
+}
+
+async function runForTenant() {
   const cfg = await getSiteConfig();
   const auto = cfg.automation;
   const errors: string[] = [];
@@ -398,7 +418,7 @@ export async function GET(req: NextRequest) {
     errors.push(`tomorrow-prep: ${String(e)}`);
   }
 
-  return NextResponse.json({
+  return {
     ok: true,
     due: confirmList.length,
     sent,
@@ -412,5 +432,5 @@ export async function GET(req: NextRequest) {
     birthdayGreetings,
     birthdayCoupons,
     errors,
-  });
+  };
 }

@@ -41,8 +41,9 @@ const LiffContext = createContext<LiffCtx>({
   setPoints: () => {},
 });
 
-async function fetchAccount(lineUserId: string, displayName: string) {
+async function fetchAccount(lineUserId: string, displayName: string, customerId?: string) {
   const q = new URLSearchParams({ lineUserId, displayName });
+  if (customerId) q.set("customerId", customerId);
   const res = await fetch(`/api/points?${q}`);
   if (!res.ok) return null;
   return res.json() as Promise<{
@@ -85,11 +86,11 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
 
   const refreshAccount = useCallback(async () => {
     if (!profile?.lineUserId) return;
-    const data = await fetchAccount(profile.lineUserId, profile.displayName);
+    const data = await fetchAccount(profile.lineUserId, profile.displayName, customer?.id);
     if (!data) return;
     setProfile((p) => (p ? { ...p, points: data.points } : p));
     setHistory(data.history);
-  }, [profile?.lineUserId, profile?.displayName]);
+  }, [profile?.lineUserId, profile?.displayName, customer?.id]);
 
   const setPoints = useCallback((points: number) => {
     setProfile((p) => (p ? { ...p, points } : p));
@@ -98,15 +99,14 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function initLiff() {
       async function applyAccount(base: CustomerProfile) {
-        // ยิงพร้อมกัน (ไม่เกี่ยวกัน) — เปิดแอปเร็วขึ้น ไม่ต้องรอทีละอัน
-        const [sync, data] = await Promise.all([
-          syncLineCustomer(base.lineUserId, base.displayName),
-          fetchAccount(base.lineUserId, base.displayName),
-        ]);
+        // sync ก่อนเพื่อรู้ customerId แล้วค่อยดึงแต้มด้วย customerId นั้น —
+        // แต้มจะได้ผูกกับลูกค้าคนเดียวเสมอ ไม่แตกตามอุปกรณ์/LINE ID
+        const sync = await syncLineCustomer(base.lineUserId, base.displayName);
         if (sync) {
           setCustomer(sync.customer);
           setNeedsRegistration(sync.needsRegistration);
         }
+        const data = await fetchAccount(base.lineUserId, base.displayName, sync?.customer?.id);
         if (data) {
           setProfile({ ...base, points: data.points });
           setHistory(data.history);

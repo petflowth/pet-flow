@@ -12,7 +12,7 @@ export function PointsRedeem({
   compact?: boolean;
 }) {
   const { locale } = useLocale();
-  const { profile, refreshAccount, setPoints } = useLiff();
+  const { profile, customer, refreshAccount, setPoints } = useLiff();
   const { config } = useConfig();
   const m = t(locale).points;
   const [loading, setLoading] = useState<string | null>(null);
@@ -48,6 +48,7 @@ export function PointsRedeem({
           lineUserId: profile.lineUserId,
           rewardId,
           displayName: profile.displayName,
+          customerId: customer?.id,
         }),
       });
       const data = await res.json();

@@ -158,9 +158,12 @@ async function migrateLegacyPoints(rawId: string, key: string) {
 
 export async function getAccount(
   lineUserId: string,
-  displayName = ""
+  displayName = "",
+  customerId?: string
 ): Promise<CustomerAccount> {
-  const key = await resolvePointsKey(lineUserId);
+  // ถ้า client บอก customerId มาตรงๆ (ตัวที่แอปใช้โชว์ข้อมูลลูกค้า) ใช้เป็นคีย์เลย
+  // แม่นกว่าเดา จาก lineUserId เพราะ LINE ID สลับไปมาได้ตามอุปกรณ์
+  const key = customerId ? `C:${customerId}` : await resolvePointsKey(lineUserId);
   if (key !== lineUserId) {
     try {
       await migrateLegacyPoints(lineUserId, key);
@@ -224,13 +227,14 @@ function parseDiscountBaht(label: string): number {
 export async function redeemReward(
   lineUserId: string,
   rewardId: string,
-  displayName = ""
+  displayName = "",
+  customerId?: string
 ) {
   const config = await getSiteConfig();
   const tier = config.pointsRewards.find((r) => r.id === rewardId);
   if (!tier) return { ok: false as const, error: "invalid_reward" };
 
-  const acc = await getAccount(lineUserId, displayName);
+  const acc = await getAccount(lineUserId, displayName, customerId);
   if (acc.points < tier.points) {
     return { ok: false as const, error: "insufficient_points" };
   }
@@ -243,12 +247,16 @@ export async function redeemReward(
   let couponCode = `PETFLOW-${Date.now().toString(36).toUpperCase().slice(-6)}`;
   if (discountAmount > 0) {
     try {
-      const { findCustomerByLine } = await import("./customers-store");
-      const customer = await findCustomerByLine(lineUserId);
-      if (customer) {
+      // ใช้ customerId จาก client ก่อน (แม่นสุด) ถ้าไม่มีค่อยเดาจาก lineUserId
+      let custId = customerId;
+      if (!custId) {
+        const { findCustomerByLine } = await import("./customers-store");
+        custId = (await findCustomerByLine(lineUserId))?.id;
+      }
+      if (custId) {
         const { issueCoupon } = await import("./coupons-store");
         const coupon = await issueCoupon({
-          customerId: customer.id,
+          customerId: custId,
           amount: discountAmount,
           reason: `แลกจากแต้ม: ${tier.reward.th}`,
           expiresInDays: 90,

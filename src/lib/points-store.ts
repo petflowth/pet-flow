@@ -164,11 +164,34 @@ export async function getAccount(
   // ถ้า client บอก customerId มาตรงๆ (ตัวที่แอปใช้โชว์ข้อมูลลูกค้า) ใช้เป็นคีย์เลย
   // แม่นกว่าเดา จาก lineUserId เพราะ LINE ID สลับไปมาได้ตามอุปกรณ์
   const key = customerId ? `C:${customerId}` : await resolvePointsKey(lineUserId);
-  if (key !== lineUserId) {
+
+  // รวมแต้มที่ค้างอยู่ใต้ LINE ID เก่า → คีย์ลูกค้า
+  // ดึงจาก: (1) LINE ID ที่เปิดเข้ามาตอนนี้ (2) LINE ID ทุกตัวของลูกค้าที่ผูกไว้
+  // เพราะ LINE ให้ ID คนละตัวคอม/มือถือ แต้มเก่าอาจค้างอยู่ใต้ ID ที่ record ย้ายออกไปแล้ว
+  if (key.startsWith("C:")) {
+    const rawIds = new Set<string>();
+    if (key !== lineUserId && lineUserId) rawIds.add(lineUserId);
+    try {
+      const { getCustomer } = await import("./customers-store");
+      const cust = await getCustomer(key.slice(2));
+      for (const id of [cust?.lineUserId, ...(cust?.lineUserIds || [])]) {
+        if (id && id !== key) rawIds.add(id);
+      }
+    } catch {
+      /* หาลูกค้าไม่ได้ — ใช้แค่ ID ปัจจุบัน */
+    }
+    for (const raw of rawIds) {
+      try {
+        await migrateLegacyPoints(raw, key);
+      } catch {
+        /* รวมแต้มไม่สำเร็จ — อ่านต่อได้ ไม่ให้พังทั้งหน้า */
+      }
+    }
+  } else if (key !== lineUserId) {
     try {
       await migrateLegacyPoints(lineUserId, key);
     } catch {
-      /* รวมแต้มไม่สำเร็จ — อ่านต่อได้ ไม่ให้พังทั้งหน้า */
+      /* ไม่ให้พังทั้งหน้า */
     }
   }
 

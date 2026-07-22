@@ -137,9 +137,10 @@ export async function syncTelegramBotCommands(token: string) {
 
 export async function registerTelegramBot(
   token: string,
-  appUrl: string
+  appUrl: string,
+  tenantId: string
 ) {
-  const webhookUrl = `${appUrl.replace(/\/$/, "")}/api/telegram/webhook`;
+  const webhookUrl = `${appUrl.replace(/\/$/, "")}/api/telegram/webhook/${tenantId}`;
 
   const setWebhook = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
     method: "POST",
@@ -187,18 +188,18 @@ export async function registerTelegramBot(
 }
 
 /** ถ้า webhook ยังว่าง แต่ส่งแจ้งเตือนได้ — ลงทะเบียนรับคำสั่งอัตโนมัติ */
-export async function ensureTelegramWebhook(token: string, appUrl: string) {
+export async function ensureTelegramWebhook(token: string, appUrl: string, tenantId: string) {
   const infoRes = await fetch(
     `https://api.telegram.org/bot${token}/getWebhookInfo`
   ).then((r) => r.json()) as { ok?: boolean; result?: { url?: string } };
 
   const currentUrl = infoRes.result?.url || "";
-  const expected = `${appUrl.replace(/\/$/, "")}/api/telegram/webhook`;
+  const expected = `${appUrl.replace(/\/$/, "")}/api/telegram/webhook/${tenantId}`;
 
   if (currentUrl === expected) {
     await syncTelegramBotCommands(token).catch(() => {});
     return { ok: true as const, already: true, webhookUrl: expected };
   }
 
-  return registerTelegramBot(token, appUrl);
+  return registerTelegramBot(token, appUrl, tenantId);
 }

@@ -1,8 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { listCustomers, updateCat, updateCatMedia } from "@/lib/customers-store";
 import { listBookings } from "@/lib/bookings-store";
 import { uploadDataUrlToStorage } from "@/lib/supabase/storage";
 import { getSupabase } from "@/lib/supabase/server";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +13,13 @@ export const dynamic = "force-dynamic";
  * ย้ายรูป/วิดีโอ/ลายเซ็นที่เคยเก็บเป็น base64 ตรงๆ ในฐานข้อมูล (ของเก่าก่อนมี Storage)
  * ไปเก็บเป็นไฟล์ใน Supabase Storage แทน — เรียกได้หลายครั้ง (ข้ามของที่ย้ายแล้ว)
  */
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, handlePost);
+}
+
+async function handlePost() {
   const sb = getSupabase();
   if (!sb) {
     return NextResponse.json({ error: "ไม่มีการเชื่อม Supabase (โหมด dev/mem)" }, { status: 400 });

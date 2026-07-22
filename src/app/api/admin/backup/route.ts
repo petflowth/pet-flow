@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import {
   listCustomers,
   listAllServiceRecords,
@@ -14,6 +14,8 @@ import { listAllCoupons, listOffers } from "@/lib/coupons-store";
 import { listAllPackages } from "@/lib/packages-store";
 import { listArticles } from "@/lib/articles-store";
 import { getSiteConfig } from "@/lib/config-store";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-context";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -31,7 +33,13 @@ export const runtime = "nodejs";
  *
  * middleware กันไว้แล้วว่าต้องล็อกอินหลังบ้านก่อน
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, handleGet);
+}
+
+async function handleGet() {
   const [
     customers,
     finance,

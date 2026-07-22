@@ -12,9 +12,21 @@ import {
 import { getLineCredentials } from "@/lib/line-config";
 import { buildLiffUrl } from "@/lib/liff-urls";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { withResolvedTenant, withTenant } from "@/lib/tenant-context";
+
+async function getAdminSession(req: NextRequest) {
+  return verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+}
 
 /** กระเป๋าคูปองของลูกค้า + รหัสชวนเพื่อน (เรียกจากแอปด้วย lineUserId, หรือหลังบ้านด้วย customerId) */
 export async function GET(req: NextRequest) {
+  const session = await getAdminSession(req);
+  if (session) return withTenant(session.tenantId, () => handleGet(req));
+  return withResolvedTenant(req, () => handleGet(req));
+}
+
+async function handleGet(req: NextRequest) {
   const lineUserId = req.nextUrl.searchParams.get("lineUserId")?.trim();
   const customerId = req.nextUrl.searchParams.get("customerId")?.trim();
   const activeOnly = req.nextUrl.searchParams.get("active") === "1";
@@ -45,6 +57,12 @@ export async function GET(req: NextRequest) {
 
 /** ออกคูปองด้วยมือจากหลังบ้าน (แจกลูกค้าพิเศษ / โปร) */
 export async function POST(req: NextRequest) {
+  const session = await getAdminSession(req);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, () => handlePost(req));
+}
+
+async function handlePost(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const customerId = String(body.customerId || "").trim();
   const amount = Math.round(Number(body.amount) || 0);

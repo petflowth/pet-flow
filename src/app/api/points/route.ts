@@ -2,13 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAccount, redeemReward, addPoints } from "@/lib/points-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import { pushLineMessage } from "@/lib/line";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { withResolvedTenant, withTenant } from "@/lib/tenant-context";
+
+async function getAdminSession(req: NextRequest) {
+  return verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+}
 
 export async function GET(req: NextRequest) {
   const lineUserId = req.nextUrl.searchParams.get("lineUserId");
   if (!lineUserId) {
     return NextResponse.json({ error: "lineUserId required" }, { status: 400 });
   }
+  const session = await getAdminSession(req);
+  if (session) return withTenant(session.tenantId, () => handleGet(req, lineUserId));
+  return withResolvedTenant(req, () => handleGet(req, lineUserId));
+}
 
+async function handleGet(req: NextRequest, lineUserId: string) {
   const displayName = req.nextUrl.searchParams.get("displayName") || "";
   const account = await getAccount(lineUserId, displayName);
 
@@ -20,11 +31,20 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const session = await getAdminSession(req);
+  if (session) return withTenant(session.tenantId, () => handlePost(req, true));
+  return withResolvedTenant(req, () => handlePost(req, false));
+}
+
+async function handlePost(req: NextRequest, isAdmin: boolean) {
   const body = await req.json().catch(() => ({}));
   const { lineUserId, rewardId, displayName } = body;
 
   // เพิ่ม/ปรับแต้มด้วยมือจากหลังบ้าน (เช่น รีวิวแล้วรับแต้มฟรี) — บันทึกเหตุผลในประวัติ
   if (body.action === "admin_add") {
+    if (!isAdmin) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
     const uid = String(lineUserId || "").trim();
     const amount = Math.round(Number(body.amount) || 0);
     const reason = String(body.reason || "").trim() || "แต้มพิเศษจากร้าน";

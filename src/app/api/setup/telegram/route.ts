@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionFrom } from "@/lib/auth";
-import { withTenant } from "@/lib/tenant-context";
+import { requireTenantId, withTenant } from "@/lib/tenant-context";
 import { saveTelegramSecrets } from "@/lib/secrets-store";
 import {
   ensureTelegramWebhook,
@@ -36,11 +36,11 @@ async function handleGet() {
     if (test.ok) botUsername = test.username;
 
     if (creds.appUrl) {
-      const ensured = await ensureTelegramWebhook(creds.botToken, creds.appUrl);
+      const ensured = await ensureTelegramWebhook(creds.botToken, creds.appUrl, requireTenantId());
       webhookConnected = ensured.ok;
       webhookUrl =
         ("webhookUrl" in ensured && ensured.webhookUrl) ||
-        `${creds.appUrl.replace(/\/$/, "")}/api/telegram/webhook`;
+        `${creds.appUrl.replace(/\/$/, "")}/api/telegram/webhook/${requireTenantId()}`;
     }
   }
 
@@ -97,7 +97,7 @@ async function handlePost(req: NextRequest) {
       });
     }
 
-    const register = await registerTelegramBot(botToken, appUrl);
+    const register = await registerTelegramBot(botToken, appUrl, requireTenantId());
     if (!register.ok) {
       return NextResponse.json({
         ok: false,

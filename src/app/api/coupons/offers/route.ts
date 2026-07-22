@@ -14,9 +14,22 @@ import { getLineCredentials } from "@/lib/line-config";
 import { buildClaimCouponUrl } from "@/lib/liff-urls";
 import { getSiteConfig } from "@/lib/config-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-context";
+
+async function requireTenantSession(req: NextRequest) {
+  const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+  return session;
+}
 
 /** หลังบ้าน: รายการแคมเปญ + คูปองทั้งหมด (พร้อมชื่อลูกค้า) */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const session = await requireTenantSession(req);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, handleGet);
+}
+
+async function handleGet() {
   const [offers, coupons, customers] = await Promise.all([
     listOffers(),
     listAllCoupons(),
@@ -33,6 +46,12 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const session = await requireTenantSession(req);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, () => handlePost(req));
+}
+
+async function handlePost(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const title = String(body.title || "").trim();
   const amount = Math.round(Number(body.amount) || 0);
@@ -49,6 +68,12 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const session = await requireTenantSession(req);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, () => handlePatch(req));
+}
+
+async function handlePatch(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const action = String(body.action || "");
 

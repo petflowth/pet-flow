@@ -1,10 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { listAllCoupons, listOffers } from "@/lib/coupons-store";
 import { listPromos, listPromoClaims } from "@/lib/promos-store";
 import { listInvoices } from "@/lib/invoices-store";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-context";
 
 /** สถิติคูปอง + โปรโมชั่น (หลังบ้าน) */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, handleGet);
+}
+
+async function handleGet() {
   const [coupons, offers, promos, claims, invoices] = await Promise.all([
     listAllCoupons(),
     listOffers(),

@@ -84,11 +84,11 @@ export async function getBroadcastImage(
   const sb = getSupabase();
   if (!sb) return null;
 
+  // เสิร์ฟรูปสาธารณะ (LINE ดึงไม่มี cookie/สิทธิ์) — id เป็น UUID สุ่ม ไม่ต้องกรอง tenant
   const { data, error } = await sb
     .from("broadcast_images")
     .select("id, data, content_type")
     .eq("id", id)
-    .eq("tenant_id", requireTenantId())
     .maybeSingle<BroadcastImageRow>();
 
   if (error || !data) return null;

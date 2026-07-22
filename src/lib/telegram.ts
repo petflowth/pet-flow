@@ -9,6 +9,7 @@ import {
   getTelegramCredentials,
   syncTelegramBotCommands,
 } from "./telegram-config";
+import { requireTenantId } from "./tenant-context";
 
 const TELEGRAM_API = "https://api.telegram.org";
 
@@ -101,9 +102,15 @@ export function parseTelegramCommand(text: string): TelegramCommand {
   return payload ? { command, payload } : { command };
 }
 
-export function getTelegramWebhookUrl(appUrl?: string) {
+/**
+ * เว็บฮุคต่อร้าน — ทุกร้านแชร์โดเมนเดียวกัน แต่แต่ละร้านต้องมี URL ไม่ซ้ำกัน
+ * (Telegram ส่ง update มาที่ URL ที่ลงทะเบียนไว้เท่านั้น ไม่มีข้อมูลร้านมากับ payload)
+ * ไม่ใส่ tenantId = URL รวม (ของเก่า ก่อนแยกร้าน — ใช้กับร้าน bootstrap เท่านั้น)
+ */
+export function getTelegramWebhookUrl(appUrl?: string, tenantId?: string) {
   const base = (appUrl || getAppUrlFromEnv()).replace(/\/$/, "");
-  return base ? `${base}/api/telegram/webhook` : "";
+  if (!base) return "";
+  return tenantId ? `${base}/api/telegram/webhook/${tenantId}` : `${base}/api/telegram/webhook`;
 }
 
 async function telegramApi<T = unknown>(
@@ -201,7 +208,7 @@ export async function sendTelegram(text: string) {
   }
 
   if (creds.appUrl) {
-    await ensureTelegramWebhook(creds.botToken, creds.appUrl).catch(() => {});
+    await ensureTelegramWebhook(creds.botToken, creds.appUrl, requireTenantId()).catch(() => {});
   }
 
   const results = await Promise.all(

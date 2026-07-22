@@ -41,6 +41,12 @@ import { getBooking } from "@/lib/bookings-store";
 import { bookingScheduleText } from "@/lib/booking-reminders";
 import type { InvoiceRecord } from "@/lib/invoices-store";
 import type { SiteConfig, CardStyleConfig } from "@/lib/config-types";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { withResolvedTenant, withTenant } from "@/lib/tenant-context";
+
+async function getAdminSession(req: NextRequest) {
+  return verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+}
 
 type SummaryMode = "booking" | "deposit" | "full" | "remaining";
 
@@ -104,6 +110,16 @@ import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 
 export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
+  const session = await getAdminSession(req);
+  // ไม่ได้ล็อกอิน = แอปลูกค้า (หน้าจ่ายเงิน) → ดูได้เฉพาะบิลที่ระบุ id เท่านั้น
+  if (!session && !id) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  if (session) return withTenant(session.tenantId, () => handleGet(req, id));
+  return withResolvedTenant(req, () => handleGet(req, id));
+}
+
+async function handleGet(req: NextRequest, id: string | null) {
   const customerId = req.nextUrl.searchParams.get("customerId") || undefined;
   const bookingId = req.nextUrl.searchParams.get("bookingId") || undefined;
 
@@ -135,6 +151,12 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const session = await getAdminSession(req);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, () => handlePost(req));
+}
+
+async function handlePost(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
 
   if (body.action === "create") {
@@ -283,6 +305,12 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const session = await getAdminSession(req);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, () => handlePatch(req));
+}
+
+async function handlePatch(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const { id, action } = body;
   const inv = await getInvoice(id);

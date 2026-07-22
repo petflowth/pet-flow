@@ -16,28 +16,22 @@ import {
   sendTelegramToChat,
   setTelegramBotCommands,
 } from "@/lib/telegram";
-import { getBootstrapTenantId } from "@/lib/auth";
 import { withTenant } from "@/lib/tenant-context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * URL เก่า (ก่อนแยกเว็บฮุคต่อร้าน) — คงไว้เฉพาะร้าน bootstrap ที่เคยลงทะเบียนไว้แล้ว
- * ร้านอื่นทุกร้านต้องใช้ /api/telegram/webhook/<tenantId> (ตั้งค่าใหม่จะได้ URL นี้อัตโนมัติ)
+ * เว็บฮุคต่อร้าน — /api/telegram/webhook/<tenantId>
+ * ทุกร้านแชร์โดเมนเดียวกัน แต่ Telegram ไม่ส่งข้อมูลร้านมากับ payload
+ * เลยต้องแยก URL ต่อร้าน ให้ path segment บอกว่าเป็นร้านไหนแทน
  */
-function requireBootstrapTenant() {
-  const id = getBootstrapTenantId();
-  if (!id) throw new Error("no bootstrap tenant configured");
-  return id;
-}
-
-/**
- * GET /api/telegram/webhook — ตรวจสอบ webhook (ร้าน bootstrap)
- * GET /api/telegram/webhook?register=1 — ลงทะเบียน webhook อัตโนมัติ
- */
-export async function GET(req: NextRequest) {
-  return withTenant(requireBootstrapTenant(), () => handleGet(req));
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ tenantId: string }> }
+) {
+  const { tenantId } = await params;
+  return withTenant(tenantId, () => handleGet(req));
 }
 
 async function handleGet(req: NextRequest) {
@@ -53,9 +47,10 @@ async function handleGet(req: NextRequest) {
     );
   }
 
+  const tenantId = req.nextUrl.pathname.split("/").pop() || "";
   const register = req.nextUrl.searchParams.get("register") === "1";
   const refreshMenu = req.nextUrl.searchParams.get("refresh_menu") === "1";
-  const webhookUrl = getTelegramWebhookUrl(creds.appUrl);
+  const webhookUrl = getTelegramWebhookUrl(creds.appUrl, tenantId);
 
   if (refreshMenu) {
     const pushed = await pushTelegramMenuToOwners();
@@ -76,7 +71,7 @@ async function handleGet(req: NextRequest) {
       );
     }
 
-    const result = await registerTelegramBot(creds.botToken, creds.appUrl, requireBootstrapTenant());
+    const result = await registerTelegramBot(creds.botToken, creds.appUrl, tenantId);
     await pushTelegramMenuToOwners().catch(() => {});
     return NextResponse.json({
       ...result,
@@ -97,8 +92,12 @@ async function handleGet(req: NextRequest) {
   });
 }
 
-export async function POST(req: NextRequest) {
-  return withTenant(requireBootstrapTenant(), () => handlePost(req));
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ tenantId: string }> }
+) {
+  const { tenantId } = await params;
+  return withTenant(tenantId, () => handlePost(req));
 }
 
 async function handlePost(req: NextRequest) {

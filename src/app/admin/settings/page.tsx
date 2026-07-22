@@ -1098,6 +1098,16 @@ function PointsTab({
             }}
           />
           <Field
+            label="มูลค่าส่วนลด (บาท) — ตั้งไว้ = แลกแต้มแล้วได้คูปองใช้จริง"
+            type="number"
+            value={String(r.discount ?? "")}
+            onChange={(v) => {
+              const next = [...rewards];
+              next[i] = { ...r, discount: v ? Number(v) : undefined };
+              setRewards(next);
+            }}
+          />
+          <Field
             label="รางวัล (ไทย)"
             value={r.reward.th}
             onChange={(v) => {

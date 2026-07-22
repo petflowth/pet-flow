@@ -76,7 +76,7 @@ async function handleGet(req: NextRequest) {
     return NextResponse.json({
       customers: customers.map((c) => ({
         ...c,
-        points: c.lineUserId ? pointsMap[c.lineUserId] ?? 0 : 0,
+        points: pointsMap[`C:${c.id}`] ?? (c.lineUserId ? pointsMap[c.lineUserId] ?? 0 : 0),
       })),
     });
   }

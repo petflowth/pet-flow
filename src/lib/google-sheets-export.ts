@@ -277,13 +277,15 @@ export async function exportToGoogleSheets(
     getAllPointsMap(),
   ]);
 
-  // แต้มเก็บตาม LINE User ID — จับคู่กลับเป็นชื่อลูกค้าให้อ่านออก
-  const nameByLine = new Map(
-    customers.filter((c) => c.lineUserId).map((c) => [c.lineUserId as string, c.name])
-  );
-  const pointsRows = Object.entries(pointsMap).map(([lineUserId, pts]) => [
-    lineUserId,
-    nameByLine.get(lineUserId) || "",
+  // แต้มเก็บตามคีย์ลูกค้า (C:<id>) หรือ LINE User ID เดิม — จับคู่กลับเป็นชื่อลูกค้าให้อ่านออก
+  const nameByKey = new Map<string, string>();
+  for (const c of customers) {
+    nameByKey.set(`C:${c.id}`, c.name);
+    if (c.lineUserId) nameByKey.set(c.lineUserId, c.name);
+  }
+  const pointsRows = Object.entries(pointsMap).map(([key, pts]) => [
+    key,
+    nameByKey.get(key) || "",
     String(pts),
   ]);
 

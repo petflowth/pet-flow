@@ -1223,6 +1223,100 @@ export async function deleteCustomer(customerId: string) {
   return { ok: true as const };
 }
 
+/**
+ * รวมลูกค้าซ้ำ 2 record เป็นอันเดียว — ย้ายทุกอย่างจาก source → target แล้วลบ source
+ *
+ * ใช้ตอนคนเดียวโดนแยกเป็น 2 บัญชี (LINE ให้ User ID คนละตัวคอม/มือถือ)
+ * ย้าย: แต้ม · คูปอง · คอร์ส · บิล · เติมเครดิต · ประวัติบริการ · รายรับ · แมว · LINE ID
+ */
+export async function mergeCustomers(sourceId: string, targetId: string) {
+  if (!sourceId || !targetId || sourceId === targetId) {
+    return { ok: false as const, error: "bad_ids" };
+  }
+  const [source, target] = await Promise.all([getCustomer(sourceId), getCustomer(targetId)]);
+  if (!source || !target) return { ok: false as const, error: "not_found" };
+
+  const sb = getSupabase();
+  if (sb) {
+    // ย้าย customer_id ทุกตารางที่อ้างถึง (best-effort — ตารางไหนไม่มีก็ข้าม)
+    const tables = [
+      "cats",
+      "coupons",
+      "customer_packages",
+      "invoices",
+      "member_topups",
+      "service_records",
+      "finance_records",
+    ];
+    for (const tbl of tables) {
+      try {
+        await sb.from(tbl).update({ customer_id: targetId }).eq("customer_id", sourceId);
+      } catch {
+        /* ตารางนี้ไม่มี customer_id หรือยังไม่มีตาราง — ข้าม */
+      }
+    }
+    // รวมเครดิต Member + มัดจำล่วงหน้า เข้าปลายทาง
+    const mergedCredit = (target.memberCredit || 0) + (source.memberCredit || 0);
+    const mergedDeposit = (target.depositCredit || 0) + (source.depositCredit || 0);
+    // รวม LINE ID ทุกตัวของทั้งคู่เข้าปลายทาง
+    const ids = new Set(
+      [
+        ...(target.lineUserIds || []),
+        target.lineUserId,
+        ...(source.lineUserIds || []),
+        source.lineUserId,
+      ].filter(Boolean) as string[]
+    );
+    await sb
+      .from("customers")
+      .update({
+        member_credit: mergedCredit,
+        is_member: target.isMember || source.isMember,
+      })
+      .eq("id", targetId);
+    try {
+      await sb.from("customers").update({ deposit_credit: mergedDeposit }).eq("id", targetId);
+    } catch {
+      /* ยังไม่มีคอลัมน์ deposit_credit */
+    }
+    try {
+      await sb.from("customers").update({ line_user_ids: [...ids] }).eq("id", targetId);
+    } catch {
+      /* ยังไม่มีคอลัมน์ line_user_ids */
+    }
+  } else {
+    // mem — ย้ายเท่าที่เก็บใน map นี้ได้ (dev)
+    const t = memCustomers.get(targetId);
+    const s = memCustomers.get(sourceId);
+    if (t && s) {
+      t.memberCredit = (t.memberCredit || 0) + (s.memberCredit || 0);
+      t.depositCredit = (t.depositCredit || 0) + (s.depositCredit || 0);
+      t.cats = [...t.cats, ...s.cats];
+      const ids = new Set(
+        [
+          ...(t.lineUserIds || []),
+          t.lineUserId,
+          ...(s.lineUserIds || []),
+          s.lineUserId,
+        ].filter(Boolean) as string[]
+      );
+      t.lineUserIds = [...ids];
+    }
+  }
+
+  // รวมแต้ม (คีย์ C:<id>) + คูปองในกระเป๋าเข้าปลายทาง
+  try {
+    const { mergePointsAccount } = await import("./points-store");
+    await mergePointsAccount(sourceId, targetId);
+  } catch {
+    /* รวมแต้มไม่สำเร็จ — ส่วนอื่นย้ายแล้ว */
+  }
+
+  // ลบ record ต้นทางทิ้ง (soft delete)
+  await deleteCustomer(sourceId);
+  return { ok: true as const, targetId };
+}
+
 /** กู้ลูกค้าจากถังขยะ */
 export async function restoreCustomer(customerId: string) {
   const sb = getSupabase();

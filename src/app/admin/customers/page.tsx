@@ -1460,6 +1460,8 @@ function CustomerSummaryCard({
         </div>
       </label>
 
+      <MergeCustomerControl customer={customer} onMerged={onSaved} />
+
       <button
         type="button"
         onClick={removeCustomer}
@@ -1468,6 +1470,116 @@ function CustomerSummaryCard({
         🗑️ ลบลูกค้าคนนี้
       </button>
     </section>
+  );
+}
+
+/** รวมลูกค้าซ้ำ 2 record → 1 (คนเดียวโดนแยกเพราะ LINE ให้ ID คนละตัวคอม/มือถือ) */
+function MergeCustomerControl({
+  customer,
+  onMerged,
+}: {
+  customer: CustomerRecord;
+  onMerged: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const [results, setResults] = useState<
+    { id: string; name: string; lineDisplayName?: string; points?: number }[]
+  >([]);
+  const [busy, setBusy] = useState(false);
+
+  const search = async (query: string) => {
+    if (!query.trim()) {
+      setResults([]);
+      return;
+    }
+    try {
+      const d = await fetch(`/api/customers?q=${encodeURIComponent(query)}`).then((r) => r.json());
+      setResults((d.customers || []).filter((c: { id: string }) => c.id !== customer.id).slice(0, 8));
+    } catch {
+      /* ค้นไม่ได้ = ไม่โชว์ */
+    }
+  };
+
+  const merge = async (target: { id: string; name: string }) => {
+    if (
+      !confirm(
+        `รวม "${customer.name}" เข้ากับ "${target.name}"?\n\n` +
+          `แต้ม · คูปอง · เครดิต · บิล · แมว · LINE ID จะย้ายไปที่ "${target.name}" ` +
+          `แล้วลบ "${customer.name}" ทิ้ง\n\n⚠️ ทำแล้วกู้คืนไม่ได้`
+      )
+    )
+      return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/customers", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: customer.id, action: "merge_customer", targetId: target.id }),
+      });
+      if (res.ok) {
+        toast("รวมบัญชีลูกค้าแล้ว ✓", "success");
+        onMerged();
+      } else {
+        toast("รวมไม่สำเร็จ", "error");
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-2 w-full rounded-catcha-sm border border-latte/40 bg-latte/10 py-2 text-[11px] font-bold text-latte-deep"
+      >
+        🔗 รวมกับลูกค้าอื่น (กรณีบัญชีซ้ำ)
+      </button>
+    );
+  }
+  return (
+    <div className="mt-2 rounded-catcha-sm border border-latte/40 bg-latte/10 p-3">
+      <p className="mb-1 text-[11px] font-extrabold text-catcha-chocolate">
+        🔗 รวม “{customer.name}” เข้ากับลูกค้าอีกคน
+      </p>
+      <p className="mb-2 text-[10px] text-brown-faint">
+        ค้นหา “ลูกค้าปลายทาง” (ตัวที่จะเก็บไว้) — ข้อมูลของคนนี้จะย้ายไปที่นั่นทั้งหมดแล้วลบคนนี้ทิ้ง
+      </p>
+      <input
+        value={q}
+        onChange={(e) => {
+          setQ(e.target.value);
+          search(e.target.value);
+        }}
+        placeholder="พิมพ์ชื่อลูกค้าปลายทาง"
+        className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-2.5 py-2 text-xs"
+      />
+      <ul className="mt-2 space-y-1">
+        {results.map((c) => (
+          <li key={c.id}>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => merge(c)}
+              className="w-full rounded-catcha-sm bg-card px-2.5 py-1.5 text-left text-xs font-bold text-brown disabled:opacity-40"
+            >
+              → {c.name}
+              {c.lineDisplayName ? ` · LINE: ${c.lineDisplayName}` : ""}
+              {typeof c.points === "number" ? ` · ${c.points} แต้ม` : ""}
+            </button>
+          </li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        onClick={() => setOpen(false)}
+        className="mt-2 text-[10px] font-bold text-brown-faint"
+      >
+        ยกเลิก
+      </button>
+    </div>
   );
 }
 

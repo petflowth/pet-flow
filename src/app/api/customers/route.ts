@@ -12,6 +12,7 @@ import {
   deleteCat,
   deleteCustomer,
   restoreCustomer,
+  mergeCustomers,
   listTrashedCustomers,
   topupMemberCredit,
   cancelMemberTopup,
@@ -231,6 +232,16 @@ async function handlePatch(req: NextRequest) {
   if (action === "restore_customer") {
     await restoreCustomer(id);
     return NextResponse.json({ ok: true });
+  }
+
+  // รวมลูกค้าซ้ำ 2 record → 1 (ย้ายแต้ม/คูปอง/เครดิต/บิล/แมว/LINE ID ไปที่ target แล้วลบ source)
+  if (action === "merge_customer") {
+    const targetId = String(body.targetId || "").trim();
+    const res = await mergeCustomers(id, targetId);
+    if (!res.ok) {
+      return NextResponse.json({ error: res.error }, { status: 400 });
+    }
+    return NextResponse.json({ ok: true, targetId: res.targetId });
   }
 
   if (action === "topup_member") {

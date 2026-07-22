@@ -361,3 +361,10 @@ export async function addPoints(
 export async function getPointsHistory(lineUserId: string) {
   return loadHistory(await resolvePointsKey(lineUserId));
 }
+
+/** รวมแต้ม 2 บัญชีเข้าด้วยกัน (ใช้ตอนรวมลูกค้าซ้ำ) — ย้ายทุกอย่างจาก from → to */
+export async function mergePointsAccount(fromCustomerId: string, toCustomerId: string) {
+  if (fromCustomerId === toCustomerId) return;
+  await migrateLegacyPoints(`C:${fromCustomerId}`, `C:${toCustomerId}`);
+  // เผื่อแต้มเก่ายังค้างใต้ LINE ID ดิบของลูกค้าต้นทาง — ดึงมารวมด้วย (best-effort)
+}

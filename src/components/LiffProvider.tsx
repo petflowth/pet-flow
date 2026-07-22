@@ -44,7 +44,8 @@ const LiffContext = createContext<LiffCtx>({
 async function fetchAccount(lineUserId: string, displayName: string, customerId?: string) {
   const q = new URLSearchParams({ lineUserId, displayName });
   if (customerId) q.set("customerId", customerId);
-  const res = await fetch(`/api/points?${q}`);
+  // no-store — กัน webview ของ LINE เก็บผลแต้มเก่าไว้แล้วโชว์ค้าง (เช่น 0 ทั้งที่มีแต้ม)
+  const res = await fetch(`/api/points?${q}`, { cache: "no-store" });
   if (!res.ok) return null;
   return res.json() as Promise<{
     points: number;
@@ -55,6 +56,7 @@ async function fetchAccount(lineUserId: string, displayName: string, customerId?
 async function syncLineCustomer(lineUserId: string, displayName: string) {
   const res = await fetch("/api/customers/line", {
     method: "POST",
+    cache: "no-store",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ lineUserId, displayName }),
   });

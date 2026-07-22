@@ -20,7 +20,7 @@ function daysLeft(iso?: string) {
 }
 
 export default function CouponsPage() {
-  const { ready, profile } = useLiff();
+  const { ready, profile, customer } = useLiff();
   const [loading, setLoading] = useState(true);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [referralUrl, setReferralUrl] = useState("");
@@ -33,7 +33,12 @@ export default function CouponsPage() {
 
   useEffect(() => {
     if (!profile?.lineUserId) return;
-    fetch(`/api/coupons?lineUserId=${profile.lineUserId}`)
+    // คูปองผูกด้วย customerId (ตัวที่แอปรู้อยู่แล้ว) ถ้ามี — ตรงกันทุกอุปกรณ์ ไม่แตกตาม
+    // LINE ID ที่สลับไปมา · no-store กัน webview เก็บผลเก่าไว้โชว์ค้าง
+    const couponWho = customer?.id
+      ? `customerId=${customer.id}`
+      : `lineUserId=${profile.lineUserId}`;
+    fetch(`/api/coupons?${couponWho}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
         if (!d.found) return;
@@ -42,11 +47,12 @@ export default function CouponsPage() {
         setReferralCode(d.referralCode || "");
       })
       .finally(() => setLoading(false));
-    fetch(`/api/packages?lineUserId=${profile.lineUserId}&active=1`)
+    // คอร์ส: API บังคับใช้ lineUserId (กันเดา id คนอื่น) — ยิงด้วย lineUserId ของตัวเอง
+    fetch(`/api/packages?lineUserId=${profile.lineUserId}&active=1`, { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setPackages(d.packages || []))
       .catch(() => {});
-  }, [profile?.lineUserId]);
+  }, [profile?.lineUserId, customer?.id]);
 
   const share = async () => {
     const text = `🐱 มาเลี้ยงน้องแมวที่ PetFlow กันนะ! สมัครผ่านลิงก์นี้ + มาใช้บริการครั้งแรก รับคูปองส่วนลด 100฿ ทั้งคู่เลย 🎁\n${referralUrl}`;

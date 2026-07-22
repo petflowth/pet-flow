@@ -246,6 +246,11 @@ set staff_note = nullif(
 )
 where staff_note like '%🎁%';`,
   },
+  {
+    // LINE User ID ทุกตัวของลูกค้าคนเดียว (คอม/มือถือคนละ Provider ได้ ID คนละตัว)
+    name: "customers.line_user_ids",
+    sql: "alter table customers add column if not exists line_user_ids text[];",
+  },
 ];
 
 export type MigrateResult = {

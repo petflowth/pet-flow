@@ -57,6 +57,11 @@ export type CustomerRecord = {
   email?: string;
   birthday?: string;
   lineUserId?: string;
+  /**
+   * LINE User ID ทุกตัวของลูกค้าคนนี้ — LINE ให้ ID คนละตัวได้บนคอม (LIFF) กับมือถือ
+   * ถ้า LIFF app กับ OA คนละ Provider เก็บทุกตัวไว้ที่นี่ ลูกค้าคนเดียวจะไม่แตกเป็นหลาย record
+   */
+  lineUserIds?: string[];
   /** ชื่อจากโปรไฟล์ LINE — อัปเดตอัตโนมัติ ไม่ทับชื่อที่ร้านตั้ง */
   lineDisplayName?: string;
   /** ยินยอมรับข่าวสาร/โปรโมชั่น — ถ้า false จะไม่ส่งโปรหา (แต่ยืนยันนัด/จ่ายเงินยังส่งได้) */
@@ -153,6 +158,7 @@ type CustomerRow = {
   email: string | null;
   birthday: string | null;
   line_user_id: string | null;
+  line_user_ids?: string[] | null;
   line_display_name: string | null;
   marketing_consent: boolean | null;
   referral_source: string | null;
@@ -229,6 +235,7 @@ function mapCustomer(row: CustomerRow): CustomerRecord {
     email: row.email ?? undefined,
     birthday: row.birthday ?? undefined,
     lineUserId: row.line_user_id ?? undefined,
+    lineUserIds: row.line_user_ids ?? undefined,
     lineDisplayName: row.line_display_name ?? undefined,
     marketingConsent: row.marketing_consent !== false,
     referralSource: row.referral_source ?? undefined,
@@ -345,19 +352,44 @@ export async function findCustomerByLine(lineUserId: string) {
   if (!uid) return undefined;
   const sb = getSupabase();
   if (sb) {
+    const tenantId = requireTenantId();
     // ค้นตรงจาก line_user_id (รวมที่ถูกลบนุ่ม) — ป้องกันกรณีหาไม่เจอแล้วไป insert ซ้ำ
     // จนชน unique constraint (customers_line_user_id_tenant_key)
+    //
+    // จับคู่ทั้ง line_user_id หลัก และรายการ line_user_ids ที่ผูกไว้ (คนละอุปกรณ์/Provider)
+    // uid เป็น LINE User ID (ตัวอักษร+ตัวเลข) ปลอดภัยพอจะใส่ใน .or filter
+    const safe = /^[A-Za-z0-9_-]+$/.test(uid);
+    if (safe) {
+      try {
+        const { data, error } = await sb
+          .from("customers")
+          .select("*, cats(*)")
+          .eq("tenant_id", tenantId)
+          .or(`line_user_id.eq.${uid},line_user_ids.cs.{${uid}}`)
+          .order("updated_at", { ascending: false })
+          .limit(1);
+        if (!error) {
+          const row = (data as CustomerRow[] | null)?.[0];
+          return row ? mapCustomer(row) : undefined;
+        }
+      } catch {
+        /* ยังไม่มีคอลัมน์ line_user_ids — ตกไปใช้แบบเดิม */
+      }
+    }
+    // สำรอง: จับคู่เฉพาะ line_user_id หลัก (เผื่อยังไม่รัน migration)
     const { data } = await sb
       .from("customers")
       .select("*, cats(*)")
       .eq("line_user_id", uid)
-      .eq("tenant_id", requireTenantId())
+      .eq("tenant_id", tenantId)
       .order("updated_at", { ascending: false })
       .limit(1);
     const row = (data as CustomerRow[] | null)?.[0];
     return row ? mapCustomer(row) : undefined;
   }
-  return [...memCustomers.values()].find((c) => c.lineUserId === uid);
+  return [...memCustomers.values()].find(
+    (c) => c.lineUserId === uid || (c.lineUserIds || []).includes(uid)
+  );
 }
 
 /** รหัสชวนเพื่อนของลูกค้า — คิดจาก id แบบเสถียร (ไม่ต้องเก็บ DB) */
@@ -450,14 +482,33 @@ export async function upsertCustomerFromLine(data: {
   let existing = await findCustomerByLine(lineUserId);
 
   if (!existing) {
-    existing = (await fetchAllCustomers()).find(
+    const all = await fetchAllCustomers();
+    // 1) ลูกค้าที่ร้านสร้างเองไว้ (ยังไม่ผูก LINE) แล้วชื่อตรงกับชื่อ LINE
+    existing = all.find(
       (c) => !c.lineUserId && normName(c.name) === normName(displayName)
     );
+    // 2) ลูกค้าที่ผูก LINE แล้วและ "ชื่อโปรไฟล์ LINE" ตรงกันเป๊ะ + มีคนเดียว —
+    //    คือคนเดียวกันแต่ LINE ให้ User ID คนละตัว (คอม/มือถือคนละ Provider)
+    //    → ผูก ID ใหม่เข้า record เดิม ไม่สร้างซ้ำ ไม่ให้แต้ม/คูปองแตก
+    if (!existing) {
+      const sameLine = all.filter(
+        (c) =>
+          c.lineDisplayName &&
+          normName(c.lineDisplayName) === normName(displayName) &&
+          !(c.lineUserIds || [c.lineUserId]).includes(lineUserId)
+      );
+      if (sameLine.length === 1) existing = sameLine[0];
+    }
   }
 
   const now = new Date().toISOString();
 
   if (existing) {
+    // รวม LINE ID ทุกตัวของลูกค้าคนนี้ (union) — ไม่ทิ้งตัวเก่า เพื่อให้ค้นเจอทุกอุปกรณ์
+    const ids = new Set(
+      [...(existing.lineUserIds || []), existing.lineUserId, lineUserId].filter(Boolean) as string[]
+    );
+    existing.lineUserIds = [...ids];
     existing.lineUserId = lineUserId;
     existing.lineDisplayName = displayName;
     // ไม่ทับชื่อที่ร้านตั้งเอง — อัปเดตแค่ชื่อ LINE
@@ -473,6 +524,16 @@ export async function upsertCustomerFromLine(data: {
         })
         .eq("id", existing.id)
         .eq("tenant_id", requireTenantId());
+      // เก็บ ID ทุกตัวแยก (คอลัมน์ใหม่) — ถ้ายังไม่รัน migration ก็ไม่พัง
+      try {
+        await sb
+          .from("customers")
+          .update({ line_user_ids: existing.lineUserIds })
+          .eq("id", existing.id)
+          .eq("tenant_id", requireTenantId());
+      } catch {
+        /* ยังไม่มีคอลัมน์ line_user_ids */
+      }
       // ถ้าเคยถูกลบนุ่มไว้ — กู้คืน (best-effort, ถ้ายังไม่มีคอลัมน์ deleted_at ก็ไม่พัง)
       try {
         await sb
@@ -496,6 +557,7 @@ export async function upsertCustomerFromLine(data: {
     id,
     name: displayName,
     lineUserId,
+    lineUserIds: [lineUserId],
     lineDisplayName: displayName,
     marketingConsent: true,
     cats: [],
@@ -523,6 +585,15 @@ export async function upsertCustomerFromLine(data: {
     if (error) {
       // เผยข้อผิดพลาดจริงแทนที่จะเงียบ (เดิมทำให้ลงทะเบียน "ไม่สำเร็จ" โดยไม่บอกสาเหตุ)
       throw new Error(`สร้างบัญชีลูกค้าไม่สำเร็จ: ${error.message}`);
+    }
+    try {
+      await sb
+        .from("customers")
+        .update({ line_user_ids: [lineUserId] })
+        .eq("id", id)
+        .eq("tenant_id", requireTenantId());
+    } catch {
+      /* ยังไม่มีคอลัมน์ line_user_ids */
     }
   } else {
     memCustomers.set(id, customer);

@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exportToGoogleSheets } from "@/lib/google-sheets-export";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
+import { withTenant } from "@/lib/tenant-context";
+import { listActiveTenantIds } from "@/lib/tenant-directory";
 
 /**
  * Backup อัตโนมัติทุกคืน — ยกข้อมูลทั้งร้านลง Google Sheets
  * ลูกค้า+น้องแมว · รายรับรายจ่าย · การจอง · บิล · แต้มสะสม
+ * รันแทนทุกร้านที่ยังใช้งานอยู่ (แต่ละร้านมี Google Sheets ของตัวเอง)
  */
 export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization");
@@ -15,6 +18,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const tenantIds = await listActiveTenantIds();
+  const results = await Promise.all(
+    tenantIds.map(async (tenantId) => {
+      try {
+        return { tenantId, ...(await withTenant(tenantId, runForTenant)) };
+      } catch (e) {
+        return { tenantId, ok: false, error: e instanceof Error ? e.message : String(e) };
+      }
+    })
+  );
+  return NextResponse.json({ ok: true, tenants: results.length, results });
+}
+
+async function runForTenant() {
   const result = await exportToGoogleSheets();
 
   if (result.ok) {
@@ -37,5 +54,5 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  return NextResponse.json(result);
+  return result;
 }

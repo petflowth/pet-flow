@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendInactiveFollowUps } from "@/lib/customer-crm";
 import { sendTelegram } from "@/lib/telegram";
 import { getSiteConfig } from "@/lib/config-store";
+import { withTenant } from "@/lib/tenant-context";
+import { listActiveTenantIds } from "@/lib/tenant-directory";
 
-/** Cron — ส่งข้อความตามลูกค้าที่หายไปนาน (แนะนำ 09:00 น. ไทย) */
+/** Cron — ส่งข้อความตามลูกค้าที่หายไปนาน (แนะนำ 09:00 น. ไทย) — รันแทนทุกร้าน */
 export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization");
   const secret = process.env.CRON_SECRET;
@@ -13,6 +15,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const tenantIds = await listActiveTenantIds();
+  const results = await Promise.all(
+    tenantIds.map(async (tenantId) => {
+      try {
+        return { tenantId, ...(await withTenant(tenantId, runForTenant)) };
+      } catch (e) {
+        return { tenantId, ok: false, error: e instanceof Error ? e.message : String(e) };
+      }
+    })
+  );
+  return NextResponse.json({ ok: true, tenants: results.length, results });
+}
+
+async function runForTenant() {
   const config = await getSiteConfig();
   const result = await sendInactiveFollowUps({ limit: 30 });
 
@@ -25,5 +41,5 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  return NextResponse.json({ ok: true, ...result });
+  return { ok: true, ...result };
 }

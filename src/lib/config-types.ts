@@ -8,6 +8,8 @@ export type PointsRewardConfig = {
   points: number;
   reward: { th: string; en: string };
   imageUrl?: string;
+  /** มูลค่าส่วนลด (บาท) ของรางวัลนี้ — ถ้าไม่ตั้งไว้ ระบบจะลองอ่านจากชื่อรางวัลแทน */
+  discount?: number;
 };
 
 export type GroomingConfig = {

@@ -78,6 +78,9 @@ export function PointsRedeem({
             {success.code}
           </p>
           <p className="mt-2 text-[10px] text-brown-soft">{m.showCode}</p>
+          <p className="mt-1 text-[10px] font-bold text-brown-faint">
+            {locale === "th" ? "*ใช้ได้ 1 คูปอง / 1 บิลเท่านั้น" : "*One coupon per bill"}
+          </p>
           <button
             type="button"
             onClick={() => setSuccess(null)}

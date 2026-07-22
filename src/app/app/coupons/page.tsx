@@ -213,6 +213,9 @@ export default function CouponsPage() {
             <p className="mt-1 text-[10px] text-brown-faint">
               พนักงานจะกดใช้คูปองให้ตอนออกบิลค่ะ (คูปองจะถูกใช้เมื่อคิดเงินเท่านั้น)
             </p>
+            <p className="mt-1 text-[10px] font-bold text-brown-faint">
+              *ใช้ได้ 1 คูปอง / 1 บิลเท่านั้น
+            </p>
             <button
               type="button"
               onClick={() => setVoucher(null)}

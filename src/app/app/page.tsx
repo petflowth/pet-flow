@@ -86,7 +86,7 @@ export default function CustomerHome() {
 
       <Link
         href="/app/book"
-        className="mb-3 flex items-center gap-3 rounded-petflow bg-gradient-to-r from-honey to-honey-deep p-4 text-petflow-chocolate shadow-petflow-sm transition active:scale-[0.98]"
+        className="mb-3 flex items-center gap-3 rounded-petflow bg-gradient-to-r from-latte-deep to-petflow-chocolate p-4 text-card shadow-petflow-sm transition active:scale-[0.98]"
       >
         <span className="text-2xl">📅</span>
         <span className="min-w-0 flex-1">

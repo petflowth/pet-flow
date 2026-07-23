@@ -206,6 +206,17 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     sql: "alter table package_offers add column if not exists image_url text;",
   },
   {
+    // ขายได้ 2 แบบ: "package" (คอร์ส N ครั้ง) หรือ "credit" (เติมเครดิต Member เป็นยอดเงิน)
+    // credit_amount = เครดิตที่ลูกค้าจะได้รับ (ตั้งสูงกว่า price ได้เพื่อแถมโบนัส เช่น จ่าย 1000 ได้ 1200)
+    name: "package_offers.kind_credit",
+    sql: "alter table package_offers add column if not exists kind text not null default 'package', add column if not exists credit_amount numeric;",
+  },
+  {
+    // ก๊อปชนิด+ยอดเครดิต ณ ตอนสั่งซื้อ ไว้ในออร์เดอร์เหมือน total_uses/price — กันร้านแก้ offer ทีหลังแล้วออร์เดอร์เก่าเพี้ยน
+    name: "package_orders.kind_credit",
+    sql: "alter table package_orders add column if not exists kind text not null default 'package', add column if not exists credit_amount numeric;",
+  },
+  {
     // คอร์สที่บิลนี้หักไป 1 ครั้ง — ใช้โชว์ประวัติการใช้คอร์ส + คืนครั้งตอนยกเลิกบิล
     name: "invoices.package_id",
     sql: "alter table invoices add column if not exists package_id text;",

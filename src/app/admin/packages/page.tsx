@@ -5,11 +5,15 @@ import Link from "next/link";
 import { toast } from "@/components/Toast";
 import { toJpegDataUrl } from "@/lib/image-convert";
 
+type OfferKind = "package" | "credit";
+
 type Offer = {
   id: string;
+  kind: OfferKind;
   name: string;
   totalUses: number;
   price: number;
+  creditAmount?: number;
   description?: string;
   imageUrl?: string;
   active: boolean;
@@ -19,9 +23,11 @@ type Order = {
   id: string;
   customerId: string;
   customerName: string;
+  kind: OfferKind;
   name: string;
   totalUses: number;
   price: number;
+  creditAmount?: number;
   status: "pending" | "paid" | "cancelled";
   slipUrl?: string;
   createdAt: string;
@@ -39,10 +45,12 @@ function OfferRow({
   pickImage: (file: File, onDone: (dataUrl: string) => void) => Promise<void>;
 }) {
   const o = offer;
+  const isCredit = o.kind === "credit";
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(o.name);
   const [uses, setUses] = useState(String(o.totalUses));
   const [price, setPrice] = useState(String(o.price));
+  const [creditAmount, setCreditAmount] = useState(String(o.creditAmount ?? o.price));
   const [desc, setDesc] = useState(o.description || "");
   const [saving, setSaving] = useState(false);
 
@@ -50,13 +58,18 @@ function OfferRow({
     setName(o.name);
     setUses(String(o.totalUses));
     setPrice(String(o.price));
+    setCreditAmount(String(o.creditAmount ?? o.price));
     setDesc(o.description || "");
     setEditing(true);
   };
 
   const save = async () => {
-    if (!name.trim() || Math.round(Number(uses) || 0) <= 0) {
-      toast("กรอกชื่อคอร์สและจำนวนครั้ง", "error");
+    if (!name.trim()) {
+      toast("กรอกชื่อ" + (isCredit ? "รายการ" : "คอร์ส"), "error");
+      return;
+    }
+    if (!isCredit && Math.round(Number(uses) || 0) <= 0) {
+      toast("กรอกจำนวนครั้ง", "error");
       return;
     }
     setSaving(true);
@@ -66,11 +79,12 @@ function OfferRow({
           action: "update_offer",
           offerId: o.id,
           name: name.trim(),
-          totalUses: Math.round(Number(uses) || 0),
+          totalUses: isCredit ? 0 : Math.round(Number(uses) || 0),
           price: Math.round(Number(price) || 0),
+          ...(isCredit ? { creditAmount: Math.round(Number(creditAmount) || 0) } : {}),
           description: desc.trim(),
         },
-        "แก้ไขคอร์สแล้ว ✏️",
+        (isCredit ? "แก้ไขรายการเติมเครดิตแล้ว ✏️" : "แก้ไขคอร์สแล้ว ✏️"),
         o.id
       );
       setEditing(false);
@@ -86,33 +100,54 @@ function OfferRow({
     return (
       <li className="rounded-petflow-sm border border-latte/50 bg-paper/70 p-3">
         <p className="mb-2 text-[11px] font-extrabold text-petflow-chocolate">
-          ✏️ แก้ไขคอร์ส
+          ✏️ {isCredit ? "แก้ไขรายการเติมเครดิต" : "แก้ไขคอร์ส"}
         </p>
         <div className="space-y-2">
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="ชื่อคอร์ส"
+            placeholder={isCredit ? "ชื่อรายการ เช่น เติมเครดิต 1,000" : "ชื่อคอร์ส"}
             className={field}
           />
-          <div className="flex gap-2">
-            <input
-              type="number"
-              min={1}
-              value={uses}
-              onChange={(e) => setUses(e.target.value)}
-              placeholder="กี่ครั้ง"
-              className={field}
-            />
-            <input
-              type="number"
-              min={0}
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="ราคา (บาท)"
-              className={field}
-            />
-          </div>
+          {isCredit ? (
+            <div className="flex gap-2">
+              <input
+                type="number"
+                min={0}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="ลูกค้าจ่าย (บาท)"
+                className={field}
+              />
+              <input
+                type="number"
+                min={0}
+                value={creditAmount}
+                onChange={(e) => setCreditAmount(e.target.value)}
+                placeholder="ได้เครดิต (บาท)"
+                className={field}
+              />
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                type="number"
+                min={1}
+                value={uses}
+                onChange={(e) => setUses(e.target.value)}
+                placeholder="กี่ครั้ง"
+                className={field}
+              />
+              <input
+                type="number"
+                min={0}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="ราคา (บาท)"
+                className={field}
+              />
+            </div>
+          )}
           <input
             value={desc}
             onChange={(e) => setDesc(e.target.value)}
@@ -180,10 +215,13 @@ function OfferRow({
           </label>
           <div className="min-w-0">
             <p className="text-xs font-bold text-brown">
+              {isCredit && "💰 "}
               {o.name} {!o.active && "(ปิดขายอยู่)"}
             </p>
             <p className="text-[10px] text-brown-soft">
-              {o.totalUses} ครั้ง · {o.price.toLocaleString()} ฿
+              {isCredit
+                ? `จ่าย ${o.price.toLocaleString()}฿ ได้เครดิต ${(o.creditAmount ?? o.price).toLocaleString()}฿`
+                : `${o.totalUses} ครั้ง · ${o.price.toLocaleString()} ฿`}
               {o.description ? ` · ${o.description}` : ""}
             </p>
             <p className="text-[10px] text-brown-faint">
@@ -245,9 +283,11 @@ export default function AdminPackagesPage() {
   const [busy, setBusy] = useState("");
   const [zoomSlip, setZoomSlip] = useState<string | null>(null);
 
+  const [kind, setKind] = useState<OfferKind>("package");
   const [name, setName] = useState("");
   const [uses, setUses] = useState("");
   const [price, setPrice] = useState("");
+  const [creditAmount, setCreditAmount] = useState("");
   const [desc, setDesc] = useState("");
   const [image, setImage] = useState("");
 
@@ -277,10 +317,16 @@ export default function AdminPackagesPage() {
     load();
   }, [load]);
 
+  const isCreditForm = kind === "credit";
+
   const addOffer = async () => {
+    if (!name.trim()) {
+      toast("กรอกชื่อ" + (isCreditForm ? "รายการ" : "คอร์สและจำนวนครั้ง"), "error");
+      return;
+    }
     const n = Math.round(Number(uses) || 0);
-    if (!name.trim() || n <= 0) {
-      toast("กรอกชื่อคอร์สและจำนวนครั้ง", "error");
+    if (!isCreditForm && n <= 0) {
+      toast("กรอกจำนวนครั้ง", "error");
       return;
     }
     setBusy("add");
@@ -290,18 +336,26 @@ export default function AdminPackagesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "create_offer",
+          kind,
           name: name.trim(),
-          totalUses: n,
+          totalUses: isCreditForm ? 0 : n,
           price: Math.round(Number(price) || 0),
+          ...(isCreditForm ? { creditAmount: Math.round(Number(creditAmount) || 0) } : {}),
           description: desc.trim() || undefined,
           image: image || undefined,
         }),
       });
       if (res.ok) {
-        toast("เพิ่มคอร์สที่ขายแล้ว — ลูกค้าเห็นในแอปทันที 🛍️", "success");
+        toast(
+          isCreditForm
+            ? "เพิ่มรายการเติมเครดิตแล้ว — ลูกค้าเห็นในแอปทันที 💰"
+            : "เพิ่มคอร์สที่ขายแล้ว — ลูกค้าเห็นในแอปทันที 🛍️",
+          "success"
+        );
         setName("");
         setUses("");
         setPrice("");
+        setCreditAmount("");
         setDesc("");
         setImage("");
         load();
@@ -385,9 +439,16 @@ export default function AdminPackagesPage() {
                     >
                       👤 {o.customerName}
                     </Link>
-                    <p className="text-xs font-bold text-brown">{o.name}</p>
+                    <p className="text-xs font-bold text-brown">
+                      {o.kind === "credit" && "💰 "}
+                      {o.name}
+                    </p>
                     <p className="text-[10px] text-brown-soft">
-                      {o.totalUses} ครั้ง · {o.createdAt.slice(0, 10)}
+                      {o.kind === "credit"
+                        ? `ได้เครดิต ${(o.creditAmount ?? o.price).toLocaleString()}฿`
+                        : `${o.totalUses} ครั้ง`}
+                      {" · "}
+                      {o.createdAt.slice(0, 10)}
                     </p>
                   </div>
                   <p className="shrink-0 text-sm font-extrabold text-petflow-chocolate">
@@ -417,13 +478,17 @@ export default function AdminPackagesPage() {
                       if (
                         !confirm(
                           `ยืนยันว่าได้รับเงิน ${o.price.toLocaleString()} บาท จาก ${o.customerName}?\n` +
-                            `ระบบจะเพิ่มคอร์ส "${o.name}" (${o.totalUses} ครั้ง) ให้ลูกค้าทันที`
+                            (o.kind === "credit"
+                              ? `ระบบจะเติมเครดิต ${(o.creditAmount ?? o.price).toLocaleString()}฿ ให้ลูกค้าทันที`
+                              : `ระบบจะเพิ่มคอร์ส "${o.name}" (${o.totalUses} ครั้ง) ให้ลูกค้าทันที`)
                         )
                       )
                         return;
                       patch(
                         { action: "confirm_order", orderId: o.id },
-                        "ยืนยันรับเงินแล้ว — เพิ่มคอร์สให้ลูกค้าเรียบร้อย 🎫",
+                        o.kind === "credit"
+                          ? "ยืนยันรับเงินแล้ว — เติมเครดิตให้ลูกค้าเรียบร้อย 💰"
+                          : "ยืนยันรับเงินแล้ว — เพิ่มคอร์สให้ลูกค้าเรียบร้อย 🎫",
                         o.id
                       );
                     }}
@@ -456,7 +521,7 @@ export default function AdminPackagesPage() {
       {/* ── ตั้งว่าจะขายอะไร ── */}
       <section className="mb-4 rounded-petflow bg-card p-4 shadow-petflow-sm">
         <h2 className="mb-1 text-sm font-extrabold text-petflow-chocolate">
-          🏷️ คอร์สที่เปิดขายในแอป
+          🏷️ ขายในแอป
         </h2>
         <p className="mb-3 text-[10px] text-brown-faint">
           ลูกค้าจะเห็นรายการนี้ในหน้าแรกของแอป และกดซื้อได้เลย
@@ -470,35 +535,86 @@ export default function AdminPackagesPage() {
           </ul>
         )}
 
+        <div className="mb-3 flex overflow-hidden rounded-full border border-petflow-line text-xs font-bold">
+          <button
+            type="button"
+            onClick={() => setKind("package")}
+            className={`flex-1 py-2 transition ${
+              kind === "package" ? "bg-latte-deep text-card" : "bg-paper text-brown-soft"
+            }`}
+          >
+            🛍️ คอร์ส (จำนวนครั้ง)
+          </button>
+          <button
+            type="button"
+            onClick={() => setKind("credit")}
+            className={`flex-1 py-2 transition ${
+              kind === "credit" ? "bg-latte-deep text-card" : "bg-paper text-brown-soft"
+            }`}
+          >
+            💰 เติมเครดิต Member
+          </button>
+        </div>
+
         <div className="space-y-2">
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="ชื่อคอร์ส เช่น อาบน้ำ 10 ครั้ง"
+            placeholder={isCreditForm ? "ชื่อรายการ เช่น เติมเครดิต 1,000" : "ชื่อคอร์ส เช่น อาบน้ำ 10 ครั้ง"}
             className={field}
           />
-          <div className="flex gap-2">
-            <input
-              type="number"
-              min={1}
-              value={uses}
-              onChange={(e) => setUses(e.target.value)}
-              placeholder="กี่ครั้ง"
-              className={field}
-            />
-            <input
-              type="number"
-              min={0}
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="ราคา (บาท)"
-              className={field}
-            />
-          </div>
+          {isCreditForm ? (
+            <div className="flex gap-2">
+              <input
+                type="number"
+                min={0}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="ลูกค้าจ่าย (บาท)"
+                className={field}
+              />
+              <input
+                type="number"
+                min={0}
+                value={creditAmount}
+                onChange={(e) => setCreditAmount(e.target.value)}
+                placeholder="ได้เครดิต (บาท)"
+                className={field}
+              />
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                type="number"
+                min={1}
+                value={uses}
+                onChange={(e) => setUses(e.target.value)}
+                placeholder="กี่ครั้ง"
+                className={field}
+              />
+              <input
+                type="number"
+                min={0}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="ราคา (บาท)"
+                className={field}
+              />
+            </div>
+          )}
+          {isCreditForm && Number(creditAmount) > Number(price) && Number(price) > 0 && (
+            <p className="text-[10px] font-bold text-ok">
+              🎁 ลูกค้าจ่าย {Number(price).toLocaleString()}฿ ได้เครดิต {Number(creditAmount).toLocaleString()}฿ — แถม {(Number(creditAmount) - Number(price)).toLocaleString()}฿
+            </p>
+          )}
           <input
             value={desc}
             onChange={(e) => setDesc(e.target.value)}
-            placeholder="คำโปรย (ถ้ามี) เช่น ประหยัดกว่าซื้อแยก 500฿"
+            placeholder={
+              isCreditForm
+                ? "คำโปรย (ถ้ามี) เช่น เติมเลยวันนี้ รับโบนัสฟรี 200฿"
+                : "คำโปรย (ถ้ามี) เช่น ประหยัดกว่าซื้อแยก 500฿"
+            }
             className={field}
           />
 
@@ -539,7 +655,11 @@ export default function AdminPackagesPage() {
             onClick={addOffer}
             className="w-full rounded-petflow-sm bg-latte/30 py-2.5 text-sm font-extrabold text-petflow-chocolate disabled:opacity-40"
           >
-            {busy === "add" ? "กำลังเพิ่ม…" : "➕ เพิ่มคอร์สที่จะขาย"}
+            {busy === "add"
+              ? "กำลังเพิ่ม…"
+              : isCreditForm
+                ? "➕ เพิ่มรายการเติมเครดิต"
+                : "➕ เพิ่มคอร์สที่จะขาย"}
           </button>
         </div>
       </section>

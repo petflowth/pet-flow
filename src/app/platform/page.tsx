@@ -234,7 +234,7 @@ export default function PlatformDashboard() {
                   `ลิงก์: ${loginLinkFor(ownerLogin.slug)}\nusername: ${ownerLogin.username}\npassword: ${ownerLogin.password}`
                 )
               }
-              className="rounded-petflow-sm bg-honey/25 px-3 py-2 text-xs font-bold text-honey"
+              className="rounded-petflow-sm bg-honey/25 px-3 py-2 text-xs font-bold text-latte-deep"
             >
               📋 ก็อปทั้งหมด
             </button>
@@ -289,7 +289,7 @@ export default function PlatformDashboard() {
                     type="button"
                     disabled={busyId === t.id}
                     onClick={() => resetOwnerLogin(t)}
-                    className="rounded-full bg-honey/20 px-3 py-1.5 text-[11px] font-extrabold text-honey disabled:opacity-40"
+                    className="rounded-full bg-honey/20 px-3 py-1.5 text-[11px] font-extrabold text-latte-deep disabled:opacity-40"
                   >
                     🔐 {t.ownerUsername ? "รีเซ็ต" : "ตั้ง"} login
                   </button>

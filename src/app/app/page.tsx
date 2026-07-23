@@ -100,17 +100,17 @@ export default function CustomerHome() {
 
       <Link
         href="/app/coupons"
-        className="mb-3 flex items-center justify-between gap-3 rounded-petflow border-2 border-honey/60 bg-gradient-to-r from-honey/35 to-latte/20 p-4 shadow-petflow"
+        className="mb-3 flex items-center justify-between gap-3 rounded-petflow border-2 border-amber-deep/30 bg-amber p-4 shadow-petflow"
       >
         <div className="min-w-0">
-          <p className="text-base font-extrabold text-petflow-chocolate">
+          <p className="text-base font-extrabold text-amber-deep">
             🎫 กระเป๋าคูปองของฉัน
           </p>
           <p className="mt-0.5 text-[11px] font-bold text-brown-soft">
             ชวนเพื่อนมาใช้บริการ รับคูปองคนละ 100฿
           </p>
         </div>
-        <span className="flex shrink-0 items-center gap-1 rounded-full bg-latte-deep px-3.5 py-2 text-xs font-extrabold text-card shadow-petflow-sm">
+        <span className="flex shrink-0 items-center gap-1 rounded-full bg-amber-deep px-3.5 py-2 text-xs font-extrabold text-card shadow-petflow-sm">
           {couponCount > 0 ? `${couponCount} ใบ` : "เปิด"} →
         </span>
       </Link>
@@ -140,9 +140,9 @@ export default function CustomerHome() {
       {/* แต้มสะสม — โชว์เมื่อไม่มีเครดิต/คอร์ส เพื่อไม่ให้หน้าแรกโล่ง
           (ไม่มีปุ่มประวัติแต้ม เพราะเมนูแต้มด้านล่างพาไปหน้าเดียวกันอยู่แล้ว) */}
       {showPoints && (
-        <section className="mb-4 overflow-hidden rounded-petflow bg-gradient-to-br from-honey/45 via-card to-latte/15 p-5 shadow-petflow">
+        <section className="mb-4 overflow-hidden rounded-petflow bg-sky p-5 shadow-petflow">
           <p className="text-xs font-bold text-brown-soft">{m.yourPoints}</p>
-          <p className="mt-1 text-4xl font-extrabold text-latte-deep">
+          <p className="mt-1 text-4xl font-extrabold text-sky-deep">
             {points}
             <span className="ml-1 text-sm font-bold text-brown-faint">
               {locale === "th" ? "แต้ม" : "pts"}

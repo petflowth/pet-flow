@@ -87,7 +87,7 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
               href="/app/promos"
               className="w-36 shrink-0"
             >
-              <div className="h-36 w-36 overflow-hidden rounded-petflow border-2 border-honey/50 bg-honey/10 shadow-petflow-sm">
+              <div className="h-36 w-36 overflow-hidden rounded-petflow border-2 border-lavender-deep/30 bg-lavender shadow-petflow-sm">
                 {promo.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img

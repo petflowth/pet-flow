@@ -35,6 +35,12 @@ export default {
         sage: "#9fb79a",
         wait: "#d9a05b",
         ok: "#7fa876",
+        // สีหมวดหมู่การ์ด (คงที่ ไม่ผูกกับสีแบรนด์ร้าน) — ใช้แยกแต่ละการ์ด/หมวดในหน้าลูกค้า
+        // ให้ดูมีชีวิตชีวาแบบแอปพาสเทลหลายสี ไม่ใช่โทนเดียวซ้ำทั้งหน้า — DEFAULT = พื้นอ่อน, deep = ไอคอน/ตัวหนังสือ
+        amber: { DEFAULT: "#fff1d6", deep: "#b6790e" },
+        sky: { DEFAULT: "#dbeeff", deep: "#1c6dbd" },
+        mint: { DEFAULT: "#dcf5e6", deep: "#1f8a54" },
+        lavender: { DEFAULT: "#ece3fb", deep: "#6b46c1" },
       },
       borderRadius: { petflow: "24px", "petflow-sm": "16px" },
       fontFamily: {

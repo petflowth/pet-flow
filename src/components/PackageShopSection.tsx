@@ -159,8 +159,8 @@ export function PackageShopSection() {
   if (offers.length === 0 && pending.length === 0) return null;
 
   return (
-    <section className="mb-4 rounded-petflow border-2 border-honey/50 bg-gradient-to-br from-honey/20 via-card to-latte/10 p-4 shadow-petflow">
-      <p className="mb-1 text-sm font-extrabold text-petflow-chocolate">
+    <section className="mb-4 rounded-petflow border-2 border-mint-deep/30 bg-mint p-4 shadow-petflow">
+      <p className="mb-1 text-sm font-extrabold text-mint-deep">
         🛍️ คอร์สที่เปิดขาย
       </p>
       <p className="mb-3 text-[10px] text-brown-faint">

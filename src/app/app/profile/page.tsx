@@ -93,6 +93,27 @@ export default function ProfilePage() {
   const updateCat = (idx: number, patch: Partial<CatForm>) =>
     setCats((prev) => prev.map((c, i) => (i === idx ? { ...c, ...patch } : c)));
 
+  // id ขึ้นต้นด้วย "new-" = ยังไม่บันทึกจริง — /api/customers/self ใช้แยกว่าต้องสร้างใหม่ ไม่ใช่แก้ตัวเดิม
+  const addCat = () =>
+    setCats((prev) => [
+      ...prev,
+      {
+        id: `new-${Date.now()}`,
+        name: "",
+        gender: "",
+        breed: "",
+        breedOther: "",
+        ageValue: "",
+        ageUnit: "year",
+        birthday: "",
+        medical: "",
+        note: "",
+      },
+    ]);
+
+  const removeCat = (idx: number) =>
+    setCats((prev) => prev.filter((_, i) => i !== idx));
+
   const save = async () => {
     if (!profile?.lineUserId || !name.trim()) return;
     setSaving(true);
@@ -218,10 +239,21 @@ export default function ProfilePage() {
             <p className="text-xs font-extrabold text-petflow-chocolate">🐱 น้องแมวของฉัน</p>
             {cats.map((cat, idx) => (
               <div key={cat.id} className="space-y-2 rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm">
-                <label className="block text-xs font-bold text-brown-soft">
-                  ชื่อน้อง
-                  <input value={cat.name} onChange={(e) => updateCat(idx, { name: e.target.value })} className={`${sub} mt-1 font-bold text-brown`} />
-                </label>
+                <div className="flex items-center justify-between gap-2">
+                  <label className="block flex-1 text-xs font-bold text-brown-soft">
+                    ชื่อน้อง
+                    <input value={cat.name} onChange={(e) => updateCat(idx, { name: e.target.value })} className={`${sub} mt-1 font-bold text-brown`} />
+                  </label>
+                  {cat.id.startsWith("new-") && (
+                    <button
+                      type="button"
+                      onClick={() => removeCat(idx)}
+                      className="shrink-0 pl-1 text-[10px] font-bold text-wait"
+                    >
+                      ✕ ลบ
+                    </button>
+                  )}
+                </div>
                 <div className="flex gap-2">
                   {([["male", "♂ ผู้"], ["female", "♀ เมีย"]] as const).map(([v, l]) => (
                     <button
@@ -275,9 +307,13 @@ export default function ProfilePage() {
                 <input value={cat.note} onChange={(e) => updateCat(idx, { note: e.target.value })} placeholder="🐾 รายละเอียดเพิ่มเติม (ถ้ามี)" className={`${sub} text-xs`} />
               </div>
             ))}
-            <p className="text-[10px] text-brown-faint">
-              อยากเพิ่มน้องใหม่ ทักแชทบอกเราได้เลยนะคะ 🧡
-            </p>
+            <button
+              type="button"
+              onClick={addCat}
+              className="w-full rounded-petflow-sm border border-dashed border-petflow-line bg-paper py-2.5 text-xs font-extrabold text-latte-deep"
+            >
+              ➕ เพิ่มน้องแมว
+            </button>
           </div>
 
           {/* ── รู้จักเราจากทางไหน ── */}

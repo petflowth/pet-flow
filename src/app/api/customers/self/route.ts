@@ -3,6 +3,7 @@ import {
   findCustomerByLine,
   updateCustomer,
   updateCat,
+  addCat,
 } from "@/lib/customers-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import { withResolvedTenant } from "@/lib/tenant-context";
@@ -89,8 +90,8 @@ async function handlePost(req: NextRequest) {
 
   if (Array.isArray(body.cats)) {
     for (const cat of body.cats) {
-      if (!cat?.id || typeof cat.name !== "string" || !cat.name.trim()) continue;
-      await updateCat(c.id, String(cat.id), {
+      if (typeof cat?.name !== "string" || !cat.name.trim()) continue;
+      const shared = {
         name: cat.name.trim(),
         gender:
           cat.gender === "male" || cat.gender === "female" ? cat.gender : undefined,
@@ -99,11 +100,17 @@ async function handlePost(req: NextRequest) {
           cat.ageValue !== "" && cat.ageValue != null && !isNaN(Number(cat.ageValue))
             ? Number(cat.ageValue)
             : undefined,
-        ageUnit: cat.ageUnit === "month" ? "month" : "year",
+        ageUnit: (cat.ageUnit === "month" ? "month" : "year") as "month" | "year",
         birthday: cat.birthday ? String(cat.birthday) : undefined,
         medical: cat.medical ? String(cat.medical).trim() : undefined,
         staffNote: cat.note ? String(cat.note).trim() : undefined,
-      });
+      };
+      // id ที่ขึ้นต้นด้วย "new-" มาจากการกด "เพิ่มน้องแมว" ในหน้านี้ — ยังไม่มีตัวจริงในระบบ
+      if (!cat?.id || String(cat.id).startsWith("new-")) {
+        await addCat(c.id, shared);
+      } else {
+        await updateCat(c.id, String(cat.id), shared);
+      }
     }
   }
 

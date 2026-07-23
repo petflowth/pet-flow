@@ -152,6 +152,17 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
     sql: "create table if not exists staff_users (id text primary key, name text not null, code text not null, menus jsonb not null default '[]'::jsonb, active boolean not null default true, created_at timestamptz not null default now());",
   },
   {
+    // ย้ายจากล็อกอินด้วยรหัส PIN (code) มาเป็น username+password ต่อร้าน — ตารางเดิม (โหมดเดี่ยว
+    // ก่อนมี multi-tenant) ยังไม่มีคอลัมน์พวกนี้เลย ทำให้เพิ่มพนักงานไม่ได้ (insert ชน code NOT NULL)
+    name: "staff_users.tenant_login_columns",
+    sql: "alter table staff_users add column if not exists tenant_id text, add column if not exists username text, add column if not exists password_hash text, add column if not exists password_salt text;",
+  },
+  {
+    // code (PIN เดิม) เลิกใช้แล้ว แต่ตารางเก่ายังตั้ง NOT NULL ไว้ — insert แถวใหม่ที่ไม่มี code จะชน constraint นี้
+    name: "staff_users.code_nullable",
+    sql: "alter table staff_users alter column code drop not null;",
+  },
+  {
     name: "cats.color",
     sql: "alter table cats add column if not exists color text;",
   },

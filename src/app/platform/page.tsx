@@ -39,9 +39,23 @@ export default function PlatformDashboard() {
   const [busyId, setBusyId] = useState("");
   const [ownerLogin, setOwnerLogin] = useState<{
     tenantName: string;
+    slug: string;
     username: string;
     password: string;
   } | null>(null);
+  const [copiedLinkFor, setCopiedLinkFor] = useState("");
+
+  /** ลิงก์ล็อกอินหลังบ้านของร้านนี้ — ต้องมี /s/<slug> นำหน้าเสมอ ไม่งั้นระบบไม่รู้ว่าเป็นร้านไหน */
+  const loginLinkFor = (slugValue: string) =>
+    typeof window !== "undefined"
+      ? `${window.location.origin}/s/${slugValue}/admin/login`
+      : `/s/${slugValue}/admin/login`;
+
+  const copyLink = (slugValue: string) => {
+    navigator.clipboard.writeText(loginLinkFor(slugValue));
+    setCopiedLinkFor(slugValue);
+    setTimeout(() => setCopiedLinkFor(""), 1500);
+  };
 
   const load = useCallback(async () => {
     const res = await fetch("/api/platform/tenants").catch(() => null);
@@ -72,6 +86,7 @@ export default function PlatformDashboard() {
         setMsg("");
         setOwnerLogin({
           tenantName: d.tenant.name,
+          slug: d.tenant.slug,
           username: d.tenant.ownerUsername,
           password: d.ownerPassword,
         });
@@ -116,7 +131,12 @@ export default function PlatformDashboard() {
       });
       const d = await res.json().catch(() => ({}));
       if (res.ok) {
-        setOwnerLogin({ tenantName: t.name, username: d.ownerUsername, password: d.ownerPassword });
+        setOwnerLogin({
+          tenantName: t.name,
+          slug: t.slug,
+          username: d.ownerUsername,
+          password: d.ownerPassword,
+        });
         load();
       } else {
         setMsg(`❌ ${d.error || "ตั้งไม่สำเร็จ"}`);
@@ -188,6 +208,12 @@ export default function PlatformDashboard() {
           </p>
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
+              <span className="w-20 shrink-0 text-xs text-white/50">ลิงก์</span>
+              <code className="flex-1 truncate rounded-petflow-sm bg-[#1a1d29] px-3 py-2 text-xs font-extrabold text-honey">
+                {loginLinkFor(ownerLogin.slug)}
+              </code>
+            </div>
+            <div className="flex items-center gap-2">
               <span className="w-20 shrink-0 text-xs text-white/50">Username</span>
               <code className="flex-1 rounded-petflow-sm bg-[#1a1d29] px-3 py-2 text-sm font-extrabold text-honey">
                 {ownerLogin.username}
@@ -205,12 +231,12 @@ export default function PlatformDashboard() {
               type="button"
               onClick={() =>
                 navigator.clipboard.writeText(
-                  `username: ${ownerLogin.username}\npassword: ${ownerLogin.password}`
+                  `ลิงก์: ${loginLinkFor(ownerLogin.slug)}\nusername: ${ownerLogin.username}\npassword: ${ownerLogin.password}`
                 )
               }
               className="rounded-petflow-sm bg-honey/25 px-3 py-2 text-xs font-bold text-honey"
             >
-              📋 ก็อปทั้งคู่
+              📋 ก็อปทั้งหมด
             </button>
             <button
               type="button"
@@ -252,6 +278,13 @@ export default function PlatformDashboard() {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => copyLink(t.slug)}
+                    className="rounded-full bg-latte/20 px-3 py-1.5 text-[11px] font-extrabold text-latte-deep"
+                  >
+                    {copiedLinkFor === t.slug ? "✅ ก็อปแล้ว" : "🔗 ก็อปลิงก์"}
+                  </button>
                   <button
                     type="button"
                     disabled={busyId === t.id}

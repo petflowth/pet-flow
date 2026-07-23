@@ -416,13 +416,13 @@ function ShopTab({
           </span>
         </div>
       </div>
-      {JSON.stringify(branding) !== JSON.stringify({ ...BRANDING_DEFAULT, ...config.branding }) && (
+      {JSON.stringify(branding) !== JSON.stringify(BRANDING_DEFAULT) && (
         <button
           type="button"
           onClick={() => setBranding(BRANDING_DEFAULT)}
           className="text-[10px] font-bold text-brown-faint underline"
         >
-          รีเซ็ตเป็นสีเริ่มต้น
+          🔄 รีเซ็ตเป็นสีเริ่มต้น
         </button>
       )}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { SiteConfig } from "@/lib/config-types";
@@ -8,6 +8,7 @@ import type { RoomType } from "@/lib/business";
 import { adminJson } from "@/lib/admin-fetch";
 import { toJpegDataUrl } from "@/lib/image-convert";
 import { extractLogoColors } from "@/lib/color-extract";
+import { contrastRatio, isValidHex } from "@/lib/color-utils";
 import { ExportSheetsButton } from "@/components/ExportSheetsButton";
 
 type Tab =
@@ -200,12 +201,12 @@ export default function SettingsPage() {
 }
 
 const BRANDING_DEFAULT: NonNullable<SiteConfig["branding"]> = {
-  primary: "#a9855f",
-  accent: "#ebc583",
-  heading: "#5c4033",
-  background: "#fbf6ef",
-  surface: "#fffdfa",
-  text: "#4e3e32",
+  primary: "#b8698e",
+  accent: "#f6c6d9",
+  heading: "#6b2d47",
+  background: "#fff6f9",
+  surface: "#ffffff",
+  text: "#4a2d3a",
 };
 
 function ShopTab({
@@ -242,6 +243,27 @@ function ShopTab({
   useEffect(() => {
     setBranding({ ...BRANDING_DEFAULT, ...config.branding });
   }, [config.branding]);
+
+  // เตือนก่อนบันทึก ถ้าคู่สีที่ต้องอ่านคู่กันจริงในหน้าเว็บ (ตัวอักษร/พื้นหลัง, ปุ่ม/ตัวหนังสือขาว)
+  // คอนทราสต์ต่ำเกินไป — กันเคสแบบ "แก้สีตัวอักษรแล้วอ่านไม่ออกทั้งระบบ" ไม่ให้เงียบๆ หลุดไป
+  const contrastWarnings = useMemo(() => {
+    const warnings: string[] = [];
+    const vals = [branding.background, branding.surface, branding.text, branding.primary, branding.heading];
+    if (vals.some((v) => !v || !isValidHex(v))) return warnings;
+    if (contrastRatio(branding.text, branding.background) < 3) {
+      warnings.push("ตัวอักษร vs พื้นหลังเว็บ — สีใกล้กันเกินไป อ่านยาก");
+    }
+    if (contrastRatio(branding.text, branding.surface) < 3) {
+      warnings.push("ตัวอักษร vs พื้นการ์ด — สีใกล้กันเกินไป อ่านยาก");
+    }
+    if (contrastRatio("#ffffff", branding.primary) < 2.2) {
+      warnings.push("สีหลัก (ปุ่ม) อ่อนไป — ตัวหนังสือสีขาวบนปุ่มจะมองแทบไม่เห็น");
+    }
+    if (contrastRatio(branding.heading, branding.surface) < 3) {
+      warnings.push("สีหัวข้อ vs พื้นการ์ด — สีใกล้กันเกินไป อ่านยาก");
+    }
+    return warnings;
+  }, [branding.background, branding.surface, branding.text, branding.primary, branding.heading]);
 
   return (
     <form
@@ -321,6 +343,18 @@ function ShopTab({
           onChange={(v) => setBranding({ ...branding, text: v })}
         />
       </div>
+      {contrastWarnings.length > 0 && (
+        <div className="rounded-petflow-sm border border-wait/40 bg-wait/10 p-3">
+          <p className="mb-1 text-[11px] font-extrabold text-wait">
+            ⚠️ สีบางคู่อ่านยาก — เสี่ยงมองไม่เห็นตัวอักษร/ปุ่ม
+          </p>
+          <ul className="list-disc space-y-0.5 pl-4 text-[10px] text-brown-soft">
+            {contrastWarnings.map((w, i) => (
+              <li key={i}>{w}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="rounded-petflow-sm border border-petflow-line p-3">
         <Toggle

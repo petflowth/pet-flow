@@ -93,12 +93,12 @@ export function getDefaultSiteConfig(): SiteConfig {
         sizeLabels: JSON.parse(JSON.stringify(GROOM_SIZE_LABELS)),
       },
       branding: {
-        primary: "#c77a9c",
-        accent: "#f48fb1",
-        heading: "#9b2d5a",
-        background: "#fff5f8",
-        surface: "#fffbfd",
-        text: "#5b2e42",
+        primary: "#b8698e",
+        accent: "#f6c6d9",
+        heading: "#6b2d47",
+        background: "#fff6f9",
+        surface: "#ffffff",
+        text: "#4a2d3a",
       },
       options: {
         servicePresets: SERVICE_PRESETS.map((s) => ({ ...s })),

@@ -4,25 +4,26 @@
 
 :root {
   --yellow: #f5d76e;
-  --line-rgb: 245 214 227;
+  --line-rgb: 235 226 229;
   --sage: #9fb79a;
   --wait: #d9a05b;
   --ok: #7fa876;
 
   /* สีประจำร้าน (RGB triplet เพื่อให้ Tailwind ใส่ opacity ได้ เช่น bg-honey/30) —
-     โทนชมพูน่ารักเป็นค่าเริ่มต้นของ PetFlow, ถูก override ได้ต่อร้านผ่าน <BrandingStyle> */
-  --cream-rgb: 255 245 248;
-  --paper-rgb: 253 232 240;
-  --card-rgb: 255 251 253;
-  --brown-rgb: 91 46 66;
+     โทนชมพูพาสเทลสบายตาเป็นค่าเริ่มต้นของ PetFlow, ถูก override ได้ต่อร้านผ่าน <BrandingStyle>
+     พื้นหลัง/ไฮไลท์อ่อนพาสเทล แต่ปุ่มหลัก/หัวข้อ/ตัวอักษรเข้มพอให้อ่านออกชัดเสมอ */
+  --cream-rgb: 255 246 249;
+  --paper-rgb: 247 239 242;
+  --card-rgb: 255 255 255;
+  --brown-rgb: 74 45 58;
   /* สีข้อความรอง — เข้มพอให้อ่านออกชัดบนพื้นชมพูอ่อน */
-  --brown-soft-rgb: 122 74 97;
-  --brown-faint-rgb: 138 90 112;
-  --honey-rgb: 244 143 177;
-  --honey-deep-rgb: 233 92 143;
-  --latte-rgb: 232 179 201;
-  --latte-deep-rgb: 199 122 156;
-  --chocolate-rgb: 155 45 90;
+  --brown-soft-rgb: 98 72 84;
+  --brown-faint-rgb: 114 91 101;
+  --honey-rgb: 246 198 217;
+  --honey-deep-rgb: 216 174 191;
+  --latte-rgb: 202 142 170;
+  --latte-deep-rgb: 184 105 142;
+  --chocolate-rgb: 107 45 71;
   /* พื้นหลังไล่เฉด (ไม่บังคับ) — ตั้งผ่าน <BrandingStyle> เมื่อร้านเปิดใช้พื้นหลังไล่สี */
   --brand-bg-image: none;
 }

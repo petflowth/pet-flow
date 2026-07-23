@@ -32,3 +32,27 @@ export function darkenHex(hex: string, amount = 0.15): string {
 export function isValidHex(hex: string): boolean {
   return /^#?[0-9a-fA-F]{6}$/.test(hex.trim());
 }
+
+/** ความสว่างสัมพัทธ์ตามสูตร WCAG — ใช้คำนวณคอนทราสต์ระหว่างสี 2 สี */
+function relativeLuminance(hex: string): number {
+  const clean = hex.replace("#", "").trim();
+  const full =
+    clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean.padEnd(6, "0").slice(0, 6);
+  const chan = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  const r = chan(parseInt(full.slice(0, 2), 16) || 0);
+  const g = chan(parseInt(full.slice(2, 4), 16) || 0);
+  const b = chan(parseInt(full.slice(4, 6), 16) || 0);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** อัตราส่วนคอนทราสต์ WCAG ระหว่างสี 2 สี (1 = ไม่มีคอนทราสต์เลย, 21 = ดำ-ขาวสนิท) */
+export function contrastRatio(hexA: string, hexB: string): number {
+  const lA = relativeLuminance(hexA);
+  const lB = relativeLuminance(hexB);
+  const lighter = Math.max(lA, lB);
+  const darker = Math.min(lA, lB);
+  return (lighter + 0.05) / (darker + 0.05);
+}

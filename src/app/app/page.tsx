@@ -128,6 +128,9 @@ export default function CustomerHome() {
         </p>
       )}
 
+      {/* แมวของฉัน — อัป/แก้รูปเองได้ */}
+      <MyCatsSection />
+
       {/* เครดิต Member — โชว์เฉพาะคนที่เติมไว้ */}
       <MyMemberCreditSection onChecked={setHasCredit} />
 
@@ -154,9 +157,6 @@ export default function CustomerHome() {
 
       {/* คอร์สที่เปิดขาย — ซื้อ โอน แนบสลิป ได้ในที่เดียว */}
       <PackageShopSection />
-
-      {/* แมวของฉัน — อัป/แก้รูปเองได้ */}
-      <MyCatsSection />
 
       {/* โปรพิเศษลูกค้า — โผล่เฉพาะตอนมีโปรจริง (ไม่มี = ซ่อนทั้งช่อง) */}
       <CustomerExclusivePromos compact onHasPromos={setHasPromos} />

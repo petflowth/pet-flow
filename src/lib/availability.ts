@@ -62,6 +62,32 @@ export async function getGroomAvailability(
   };
 }
 
+/**
+ * เรียงแมวหลายตัวลงสล็อตอาบน้ำ — ตัวแรกๆ ลงสล็อตที่เลือกไว้ก่อนจนเต็ม (ตามความสามารถรับที่ตั้งไว้
+ * ในหลังบ้าน) แล้วตัวที่เหลือไหลไปสล็อตถัดไปที่ว่างโดยอัตโนมัติ
+ *
+ * ร้านที่ตั้งความสามารถรับพร้อมกัน (groomSlotCapacity) ไว้มากกว่า 1 ต่อสล็อต จะได้แมวหลายตัว
+ * "เวลาเดียวกัน" ไปเอง ส่วนร้านที่รับได้ทีละ 1 (ค่าเริ่มต้น) แมวตัวถัดไปจะขยับไปสล็อตถัดไปที่ติดกัน
+ * (ไม่ใช่เวลาเดียวกันหมด) — คืน null ถ้าสล็อตที่เหลือในวันนั้นนับจากเวลาที่เลือกไม่พอสำหรับแมวทุกตัว
+ */
+export function assignGroomSlots(
+  slots: { time: string; remaining: number }[],
+  startTime: string,
+  count: number
+): string[] | null {
+  const startIdx = slots.findIndex((s) => s.time === startTime);
+  if (startIdx === -1 || count <= 0) return null;
+  const assigned: string[] = [];
+  for (let i = startIdx; i < slots.length && assigned.length < count; i++) {
+    let avail = slots[i].remaining;
+    while (avail > 0 && assigned.length < count) {
+      assigned.push(slots[i].time);
+      avail--;
+    }
+  }
+  return assigned.length === count ? assigned : null;
+}
+
 export type RoomAvailability = {
   capacity: number;
   booked: number;

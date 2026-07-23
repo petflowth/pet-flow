@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withResolvedTenant } from "@/lib/tenant-context";
 import { addBooking, listBookings, type StoredBooking } from "@/lib/bookings-store";
 import { findCustomerByLine } from "@/lib/customers-store";
-import { getGroomAvailability, getRoomAvailability } from "@/lib/availability";
+import { assignGroomSlots, getGroomAvailability, getRoomAvailability } from "@/lib/availability";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import { groomProgram } from "@/lib/grooming-prices";
 
@@ -62,33 +62,36 @@ async function handlePost(req: NextRequest) {
     if (closed) {
       return NextResponse.json({ error: "shop_closed" }, { status: 409 });
     }
-    const slot = slots.find((s) => s.time === time);
-    // น้องแมวกี่ตัว = กินคิวว่าง (slot) กี่ช่อง — จองพร้อมกัน 2 ตัวต้องเหลืออย่างน้อย 2 คิว
-    if (!slot || slot.remaining < catNames.length) {
+    // น้องแมวกี่ตัวก็ได้ — ตัวแรกลงเวลาที่เลือก ถ้าเต็ม (ตามความสามารถรับที่ตั้งไว้) ตัวถัดไปไหล
+    // ไปสล็อตถัดไปที่ว่างอัตโนมัติ (ร้านตั้งรับพร้อมกัน >1 ต่อสล็อตได้ที่ตั้งค่า → อาบน้ำ)
+    const assignedTimes = assignGroomSlots(slots, time, catNames.length);
+    if (!assignedTimes) {
       return NextResponse.json({ error: "slot_full" }, { status: 409 });
     }
     const programId = String(body.groomProgram || "").trim() || undefined;
     const bookings: StoredBooking[] = [];
-    for (const name of catNames) {
+    for (let i = 0; i < catNames.length; i++) {
       bookings.push(
         await addBooking({
           customerName: customer.name,
-          catName: name,
+          catName: catNames[i],
           service: "groom",
           date,
-          time,
+          time: assignedTimes[i],
           lineUserId,
           selfBooked: true,
           groomProgram: programId,
         })
       );
     }
+    const scheduleText = catNames
+      .map((name, i) => `${name} ${assignedTimes[i]}`)
+      .join(", ");
     await sendTelegram(
       formatBookingTelegram("🐾 ลูกค้าจองคิวอาบน้ำเอง (รอยืนยัน)", {
         ลูกค้า: customer.name,
-        น้อง: catNames.join(", "),
+        น้อง: scheduleText,
         วันที่: date,
-        เวลา: time,
         ...(programId ? { โปรแกรม: groomProgram(programId)?.name || programId } : {}),
       })
     );

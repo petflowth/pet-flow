@@ -22,6 +22,28 @@ function addDaysISO(iso: string, days: number) {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * พรีวิวฝั่งลูกค้า (ก๊อปจาก src/lib/availability.ts — คัดลอกมาเพื่อไม่ต้อง import โมดูลฝั่งเซิร์ฟเวอร์
+ * เข้ามาในไคลเอนต์) แมวตัวแรกลงเวลาที่เลือก เต็มแล้วตัวถัดไปไหลไปสล็อตถัดไปอัตโนมัติ
+ */
+function assignGroomSlots(
+  slots: { time: string; remaining: number }[],
+  startTime: string,
+  count: number
+): string[] | null {
+  const startIdx = slots.findIndex((s) => s.time === startTime);
+  if (startIdx === -1 || count <= 0) return null;
+  const assigned: string[] = [];
+  for (let i = startIdx; i < slots.length && assigned.length < count; i++) {
+    let avail = slots[i].remaining;
+    while (avail > 0 && assigned.length < count) {
+      assigned.push(slots[i].time);
+      avail--;
+    }
+  }
+  return assigned.length === count ? assigned : null;
+}
+
 export default function BookPage() {
   return (
     <Suspense fallback={<p className="py-10 text-center text-sm text-brown-soft">กำลังโหลด…</p>}>
@@ -77,7 +99,9 @@ function BookPageInner() {
 
   const [submitting, setSubmitting] = useState(false);
   const [submitErr, setSubmitErr] = useState("");
-  const [done, setDone] = useState<null | { service: Service }>(null);
+  const [done, setDone] = useState<
+    null | { service: Service; schedule?: { catName: string; time: string }[] }
+  >(null);
 
   useEffect(() => {
     if (customer?.cats?.length && !catNames.length) setCatNames([customer.cats[0].name]);
@@ -146,20 +170,20 @@ function BookPageInner() {
     };
   }, [service, roomType, checkin, checkout]);
 
-  const currentSlot = useMemo(
-    () => (slots || []).find((s) => s.time === time),
-    [slots, time]
-  );
+  // แมวตัวแรกลงเวลาที่เลือก ตัวที่เหลือไหลไปสล็อตถัดไปอัตโนมัติถ้าสล็อตนั้นเต็ม
+  const assignedPreview = useMemo(() => {
+    if (!slots || !time || !catNames.length) return null;
+    return assignGroomSlots(slots, time, catNames.length);
+  }, [slots, time, catNames]);
 
   const canSubmit = useMemo(() => {
     if (!catNames.length) return false;
     if (service === "groom") {
       if (!time) return false;
-      // เลือกไว้กี่ตัว ต้องเหลือคิวว่างพอกันหมด ไม่งั้นกดจองไปก็โดนเด้ง slot_full
-      return Boolean(currentSlot && currentSlot.remaining >= catNames.length);
+      return Boolean(assignedPreview);
     }
     return Boolean(roomType && roomAvail && roomAvail.remaining > 0 && checkout > checkin);
-  }, [catNames, service, time, currentSlot, roomType, roomAvail, checkin, checkout]);
+  }, [catNames, service, time, assignedPreview, roomType, roomAvail, checkin, checkout]);
 
   const submit = async () => {
     if (!profile?.lineUserId || !canSubmit) return;
@@ -184,9 +208,20 @@ function BookPageInner() {
       });
       const d = await res.json().catch(() => ({}));
       if (res.ok && d.ok) {
-        setDone({ service });
+        const schedule =
+          service === "groom" && Array.isArray(d.bookings)
+            ? d.bookings.map((b: { catName: string; time: string }) => ({
+                catName: b.catName,
+                time: b.time,
+              }))
+            : undefined;
+        setDone({ service, schedule });
       } else if (d.error === "slot_full" || d.error === "room_full") {
-        setSubmitErr("ช่วงนี้เต็มไปแล้วพอดี ลองเลือกวัน/เวลาอื่นนะคะ");
+        setSubmitErr(
+          service === "groom"
+            ? "คิววันนี้ไม่พอสำหรับน้องที่เลือกไว้ทั้งหมด ลองเลือกวัน/เวลาอื่นนะคะ"
+            : "ช่วงนี้เต็มไปแล้วพอดี ลองเลือกวัน/เวลาอื่นนะคะ"
+        );
       } else if (d.error === "shop_closed") {
         setSubmitErr("ร้านปิดวันที่เลือกไว้พอดี ลองเลือกวันอื่นนะคะ");
       } else if (d.error === "duplicate_booking") {
@@ -216,6 +251,19 @@ function BookPageInner() {
           <p className="mt-2 text-sm font-bold text-brown">
             ส่งคำขอ{done.service === "groom" ? "จองคิวอาบน้ำ" : "จองห้องพัก"}เรียบร้อยแล้วค่ะ
           </p>
+          {done.schedule && done.schedule.length > 1 && (
+            <div className="mt-3 space-y-1 rounded-petflow-sm bg-paper px-3 py-2.5 text-left text-xs">
+              <p className="mb-1 text-center font-bold text-brown-soft">
+                🕒 คิวที่ได้ (แยกตามความว่างของแต่ละช่วง)
+              </p>
+              {done.schedule.map((s, i) => (
+                <p key={i} className="flex items-center justify-between text-brown">
+                  <span>🐱 {s.catName}</span>
+                  <span className="font-extrabold text-latte-deep">{s.time}</span>
+                </p>
+              ))}
+            </div>
+          )}
           <p className="mt-1 text-xs text-brown-soft">
             รอร้านกดยืนยันอีกนิดนะคะ — เช็คสถานะได้ที่เมนู “การจอง” ด้านล่าง
           </p>
@@ -328,9 +376,9 @@ function BookPageInner() {
                 ) : (
                   <div className="grid grid-cols-3 gap-2">
                     {(slots || []).map((s) => {
-                      // ต้องเหลือคิวว่างอย่างน้อยเท่าจำนวนน้องที่เลือกไว้ ไม่งั้นกดจองแล้วจะเด้งเต็ม
-                      const needed = Math.max(1, catNames.length);
-                      const full = s.remaining < needed;
+                      // สล็อตเลือกเป็นจุดเริ่มได้ตราบใดที่ยังไม่เต็มสนิท — ถ้าน้องที่เลือกไว้มีมากกว่า
+                      // ที่สล็อตนี้รับไหว ตัวที่เหลือจะไหลไปสล็อตถัดไปที่ว่างให้อัตโนมัติ (ดูตัวอย่างด้านล่าง)
+                      const full = s.remaining <= 0;
                       const active = time === s.time;
                       return (
                         <button
@@ -348,11 +396,7 @@ function BookPageInner() {
                         >
                           {s.time}
                           <span className="block text-[9px] font-normal opacity-80">
-                            {s.remaining <= 0
-                              ? "เต็มแล้ว"
-                              : full
-                                ? `เหลือ ${s.remaining} ไม่พอ`
-                                : `ว่าง ${s.remaining}`}
+                            {full ? "เต็มแล้ว" : `ว่าง ${s.remaining}`}
                           </span>
                         </button>
                       );
@@ -360,6 +404,30 @@ function BookPageInner() {
                     {slots && slots.length === 0 && (
                       <p className="col-span-3 text-xs text-brown-faint">
                         ร้านยังไม่ได้ตั้งรอบเวลาไว้ — ทักแชทร้านแทนนะคะ
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* พรีวิวคิวที่จะได้ — ถ้าน้องเกินที่สล็อตนี้รับไหว จะไหลไปสล็อตถัดไปให้เห็นก่อนกดจอง */}
+                {time && catNames.length > 1 && (
+                  <div className="mt-2 rounded-petflow-sm bg-paper px-3 py-2 text-[11px]">
+                    {assignedPreview ? (
+                      <>
+                        <p className="mb-1 font-bold text-brown-soft">🕒 คิวที่จะได้:</p>
+                        {catNames.map((name, i) => (
+                          <p key={i} className="flex items-center justify-between text-brown">
+                            <span>🐱 {name}</span>
+                            <span className="font-extrabold text-latte-deep">
+                              {assignedPreview[i]}
+                            </span>
+                          </p>
+                        ))}
+                      </>
+                    ) : (
+                      <p className="font-bold text-wait">
+                        คิวที่เหลือในวันนี้ไม่พอสำหรับน้องทั้ง {catNames.length} ตัว —
+                        ลองเลือกวันอื่นนะคะ
                       </p>
                     )}
                   </div>

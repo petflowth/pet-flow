@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withResolvedTenant } from "@/lib/tenant-context";
-import { addBooking, listBookings } from "@/lib/bookings-store";
+import { addBooking, listBookings, type StoredBooking } from "@/lib/bookings-store";
 import { findCustomerByLine } from "@/lib/customers-store";
 import { getGroomAvailability, getRoomAvailability } from "@/lib/availability";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
@@ -20,16 +20,24 @@ export async function POST(req: NextRequest) {
 async function handlePost(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const lineUserId = String(body.lineUserId || "").trim();
-  const catName = String(body.catName || "").trim();
+  // จองได้หลายตัวพร้อมกัน (อาบน้ำ) — catNames มาก่อน ถ้าไม่มีใช้ catName เดี่ยวเดิม (เข้ากันได้กับของเก่า)
+  const catNames: string[] = Array.isArray(body.catNames)
+    ? [
+        ...new Set(
+          (body.catNames as unknown[]).map((n) => String(n || "").trim()).filter(Boolean)
+        ),
+      ]
+    : [String(body.catName || "").trim()].filter(Boolean);
+  const catName = catNames[0] || "";
   const service = body.service === "room" ? "room" : body.service === "groom" ? "groom" : null;
 
-  if (!lineUserId || !catName || !service) {
+  if (!lineUserId || !catNames.length || !service) {
     return NextResponse.json({ error: "missing fields" }, { status: 400 });
   }
 
   const customer = await findCustomerByLine(lineUserId);
   if (!customer) return NextResponse.json({ error: "customer_not_found" }, { status: 404 });
-  if (!customer.cats.some((c) => c.name === catName)) {
+  if (!catNames.every((n) => customer.cats.some((c) => c.name === n))) {
     return NextResponse.json({ error: "cat_not_found" }, { status: 404 });
   }
 
@@ -47,7 +55,7 @@ async function handlePost(req: NextRequest) {
     if (date < todayBkk) {
       return NextResponse.json({ error: "past_date" }, { status: 400 });
     }
-    if (myBookings.some((x) => x.service === "groom" && x.catName === catName && x.date === date)) {
+    if (myBookings.some((x) => x.service === "groom" && catNames.includes(x.catName) && x.date === date)) {
       return NextResponse.json({ error: "duplicate_booking" }, { status: 409 });
     }
     const { closed, slots } = await getGroomAvailability(date);
@@ -55,30 +63,36 @@ async function handlePost(req: NextRequest) {
       return NextResponse.json({ error: "shop_closed" }, { status: 409 });
     }
     const slot = slots.find((s) => s.time === time);
-    if (!slot || slot.remaining <= 0) {
+    // น้องแมวกี่ตัว = กินคิวว่าง (slot) กี่ช่อง — จองพร้อมกัน 2 ตัวต้องเหลืออย่างน้อย 2 คิว
+    if (!slot || slot.remaining < catNames.length) {
       return NextResponse.json({ error: "slot_full" }, { status: 409 });
     }
     const programId = String(body.groomProgram || "").trim() || undefined;
-    const booking = await addBooking({
-      customerName: customer.name,
-      catName,
-      service: "groom",
-      date,
-      time,
-      lineUserId,
-      selfBooked: true,
-      groomProgram: programId,
-    });
+    const bookings: StoredBooking[] = [];
+    for (const name of catNames) {
+      bookings.push(
+        await addBooking({
+          customerName: customer.name,
+          catName: name,
+          service: "groom",
+          date,
+          time,
+          lineUserId,
+          selfBooked: true,
+          groomProgram: programId,
+        })
+      );
+    }
     await sendTelegram(
       formatBookingTelegram("🐾 ลูกค้าจองคิวอาบน้ำเอง (รอยืนยัน)", {
         ลูกค้า: customer.name,
-        น้อง: catName,
+        น้อง: catNames.join(", "),
         วันที่: date,
         เวลา: time,
         ...(programId ? { โปรแกรม: groomProgram(programId)?.name || programId } : {}),
       })
     );
-    return NextResponse.json({ ok: true, booking });
+    return NextResponse.json({ ok: true, booking: bookings[0], bookings });
   }
 
   // service === "room"

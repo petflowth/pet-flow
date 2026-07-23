@@ -46,7 +46,18 @@ function BookPageInner() {
   const [service, setService] = useState<Service>(
     params.get("service") === "room" ? "room" : "groom"
   );
-  const [catName, setCatName] = useState("");
+  // อาบน้ำเลือกได้หลายตัว (แต่ละตัวกินคิวว่าง 1 ช่อง) — เข้าพักเลือกได้ทีละตัว (คนละห้อง คนละ flow)
+  const [catNames, setCatNames] = useState<string[]>([]);
+  const catName = catNames[0] || "";
+  const toggleCat = (name: string) => {
+    if (service === "room") {
+      setCatNames([name]);
+      return;
+    }
+    setCatNames((prev) =>
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
+    );
+  };
 
   // groom state
   const [date, setDate] = useState(todayISO());
@@ -69,8 +80,13 @@ function BookPageInner() {
   const [done, setDone] = useState<null | { service: Service }>(null);
 
   useEffect(() => {
-    if (customer?.cats?.length && !catName) setCatName(customer.cats[0].name);
-  }, [customer, catName]);
+    if (customer?.cats?.length && !catNames.length) setCatNames([customer.cats[0].name]);
+  }, [customer, catNames]);
+
+  // เปลี่ยนไปแท็บเข้าพัก — ถ้าเผลอเลือกไว้หลายตัว (จากแท็บอาบน้ำ) ตัดเหลือตัวแรกตัวเดียว
+  useEffect(() => {
+    if (service === "room" && catNames.length > 1) setCatNames((prev) => prev.slice(0, 1));
+  }, [service, catNames.length]);
 
   useEffect(() => {
     // roomType เริ่มว่างเพราะรอโหลด config ก่อน — เลือกห้องแรกที่ร้านนี้เปิดให้จองเองได้
@@ -130,11 +146,20 @@ function BookPageInner() {
     };
   }, [service, roomType, checkin, checkout]);
 
+  const currentSlot = useMemo(
+    () => (slots || []).find((s) => s.time === time),
+    [slots, time]
+  );
+
   const canSubmit = useMemo(() => {
-    if (!catName) return false;
-    if (service === "groom") return Boolean(time);
+    if (!catNames.length) return false;
+    if (service === "groom") {
+      if (!time) return false;
+      // เลือกไว้กี่ตัว ต้องเหลือคิวว่างพอกันหมด ไม่งั้นกดจองไปก็โดนเด้ง slot_full
+      return Boolean(currentSlot && currentSlot.remaining >= catNames.length);
+    }
     return Boolean(roomType && roomAvail && roomAvail.remaining > 0 && checkout > checkin);
-  }, [catName, service, time, roomType, roomAvail, checkin, checkout]);
+  }, [catNames, service, time, currentSlot, roomType, roomAvail, checkin, checkout]);
 
   const submit = async () => {
     if (!profile?.lineUserId || !canSubmit) return;
@@ -145,7 +170,7 @@ function BookPageInner() {
         service === "groom"
           ? {
               lineUserId: profile.lineUserId,
-              catName,
+              catNames,
               service,
               date,
               time,
@@ -242,20 +267,29 @@ function BookPageInner() {
       ) : (
         <>
           <div className="rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm">
-            <label className="mb-3 block text-xs font-bold text-brown-soft">
-              🐱 น้องแมว
-              <select
-                value={catName}
-                onChange={(e) => setCatName(e.target.value)}
-                className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
-              >
-                {customer.cats.map((c) => (
-                  <option key={c.id} value={c.name}>
+            <p className="mb-2 text-xs font-bold text-brown-soft">
+              🐱 น้องแมว{service === "groom" ? " (เลือกได้หลายตัว — 1 ตัว = 1 คิว)" : ""}
+            </p>
+            <div className="mb-3 flex flex-wrap gap-2">
+              {customer.cats.map((c) => {
+                const active = catNames.includes(c.name);
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => toggleCat(c.name)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+                      active
+                        ? "border-latte-deep bg-latte-deep text-white"
+                        : "border-petflow-line bg-paper text-brown"
+                    }`}
+                  >
+                    {active ? "✓ " : ""}
                     {c.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+                  </button>
+                );
+              })}
+            </div>
 
             {service === "groom" ? (
               <>
@@ -294,7 +328,9 @@ function BookPageInner() {
                 ) : (
                   <div className="grid grid-cols-3 gap-2">
                     {(slots || []).map((s) => {
-                      const full = s.remaining <= 0;
+                      // ต้องเหลือคิวว่างอย่างน้อยเท่าจำนวนน้องที่เลือกไว้ ไม่งั้นกดจองแล้วจะเด้งเต็ม
+                      const needed = Math.max(1, catNames.length);
+                      const full = s.remaining < needed;
                       const active = time === s.time;
                       return (
                         <button
@@ -312,7 +348,11 @@ function BookPageInner() {
                         >
                           {s.time}
                           <span className="block text-[9px] font-normal opacity-80">
-                            {full ? "เต็มแล้ว" : `ว่าง ${s.remaining}`}
+                            {s.remaining <= 0
+                              ? "เต็มแล้ว"
+                              : full
+                                ? `เหลือ ${s.remaining} ไม่พอ`
+                                : `ว่าง ${s.remaining}`}
                           </span>
                         </button>
                       );

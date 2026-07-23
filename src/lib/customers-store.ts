@@ -423,6 +423,20 @@ function normName(s: string) {
   return s.trim().toLowerCase();
 }
 
+/**
+ * ตัดบรรทัด "ของแถมฟรี" (และบรรทัดเฉพาะการจอง) ออกจากโน้ตนิสัยแมว
+ * โน้ตนิสัยเป็นข้อมูลถาวรของแมว ไม่ควรมีของแถมของบิลนั้นๆ ปนเข้ามา
+ */
+function cleanCatPersonalityNote(note?: string): string | undefined {
+  if (!note) return note;
+  const cleaned = note
+    .split("\n")
+    .filter((line) => !line.trim().startsWith("🎁"))
+    .join("\n")
+    .trim();
+  return cleaned || undefined;
+}
+
 /** ลูกค้าเปิดแอปจาก LINE → สร้าง/ผูกบัญชีอัตโนมัติ */
 export async function upsertCustomerFromLine(data: {
   lineUserId: string;
@@ -664,6 +678,8 @@ export async function upsertCustomerFromBooking(data: {
   staffNote?: string;
 }) {
   const sb = getSupabase();
+  // โน้ตนิสัยแมว = ข้อมูลถาวร; ตัดของแถมของบิลนั้นๆ ออก ไม่ให้ปนลงข้อมูลแมว
+  const catNote = cleanCatPersonalityNote(data.staffNote);
   let existing =
     (data.lineUserId && (await findCustomerByLine(data.lineUserId))) ||
     (await fetchAllCustomers()).find(
@@ -685,7 +701,7 @@ export async function upsertCustomerFromBooking(data: {
       phone: data.phone,
       lineUserId: data.lineUserId,
       marketingConsent: true,
-      cats: [{ id: catId, name: data.catName, staffNote: data.staffNote }],
+      cats: [{ id: catId, name: data.catName, staffNote: catNote }],
       isMember: false,
       memberCredit: 0,
       depositCredit: 0,
@@ -712,7 +728,7 @@ export async function upsertCustomerFromBooking(data: {
         tenant_id: requireTenantId(),
         customer_id: id,
         name: data.catName,
-        staff_note: data.staffNote || null,
+        staff_note: catNote || null,
       });
     } else {
       memCustomers.set(id, existing);
@@ -725,24 +741,26 @@ export async function upsertCustomerFromBooking(data: {
 
   if (!existing.cats.some((cat) => cat.name === data.catName)) {
     const catId = `CAT${Date.now()}`;
-    existing.cats.push({ id: catId, name: data.catName, staffNote: data.staffNote });
+    existing.cats.push({ id: catId, name: data.catName, staffNote: catNote });
     if (sb) {
       await sb.from("cats").insert({
         id: catId,
         tenant_id: requireTenantId(),
         customer_id: existing.id,
         name: data.catName,
-        staff_note: data.staffNote || null,
+        staff_note: catNote || null,
       });
     }
-  } else if (data.staffNote) {
+  } else if (catNote && !existing.cats.find((x) => x.name === data.catName)?.staffNote) {
+    // เติมโน้ตนิสัยให้เฉพาะตอนแมวยังไม่มีโน้ตเท่านั้น
+    // ห้ามให้การจองครั้งใหม่ไปทับโน้ตนิสัยเดิมที่ร้านตั้งไว้
     const cat = existing.cats.find((x) => x.name === data.catName);
     if (cat) {
-      cat.staffNote = data.staffNote;
+      cat.staffNote = catNote;
       if (sb) {
         await sb
           .from("cats")
-          .update({ staff_note: data.staffNote })
+          .update({ staff_note: catNote })
           .eq("id", cat.id)
           .eq("tenant_id", requireTenantId());
       }

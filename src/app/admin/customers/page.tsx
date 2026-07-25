@@ -1460,6 +1460,10 @@ function CustomerSummaryCard({
         </div>
       </label>
 
+      {!customer.lineUserId && (
+        <AdoptLineControl customer={customer} onMerged={onSaved} />
+      )}
+
       <MergeCustomerControl customer={customer} onMerged={onSaved} />
 
       <button
@@ -1470,6 +1474,153 @@ function CustomerSummaryCard({
         🗑️ ลบลูกค้าคนนี้
       </button>
     </section>
+  );
+}
+
+/**
+ * ลูกค้าคนนี้ยังไม่ผูก LINE ทั้งที่สมัครแล้ว — เพราะ LINE ไปติดอยู่บนอีก record
+ * (ลูกค้าสมัครเอง/ระบบสร้างให้ตอนเปิดแอปครั้งแรก คนละตัวกับที่ร้านสร้างไว้)
+ * ปุ่มนี้ให้ร้านดึง record ที่ถือ LINE เข้ามารวมได้เอง — ลูกค้าไม่ต้องกดอะไรเลย
+ */
+function AdoptLineControl({
+  customer,
+  onMerged,
+}: {
+  customer: CustomerRecord;
+  onMerged: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState(customer.name);
+  const [results, setResults] = useState<CustomerRecord[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [searched, setSearched] = useState(false);
+
+  const search = useCallback(
+    async (query: string) => {
+      if (!query.trim()) {
+        setResults([]);
+        return;
+      }
+      try {
+        const d = await fetch(`/api/customers?q=${encodeURIComponent(query)}`).then((r) =>
+          r.json()
+        );
+        // เอาเฉพาะบัญชีที่ "มี LINE แล้ว" — บัญชีที่ยังไม่ผูกดึงมาก็ไม่ช่วยอะไร
+        setResults(
+          (d.customers || [])
+            .filter((c: CustomerRecord) => c.id !== customer.id && c.lineUserId)
+            .slice(0, 8)
+        );
+      } catch {
+        /* ค้นไม่ได้ = ไม่โชว์ */
+      } finally {
+        setSearched(true);
+      }
+    },
+    [customer.id]
+  );
+
+  useEffect(() => {
+    if (open) void search(q);
+    // เปิดครั้งแรกให้ค้นด้วยชื่อลูกค้าเลย — ส่วนใหญ่บัญชีซ้ำใช้ชื่อใกล้กัน
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const adopt = async (source: CustomerRecord) => {
+    if (
+      !confirm(
+        `ดึง LINE ของ "${source.lineDisplayName || source.name}" มาผูกกับ "${customer.name}"?\n\n` +
+          `แต้ม · คูปอง · เครดิต · บิล · แมว จะย้ายมาที่ "${customer.name}" ทั้งหมด\n` +
+          `แล้วบัญชีซ้ำ "${source.name}" จะถูกลบ (กู้ได้จากถังขยะ)\n\n` +
+          `ลูกค้าไม่ต้องทำอะไรเลย`
+      )
+    )
+      return;
+    setBusy(true);
+    try {
+      // รวมบัญชีที่ถือ LINE (source) เข้าบัญชีนี้ (target) — ทิศทางกลับกับปุ่มรวมด้านล่าง
+      const res = await fetch("/api/customers", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: source.id,
+          action: "merge_customer",
+          targetId: customer.id,
+        }),
+      });
+      if (res.ok) {
+        toast("ผูก LINE ให้แล้ว ✓ ลูกค้าไม่ต้องทำอะไร", "success");
+        onMerged();
+      } else {
+        toast("ผูกไม่สำเร็จ", "error");
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-2 w-full rounded-catcha-sm border border-ok/40 bg-ok/10 py-2 text-[11px] font-bold text-ok"
+      >
+        🔗 ผูก LINE ให้เอง (ลูกค้าไม่ต้องกดอะไร)
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-2 rounded-catcha-sm border border-ok/40 bg-ok/5 p-3">
+      <p className="mb-1 text-[11px] font-extrabold text-catcha-chocolate">
+        🔗 ผูก LINE ให้ “{customer.name}”
+      </p>
+      <p className="mb-2 text-[10px] text-brown-faint">
+        เลือกบัญชีที่ลูกค้าใช้อยู่จริง (บัญชีที่มี LINE แล้ว) — ระบบจะย้ายแต้ม/คูปอง/บิล
+        มารวมที่นี่แล้วลบตัวซ้ำให้
+      </p>
+      <input
+        value={q}
+        onChange={(e) => {
+          setQ(e.target.value);
+          void search(e.target.value);
+        }}
+        placeholder="พิมพ์ชื่อลูกค้า / ชื่อ LINE"
+        className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-2.5 py-2 text-xs"
+      />
+      <ul className="mt-2 space-y-1">
+        {results.map((c) => (
+          <li key={c.id}>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => adopt(c)}
+              className="w-full rounded-catcha-sm bg-card px-2.5 py-1.5 text-left text-xs font-bold text-brown disabled:opacity-40"
+            >
+              {c.name}
+              {c.lineDisplayName && (
+                <span className="ml-1 font-normal text-brown-faint">
+                  · LINE: {c.lineDisplayName}
+                </span>
+              )}
+            </button>
+          </li>
+        ))}
+        {searched && results.length === 0 && (
+          <li className="px-1 py-2 text-[10px] text-brown-faint">
+            ไม่เจอบัญชีที่ผูก LINE ไว้ — ลองพิมพ์ชื่อ LINE ของลูกค้าดู
+          </li>
+        )}
+      </ul>
+      <button
+        type="button"
+        onClick={() => setOpen(false)}
+        className="mt-2 w-full rounded-catcha-sm bg-paper py-1.5 text-[10px] font-bold text-brown-soft"
+      >
+        ปิด
+      </button>
+    </div>
   );
 }
 

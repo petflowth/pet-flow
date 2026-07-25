@@ -738,6 +738,7 @@ export async function unlinkCustomerLine(customerId: string) {
 
   const sb = getSupabase();
   if (sb) {
+    const tenantId = requireTenantId();
     await sb
       .from("customers")
       .update({
@@ -745,9 +746,14 @@ export async function unlinkCustomerLine(customerId: string) {
         line_display_name: null,
         updated_at: customer.updatedAt,
       })
-      .eq("id", customerId);
+      .eq("id", customerId)
+      .eq("tenant_id", tenantId);
     try {
-      await sb.from("customers").update({ line_user_ids: [] }).eq("id", customerId);
+      await sb
+        .from("customers")
+        .update({ line_user_ids: [] })
+        .eq("id", customerId)
+        .eq("tenant_id", tenantId);
     } catch {
       /* ยังไม่มีคอลัมน์ line_user_ids */
     }

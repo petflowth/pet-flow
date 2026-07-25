@@ -23,6 +23,18 @@ async function lineChannelToken() {
   return creds.channelToken;
 }
 
+/**
+ * ใส่ "คุณ" นำหน้าชื่อลูกค้าเสมอตอนส่งข้อความหาลูกค้า — สุภาพกว่าเรียกชื่อเปล่าๆ
+ * ไม่เขียนทับข้อมูลในระบบ แค่ตอนแสดงผลในการ์ด
+ * กันซ้ำถ้าร้านพิมพ์ "คุณ" มาเองแล้ว และไม่ใส่ให้คำนำหน้าอื่น (คุณหมอ/ครู/พี่ ฯลฯ)
+ */
+const NAME_PREFIXES = ["คุณ", "ครู", "หมอ", "พี่", "น้อง", "ป้า", "ลุง", "น้า", "อา", "แม่", "พ่อ"];
+export function politeName(name?: string): string {
+  const n = (name || "").trim();
+  if (!n) return "";
+  return NAME_PREFIXES.some((p) => n.startsWith(p)) ? n : `คุณ${n}`;
+}
+
 function flexDetailRow(icon: string, label: string, value: string) {
   return {
     type: "box" as const,
@@ -223,7 +235,7 @@ export function buildAppointmentConfirmFlex(booking: {
           },
           {
             type: "text",
-            text: `${st.texts?.subtitle || "แจ้งกำหนดการนัด 🗓️"}\n${booking.customerName}`,
+            text: `${st.texts?.subtitle || "แจ้งกำหนดการนัด 🗓️"}\n${politeName(booking.customerName)}`,
             size: "xs",
             color: "#A2907E",
             margin: "md",
@@ -607,7 +619,7 @@ export function buildPaymentFlex(data: {
           },
           {
             type: "text",
-            text: `${data.catName} · ${data.customerName}`,
+            text: `${data.catName} · ${politeName(data.customerName)}`,
             size: "sm",
             color: "#A2907E",
             margin: "md",
@@ -783,7 +795,7 @@ export function buildBillSummaryFlex(data: {
     },
     {
       type: "text",
-      text: `${data.catName} · ${data.customerName}`,
+      text: `${data.catName} · ${politeName(data.customerName)}`,
       size: "sm",
       color: "#A2907E",
       margin: "sm",
@@ -1768,7 +1780,7 @@ export function buildReceiptFlex(data: {
       layout: "vertical",
       paddingAll: "18px",
       contents: [
-        flexDetailRow("🐱", st.texts?.customerLabel || "ลูกค้า", `${data.catName} · ${data.customerName}`),
+        flexDetailRow("🐱", st.texts?.customerLabel || "ลูกค้า", `${data.catName} · ${politeName(data.customerName)}`),
         ...(show("invoiceNo")
           ? [flexDetailRow("🔖", st.texts?.invoiceNoLabel || "เลขที่", data.invoiceId)]
           : []),
@@ -2128,7 +2140,7 @@ export function buildMemberBalanceFlex(data: {
   if (show("customerName")) {
     contents.push({
       type: "text",
-      text: data.customerName,
+      text: politeName(data.customerName),
       size: "sm",
       color: "#A2907E",
       margin: "md",
@@ -2196,7 +2208,7 @@ export function buildPackageFlex(data: {
     },
     {
       type: "text",
-      text: data.customerName,
+      text: politeName(data.customerName),
       size: "sm",
       color: "#A2907E",
       margin: "md",

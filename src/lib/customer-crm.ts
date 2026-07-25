@@ -1,7 +1,7 @@
 import type { CustomerRecord } from "./customers-store";
 import { customerSummary, getCustomer, listCustomers, updateCustomer } from "./customers-store";
 import { getSiteConfig } from "./config-store";
-import { pushLineMessage } from "./line";
+import { pushLineMessage, politeName } from "./line";
 
 export type InactiveCustomerInfo = {
   customer: CustomerRecord;
@@ -125,7 +125,7 @@ export async function sendCustomerFollowUp(
   const cats = customer.cats.map((c) => c.name).join(", ") || "น้องแมว";
   const template = options?.message?.trim() || config.crm.followUpMessage;
   const text = formatFollowUpMessage(template, {
-    name: customer.name,
+    name: politeName(customer.name),
     days: daysSinceVisit,
     cats,
   });

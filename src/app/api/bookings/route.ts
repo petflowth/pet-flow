@@ -33,6 +33,7 @@ import {
   reviewMessageFor,
   buildReceiptFlex,
   buildDepositThanksFlex,
+  politeName,
 } from "@/lib/line";
 import { buildBookingConfirmFlex } from "@/lib/booking-line-card";
 import {
@@ -510,7 +511,7 @@ async function handlePatch(req: NextRequest, admin: boolean) {
             buildDepositThanksFlex({
               title: cfg.messages.depositThanksTitle,
               body: renderTemplate(cfg.messages.depositThanksBody, {
-                name: inv.customerName,
+                name: politeName(inv.customerName),
                 cat: inv.catName,
                 amount: (inv.deposit || 0).toLocaleString(),
               }),

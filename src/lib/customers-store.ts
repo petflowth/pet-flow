@@ -1238,6 +1238,7 @@ export async function mergeCustomers(sourceId: string, targetId: string) {
 
   const sb = getSupabase();
   if (sb) {
+    const tenantId = requireTenantId();
     // ย้าย customer_id ทุกตารางที่อ้างถึง (best-effort — ตารางไหนไม่มีก็ข้าม)
     const tables = [
       "cats",
@@ -1250,7 +1251,11 @@ export async function mergeCustomers(sourceId: string, targetId: string) {
     ];
     for (const tbl of tables) {
       try {
-        await sb.from(tbl).update({ customer_id: targetId }).eq("customer_id", sourceId);
+        await sb
+          .from(tbl)
+          .update({ customer_id: targetId })
+          .eq("customer_id", sourceId)
+          .eq("tenant_id", tenantId);
       } catch {
         /* ตารางนี้ไม่มี customer_id หรือยังไม่มีตาราง — ข้าม */
       }
@@ -1273,14 +1278,23 @@ export async function mergeCustomers(sourceId: string, targetId: string) {
         member_credit: mergedCredit,
         is_member: target.isMember || source.isMember,
       })
-      .eq("id", targetId);
+      .eq("id", targetId)
+      .eq("tenant_id", tenantId);
     try {
-      await sb.from("customers").update({ deposit_credit: mergedDeposit }).eq("id", targetId);
+      await sb
+        .from("customers")
+        .update({ deposit_credit: mergedDeposit })
+        .eq("id", targetId)
+        .eq("tenant_id", tenantId);
     } catch {
       /* ยังไม่มีคอลัมน์ deposit_credit */
     }
     try {
-      await sb.from("customers").update({ line_user_ids: [...ids] }).eq("id", targetId);
+      await sb
+        .from("customers")
+        .update({ line_user_ids: [...ids] })
+        .eq("id", targetId)
+        .eq("tenant_id", tenantId);
     } catch {
       /* ยังไม่มีคอลัมน์ line_user_ids */
     }

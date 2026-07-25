@@ -1,4 +1,5 @@
 import { getLineCredentials } from "./line-config";
+import { politeCat } from "./line";
 import { buildConsentUrl, buildBookingTimeUrl, buildGroomInfoUrl } from "./liff-urls";
 import { renderTemplate, DEFAULT_MESSAGES } from "./messages";
 import { formatThaiDateShort } from "./format-thai-date";
@@ -50,7 +51,7 @@ export function buildCheckinBodyText(
 ): string {
   return renderTemplate(cfg.messages.checkinReminder, {
     shop: cfg.business.name,
-    cat: b.catName,
+    cat: politeCat(b.catName),
     checkin: b.checkin || b.date || "",
     room: b.room ? `🏠 ห้อง: ${b.room}` : "",
     litterNote: "",
@@ -74,7 +75,7 @@ export function buildGroomInfoBody(
 ): string {
   const intro = renderTemplate(cfg.messages.groomInfoIntro ?? DEFAULT_MESSAGES.groomInfoIntro, {
     shop: cfg.business.name,
-    cat: b.catName,
+    cat: politeCat(b.catName),
   });
   return `${intro}\n\n${GROOM_PHOTO_REQUEST}`;
 }
@@ -86,7 +87,7 @@ export function buildCheckoutBodyText(
 ): string {
   return renderTemplate(cfg.messages.checkoutReminder, {
     shop: cfg.business.name,
-    cat: b.catName,
+    cat: politeCat(b.catName),
     checkout: b.checkout || "",
   });
 }
@@ -102,7 +103,7 @@ export function buildDepositReminderText(
   if (remaining <= 0) return null;
   return renderTemplate(cfg.messages.depositReminder, {
     shop: cfg.business.name,
-    cat: b.catName,
+    cat: politeCat(b.catName),
     checkin: b.checkin || b.date || "",
     deposit: deposit.toLocaleString(),
     remaining: remaining.toLocaleString(),
@@ -121,7 +122,7 @@ export function buildConsentInviteText(
   if (!url) return "";
   return renderTemplate(cfg.messages.consentInvite, {
     shop: cfg.business.name,
-    cat: b.catName,
+    cat: politeCat(b.catName),
     url,
   });
 }
@@ -161,7 +162,7 @@ export function buildPrestayBodyText(
 ): string {
   return renderTemplate(cfg.messages.prestayReminder, {
     shop: cfg.business.name,
-    cat: b.catName,
+    cat: politeCat(b.catName),
     checkin: b.checkin || b.date || "",
     checkout: b.checkout ? `→ ${b.checkout}` : "",
     room: b.room ? `🏠 ห้อง: ${b.room}` : "",
@@ -189,14 +190,14 @@ export function buildPrestayFlexData(
     room: b.room,
     intro: renderTemplate(msg.prestayIntro ?? DEFAULT_MESSAGES.prestayIntro, {
       shop: cfg.business.name,
-      cat: b.catName,
+      cat: politeCat(b.catName),
     }),
     prepIntro: msg.prestayPrepIntro ?? DEFAULT_MESSAGES.prestayPrepIntro,
     prepItems: (msg.prestayPrepItems ?? DEFAULT_MESSAGES.prestayPrepItems).filter(
       Boolean
     ),
     careNote: renderTemplate(msg.prestayCareNote ?? DEFAULT_MESSAGES.prestayCareNote, {
-      cat: b.catName,
+      cat: politeCat(b.catName),
     }),
     litterNote: litterNoteFor(b, cfg) || undefined,
   };
@@ -210,7 +211,7 @@ export function buildPrestayReminderText(
 ): string {
   let text = renderTemplate(cfg.messages.prestayReminder, {
     shop: cfg.business.name,
-    cat: b.catName,
+    cat: politeCat(b.catName),
     checkin: b.checkin || b.date || "",
     checkout: b.checkout ? `→ ${b.checkout}` : "",
     room: b.room ? `🏠 ห้อง: ${b.room}` : "",

@@ -33,6 +33,7 @@ import {
   buildMemberBalanceFlex,
   buildReviewRequestFlex,
   reviewMessageFor,
+  politeCat,
 } from "@/lib/line";
 import { renderTemplate } from "@/lib/messages";
 import { redeemCoupon } from "@/lib/coupons-store";
@@ -239,7 +240,7 @@ async function handlePost(req: NextRequest) {
         title: msgs.depositRequestTitle,
         body: renderTemplate(msgs.depositRequestBody, {
           name: customer.name,
-          cat: catName,
+          cat: politeCat(catName),
           amount: amount.toLocaleString(),
           pct: pctNum > 0 ? ` ${pctNum}% ของค่าบริการ` : "",
         }),
@@ -284,7 +285,7 @@ async function handlePost(req: NextRequest) {
           title: msgs.depositThanksTitle,
           body: renderTemplate(msgs.depositThanksBody, {
             name: customer.name,
-            cat: catName,
+            cat: politeCat(catName),
             amount: res.amount.toLocaleString(),
           }),
           terms: msgs.depositTerms || [],

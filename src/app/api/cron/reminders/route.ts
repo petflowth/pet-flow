@@ -13,6 +13,7 @@ import {
   buildBillSummaryFlex,
   buildConsentFlex,
   politeName,
+  politeCat,
 } from "@/lib/line";
 import { getPaymentConfig } from "@/lib/payment-config";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
@@ -328,7 +329,7 @@ async function runForTenant() {
           title: "⭐ ขอบคุณที่ใช้บริการค่ะ",
           body: renderTemplate(cfg.messages.reviewRequest, {
             shop: cfg.business.name,
-            cat: b.catName,
+            cat: politeCat(b.catName),
           }),
           reviewUrl,
           reviewLabel: cfg.business.reviewButtonText,
@@ -387,7 +388,7 @@ async function runForTenant() {
         renderTemplate(cfg.messages.birthdayGreeting, {
           shop: cfg.business.name,
           name: politeName(c.name),
-          cat: (bdayCat ? bdayCat.name : c.name) || "น้องแมว",
+          cat: politeCat(bdayCat ? bdayCat.name : c.name) || "น้องแมว",
         }) + couponLine;
       try {
         await pushLineMessage(c.lineUserId, [{ type: "text", text }]);

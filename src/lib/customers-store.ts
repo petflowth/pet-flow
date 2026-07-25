@@ -722,6 +722,41 @@ export async function adoptLineFromBookings(customerId: string) {
   };
 }
 
+/**
+ * ปลดผูก LINE ออกจากลูกค้า — ล้างทั้ง ID หลักและ ID สำรองทุกตัว
+ * ใช้ตอนผูกผิดคน/ผูกมั่ว แล้วอยากส่งลิงก์เชิญให้ลูกค้ากดผูกใหม่จากศูนย์
+ * แต้ม/คูปอง/บิล ไม่หาย เพราะผูกกับตัวลูกค้า (C:<id>) ไม่ได้ผูกกับ LINE ID
+ */
+export async function unlinkCustomerLine(customerId: string) {
+  const customer = await getCustomer(customerId);
+  if (!customer) return { ok: false as const, error: "not_found" };
+
+  customer.lineUserId = undefined;
+  customer.lineDisplayName = undefined;
+  customer.lineUserIds = [];
+  customer.updatedAt = new Date().toISOString();
+
+  const sb = getSupabase();
+  if (sb) {
+    await sb
+      .from("customers")
+      .update({
+        line_user_id: null,
+        line_display_name: null,
+        updated_at: customer.updatedAt,
+      })
+      .eq("id", customerId);
+    try {
+      await sb.from("customers").update({ line_user_ids: [] }).eq("id", customerId);
+    } catch {
+      /* ยังไม่มีคอลัมน์ line_user_ids */
+    }
+  } else {
+    memCustomers.set(customerId, customer);
+  }
+  return { ok: true as const };
+}
+
 /** ข้อมูลย่อสำหรับหน้าผูก LINE */
 export async function getCustomerLinkPreview(customerId: string) {
   const c = await getCustomer(customerId);

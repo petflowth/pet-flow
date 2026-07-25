@@ -21,6 +21,7 @@ import {
   recalculateCustomerTier,
   recalcAllTiers,
   adoptLineFromBookings,
+  unlinkCustomerLine,
 } from "@/lib/customers-store";
 import type { CustomerTier } from "@/lib/customer-tier";
 import { getAllPointsMap } from "@/lib/points-store";
@@ -233,6 +234,13 @@ async function handlePatch(req: NextRequest) {
 
   if (action === "restore_customer") {
     await restoreCustomer(id);
+    return NextResponse.json({ ok: true });
+  }
+
+  // ปลดผูก LINE — ล้างให้หมดแล้วส่งลิงก์เชิญให้ลูกค้ากดผูกใหม่ได้เลย
+  if (action === "unlink_line") {
+    const res = await unlinkCustomerLine(id);
+    if (!res.ok) return NextResponse.json({ error: "not found" }, { status: 404 });
     return NextResponse.json({ ok: true });
   }
 

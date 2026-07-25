@@ -1464,6 +1464,37 @@ function CustomerSummaryCard({
         <AdoptLineControl customer={customer} onMerged={onSaved} />
       )}
 
+      {customer.lineUserId && (
+        <button
+          type="button"
+          onClick={async () => {
+            if (
+              !confirm(
+                `ปลดผูก LINE ของ "${customer.name}"?\n\n` +
+                  `หลังปลด: ส่งลิงก์เชิญให้ลูกค้ากดผูกใหม่ได้เลย (ไม่ติด "ผูกไปแล้ว")\n` +
+                  `แต้ม · คูปอง · บิล · แมว ยังอยู่ครบ ไม่หายไปไหน\n\n` +
+                  `⚠️ ระหว่างที่ยังไม่ผูกใหม่ ลูกค้าจะไม่ได้รับข้อความจากร้าน`
+              )
+            )
+              return;
+            const res = await fetch("/api/customers", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id: customer.id, action: "unlink_line" }),
+            });
+            if (res.ok) {
+              toast("ปลดผูก LINE แล้ว — ส่งลิงก์เชิญให้ลูกค้าผูกใหม่ได้เลย 🔓", "success");
+              onSaved();
+            } else {
+              toast("ปลดผูกไม่สำเร็จ", "error");
+            }
+          }}
+          className="mt-2 w-full rounded-catcha-sm border border-wait/40 bg-wait/10 py-2 text-[11px] font-bold text-wait"
+        >
+          🔓 ปลดผูก LINE (ให้ลูกค้ากดผูกใหม่)
+        </button>
+      )}
+
       <MergeCustomerControl customer={customer} onMerged={onSaved} />
 
       <button

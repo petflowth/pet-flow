@@ -1564,7 +1564,7 @@ function AdoptLineControl({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-2 w-full rounded-catcha-sm border border-ok/40 bg-ok/10 py-2 text-[11px] font-bold text-ok"
+        className="mt-2 w-full rounded-petflow-sm border border-ok/40 bg-ok/10 py-2 text-[11px] font-bold text-ok"
       >
         🔗 ผูก LINE ให้เอง (ลูกค้าไม่ต้องกดอะไร)
       </button>
@@ -1572,8 +1572,8 @@ function AdoptLineControl({
   }
 
   return (
-    <div className="mt-2 rounded-catcha-sm border border-ok/40 bg-ok/5 p-3">
-      <p className="mb-1 text-[11px] font-extrabold text-catcha-chocolate">
+    <div className="mt-2 rounded-petflow-sm border border-ok/40 bg-ok/5 p-3">
+      <p className="mb-1 text-[11px] font-extrabold text-petflow-chocolate">
         🔗 ผูก LINE ให้ “{customer.name}”
       </p>
       <p className="mb-2 text-[10px] text-brown-faint">
@@ -1587,7 +1587,7 @@ function AdoptLineControl({
           void search(e.target.value);
         }}
         placeholder="พิมพ์ชื่อลูกค้า / ชื่อ LINE"
-        className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-2.5 py-2 text-xs"
+        className="w-full rounded-petflow-sm border border-petflow-line bg-paper px-2.5 py-2 text-xs"
       />
       <ul className="mt-2 space-y-1">
         {results.map((c) => (
@@ -1596,7 +1596,7 @@ function AdoptLineControl({
               type="button"
               disabled={busy}
               onClick={() => adopt(c)}
-              className="w-full rounded-catcha-sm bg-card px-2.5 py-1.5 text-left text-xs font-bold text-brown disabled:opacity-40"
+              className="w-full rounded-petflow-sm bg-card px-2.5 py-1.5 text-left text-xs font-bold text-brown disabled:opacity-40"
             >
               {c.name}
               {c.lineDisplayName && (
@@ -1616,7 +1616,7 @@ function AdoptLineControl({
       <button
         type="button"
         onClick={() => setOpen(false)}
-        className="mt-2 w-full rounded-catcha-sm bg-paper py-1.5 text-[10px] font-bold text-brown-soft"
+        className="mt-2 w-full rounded-petflow-sm bg-paper py-1.5 text-[10px] font-bold text-brown-soft"
       >
         ปิด
       </button>
@@ -1684,15 +1684,15 @@ function MergeCustomerControl({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-2 w-full rounded-catcha-sm border border-latte/40 bg-latte/10 py-2 text-[11px] font-bold text-latte-deep"
+        className="mt-2 w-full rounded-petflow-sm border border-latte/40 bg-latte/10 py-2 text-[11px] font-bold text-latte-deep"
       >
         🔗 รวมกับลูกค้าอื่น (กรณีบัญชีซ้ำ)
       </button>
     );
   }
   return (
-    <div className="mt-2 rounded-catcha-sm border border-latte/40 bg-latte/10 p-3">
-      <p className="mb-1 text-[11px] font-extrabold text-catcha-chocolate">
+    <div className="mt-2 rounded-petflow-sm border border-latte/40 bg-latte/10 p-3">
+      <p className="mb-1 text-[11px] font-extrabold text-petflow-chocolate">
         🔗 รวม “{customer.name}” เข้ากับลูกค้าอีกคน
       </p>
       <p className="mb-2 text-[10px] text-brown-faint">
@@ -1705,7 +1705,7 @@ function MergeCustomerControl({
           search(e.target.value);
         }}
         placeholder="พิมพ์ชื่อลูกค้าปลายทาง"
-        className="w-full rounded-catcha-sm border border-catcha-line bg-paper px-2.5 py-2 text-xs"
+        className="w-full rounded-petflow-sm border border-petflow-line bg-paper px-2.5 py-2 text-xs"
       />
       <ul className="mt-2 space-y-1">
         {results.map((c) => (
@@ -1714,7 +1714,7 @@ function MergeCustomerControl({
               type="button"
               disabled={busy}
               onClick={() => merge(c)}
-              className="w-full rounded-catcha-sm bg-card px-2.5 py-1.5 text-left text-xs font-bold text-brown disabled:opacity-40"
+              className="w-full rounded-petflow-sm bg-card px-2.5 py-1.5 text-left text-xs font-bold text-brown disabled:opacity-40"
             >
               → {c.name}
               {c.lineDisplayName ? ` · LINE: ${c.lineDisplayName}` : ""}

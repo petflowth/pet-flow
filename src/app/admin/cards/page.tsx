@@ -810,7 +810,7 @@ function Preview({
         <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
           <p className={`${titleCls} font-extrabold`} style={{ color: c("accentColor", "#5C4033") }}>🐱 เรเนล</p>
           <p className="text-[10px] text-[#A2907E]">PetFlow</p>
-          <p>สวัสดีค่ะ 🧡 อีก 3 วันน้องจะได้มาพักกับเราแล้วนะคะ</p>
+          <p>สวัสดีค่ะ 🧡 ใกล้ถึงวันเข้าพักของน้องแล้วนะคะ</p>
           {(show("dates") || show("room")) && (
             <div className="space-y-1.5 rounded-xl bg-[#F4ECE0] px-3 py-2.5">
               {show("dates") && (

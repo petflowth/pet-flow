@@ -473,11 +473,11 @@ async function handlePatch(req: NextRequest, admin: boolean) {
           );
         }
       } else if (part === "prestay") {
-        const url = await getConsentUrl(b.id);
+        // ไม่แนบลิงก์เซ็น — ถ้าต้องการให้ติ๊ก "เงื่อนไข + ลายเซ็น" เพิ่มเอง
         messages.push(
           buildPrestayFlex({
             ...buildPrestayFlexData(b, cfg),
-            consentUrl: url || undefined,
+            consentUrl: undefined,
           }, cfg.cards?.prestay)
         );
       } else if (part === "receipt" || part === "depositThanks") {
@@ -736,10 +736,11 @@ async function handlePatch(req: NextRequest, admin: boolean) {
 
     // แจ้งเข้าพัก → การ์ดเดียว: รายละเอียดเตรียมตัว + ปุ่มไปกดยอมรับเงื่อนไข
     if (action === "send_prestay") {
-      const url = await getConsentUrl(b.id);
+      // การ์ดแจ้งเข้าพัก = เรื่องเตรียมตัวอย่างเดียว ไม่แนบลิงก์เซ็นแล้ว
+      // (เงื่อนไข+ลายเซ็นแยกเป็นปุ่มของตัวเอง จะได้เลือกส่งทีละอย่างได้)
       const flex = buildPrestayFlex({
         ...buildPrestayFlexData(b, cfg),
-        consentUrl: url || undefined,
+        consentUrl: undefined,
       }, cfg.cards?.prestay);
       try {
         await pushLineMessage(to, [flex]);

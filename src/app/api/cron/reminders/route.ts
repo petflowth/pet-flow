@@ -11,6 +11,7 @@ import {
   buildReviewRequestFlex,
   buildGroomInfoFlex,
   buildBillSummaryFlex,
+  buildConsentFlex,
 } from "@/lib/line";
 import { getPaymentConfig } from "@/lib/payment-config";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
@@ -29,7 +30,7 @@ import { listCustomers, getCatGroomInfo } from "@/lib/customers-store";
 import { issueCoupon, listCustomerCoupons } from "@/lib/coupons-store";
 import { parseGroomInfo, groomInfoSummary } from "@/lib/groom-info";
 import { resolveGroomForm } from "@/lib/groom-form";
-import { renderTemplate } from "@/lib/messages";
+import { renderTemplate, DEFAULT_MESSAGES } from "@/lib/messages";
 import { withTenant } from "@/lib/tenant-context";
 import { listActiveTenantIds } from "@/lib/tenant-directory";
 
@@ -200,11 +201,28 @@ async function runForTenant() {
     ) {
       const consentUrl = await getConsentUrl(b.id);
       const prestayBundle: object[] = [
+        // การ์ดเตรียมตัว (ไม่มีลิงก์เซ็นแล้ว) + การ์ดเงื่อนไข/ลายเซ็น แยกกันคนละใบ
         buildPrestayFlex({
           ...buildPrestayFlexData(b, cfg),
-          consentUrl: consentUrl || undefined,
+          consentUrl: undefined,
         }, cfg.cards?.prestay),
       ];
+      if (consentUrl) {
+        prestayBundle.push(
+          buildConsentFlex({
+            businessName: cfg.business.name,
+            title: cfg.messages.consentTitle || DEFAULT_MESSAGES.consentTitle,
+            catName: String(b.catName),
+            checkin: b.checkin || b.date,
+            checkout: b.checkout,
+            room: b.room,
+            terms: cfg.messages.consentTerms?.length
+              ? cfg.messages.consentTerms
+              : DEFAULT_MESSAGES.consentTerms,
+            url: consentUrl,
+          })
+        );
+      }
       // มีบิลค้าง + มัดจำแล้ว → แนบการ์ดยอดคงเหลือที่ต้องโอนก่อนเข้าพัก
       const pendingInv = allInvoices.find(
         (i) => i.bookingId === b.id && i.status === "pending" && (i.deposit || 0) > 0

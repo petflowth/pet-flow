@@ -330,7 +330,7 @@ export function CustomerSendButtons({
   const hasRoomStay = service === "room" || service === "both";
   const BUNDLE_OPTIONS: { key: string; label: string; when: boolean }[] = [
     { key: "reminder", label: "📨 แจ้งเตือนนัด", when: !!bookingId },
-    { key: "prestay", label: "🏠 แจ้งเข้าพัก + เงื่อนไข", when: hasRoomStay },
+    { key: "prestay", label: "🏠 แจ้งเตรียมตัวเข้าพัก", when: hasRoomStay },
     { key: "consent", label: "📋 เงื่อนไข + ลายเซ็น", when: hasRoomStay },
     {
       // เข้าพักก็ขอประวัติได้ — เคสพักพร้อมอาบน้ำ หรือมาเพิ่มอาบน้ำระหว่างเข้าพัก
@@ -384,8 +384,15 @@ export function CustomerSendButtons({
       {bookingId && hasRoomStay && (
         <Btn
           k="send_prestay"
-          label="🏠 แจ้งเข้าพัก + เงื่อนไข"
-          onClick={() => bookingSend("send_prestay", "ส่งการ์ดแจ้งเข้าพัก + เงื่อนไขแล้ว 🏠")}
+          label="🏠 แจ้งเตรียมตัวเข้าพัก"
+          onClick={() => bookingSend("send_prestay", "ส่งการ์ดแจ้งเตรียมตัวเข้าพักแล้ว 🏠")}
+        />
+      )}
+      {bookingId && hasRoomStay && (
+        <Btn
+          k="send_consent"
+          label="📋 เงื่อนไข + ลายเซ็น"
+          onClick={() => bookingSend("send_consent", "ส่งการ์ดเงื่อนไข + ลายเซ็นแล้ว 📋")}
         />
       )}
       {/* เข้าพักก็กดขอประวัติได้ — เคสพักพร้อมอาบน้ำ / มาเพิ่มอาบน้ำระหว่างเข้าพัก */}

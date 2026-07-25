@@ -29,6 +29,7 @@ import {
   buildBillSummaryFlex,
   buildDepositRequestFlex,
   buildDepositThanksFlex,
+  buildReceiptFlex,
   buildMemberBalanceFlex,
   buildReviewRequestFlex,
   reviewMessageFor,
@@ -390,6 +391,34 @@ async function handlePatch(req: NextRequest) {
         reviewUrl,
         reviewLabel: biz.reviewButtonText,
       }, cfg.cards?.review),
+    ]);
+    return NextResponse.json({ ok: true });
+  }
+
+  // ส่งใบเสร็จจากบิลตรงๆ — ไม่ต้องมีนัดผูก (บิลที่ออกเองไม่มีนัดก็ส่งได้)
+  if (action === "send_receipt") {
+    if (inv.status !== "paid") {
+      return NextResponse.json({ error: "บิลนี้ยังไม่ได้รับเงิน" }, { status: 400 });
+    }
+    if (!inv.lineUserId) {
+      return NextResponse.json({ error: "no_line" }, { status: 400 });
+    }
+    const cfgR = await getSiteConfig();
+    await pushLineMessage(inv.lineUserId, [
+      buildReceiptFlex({
+        invoiceId: inv.id,
+        customerName: inv.customerName,
+        catName: inv.catName,
+        total: inv.total,
+        pointsEarned: inv.pointsEarned || 0,
+        shopName: cfgR.business.name,
+        paymentMethod:
+          inv.paymentMethod === "member_credit"
+            ? "Member Credit"
+            : inv.paymentMethod === "cash"
+              ? "เงินสด"
+              : "โอนเงิน",
+      }, cfgR.cards?.receipt),
     ]);
     return NextResponse.json({ ok: true });
   }

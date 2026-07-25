@@ -456,6 +456,17 @@ function normName(s: string) {
 }
 
 /**
+ * เบอร์โทรแบบเทียบได้ — ตัดอักขระที่ไม่ใช่ตัวเลข + แปลง +66 เป็น 0
+ * ใช้เป็น "ตัวระบุตัวตนหลัก" ตอนลูกค้าสมัครเอง (ชื่อ LINE เชื่อไม่ได้ แต่เบอร์เชื่อได้)
+ */
+function normPhone(s?: string): string {
+  const d = (s || "").replace(/\D/g, "");
+  if (!d) return "";
+  const local = d.startsWith("66") ? `0${d.slice(2)}` : d;
+  return local.length >= 9 ? local : "";
+}
+
+/**
  * ตัดบรรทัด "ของแถมฟรี" (และบรรทัดเฉพาะการจอง) ออกจากโน้ตนิสัยแมว
  * โน้ตนิสัยเป็นข้อมูลถาวรของแมว ไม่ควรมีของแถมของบิลนั้นๆ ปนเข้ามา
  */
@@ -2037,6 +2048,20 @@ export async function registerCustomerFromLine(data: {
   const customer =
     (await upsertCustomerFromLine({ lineUserId, displayName: name })) ?? undefined;
   if (!customer) return null;
+
+  // ── กันบัญชีซ้ำด้วย "เบอร์โทร" ──
+  // ชื่อ LINE ตั้งเป็นอะไรก็ได้ จับคู่ด้วยชื่ออย่างเดียวจึงพลาดบ่อย (เกิด record ที่ 2)
+  // แต่เบอร์โทรคือคนคนเดิมแน่ๆ — เจอเบอร์ซ้ำเมื่อไหร่ให้รวมเข้าด้วยกันทันที
+  // (เคสจริง: ลูกค้าเคยมีนัด/เคยสมัครไว้ แล้วมาสมัครใหม่จากอีกเครื่อง LINE ให้ ID คนละตัว)
+  const phoneKey = normPhone(phone);
+  if (phoneKey) {
+    const dupes = (await fetchAllCustomers()).filter(
+      (c) => c.id !== customer.id && normPhone(c.phone) === phoneKey
+    );
+    for (const dupe of dupes) {
+      await mergeCustomers(dupe.id, customer.id);
+    }
+  }
 
   await updateCustomer(customer.id, {
     name,

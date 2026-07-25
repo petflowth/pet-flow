@@ -438,12 +438,24 @@ export function CustomerSendButtons({
           onClick={() => invoiceSummary("booking", "ส่งสรุปการจองแล้ว 🧾")}
         />
       )}
-      {/* จ่ายแล้ว = ส่งใบเสร็จได้ — กดส่งเองเสมอ ระบบไม่ยิงให้อัตโนมัติตอนกดรับเงิน */}
-      {invId && billPaid && bookingId && (
+      {/* จ่ายแล้ว = ส่งใบเสร็จได้ — กดส่งเองเสมอ ระบบไม่ยิงให้อัตโนมัติตอนกดรับเงิน
+          ส่งจากบิลตรงๆ ไม่ต้องมีนัดผูก (บิลที่ออกเองก็ส่งใบเสร็จได้) */}
+      {invId && billPaid && (
         <Btn
-          k="bundle:receipt"
+          k="inv:receipt"
           label="🧾 ส่งใบเสร็จรับเงิน"
-          onClick={() => sendBundleParts(["receipt"], "ส่งใบเสร็จรับเงินแล้ว 🧾")}
+          onClick={() =>
+            call(
+              "inv:receipt",
+              () =>
+                fetch("/api/invoices", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ id: invId, action: "send_receipt" }),
+                }),
+              "ส่งใบเสร็จรับเงินแล้ว 🧾"
+            )
+          }
         />
       )}
       {invId && !billPaid && (

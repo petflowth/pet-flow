@@ -655,6 +655,54 @@ export async function linkCustomerToLine(data: {
   return { ok: true as const, customer: refreshed || customer };
 }
 
+/**
+ * ผูก LINE ให้ลูกค้าโดยดึงจาก "นัด" ของเขาเอง — ลูกค้าไม่ต้องกดอะไรเลย
+ * นัดที่จองผ่าน LINE เก็บ lineUserId ไว้กับตัวนัดอยู่แล้ว จึงย้อนหาได้เสมอ
+ * ถ้า LINE นั้นไปค้างบน record อื่นที่ยังไม่ถูกลบ → รวมเข้ามาก่อนแล้วค่อยผูก
+ */
+export async function adoptLineFromBookings(customerId: string) {
+  const customer = await getCustomer(customerId);
+  if (!customer) return { ok: false as const, error: "not_found" };
+  if (customer.lineUserId)
+    return { ok: true as const, lineUserId: customer.lineUserId, already: true };
+
+  const { listBookings } = await import("./bookings-store");
+  const { bookingMatchesCustomer } = await import("./booking-customer-match");
+  const bookings = await listBookings();
+  // นัดล่าสุดก่อน — ถ้าลูกค้าเคยเปลี่ยนเครื่อง/ไอดี จะได้ตัวที่ใช้อยู่จริง
+  const candidates = bookings
+    .filter((b) => b.lineUserId && bookingMatchesCustomer(b, customer))
+    .map((b) => b.lineUserId as string);
+  const lineUserId = candidates[0];
+  if (!lineUserId) return { ok: false as const, error: "no_booking_line" };
+
+  // LINE นี้อยู่บน record อื่นที่ยังไม่ถูกลบ → รวมเข้ามาก่อน (mergeCustomers พา LINE หลักมาด้วยแล้ว)
+  const other = await findCustomerByLine(lineUserId);
+  if (other && other.id !== customerId) {
+    await mergeCustomers(other.id, customerId);
+  } else {
+    customer.lineUserId = lineUserId;
+    customer.updatedAt = new Date().toISOString();
+    const sb = getSupabase();
+    if (sb) {
+      await sb
+        .from("customers")
+        .update({ line_user_id: lineUserId, updated_at: customer.updatedAt })
+        .eq("id", customerId);
+    } else {
+      memCustomers.set(customerId, customer);
+    }
+  }
+
+  await linkBookingsToLineCustomer((await getCustomer(customerId)) || customer);
+  const refreshed = await getCustomer(customerId);
+  return {
+    ok: true as const,
+    lineUserId: refreshed?.lineUserId || lineUserId,
+    merged: Boolean(other && other.id !== customerId),
+  };
+}
+
 /** ข้อมูลย่อสำหรับหน้าผูก LINE */
 export async function getCustomerLinkPreview(customerId: string) {
   const c = await getCustomer(customerId);

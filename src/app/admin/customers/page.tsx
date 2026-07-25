@@ -1576,8 +1576,36 @@ function AdoptLineControl({
       <p className="mb-1 text-[11px] font-extrabold text-petflow-chocolate">
         🔗 ผูก LINE ให้ “{customer.name}”
       </p>
+      {/* ทางลัด: นัดที่จองผ่าน LINE เก็บ LINE ID ไว้กับตัวนัดอยู่แล้ว — ดึงมาใช้ได้เลย
+          ไม่ต้องหา record ซ้ำเอง (ต่อให้ตัวซ้ำโดนลบไปแล้วก็ยังดึงได้) */}
+      <button
+        type="button"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            const res = await fetch("/api/customers", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id: customer.id, action: "adopt_line_from_bookings" }),
+            });
+            const d = await res.json().catch(() => ({}));
+            if (res.ok) {
+              toast("ผูก LINE จากนัดให้แล้ว ✓ ลูกค้าไม่ต้องทำอะไร", "success");
+              onMerged();
+            } else {
+              toast(d.error || "ดึงจากนัดไม่ได้ — ลองเลือกจากรายชื่อด้านล่าง", "error");
+            }
+          } finally {
+            setBusy(false);
+          }
+        }}
+        className="mb-2 w-full rounded-catcha-sm bg-ok py-2 text-[11px] font-extrabold text-white disabled:opacity-40"
+      >
+        {busy ? "กำลังผูก…" : "⚡ ดึง LINE จากนัดของลูกค้าอัตโนมัติ (แนะนำ)"}
+      </button>
       <p className="mb-2 text-[10px] text-brown-faint">
-        เลือกบัญชีที่ลูกค้าใช้อยู่จริง (บัญชีที่มี LINE แล้ว) — ระบบจะย้ายแต้ม/คูปอง/บิล
+        หรือเลือกบัญชีที่ลูกค้าใช้อยู่จริง (บัญชีที่มี LINE แล้ว) — ระบบจะย้ายแต้ม/คูปอง/บิล
         มารวมที่นี่แล้วลบตัวซ้ำให้
       </p>
       <input

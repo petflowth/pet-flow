@@ -20,6 +20,7 @@ import {
   upsertCustomerFromBooking,
   recalculateCustomerTier,
   recalcAllTiers,
+  adoptLineFromBookings,
 } from "@/lib/customers-store";
 import type { CustomerTier } from "@/lib/customer-tier";
 import { getAllPointsMap } from "@/lib/points-store";
@@ -232,6 +233,22 @@ async function handlePatch(req: NextRequest) {
   if (action === "restore_customer") {
     await restoreCustomer(id);
     return NextResponse.json({ ok: true });
+  }
+
+  // ผูก LINE ให้ลูกค้าโดยดึงจากนัดของเขาเอง — ไม่ต้องรบกวนลูกค้า ไม่ต้องงมหา record ซ้ำ
+  if (action === "adopt_line_from_bookings") {
+    const res = await adoptLineFromBookings(id);
+    if (!res.ok) {
+      const messages: Record<string, string> = {
+        not_found: "ไม่พบลูกค้า",
+        no_booking_line: "นัดของลูกค้าคนนี้ไม่มี LINE ID เลย — ใช้ลิงก์เชิญผูกแทน",
+      };
+      return NextResponse.json(
+        { error: messages[res.error] || res.error },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json(res);
   }
 
   // รวมลูกค้าซ้ำ 2 record → 1 (ย้ายแต้ม/คูปอง/เครดิต/บิล/แมว/LINE ID ไปที่ target แล้วลบ source)

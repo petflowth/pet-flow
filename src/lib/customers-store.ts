@@ -623,7 +623,11 @@ export async function linkCustomerToLine(data: {
 
   const other = await findCustomerByLine(lineUserId);
   if (other && other.id !== customerId) {
-    return { ok: false as const, error: "line_in_use" };
+    // LINE นี้ไปอยู่บนอีก record แล้ว — เกือบทุกครั้งคือ "คนเดียวกัน" ที่สมัครซ้ำ
+    // หรือระบบสร้างบัญชีอัตโนมัติตอนเปิดแอปครั้งแรก (คนละ record กับที่ร้านสร้างไว้)
+    // จึงรวมบัญชีเก่าเข้าบัญชีที่ร้านสร้างไว้ (target) แทนการบล็อก แล้วค่อยผูก LINE ต่อ
+    // (ย้ายแต้ม/คูปอง/บิล/แมว/เครดิตไปที่ target แล้ว soft-delete ตัวซ้ำ — กู้จากถังขยะได้)
+    await mergeCustomers(other.id, customerId);
   }
 
   customer.lineUserId = lineUserId;

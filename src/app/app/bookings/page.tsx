@@ -70,6 +70,8 @@ function BookingsContent() {
         body: JSON.stringify({
           id,
           action: "confirm",
+          // ต้องส่ง lineUserId ไปด้วย ไม่งั้นฝั่งเซิร์ฟเวอร์เช็คว่า "นัดนี้เป็นของเราไหม" ไม่ผ่าน → 401
+          lineUserId: profile?.lineUserId,
           checkinTime: b.service === "room" ? checkin : undefined,
         }),
       });

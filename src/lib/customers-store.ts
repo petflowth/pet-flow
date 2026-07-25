@@ -694,23 +694,30 @@ export async function adoptLineFromBookings(customerId: string) {
   const lineUserId = fromBackup || fromBookings[0];
   if (!lineUserId) return { ok: false as const, error: "no_booking_line" };
 
-  // LINE นี้อยู่บน record อื่นที่ยังไม่ถูกลบ → รวมเข้ามาก่อน (mergeCustomers พา LINE หลักมาด้วยแล้ว)
+  // LINE นี้อยู่บน record อื่นที่ยังไม่ถูกลบ → รวมเข้ามาก่อน
   const other = await findCustomerByLine(lineUserId);
   if (other && other.id !== customerId) {
     await mergeCustomers(other.id, customerId);
+  }
+
+  // ตั้งเป็น "ช่องหลัก" เสมอ ไม่ว่าจะผ่านทางรวมบัญชีหรือไม่
+  // (record ต้นทางอาจถือ LINE ไว้ในช่องสำรองเหมือนกัน การรวมจึงไม่มีช่องหลักให้ยกมา
+  //  ผลคือขึ้นว่าสำเร็จแต่ป้ายยัง "ยังไม่ผูก" — ต้องเขียนตรงนี้ปิดท้ายทุกครั้ง)
+  const now = new Date().toISOString();
+  customer.lineUserId = lineUserId;
+  customer.updatedAt = now;
+  const sb = getSupabase();
+  if (sb) {
+    await sb
+      .from("customers")
+      .update({ line_user_id: lineUserId, updated_at: now })
+      .eq("id", customerId)
+      .eq("tenant_id", requireTenantId());
   } else {
-    customer.lineUserId = lineUserId;
-    customer.updatedAt = new Date().toISOString();
-    const sb = getSupabase();
-    if (sb) {
-      await sb
-        .from("customers")
-        .update({ line_user_id: lineUserId, updated_at: customer.updatedAt })
-        .eq("id", customerId)
-        .eq("tenant_id", requireTenantId());
-    } else {
-      memCustomers.set(customerId, customer);
-    }
+    const cur = memCustomers.get(customerId) || customer;
+    cur.lineUserId = lineUserId;
+    cur.updatedAt = now;
+    memCustomers.set(customerId, cur);
   }
 
   await linkBookingsToLineCustomer((await getCustomer(customerId)) || customer);

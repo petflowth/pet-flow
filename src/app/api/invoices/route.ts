@@ -29,7 +29,6 @@ import {
   buildBillSummaryFlex,
   buildDepositRequestFlex,
   buildDepositThanksFlex,
-  buildReceiptFlex,
   buildMemberBalanceFlex,
   buildReviewRequestFlex,
   reviewMessageFor,
@@ -419,60 +418,10 @@ async function handlePatch(req: NextRequest) {
 
     const paid = result.invoice!;
     const customer = result.customer;
-    let paidNotifyErr: string | undefined;
-
-    if (paid.lineUserId) {
-      const cfgRc = await getSiteConfig();
-      const receiptMsgs: object[] = [
-        buildReceiptFlex({
-          invoiceId: paid.id,
-          customerName: paid.customerName,
-          catName: paid.catName,
-          total: paid.total,
-          pointsEarned: paid.pointsEarned || 0,
-          shopName: cfgRc.business.name,
-          paymentMethod:
-            paid.paymentMethod === "member_credit"
-              ? "Member Credit"
-              : paid.paymentMethod === "cash"
-                ? "เงินสด"
-                : "โอนเงิน",
-        }, cfgRc.cards?.receipt),
-      ];
-      // ใบเสร็จ + ขอรีวิว รวมใน push เดียว (LINE นับเป็น 1 ข้อความ — ประหยัดโควตา)
-      // ปิดได้จากหน้าปรับแต่งการ์ด (ใบเสร็จ → ติ๊กออก "แนบการ์ดขอรีวิว")
-      const bundleReview = cfgRc.cards?.receipt?.show?.reviewBundle !== false;
-      const reviewUrlRc = cfgRc.business.reviewUrl || cfgRc.business.maps;
-      if (bundleReview && reviewUrlRc) {
-        const hasGroomRc = (paid.items || []).some(
-          (it) =>
-            it.kind === "grooming" || /อาบน้ำ|กรูม|premium|malaseb/i.test(it.label)
-        );
-        const hasRoomRc = (paid.items || []).some((it) => /คืน|ห้อง/.test(it.label));
-        const msgRc = reviewMessageFor(hasGroomRc, hasRoomRc, cfgRc.business.name, cfgRc.cards?.review);
-        receiptMsgs.push(
-          buildReviewRequestFlex({
-            title: msgRc.title,
-            body: msgRc.body,
-            reviewUrl: reviewUrlRc,
-            reviewLabel: cfgRc.business.reviewButtonText,
-          }, cfgRc.cards?.review)
-        );
-      }
-      // ยอด Member ก็แนบไปในข้อความเดียวกัน — เมื่อก่อนยิงแยกทำให้เสียโควตาเพิ่มอีก 1
-      if (customer?.isMember) {
-        receiptMsgs.push(
-          buildMemberBalanceFlex({
-            customerName: customer.name,
-            memberCredit: customer.memberCredit,
-            usedToday:
-              paid.paymentMethod === "member_credit" ? paid.total : undefined,
-            catName: paid.catName,
-          }, cfgRc.cards?.memberBalance)
-        );
-      }
-      paidNotifyErr = await notifyCustomer(paid.lineUserId, receiptMsgs);
-    }
+    // "รับเงินแล้ว" = แค่ปิดบิล + ลงบัญชี + แต้ม (ภายในร้านเท่านั้น) — ไม่ยิงการ์ดหาลูกค้า
+    // เคสโรงแรมจ่ายก่อนเข้าพัก ใบเสร็จ/รีวิวต้องแยกกดส่งเอง (ปุ่ม "ส่งใบเสร็จ" / "ขอรีวิว")
+    // จะได้ไม่ส่งรีวิวตั้งแต่ยังไม่เข้าพัก
+    const paidNotifyErr: string | undefined = undefined;
 
     const gotDeposit = (result.alreadyReceived || 0) > 0;
     await sendTelegram(

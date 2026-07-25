@@ -838,15 +838,8 @@ export default function BillingPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        // เงินลงบัญชีแล้วเสมอ — แต่ถ้าส่งการ์ดไม่ได้ต้องบอกให้ร้านรู้ จะได้ไม่เข้าใจผิดว่าลูกค้าได้ใบเสร็จ
-        if (data.notifyError) {
-          toast(
-            `รับชำระ + ลงบัญชีแล้ว 🧾 แต่ส่งใบเสร็จเข้า LINE ไม่ได้: ${data.notifyError}`,
-            "error"
-          );
-        } else {
-          toast("รับชำระแล้ว — ลงบัญชี + ส่งใบเสร็จ + แต้ม 🧾", "success");
-        }
+        // ปุ่มนี้เป็นแค่สถานะหลังบ้าน — ไม่ส่งอะไรหาลูกค้า ต้องบอกให้ร้านรู้ว่าใบเสร็จต้องกดส่งเอง
+        toast("รับเงินแล้ว — ลงบัญชี + แต้ม ✅ (ใบเสร็จกดส่งเองที่ปุ่ม 🧾)", "success");
         load();
       } else if (data.error === "insufficient_credit") {
         toast("เครดิต Member ไม่พอ", "error");

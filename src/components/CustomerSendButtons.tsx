@@ -438,12 +438,12 @@ export function CustomerSendButtons({
           onClick={() => invoiceSummary("booking", "ส่งสรุปการจองแล้ว 🧾")}
         />
       )}
-      {/* จ่ายจบแล้วไม่ต้องทวงเงินอีก — สลับเป็นปุ่มส่งใบเสร็จซ้ำแทน */}
+      {/* จ่ายแล้ว = ส่งใบเสร็จได้ — กดส่งเองเสมอ ระบบไม่ยิงให้อัตโนมัติตอนกดรับเงิน */}
       {invId && billPaid && bookingId && (
         <Btn
           k="bundle:receipt"
-          label="🧾 ส่งใบเสร็จอีกครั้ง"
-          onClick={() => sendBundleParts(["receipt"], "ส่งใบเสร็จแล้ว 🧾")}
+          label="🧾 ส่งใบเสร็จรับเงิน"
+          onClick={() => sendBundleParts(["receipt"], "ส่งใบเสร็จรับเงินแล้ว 🧾")}
         />
       )}
       {invId && !billPaid && (

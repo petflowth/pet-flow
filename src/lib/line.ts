@@ -365,7 +365,9 @@ export function buildConsentFlex(data: {
         data.room ? ` · ห้อง ${data.room}` : ""
       }`
     : "";
-  const terms = (data.terms || []).slice(0, 5);
+  // ไม่ลิสต์เงื่อนไขทั้งหมดบนการ์ด — การ์ดยาวเกินลูกค้าเลื่อนผ่าน
+  // ให้การ์ดสั้น ชัด แล้วบอกให้กดเข้าไปอ่านฉบับเต็ม + เซ็นในหน้าเว็บแทน
+  const termsCount = (data.terms || []).length;
 
   const body: Record<string, unknown>[] = [
     {
@@ -388,27 +390,38 @@ export function buildConsentFlex(data: {
   if (dateText) {
     body.push(flexDetailRow("🗓️", "เข้าพัก", dateText));
   }
-  if (terms.length) {
-    body.push({ type: "separator", margin: "lg" });
-    body.push({
-      type: "box",
-      layout: "vertical",
-      margin: "lg",
-      spacing: "sm",
-      contents: terms.map((t, i) => ({
-        type: "box",
-        layout: "horizontal",
-        spacing: "sm",
-        contents: [
-          { type: "text", text: `${i + 1}.`, size: "xs", color: "#A2907E", flex: 0 },
-          { type: "text", text: t, size: "xs", color: "#4E3E32", wrap: true, flex: 1 },
-        ],
-      })),
-    });
-  }
+  body.push({ type: "separator", margin: "lg" });
+  body.push({
+    type: "box",
+    layout: "vertical",
+    margin: "lg",
+    paddingAll: "14px",
+    backgroundColor: "#FBF4E9",
+    cornerRadius: "12px",
+    spacing: "sm",
+    contents: [
+      {
+        type: "text",
+        text: "⚠️ ก่อนฝากน้อง รบกวนทำ 2 ขั้นตอนนี้ก่อนนะคะ",
+        size: "sm",
+        weight: "bold",
+        color: "#5C4033",
+        wrap: true,
+      },
+      {
+        type: "text",
+        text: `1. กดปุ่มด้านล่าง เพื่ออ่านข้อตกลง${
+          termsCount ? ` ${termsCount} ข้อ` : ""
+        }\n2. กดยอมรับ และเซ็นรับทราบในหน้านั้น`,
+        size: "sm",
+        color: "#4E3E32",
+        wrap: true,
+      },
+    ],
+  });
   body.push({
     type: "text",
-    text: "กดปุ่มด้านล่างเพื่ออ่านฉบับเต็ม กดยอมรับ และแจ้งการดูแลเพิ่มเติมของน้องได้ค่ะ 🧡",
+    text: "แจ้งการดูแลเพิ่มเติมของน้องในหน้าเดียวกันได้เลยค่ะ 🧡",
     size: "xs",
     color: "#A2907E",
     margin: "lg",
@@ -454,7 +467,7 @@ export function buildConsentFlex(data: {
             height: "sm",
             action: {
               type: "uri",
-              label: "📋 ข้อตกลงก่อนเข้าพัก",
+              label: "อ่านเงื่อนไข + เซ็นยินยอม",
               uri: data.url,
             },
           },

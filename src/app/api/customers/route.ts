@@ -253,6 +253,13 @@ async function handlePatch(req: NextRequest) {
         no_booking_line:
           "หา LINE ID ของลูกค้าคนนี้ไม่เจอเลย (ทั้งในนัดและบัญชีที่เคยรวม) — ใช้ลิงก์เชิญผูกแทน",
       };
+      // เขียนฐานข้อมูลไม่ผ่าน — ต้องโชว์เหตุผลจริง ไม่ใช่ขึ้นว่าสำเร็จแล้วไม่ผูก
+      if (res.error.startsWith("write_failed")) {
+        return NextResponse.json(
+          { error: `บันทึกไม่สำเร็จ — ${res.error.replace("write_failed: ", "")}` },
+          { status: 400 }
+        );
+      }
       return NextResponse.json(
         { error: messages[res.error] || res.error },
         { status: 400 }

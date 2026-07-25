@@ -701,19 +701,34 @@ export async function adoptLineFromBookings(customerId: string) {
   }
 
   // ตั้งเป็น "ช่องหลัก" เสมอ ไม่ว่าจะผ่านทางรวมบัญชีหรือไม่
-  // (record ต้นทางอาจถือ LINE ไว้ในช่องสำรองเหมือนกัน การรวมจึงไม่มีช่องหลักให้ยกมา
-  //  ผลคือขึ้นว่าสำเร็จแต่ป้ายยัง "ยังไม่ผูก" — ต้องเขียนตรงนี้ปิดท้ายทุกครั้ง)
+  // (record ต้นทางอาจถือ LINE ไว้ในช่องสำรองเหมือนกัน การรวมจึงไม่มีช่องหลักให้ยกมา)
   const now = new Date().toISOString();
   customer.lineUserId = lineUserId;
   customer.updatedAt = now;
   const sb = getSupabase();
   if (sb) {
+    // ต้องถอด LINE ออกจาก record เก่าก่อน — ตารางห้าม line_user_id ซ้ำ
+    // record ที่ถูกรวมไปแล้วเป็นการลบแบบนุ่ม (แถวยังอยู่) ถ้าไม่ถอดออก
+    // การเขียนลงตัวใหม่จะถูกปฏิเสธเงียบๆ → ขึ้นว่าสำเร็จแต่ไม่ผูกจริง
+    const tenantId = requireTenantId();
     await sb
+      .from("customers")
+      .update({ line_user_id: null })
+      .eq("line_user_id", lineUserId)
+      .neq("id", customerId)
+      .eq("tenant_id", tenantId);
+    const { error } = await sb
       .from("customers")
       .update({ line_user_id: lineUserId, updated_at: now })
       .eq("id", customerId)
-      .eq("tenant_id", requireTenantId());
+      .eq("tenant_id", tenantId);
+    if (error) {
+      return { ok: false as const, error: `write_failed: ${error.message}` };
+    }
   } else {
+    for (const c of memCustomers.values()) {
+      if (c.id !== customerId && c.lineUserId === lineUserId) c.lineUserId = undefined;
+    }
     const cur = memCustomers.get(customerId) || customer;
     cur.lineUserId = lineUserId;
     cur.updatedAt = now;
@@ -1391,14 +1406,19 @@ export async function mergeCustomers(sourceId: string, targetId: string) {
         source.lineUserId,
       ].filter(Boolean) as string[]
     );
+    // ปลายทางยังไม่ผูก LINE แต่ต้นทางมี → ยก LINE หลักตามมาด้วย
+    // ต้องถอดออกจากต้นทางก่อน เพราะตารางห้าม line_user_id ซ้ำ
+    // (ต้นทางถูกลบแบบนุ่ม แถวยังอยู่ ถ้าไม่ถอดจะเขียนลงปลายทางไม่ติด)
+    const takeLine = !target.lineUserId && source.lineUserId;
+    if (takeLine) {
+      await sb.from("customers").update({ line_user_id: null }).eq("id", sourceId);
+    }
     await sb
       .from("customers")
       .update({
         member_credit: mergedCredit,
         is_member: target.isMember || source.isMember,
-        // ปลายทางยังไม่ผูก LINE แต่ต้นทางมี → ยก LINE หลักตามมาด้วย
-        // (เมื่อก่อนเก็บแค่ลงอาเรย์สำรอง line_user_ids ทำให้ป้าย "ยังไม่ผูก" ค้าง)
-        ...(!target.lineUserId && source.lineUserId
+        ...(takeLine
           ? {
               line_user_id: source.lineUserId,
               line_display_name: source.lineDisplayName || null,

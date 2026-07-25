@@ -1600,7 +1600,7 @@ function AdoptLineControl({
             setBusy(false);
           }
         }}
-        className="mb-2 w-full rounded-catcha-sm bg-ok py-2 text-[11px] font-extrabold text-white disabled:opacity-40"
+        className="mb-2 w-full rounded-petflow-sm bg-ok py-2 text-[11px] font-extrabold text-white disabled:opacity-40"
       >
         {busy ? "กำลังผูก…" : "⚡ ดึง LINE จากนัดของลูกค้าอัตโนมัติ (แนะนำ)"}
       </button>

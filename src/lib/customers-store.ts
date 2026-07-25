@@ -688,7 +688,8 @@ export async function adoptLineFromBookings(customerId: string) {
       await sb
         .from("customers")
         .update({ line_user_id: lineUserId, updated_at: customer.updatedAt })
-        .eq("id", customerId);
+        .eq("id", customerId)
+        .eq("tenant_id", requireTenantId());
     } else {
       memCustomers.set(customerId, customer);
     }

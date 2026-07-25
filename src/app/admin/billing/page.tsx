@@ -1030,7 +1030,7 @@ export default function BillingPage() {
                   {/* บ้านที่มีแมวหลายตัว — ระบุว่ารายการนี้ของน้องตัวไหน
                       โชว์เฉพาะตอนที่ลูกค้ามีแมวมากกว่า 1 ตัว จะได้ไม่รกโดยไม่จำเป็น */}
                   {(selected?.cats.length || 0) > 1 && item.kind !== "freebie" && (
-                    <div className="rounded-catcha-sm border border-catcha-line bg-paper px-2.5 py-2">
+                    <div className="rounded-petflow-sm border border-petflow-line bg-paper px-2.5 py-2">
                       <p className="mb-1.5 text-[10px] font-bold text-brown-soft">
                         🐱 รายการนี้ของน้องตัวไหน — ติ๊กได้หลายตัว (เช่น นอนห้องเดียวกัน)
                       </p>

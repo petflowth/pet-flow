@@ -677,14 +677,21 @@ export async function adoptLineFromBookings(customerId: string) {
   if (customer.lineUserId)
     return { ok: true as const, lineUserId: customer.lineUserId, already: true };
 
+  // 1) เคยรวมบัญชีมาก่อน → LINE ถูกเก็บไว้ในช่องสำรอง (line_user_ids) แล้ว
+  //    แค่ไม่ได้ตั้งเป็นช่องหลัก ป้ายเลยยังขึ้น "ยังไม่ผูก" — ยกขึ้นมาเป็นตัวหลักได้เลย
+  const fromBackup = (customer.lineUserIds || []).find(Boolean);
+
   const { listBookings } = await import("./bookings-store");
   const { bookingMatchesCustomer } = await import("./booking-customer-match");
   const bookings = await listBookings();
-  // นัดล่าสุดก่อน — ถ้าลูกค้าเคยเปลี่ยนเครื่อง/ไอดี จะได้ตัวที่ใช้อยู่จริง
-  const candidates = bookings
+  // 2) หาจากนัด — นัดล่าสุดก่อน (ถ้าลูกค้าเปลี่ยนเครื่อง จะได้ตัวที่ใช้อยู่จริง)
+  //    ต้องจับคู่ด้วยชื่อเจ้าของเท่านั้น ห้ามใช้ชื่อแมวเด็ดขาด —
+  //    ลูกค้าคนละคนตั้งชื่อแมวซ้ำกันได้ (เช่น "ทาโร่") จะดึง LINE ผิดคนทันที
+  const fromBookings = bookings
     .filter((b) => b.lineUserId && bookingMatchesCustomer(b, customer))
     .map((b) => b.lineUserId as string);
-  const lineUserId = candidates[0];
+
+  const lineUserId = fromBackup || fromBookings[0];
   if (!lineUserId) return { ok: false as const, error: "no_booking_line" };
 
   // LINE นี้อยู่บน record อื่นที่ยังไม่ถูกลบ → รวมเข้ามาก่อน (mergeCustomers พา LINE หลักมาด้วยแล้ว)

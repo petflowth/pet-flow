@@ -89,7 +89,8 @@ async function handleGet(req: NextRequest) {
   return NextResponse.json({
     customers: customers.map((c) => ({
       ...c,
-      points: c.lineUserId ? pointsMap[c.lineUserId] ?? 0 : 0,
+      // แต้มผูกกับลูกค้า (C:<id>) แล้ว — ถ้าไม่เจอค่อยถอยไปดูคีย์เก่าที่ผูกกับ LINE ID
+      points: pointsMap[`C:${c.id}`] ?? (c.lineUserId ? pointsMap[c.lineUserId] ?? 0 : 0),
     })),
   });
 }
@@ -241,7 +242,8 @@ async function handlePatch(req: NextRequest) {
     if (!res.ok) {
       const messages: Record<string, string> = {
         not_found: "ไม่พบลูกค้า",
-        no_booking_line: "นัดของลูกค้าคนนี้ไม่มี LINE ID เลย — ใช้ลิงก์เชิญผูกแทน",
+        no_booking_line:
+          "หา LINE ID ของลูกค้าคนนี้ไม่เจอเลย (ทั้งในนัดและบัญชีที่เคยรวม) — ใช้ลิงก์เชิญผูกแทน",
       };
       return NextResponse.json(
         { error: messages[res.error] || res.error },

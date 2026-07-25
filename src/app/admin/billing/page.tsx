@@ -120,6 +120,21 @@ function billServiceKind(items?: { label: string; kind?: string }[]): "room" | "
   return hasRoom ? "room" : "groom";
 }
 
+/**
+ * รายการเดียวใส่ชื่อน้องได้หลายตัว (เช่น แมว 2 ตัวนอนห้องเดียวกัน)
+ * เก็บเป็นชื่อคั่นด้วย "," ในฟิลด์เดิม — ไม่ต้องแก้โครงสร้างบิล/ฐานข้อมูล
+ */
+const CAT_SEP = ", ";
+function parseCatNames(v?: string): string[] {
+  return (v || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+function joinCatNames(names: string[]): string | undefined {
+  return names.length ? names.join(CAT_SEP) : undefined;
+}
+
 function computeLine(it: Item): {
   label: string;
   amount: number;
@@ -127,7 +142,7 @@ function computeLine(it: Item): {
   qty: number;
   unitAmount: number;
 } {
-  const cat = it.catName?.trim() || undefined;
+  const cat = joinCatNames(parseCatNames(it.catName));
   /** ใส่ชื่อน้องนำหน้า ให้เจ้าของอ่านบิลแล้วรู้ทันทีว่าตัวไหนใช้อะไร */
   const withCat = (label: string) => (cat ? `🐱 ${cat} · ${label}` : label);
   const qty = Math.max(1, Math.round(it.qty || 1));
@@ -379,9 +394,9 @@ export default function BillingPage() {
       // บิลเก่าที่ยังไม่มีชื่อน้องรายรายการ → ถือว่าคุมแค่น้องหลักของบิลนั้น (ปลอดภัยกว่าซ่อนเกิน)
       const billedCats = new Set(
         paidForGroup.flatMap((i) => {
-          const perItem = (i.items || [])
-            .map((it) => it.catName)
-            .filter((n): n is string => !!n);
+          // 1 รายการใส่ชื่อน้องได้หลายตัว (คั่นด้วย ",") → ต้องแตกออกให้ครบ
+          // ไม่งั้นบิลที่คุมแมว 2 ตัวจะซ่อนนัดให้แค่ตัวเดียว
+          const perItem = (i.items || []).flatMap((it) => parseCatNames(it.catName));
           return perItem.length ? perItem : [i.catName];
         })
       );
@@ -1015,20 +1030,45 @@ export default function BillingPage() {
                   {/* บ้านที่มีแมวหลายตัว — ระบุว่ารายการนี้ของน้องตัวไหน
                       โชว์เฉพาะตอนที่ลูกค้ามีแมวมากกว่า 1 ตัว จะได้ไม่รกโดยไม่จำเป็น */}
                   {(selected?.cats.length || 0) > 1 && item.kind !== "freebie" && (
-                    <select
-                      value={item.catName || ""}
-                      onChange={(e) =>
-                        updateItem(i, { catName: e.target.value || undefined })
-                      }
-                      className={sub}
-                    >
-                      <option value="">🐱 รายการนี้ของน้องตัวไหน (ไม่ระบุก็ได้)</option>
-                      {selected?.cats.map((c) => (
-                        <option key={c.id || c.name} value={c.name}>
-                          🐱 {c.name}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="rounded-catcha-sm border border-catcha-line bg-paper px-2.5 py-2">
+                      <p className="mb-1.5 text-[10px] font-bold text-brown-soft">
+                        🐱 รายการนี้ของน้องตัวไหน — ติ๊กได้หลายตัว (เช่น นอนห้องเดียวกัน)
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {selected?.cats.map((c) => {
+                          const picked = parseCatNames(item.catName);
+                          const on = picked.includes(c.name);
+                          return (
+                            <button
+                              key={c.id || c.name}
+                              type="button"
+                              onClick={() =>
+                                updateItem(i, {
+                                  catName: joinCatNames(
+                                    on
+                                      ? picked.filter((n) => n !== c.name)
+                                      : [...picked, c.name]
+                                  ),
+                                })
+                              }
+                              className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                                on
+                                  ? "bg-latte-deep text-white"
+                                  : "bg-card text-brown-soft"
+                              }`}
+                            >
+                              {on ? "✓ " : ""}
+                              {c.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {parseCatNames(item.catName).length === 0 && (
+                        <p className="mt-1 text-[10px] text-brown-faint">
+                          ไม่ติ๊ก = ไม่ระบุตัว (ใช้ได้ปกติ)
+                        </p>
+                      )}
+                    </div>
                   )}
 
                   {item.kind === "grooming" && (

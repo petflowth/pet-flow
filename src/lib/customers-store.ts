@@ -1281,6 +1281,14 @@ export async function mergeCustomers(sourceId: string, targetId: string) {
       .update({
         member_credit: mergedCredit,
         is_member: target.isMember || source.isMember,
+        // ปลายทางยังไม่ผูก LINE แต่ต้นทางมี → ยก LINE หลักตามมาด้วย
+        // (เมื่อก่อนเก็บแค่ลงอาเรย์สำรอง line_user_ids ทำให้ป้าย "ยังไม่ผูก" ค้าง)
+        ...(!target.lineUserId && source.lineUserId
+          ? {
+              line_user_id: source.lineUserId,
+              line_display_name: source.lineDisplayName || null,
+            }
+          : {}),
       })
       .eq("id", targetId)
       .eq("tenant_id", tenantId);
@@ -1310,6 +1318,10 @@ export async function mergeCustomers(sourceId: string, targetId: string) {
       t.memberCredit = (t.memberCredit || 0) + (s.memberCredit || 0);
       t.depositCredit = (t.depositCredit || 0) + (s.depositCredit || 0);
       t.cats = [...t.cats, ...s.cats];
+      if (!t.lineUserId && s.lineUserId) {
+        t.lineUserId = s.lineUserId;
+        t.lineDisplayName = s.lineDisplayName;
+      }
       const ids = new Set(
         [
           ...(t.lineUserIds || []),

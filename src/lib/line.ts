@@ -736,6 +736,8 @@ export function buildBillSummaryFlex(data: {
   items: { label: string; amount: number }[];
   subtotal: number;
   discount?: number;
+  /** ชื่อโปรที่ใช้ — โชว์ต่อท้าย "ส่วนลด" ให้ลูกค้ารู้ว่าลดจากโปรอะไร */
+  promoLabel?: string;
   total: number;
   deposit?: number;
   remaining?: number;
@@ -837,7 +839,17 @@ export function buildBillSummaryFlex(data: {
       layout: "horizontal",
       margin: "md",
       contents: [
-        { type: "text", text: st.texts?.discountLabel || "ส่วนลด", size: "sm", color: "#C08A2E", flex: 4 },
+        {
+          type: "text",
+          // มีโปร → บอกชื่อโปรไปเลย ลูกค้าจะได้รู้ว่าลดเพราะอะไร
+          text: data.promoLabel
+            ? `${st.texts?.discountLabel || "ส่วนลด"} · ${data.promoLabel}`
+            : st.texts?.discountLabel || "ส่วนลด",
+          size: "sm",
+          color: "#C08A2E",
+          flex: 4,
+          wrap: true,
+        },
         {
           type: "text",
           text: `-${money(data.discount)}`,
@@ -1728,6 +1740,9 @@ export function buildReceiptFlex(data: {
   total: number;
   pointsEarned: number;
   paymentMethod: string;
+  /** ส่วนลดที่ใช้ไป + ชื่อโปร — ให้ลูกค้าเห็นว่าบิลนี้ได้ลดจากอะไร */
+  discount?: number;
+  promoLabel?: string;
   /** ชื่อร้านจาก config — ไม่ส่งมาจะไม่ขึ้นบรรทัดชื่อร้าน (ดีกว่าโชว์ชื่อร้านอื่น) */
   shopName?: string;
 }, style?: CardStyleConfig) {
@@ -1783,6 +1798,22 @@ export function buildReceiptFlex(data: {
               color: "#A2907E",
               align: "center",
             },
+            // ใช้โปร/คูปองลดไป → บอกไว้ในใบเสร็จด้วยว่าลดเท่าไหร่ จากโปรอะไร
+            ...(data.discount && data.discount > 0
+              ? [
+                  {
+                    type: "text",
+                    text: data.promoLabel
+                      ? `${st.texts?.discountLabel || "ส่วนลดที่ใช้"} ${data.discount.toLocaleString()} บาท · ${data.promoLabel}`
+                      : `${st.texts?.discountLabel || "ส่วนลดที่ใช้"} ${data.discount.toLocaleString()} บาท`,
+                    size: "xs",
+                    color: "#C08A2E",
+                    align: "center",
+                    margin: "sm",
+                    wrap: true,
+                  },
+                ]
+              : []),
           ],
         },
         ...(show("points")

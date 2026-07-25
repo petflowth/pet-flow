@@ -222,6 +222,7 @@ async function runForTenant() {
             items: pendingInv.items,
             subtotal: pendingInv.subtotal,
             discount: pendingInv.discount,
+            promoLabel: pendingInv.promoLabel,
             total: pendingInv.total,
             deposit: pendingInv.deposit || 0,
             remaining: Math.max(0, pendingInv.total - (pendingInv.deposit || 0)),

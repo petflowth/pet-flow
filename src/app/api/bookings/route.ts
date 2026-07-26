@@ -221,7 +221,7 @@ async function handlePatch(req: NextRequest, admin: boolean) {
   // การกระทำอื่นทั้งหมด (ยกเลิก แก้ไข ส่งการ์ด เรียกเก็บเงิน) ต้องล็อกอินหลังบ้าน
   if (!admin) {
     const ownsBooking = !!lineUserId && b.lineUserId === lineUserId;
-    if (action !== "confirm" || !ownsBooking) {
+    if ((action !== "confirm" && action !== "confirm_group") || !ownsBooking) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
     // นัดที่ลูกค้าจองเอง — ร้านเท่านั้นที่ยืนยันได้ ต้องกันที่ API ด้วย ไม่ใช่แค่ซ่อนปุ่ม
@@ -286,6 +286,48 @@ async function handlePatch(req: NextRequest, admin: boolean) {
     if (matched) await recalculateCustomerTier(matched.id);
     const updated = await getBooking(id);
     return NextResponse.json({ ok: true, booking: toBooking(updated!), notifyError });
+  }
+
+  // บ้านเดียวกัน จองพร้อมกันหลายตัว → ยืนยันทีเดียวทั้งกลุ่ม แจ้งร้านเป็นข้อความเดียว
+  // (เมื่อก่อนลูกค้ากดยืนยันทีละตัว แต่ละตัวยิง Telegram แยก 3-4 ข้อความรัวๆ)
+  if (action === "confirm_group") {
+    const ids: string[] =
+      Array.isArray(body.ids) && body.ids.length > 0 ? body.ids.map(String) : [id];
+    const confirmed: (typeof b)[] = [];
+    for (const bid of ids) {
+      const bk = bid === id ? b : await getBooking(bid);
+      if (!bk) continue;
+      // ยืนยันได้เฉพาะนัดของตัวเอง แม้จะมาในกลุ่มเดียวกัน — กันแอบยัด id ของคนอื่นปนมา
+      if (!admin && !(!!lineUserId && bk.lineUserId === lineUserId)) continue;
+      await updateBooking(bk.id, { status: "confirmed", checkinTime });
+      if (bk.calendarEventId) {
+        await updateCalendarEventConfirmed(bk.calendarEventId, {
+          summary: `${bk.service === "room" ? "🏠" : "🛁"} ${bk.catName} (${bk.customerName})`,
+          description: `${bk.service === "room" ? "ห้องพัก" : "อาบน้ำ"} · ${bk.notes || ""}`,
+          start: bk.date || bk.checkin || "",
+          end: bk.checkout || bk.date || bk.checkin || "",
+          time: bk.time,
+          allDay: bk.service === "room" && !bk.time,
+          service: bk.service === "room" ? "room" : "groom",
+          checkinTime,
+        });
+      }
+      confirmed.push(bk);
+    }
+    if (confirmed.length === 0) {
+      return NextResponse.json({ error: "not found" }, { status: 404 });
+    }
+    const first = confirmed[0]!;
+    await sendTelegram(
+      formatBookingTelegram("✅ ลูกค้ายืนยันแล้ว", {
+        ลูกค้า: String(first.customerName),
+        น้องแมว: confirmed.map((x) => x!.catName).join(", "),
+        วันที่: String(first.date || first.checkin),
+      })
+    );
+    const matched = await findCustomerForBooking(first);
+    if (matched) await recalculateCustomerTier(matched.id);
+    return NextResponse.json({ ok: true, count: confirmed.length });
   }
 
   if (action === "send_reminder") {

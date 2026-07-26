@@ -36,6 +36,7 @@ import { renderTemplate, DEFAULT_MESSAGES } from "@/lib/messages";
 import { withTenant } from "@/lib/tenant-context";
 import { listActiveTenantIds } from "@/lib/tenant-directory";
 import { verifyCronSecret } from "@/lib/cron-auth";
+import { groupBookings, groupCatNames } from "@/lib/booking-group";
 
 function addDays(dateStr: string, n: number) {
   const dt = new Date(`${dateStr}T12:00:00Z`);
@@ -92,61 +93,79 @@ async function runForTenant() {
             !autoMuted(b, "confirm") &&
             (b.checkin || b.date) === confirmDate
         );
-  for (const b of confirmList) {
-    if (!b.lineUserId) continue;
+  // บ้านเดียวกัน + นัดเวลาเดียวกัน (จองหลายตัวพร้อมกัน) → รวมเป็นการ์ดยืนยันใบเดียว
+  // เมื่อก่อนส่งแยกทีละตัว บ้านที่มี 3 ตัวได้ 3 การ์ดรัวๆ ลิงก์ยืนยันก็ยังใช้ตัวแทนกลุ่มได้
+  // เพราะหน้ายืนยันของลูกค้าจัดกลุ่มด้วยกุญแจเดียวกันนี้อยู่แล้ว
+  for (const group of groupBookings(confirmList)) {
+    const primary = group[0];
+    if (!primary.lineUserId) continue;
     try {
+      const catLabel = groupCatNames(group);
       // รวมการ์ดของวันนี้ไว้ใน push เดียว (เตือนนัด + ขอประวัติ ถ้าจำเป็น) — นับ 1 ข้อความ LINE
       const dayMessages: object[] = [
         await buildBookingConfirmFlex({
-          id: b.id,
-          catName: b.catName,
-          customerName: b.customerName,
-          service: b.service,
-          date: b.date,
-          time: b.time,
-          checkin: b.checkin,
-          checkout: b.checkout,
-          room: b.room,
-          notes: b.notes,
-          groomProgram: b.groomProgram,
+          id: primary.id,
+          catName: catLabel,
+          customerName: primary.customerName,
+          service: primary.service,
+          date: primary.date,
+          time: primary.time,
+          checkin: primary.checkin,
+          checkout: primary.checkout,
+          room: primary.room,
+          notes: primary.notes,
+          groomProgram: primary.groomProgram,
         }),
       ];
 
-      // นัดอาบน้ำ: เคยกรอกประวัติแล้ว → บรีฟให้ร้าน · ยังไม่เคย → แนบการ์ดกรอกไปในข้อความเดียวกัน
-      if (
-        auto?.groomInfoEnabled !== false &&
-        b.service === "groom" &&
-        !autoMuted(b, "groomInfo")
-      ) {
-        const info = parseGroomInfo(await getCatGroomInfo(b.lineUserId, b.catName));
-        if (info) {
+      // นัดอาบน้ำ: เช็คทีละตัวในกลุ่ม — ตัวที่เคยกรอกประวัติแล้วบรีฟให้ร้านทาง Telegram
+      // ตัวที่ยังไม่เคย รวมขอในการ์ดเดียว (ลิงก์เดียวกรอกได้ครบทุกตัว เหมือนปุ่มขอประวัติรวม)
+      if (auto?.groomInfoEnabled !== false && primary.service === "groom") {
+        const checked: { b: typeof primary; info: ReturnType<typeof parseGroomInfo> }[] = [];
+        for (const cat of group) {
+          if (autoMuted(cat, "groomInfo") || !cat.lineUserId) continue;
+          const info = parseGroomInfo(await getCatGroomInfo(cat.lineUserId, cat.catName));
+          checked.push({ b: cat, info });
+        }
+        const alreadyHave = checked.filter((x) => x.info);
+        const needInfo = checked.filter((x) => !x.info);
+
+        for (const { b: cat, info } of alreadyHave) {
           await sendTelegram(
-            formatBookingTelegram(`🩺 บรีฟก่อนอาบน้ำ: ${b.catName}`, {
-              ลูกค้า: b.customerName,
-              วันนัด: `${b.date || ""}${b.time ? ` ${b.time}` : ""}`,
-              ...groomInfoSummary(info, resolveGroomForm(cfg.groomForm)),
+            formatBookingTelegram(`🩺 บรีฟก่อนอาบน้ำ: ${cat.catName}`, {
+              ลูกค้า: cat.customerName,
+              วันนัด: `${cat.date || ""}${cat.time ? ` ${cat.time}` : ""}`,
+              ...groomInfoSummary(info!, resolveGroomForm(cfg.groomForm)),
             })
           );
           groomBriefs++;
-        } else {
-          const url = await getGroomInfoUrl(b.id);
+        }
+        if (needInfo.length > 0) {
+          const names = needInfo.map((x) => x.b.catName).join(", ");
+          const url = await getGroomInfoUrl(needInfo.map((x) => x.b.id));
           dayMessages.push(
             buildGroomInfoFlex({
-              catName: b.catName,
-              dateText: b.date ? `📅 นัดอาบน้ำ: ${b.date}${b.time ? ` ${b.time}` : ""}` : undefined,
-              body: buildGroomInfoBody(b, cfg),
+              catName: names,
+              dateText: primary.date ? `📅 นัดอาบน้ำ: ${primary.date}${primary.time ? ` ${primary.time}` : ""}` : undefined,
+              body: buildGroomInfoBody(
+                { catName: needInfo.length > 1 ? `น้องๆ ${needInfo.length} ตัว` : names },
+                cfg
+              ),
               url: url || undefined,
-              label: "🩺 แจ้งประวัติน้อง",
+              label:
+                needInfo.length > 1
+                  ? `🩺 แจ้งประวัติน้อง (${needInfo.length} ตัว)`
+                  : "🩺 แจ้งประวัติน้อง",
             }, cfg.cards?.groomInfo)
           );
           groomInfoCards++;
         }
       }
 
-      await pushLineMessage(b.lineUserId, dayMessages);
+      await pushLineMessage(primary.lineUserId, dayMessages);
       sent++;
     } catch (e) {
-      errors.push(`${b.id}: ${String(e)}`);
+      errors.push(`${primary.id}: ${String(e)}`);
     }
   }
 

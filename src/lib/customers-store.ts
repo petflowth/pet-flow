@@ -1459,7 +1459,11 @@ export async function mergeCustomers(sourceId: string, targetId: string) {
     // (ต้นทางถูกลบแบบนุ่ม แถวยังอยู่ ถ้าไม่ถอดจะเขียนลงปลายทางไม่ติด)
     const takeLine = !target.lineUserId && source.lineUserId;
     if (takeLine) {
-      await sb.from("customers").update({ line_user_id: null }).eq("id", sourceId);
+      await sb
+        .from("customers")
+        .update({ line_user_id: null })
+        .eq("id", sourceId)
+        .eq("tenant_id", tenantId);
     }
     // เติมข้อมูลโปรไฟล์ที่ปลายทางยังขาดจากต้นทาง — เมื่อก่อนย้ายแค่แต้ม/บิล/แมว
     // ทำให้เบอร์/อีเมล/วันเกิด/ที่อยู่ที่ลูกค้ากรอกตอนสมัคร หายไปกับ record ที่ถูกลบ

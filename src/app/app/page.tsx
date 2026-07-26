@@ -67,9 +67,9 @@ export default function CustomerHome() {
       {needRegister && (
         <Link
           href="/app/register"
-          className="mb-4 block rounded-catcha border-2 border-honey/60 bg-honey/15 p-3.5"
+          className="mb-4 block rounded-petflow border-2 border-honey/60 bg-honey/15 p-3.5"
         >
-          <p className="text-sm font-extrabold text-catcha-chocolate">
+          <p className="text-sm font-extrabold text-petflow-chocolate">
             📝 {locale === "th" ? "สมัครสมาชิกให้เสร็จก่อนนะคะ" : "Please complete your registration"}
           </p>
           <p className="mt-0.5 text-xs text-brown-soft">

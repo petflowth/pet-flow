@@ -1338,7 +1338,7 @@ function CustomerSummaryCard({
               if (email.trim() !== (customer.email || "")) save({ email: email.trim() || undefined });
             }}
             placeholder="เช่น customer@email.com"
-            className="w-full rounded-catcha-sm border-2 border-catcha-line bg-paper px-3 py-2.5 text-sm outline-none transition focus:border-latte-deep focus:bg-card"
+            className="w-full rounded-petflow-sm border-2 border-petflow-line bg-paper px-3 py-2.5 text-sm outline-none transition focus:border-latte-deep focus:bg-card"
           />
         </label>
         <label className="block text-xs font-bold text-brown-soft">
@@ -1350,7 +1350,7 @@ function CustomerSummaryCard({
             onBlur={() => {
               if (birthday !== (customer.birthday || "")) save({ birthday: birthday || undefined });
             }}
-            className="w-full rounded-catcha-sm border-2 border-catcha-line bg-paper px-3 py-2.5 text-sm outline-none transition focus:border-latte-deep focus:bg-card"
+            className="w-full rounded-petflow-sm border-2 border-petflow-line bg-paper px-3 py-2.5 text-sm outline-none transition focus:border-latte-deep focus:bg-card"
           />
         </label>
         <label className="block text-xs font-bold text-brown-soft">
@@ -1518,7 +1518,7 @@ function CustomerSummaryCard({
               toast("ปลดผูกไม่สำเร็จ", "error");
             }
           }}
-          className="mt-2 w-full rounded-catcha-sm border border-wait/40 bg-wait/10 py-2 text-[11px] font-bold text-wait"
+          className="mt-2 w-full rounded-petflow-sm border border-wait/40 bg-wait/10 py-2 text-[11px] font-bold text-wait"
         >
           🔓 ปลดผูก LINE (ให้ลูกค้ากดผูกใหม่)
         </button>

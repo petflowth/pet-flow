@@ -344,9 +344,18 @@ async function handlePatch(req: NextRequest, admin: boolean) {
     }
 
     try {
+      // บ้านเดียวกัน จองพร้อมกันหลายตัว (ปฏิทินส่ง ids ของทั้งกลุ่มมา) → รวมชื่อแมว
+      // ทุกตัวในการ์ดเดียว ไม่งั้นการ์ดจะโชว์แค่ตัวที่กดจากแถวนั้น ทั้งที่จองมาด้วยกัน
+      const ids: string[] =
+        Array.isArray(body.ids) && body.ids.length > 0 ? body.ids.map(String) : [id];
+      const group = (
+        await Promise.all(ids.map((x) => (x === id ? Promise.resolve(b) : getBooking(x))))
+      ).filter((x): x is StoredBooking => !!x);
+      const catLabel = group.length > 1 ? group.map((x) => x.catName).join(", ") : b.catName;
+
       const flex = await buildBookingConfirmFlex({
         id,
-        catName: String(b.catName),
+        catName: String(catLabel),
         customerName: String(b.customerName),
         service: String(b.service),
         date: b.date,
@@ -487,13 +496,28 @@ async function handlePatch(req: NextRequest, admin: boolean) {
     const messages: object[] = [];
     /** การ์ดที่ระบบข้ามให้ พร้อมเหตุผล — ส่งกลับไปบอกพนักงานที่หน้าจอ */
     const skipped: string[] = [];
+    // บ้านเดียวกัน จองพร้อมกันหลายตัว (ปฏิทินส่ง ids ของทั้งกลุ่มมา) — ใช้รวมชื่อแมว
+    // ทุกตัวในการ์ด "แจ้งเตือนนัด" ของชุดการ์ด เหมือนปุ่มส่งเดี่ยว
+    const bundleGroupIds: string[] =
+      Array.isArray(body.ids) && body.ids.length > 0 ? body.ids.map(String) : [id];
+    const bundleGroupCatLabel =
+      bundleGroupIds.length > 1
+        ? (
+            await Promise.all(
+              bundleGroupIds.map((x) => (x === id ? Promise.resolve(b) : getBooking(x)))
+            )
+          )
+            .filter((x): x is StoredBooking => !!x)
+            .map((x) => x.catName)
+            .join(", ")
+        : b.catName;
 
     for (const part of parts) {
       if (part === "reminder") {
         messages.push(
           await buildBookingConfirmFlex({
             id,
-            catName: String(b.catName),
+            catName: String(bundleGroupCatLabel),
             customerName: String(b.customerName),
             service: String(b.service),
             date: b.date,

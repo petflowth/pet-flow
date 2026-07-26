@@ -129,7 +129,18 @@ export function CustomerSendButtons({
   };
 
   const bookingSend = (action: string, okMsg: string) =>
-    requestPreview("/api/bookings", { id: bookingId, action, lineUserId }, okMsg, action);
+    requestPreview(
+      "/api/bookings",
+      {
+        id: bookingId,
+        action,
+        lineUserId,
+        // บ้านเดียวกัน จองพร้อมกันหลายตัว — ให้ "แจ้งเตือนนัด" รวมชื่อทุกตัวในการ์ดเดียว
+        ids: action === "send_reminder" ? groomBookingIds : undefined,
+      },
+      okMsg,
+      action
+    );
 
   // นัดที่จองทั้งบ้าน (หลายตัวพร้อมกัน) — ส่งการ์ดเดียว ลิงก์เดียว ให้กรอกประวัติครบทุกตัวในหน้าเดียวกัน
   const sendGroomInfoAll = () => {
@@ -298,6 +309,8 @@ export function CustomerSendButtons({
         parts: bundleParts,
         depositAmount: depositAmount || undefined,
         lineUserId,
+        // บ้านเดียวกัน จองพร้อมกันหลายตัว — ให้การ์ด "แจ้งเตือนนัด" ในชุดรวมชื่อทุกตัวด้วย
+        ids: groomBookingIds,
       },
       `ส่งชุดการ์ด ${bundleParts.length} ใบใน 1 ข้อความแล้ว 📦`,
       "bundle"

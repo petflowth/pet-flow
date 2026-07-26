@@ -241,6 +241,51 @@ const FREEBIE_PRESETS = [
   "ขนม/ทรีท",
 ];
 
+/**
+ * ช่องกรอกตัวเลขที่ "ลบให้ว่างแล้วพิมพ์ใหม่ได้" — เก็บ draft เป็น string ระหว่างพิมพ์
+ * ปัญหาเดิม: bind ค่าเป็นตัวเลข + `Number(x)||1` ทุก keystroke พอลบจนว่างมันเด้งกลับเป็น 1
+ * ที่นี่ปล่อยให้ว่างได้ระหว่างพิมพ์ แล้วค่อย clamp ตอนออกจากช่อง (blur)
+ */
+function NumField({
+  value,
+  min = 0,
+  onCommit,
+  className,
+}: {
+  value: number;
+  min?: number;
+  onCommit: (n: number) => void;
+  className?: string;
+}) {
+  const [draft, setDraft] = useState(String(value));
+  const [editing, setEditing] = useState(false);
+  // ค่าจากภายนอกเปลี่ยน (เช่น เลือกห้องใหม่) ตอนที่ไม่ได้พิมพ์อยู่ → sync ให้ตรง
+  useEffect(() => {
+    if (!editing) setDraft(String(value));
+  }, [value, editing]);
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={draft}
+      onFocus={() => setEditing(true)}
+      onChange={(e) => {
+        const raw = e.target.value;
+        if (!/^\d*$/.test(raw)) return; // ตัวเลขล้วน (อนุญาตว่าง)
+        setDraft(raw);
+        if (raw !== "") onCommit(Math.max(min, Number(raw)));
+      }}
+      onBlur={() => {
+        setEditing(false);
+        const n = draft === "" ? min : Math.max(min, Number(draft));
+        setDraft(String(n));
+        onCommit(n);
+      }}
+      className={className}
+    />
+  );
+}
+
 export default function BillingPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [promos, setPromos] = useState<Promo[]>([]);
@@ -1229,14 +1274,10 @@ export default function BillingPage() {
                         ))}
                       </select>
                       <div className="flex shrink-0 items-center gap-1">
-                        <input
-                          type="number"
-                          min="1"
-                          inputMode="numeric"
-                          value={item.nights}
-                          onChange={(e) =>
-                            updateItem(i, { nights: Number(e.target.value) || 1 })
-                          }
+                        <NumField
+                          value={item.nights || 1}
+                          min={1}
+                          onCommit={(n) => updateItem(i, { nights: n })}
                           className="w-16 rounded-lg border border-petflow-line bg-paper px-2 py-2 text-center text-sm"
                         />
                         <span className="text-xs font-bold text-brown-soft">คืน</span>
@@ -1306,16 +1347,10 @@ export default function BillingPage() {
                       >
                         −
                       </button>
-                      <input
-                        type="number"
-                        min="1"
-                        inputMode="numeric"
+                      <NumField
                         value={item.qty || 1}
-                        onChange={(e) =>
-                          updateItem(i, {
-                            qty: Math.max(1, Math.round(Number(e.target.value) || 1)),
-                          })
-                        }
+                        min={1}
+                        onCommit={(n) => updateItem(i, { qty: n })}
                         className="w-14 rounded-lg border border-petflow-line bg-paper px-2 py-1.5 text-center text-sm font-bold"
                       />
                       <button
@@ -1339,14 +1374,10 @@ export default function BillingPage() {
                       {line.label}
                     </span>
                     {item.kind === "service" || item.kind === "custom" ? (
-                      <input
-                        type="number"
-                        min="0"
-                        inputMode="numeric"
+                      <NumField
                         value={item.amount}
-                        onChange={(e) =>
-                          updateItem(i, { amount: Number(e.target.value) || 0 })
-                        }
+                        min={0}
+                        onCommit={(n) => updateItem(i, { amount: n })}
                         className="w-24 shrink-0 rounded-lg border border-petflow-line bg-paper px-3 py-1.5 text-right text-sm font-bold"
                       />
                     ) : item.kind === "freebie" ? (

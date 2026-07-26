@@ -58,8 +58,21 @@ export function isOwnerCodeConfigured(): boolean {
   );
 }
 
+/**
+ * ห้าม fallback ไปใช้ค่าที่เดาได้ตอนขึ้นจริง — ถ้าไม่ตั้ง SESSION_SECRET ค่าที่ได้จะเป็น
+ * "petflow-session::petflow2026" ซึ่งเหมือนกันทุก clone ที่ยังไม่ได้ตั้งค่า
+ * ใครก็ปลอมคุกกี้ล็อกอินเป็นเจ้าของร้านร้านไหนก็ได้ทันที (เซ็น HMAC เองได้เพราะรู้คีย์)
+ * โหมด dev ยังปล่อยผ่านได้เพื่อความสะดวกตอนพัฒนา
+ */
 function secretKey(): string {
-  return process.env.SESSION_SECRET || `petflow-session::${getOwnerCode()}`;
+  const explicit = process.env.SESSION_SECRET;
+  if (explicit) return explicit;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "ยังไม่ได้ตั้งค่า SESSION_SECRET ใน env — ต้องตั้งก่อนใช้งานจริง ห้ามปล่อยให้ใช้ค่า default ที่เดาได้"
+    );
+  }
+  return `petflow-session::${getOwnerCode()}`;
 }
 
 const enc = new TextEncoder();
@@ -124,7 +137,15 @@ export async function verifySession(
   if (!token) return null;
   const [body, sig] = token.split(".");
   if (!body || !sig) return null;
-  if ((await hmac(body)) !== sig) return null;
+  // secretKey() throws เมื่อ production ยังไม่ตั้ง SESSION_SECRET — ต้อง fail closed
+  // (ถือว่าไม่ได้ล็อกอิน) ไม่ใช่ปล่อยให้ error หลุดขึ้นไปพังทั้งหน้า
+  let expectedSig: string;
+  try {
+    expectedSig = await hmac(body);
+  } catch {
+    return null;
+  }
+  if (expectedSig !== sig) return null;
   try {
     const payload = JSON.parse(b64urlDecode(body)) as SessionPayload;
     if (!payload.exp || payload.exp < Date.now()) return null;

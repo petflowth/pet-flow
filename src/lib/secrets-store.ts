@@ -18,6 +18,8 @@ export type TelegramSecrets = {
 
 export type LineSecrets = {
   channelToken?: string;
+  /** Channel secret — ใช้ตรวจลายเซ็น X-Line-Signature กัน webhook ปลอม */
+  channelSecret?: string;
   liffId?: string;
   updatedAt: string;
 };
@@ -91,6 +93,7 @@ export async function saveLineSecrets(
   const prev = current.line;
   const merged: LineSecrets = {
     channelToken: line.channelToken ?? prev?.channelToken,
+    channelSecret: line.channelSecret ?? prev?.channelSecret,
     liffId: line.liffId ?? prev?.liffId,
     updatedAt: new Date().toISOString(),
   };

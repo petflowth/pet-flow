@@ -5,6 +5,7 @@ import { findCustomerByLine } from "@/lib/customers-store";
 import { assignGroomSlots, getGroomAvailability, getRoomAvailability } from "@/lib/availability";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import { groomProgram } from "@/lib/grooming-prices";
+import { requireCustomerSession } from "@/lib/customer-session";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +19,12 @@ export async function POST(req: NextRequest) {
 }
 
 async function handlePost(req: NextRequest) {
+  const session = await requireCustomerSession(req);
+  if (!session) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  const lineUserId = session.lineUserId;
   const body = await req.json().catch(() => ({}));
-  const lineUserId = String(body.lineUserId || "").trim();
   // จองได้หลายตัวพร้อมกัน (อาบน้ำ) — catNames มาก่อน ถ้าไม่มีใช้ catName เดี่ยวเดิม (เข้ากันได้กับของเก่า)
   const catNames: string[] = Array.isArray(body.catNames)
     ? [
@@ -31,7 +36,7 @@ async function handlePost(req: NextRequest) {
   const catName = catNames[0] || "";
   const service = body.service === "room" ? "room" : body.service === "groom" ? "groom" : null;
 
-  if (!lineUserId || !catNames.length || !service) {
+  if (!catNames.length || !service) {
     return NextResponse.json({ error: "missing fields" }, { status: 400 });
   }
 

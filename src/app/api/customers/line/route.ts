@@ -5,7 +5,14 @@ import {
 } from "@/lib/customers-store";
 import { isProfileComplete } from "@/lib/customer-tier";
 import type { CatRecord } from "@/lib/customers-store";
-import { withResolvedTenant } from "@/lib/tenant-context";
+import { requireTenantId, withResolvedTenant } from "@/lib/tenant-context";
+import { verifyLiffIdToken } from "@/lib/liff-auth";
+import {
+  CUSTOMER_SESSION_COOKIE,
+  customerSessionCookieOptions,
+  requireCustomerSession,
+  signCustomerSession,
+} from "@/lib/customer-session";
 
 /** ตัด staffPrivateNote (โน้ตลับร้าน) ออกก่อนส่งให้ฝั่งลูกค้าเสมอ */
 function catsForCustomer(cats: CatRecord[]) {
@@ -16,23 +23,45 @@ function catsForCustomer(cats: CatRecord[]) {
   });
 }
 
-/** ลูกค้าเปิดแอปจาก LINE → สร้าง/ผูกบัญชีอัตโนมัติ */
+/**
+ * ลูกค้าเปิดแอปจาก LINE → สร้าง/ผูกบัญชีอัตโนมัติ + ออกคุกกี้เซสชันลูกค้า
+ *
+ * จุดตั้งต้นความน่าเชื่อถือของ "เป็นลูกค้าคนนี้จริง" ทั้งระบบ — ต้องมี idToken (LIFF ID token
+ * ที่ LINE เซ็นให้ตอนล็อกอินสำเร็จ) มาตรวจกับ LINE ก่อนเสมอ ห้ามเชื่อ lineUserId ที่ client
+ * ส่งมาตรงๆ อีกต่อไป ไม่งั้นใครก็ใส่ lineUserId ของคนอื่นแล้วสวมรอยได้
+ * (devUserId ยอมรับเฉพาะตอน dev ในเครื่อง — ดู LiffProvider.tsx isLocalDev)
+ */
 export async function POST(req: NextRequest) {
   return withResolvedTenant(req, () => handlePost(req));
 }
 
 async function handlePost(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  const lineUserId = String(body.lineUserId || "").trim();
+  const idToken = typeof body.idToken === "string" ? body.idToken : "";
+  const devUserId = typeof body.devUserId === "string" ? body.devUserId.trim() : "";
   const displayName = String(body.displayName || "").trim();
 
-  if (!lineUserId) {
-    return NextResponse.json({ error: "lineUserId required" }, { status: 400 });
+  let lineUserId = "";
+  let verifiedName = "";
+  if (idToken) {
+    const verified = await verifyLiffIdToken(idToken);
+    if (!verified) {
+      return NextResponse.json({ error: "invalid_id_token" }, { status: 401 });
+    }
+    lineUserId = verified.lineUserId;
+    verifiedName = verified.displayName;
+  } else if (devUserId && process.env.NODE_ENV !== "production") {
+    lineUserId = devUserId;
+  } else {
+    return NextResponse.json({ error: "idToken required" }, { status: 400 });
   }
 
   let customer;
   try {
-    customer = await upsertCustomerFromLine({ lineUserId, displayName });
+    customer = await upsertCustomerFromLine({
+      lineUserId,
+      displayName: displayName || verifiedName,
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     console.error("customers/line sync failed:", message);
@@ -42,7 +71,7 @@ async function handlePost(req: NextRequest) {
     return NextResponse.json({ error: "sync failed" }, { status: 500 });
   }
 
-  return NextResponse.json({
+  const res = NextResponse.json({
     ok: true,
     customer: {
       id: customer.id,
@@ -57,6 +86,12 @@ async function handlePost(req: NextRequest) {
     },
     needsRegistration: !isProfileComplete(customer),
   });
+  res.cookies.set(
+    CUSTOMER_SESSION_COOKIE,
+    await signCustomerSession({ lineUserId, tenantId: requireTenantId() }),
+    customerSessionCookieOptions()
+  );
+  return res;
 }
 
 export async function GET(req: NextRequest) {
@@ -64,12 +99,12 @@ export async function GET(req: NextRequest) {
 }
 
 async function handleGet(req: NextRequest) {
-  const lineUserId = req.nextUrl.searchParams.get("lineUserId")?.trim();
-  if (!lineUserId) {
-    return NextResponse.json({ error: "lineUserId required" }, { status: 400 });
+  const session = await requireCustomerSession(req);
+  if (!session) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const customer = await findCustomerByLine(lineUserId);
+  const customer = await findCustomerByLine(session.lineUserId);
   if (!customer) {
     return NextResponse.json({ found: false, needsRegistration: true });
   }

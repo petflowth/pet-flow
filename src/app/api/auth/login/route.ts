@@ -88,8 +88,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "username หรือ password ไม่ถูกต้อง" }, { status: 401 });
   }
 
+  let token: string;
+  try {
+    token = await signSession(payload);
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "ตั้งค่าเซิร์ฟเวอร์ไม่ครบ ล็อกอินไม่ได้" },
+      { status: 500 }
+    );
+  }
+
   const res = NextResponse.json({ ok: true, ...payload });
-  res.cookies.set(SESSION_COOKIE, await signSession(payload), sessionCookieOptions());
+  res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());
   return res;
 }
 

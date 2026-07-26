@@ -161,7 +161,11 @@ export async function addFinanceEntry(
     // แนบรูปบิลแยก เพราะร้านที่ยังไม่รัน migration จะ insert ไม่ผ่านทั้งแถว
     if (rec.receiptUrl) {
       try {
-        await sb.from("finance_records").update({ receipt_url: rec.receiptUrl }).eq("id", rec.id);
+        await sb
+          .from("finance_records")
+          .update({ receipt_url: rec.receiptUrl })
+          .eq("id", rec.id)
+          .eq("tenant_id", requireTenantId());
       } catch {
         /* ยังไม่มีคอลัมน์ receipt_url */
       }

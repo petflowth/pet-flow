@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { CustomerProfile } from "@/lib/business";
 import type { PointsHistoryEntry } from "@/lib/points-store";
@@ -53,12 +53,19 @@ async function fetchAccount(lineUserId: string, displayName: string, customerId?
   }>;
 }
 
-async function syncLineCustomer(lineUserId: string, displayName: string) {
+/**
+ * แลก LIFF ID token (LINE เซ็นให้ ปลอมไม่ได้) เป็นคุกกี้เซสชันลูกค้า — ต้องเรียกก่อนเสมอ
+ * ห้ามส่ง lineUserId ตรงๆ อีกต่อไป เพราะ server จะไม่เชื่อค่านี้แล้ว (ดู liff-auth.ts)
+ */
+async function syncLineCustomer(
+  auth: { idToken: string } | { devUserId: string },
+  displayName: string
+) {
   const res = await fetch("/api/customers/line", {
     method: "POST",
     cache: "no-store",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ lineUserId, displayName }),
+    body: JSON.stringify({ ...auth, displayName }),
   });
   if (!res.ok) return null;
   return res.json() as Promise<{
@@ -76,15 +83,27 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
   const [needsRegistration, setNeedsRegistration] = useState(false);
   const [history, setHistory] = useState<PointsHistoryEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // เก็บ liff module ไว้เรียก getIDToken() ซ้ำได้ทุกครั้งที่ sync (dev mode ไม่มีตัวนี้)
+  const liffModRef = useRef<{ getIDToken: () => string | null } | null>(null);
+  const devUserIdRef = useRef<string | null>(null);
+
+  /** ตัวยืนยันตัวตนสำหรับส่งให้ server แลกคุกกี้เซสชัน — ห้ามส่ง lineUserId ตรงๆ อีกต่อไป */
+  const getAuth = useCallback((): { idToken: string } | { devUserId: string } | null => {
+    if (devUserIdRef.current) return { devUserId: devUserIdRef.current };
+    const idToken = liffModRef.current?.getIDToken();
+    return idToken ? { idToken } : null;
+  }, []);
 
   const refreshCustomer = useCallback(async () => {
     if (!profile?.lineUserId) return;
-    const sync = await syncLineCustomer(profile.lineUserId, profile.displayName);
+    const auth = getAuth();
+    if (!auth) return;
+    const sync = await syncLineCustomer(auth, profile.displayName);
     if (sync) {
       setCustomer(sync.customer);
       setNeedsRegistration(sync.needsRegistration);
     }
-  }, [profile?.lineUserId, profile?.displayName]);
+  }, [profile?.lineUserId, profile?.displayName, getAuth]);
 
   const refreshAccount = useCallback(async () => {
     if (!profile?.lineUserId) return;
@@ -101,9 +120,15 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function initLiff() {
       async function applyAccount(base: CustomerProfile) {
+        const auth = getAuth();
+        if (!auth) {
+          setError("เชื่อมต่อ LINE ไม่สำเร็จ — ปิดหน้านี้แล้วเปิดใหม่จาก LINE อีกครั้งนะคะ");
+          setReady(true);
+          return;
+        }
         // sync ก่อนเพื่อรู้ customerId แล้วค่อยดึงแต้มด้วย customerId นั้น —
         // แต้มจะได้ผูกกับลูกค้าคนเดียวเสมอ ไม่แตกตามอุปกรณ์/LINE ID
-        const sync = await syncLineCustomer(base.lineUserId, base.displayName);
+        const sync = await syncLineCustomer(auth, base.displayName);
         if (sync) {
           setCustomer(sync.customer);
           setNeedsRegistration(sync.needsRegistration);
@@ -143,6 +168,7 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
           setReady(true);
           return;
         }
+        devUserIdRef.current = "dev-user";
         await applyAccount({
           lineUserId: "dev-user",
           displayName: "คุณทดสอบ",
@@ -158,6 +184,7 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
               liff.default.login();
               return;
             }
+            liffModRef.current = liff.default;
             const p = await liff.default.getProfile();
             await applyAccount({
               lineUserId: p.userId,

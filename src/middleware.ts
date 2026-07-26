@@ -68,7 +68,10 @@ export async function middleware(req: NextRequest) {
     pathname = slugMatch[2] || "/";
   }
 
+  // ต้องลบ header นี้ทิ้งก่อนเสมอ — ถ้าไม่ลบ ผู้เรียกยิง API ตรง (ไม่ผ่าน /s/<slug>)
+  // แล้วปลอม x-tenant-slug เองได้ จะสวมรอยเข้าข้อมูลร้านอื่นผ่าน route สาธารณะ (LIFF) ได้ทันที
   const requestHeaders = new Headers(req.headers);
+  requestHeaders.delete(TENANT_SLUG_HEADER);
   if (tenantSlug) requestHeaders.set(TENANT_SLUG_HEADER, tenantSlug);
 
   /** ปล่อยผ่าน — ถ้ามาจาก /s/<slug> ต้อง rewrite ไป path จริง + แนบ header/cookie */

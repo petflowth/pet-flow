@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withResolvedTenant } from "@/lib/tenant-context";
 import { getBooking, setBookingTime } from "@/lib/bookings-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
+import { requireCustomerSession } from "@/lib/customer-session";
 
 /** ดึงข้อมูลนัดสำหรับหน้าเลือกเวลา */
 async function getHandler(req: NextRequest) {
@@ -25,16 +26,19 @@ async function getHandler(req: NextRequest) {
 
 /** ลูกค้าเลือกเวลามาส่ง/รับน้อง */
 async function postHandler(req: NextRequest) {
+  const session = await requireCustomerSession(req);
+  if (!session) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   const body = await req.json().catch(() => ({}));
   const bookingId = String(body.bookingId || "").trim();
   const type = body.type === "checkout" ? "checkout" : "checkin";
   const time = String(body.time || "").trim();
-  const lineUserId = String(body.lineUserId || "").trim();
   if (!bookingId || !time) {
     return NextResponse.json({ error: "bookingId + time required" }, { status: 400 });
   }
 
-  const res = await setBookingTime(bookingId, type, time, lineUserId || undefined);
+  const res = await setBookingTime(bookingId, type, time, session.lineUserId);
   if (!res.ok && res.error === "not_found") {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }

@@ -60,6 +60,7 @@ async function handleGet() {
   return NextResponse.json({
     configured,
     liffConfigured,
+    channelSecretConfigured: Boolean(creds?.channelSecret),
     source: creds?.source || "none",
     liffId: creds?.liffId || "",
     endpointUrl: await endpointUrlForCurrentTenant(appUrl),
@@ -129,6 +130,7 @@ async function handlePost(req: NextRequest) {
     }
 
     const channelToken = parseLineChannelToken(String(body.channelToken || ""));
+    const channelSecret = String(body.channelSecret || "").trim();
     const liffId = String(body.liffId || "").trim();
     const current = await getSecrets();
 
@@ -139,6 +141,7 @@ async function handlePost(req: NextRequest) {
 
     await saveLineSecrets({
       channelToken,
+      channelSecret: channelSecret || current.line?.channelSecret,
       liffId: liffId || current.line?.liffId,
     });
 

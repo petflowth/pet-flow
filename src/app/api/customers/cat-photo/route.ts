@@ -2,19 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { findCustomerByLine, updateCat } from "@/lib/customers-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import { withResolvedTenant } from "@/lib/tenant-context";
+import { requireCustomerSession } from "@/lib/customer-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** GET ?lineUserId= — แมวของลูกค้า (พร้อมรูป) สำหรับหน้าโปรไฟล์ในแอป */
+/** GET — แมวของลูกค้าที่ล็อกอินอยู่ (พร้อมรูป) สำหรับหน้าโปรไฟล์ในแอป */
 export async function GET(req: NextRequest) {
   return withResolvedTenant(req, () => handleGet(req));
 }
 
 async function handleGet(req: NextRequest) {
-  const lineUserId = req.nextUrl.searchParams.get("lineUserId") || "";
-  if (!lineUserId) return NextResponse.json({ cats: [] });
-  const customer = await findCustomerByLine(lineUserId);
+  const session = await requireCustomerSession(req);
+  if (!session) return NextResponse.json({ cats: [] });
+  const customer = await findCustomerByLine(session.lineUserId);
   if (!customer) return NextResponse.json({ cats: [] });
   return NextResponse.json({
     cats: customer.cats.map((c) => ({
@@ -26,25 +27,28 @@ async function handleGet(req: NextRequest) {
   });
 }
 
-/** POST { lineUserId, catId, photoDataUrl } — ลูกค้าอัป/แก้รูปแมวตัวเอง */
+/** POST { catId, photoDataUrl } — ลูกค้าอัป/แก้รูปแมวตัวเอง (ระบุตัวจากคุกกี้เซสชัน) */
 export async function POST(req: NextRequest) {
   return withResolvedTenant(req, () => handlePost(req));
 }
 
 async function handlePost(req: NextRequest) {
+  const session = await requireCustomerSession(req);
+  if (!session) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   const body = await req.json().catch(() => ({}));
-  const lineUserId = String(body.lineUserId || "").trim();
   const catId = String(body.catId || "").trim();
   const photoDataUrl = String(body.photoDataUrl || "");
 
-  if (!lineUserId || !catId) {
+  if (!catId) {
     return NextResponse.json({ error: "missing_params" }, { status: 400 });
   }
   if (!photoDataUrl.startsWith("data:image")) {
     return NextResponse.json({ error: "bad_image" }, { status: 400 });
   }
 
-  const customer = await findCustomerByLine(lineUserId);
+  const customer = await findCustomerByLine(session.lineUserId);
   if (!customer) {
     return NextResponse.json({ error: "customer_not_found" }, { status: 404 });
   }

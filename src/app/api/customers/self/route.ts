@@ -7,6 +7,7 @@ import {
 } from "@/lib/customers-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import { withResolvedTenant } from "@/lib/tenant-context";
+import { requireCustomerSession } from "@/lib/customer-session";
 
 /** ลูกค้าดึงข้อมูลตัวเอง (สำหรับหน้าแก้ไขโปรไฟล์ใน LINE) — ครบทุกฟิลด์ที่กรอกตอนสมัคร */
 export async function GET(req: NextRequest) {
@@ -14,11 +15,11 @@ export async function GET(req: NextRequest) {
 }
 
 async function handleGet(req: NextRequest) {
-  const lineUserId = req.nextUrl.searchParams.get("lineUserId")?.trim();
-  if (!lineUserId) {
-    return NextResponse.json({ error: "lineUserId required" }, { status: 400 });
+  const session = await requireCustomerSession(req);
+  if (!session) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  const c = await findCustomerByLine(lineUserId);
+  const c = await findCustomerByLine(session.lineUserId);
   if (!c) return NextResponse.json({ found: false });
   return NextResponse.json({
     found: true,
@@ -54,12 +55,12 @@ export async function POST(req: NextRequest) {
 }
 
 async function handlePost(req: NextRequest) {
-  const body = await req.json().catch(() => ({}));
-  const lineUserId = String(body.lineUserId || "").trim();
-  if (!lineUserId) {
-    return NextResponse.json({ error: "lineUserId required" }, { status: 400 });
+  const session = await requireCustomerSession(req);
+  if (!session) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  const c = await findCustomerByLine(lineUserId);
+  const body = await req.json().catch(() => ({}));
+  const c = await findCustomerByLine(session.lineUserId);
   if (!c) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   const patch: {

@@ -18,8 +18,16 @@ export function getPlatformCode(): string {
   return process.env.PLATFORM_ADMIN_CODE || "";
 }
 
+/** ห้าม fallback ไปใช้ค่าที่เดาได้ตอนขึ้นจริง — ดูเหตุผลเดียวกับ src/lib/auth.ts secretKey() */
 function secretKey(): string {
-  return process.env.PLATFORM_SESSION_SECRET || `petflow-platform::${getPlatformCode()}`;
+  const explicit = process.env.PLATFORM_SESSION_SECRET;
+  if (explicit) return explicit;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "ยังไม่ได้ตั้งค่า PLATFORM_SESSION_SECRET ใน env — ต้องตั้งก่อนใช้งานจริง"
+    );
+  }
+  return `petflow-platform::${getPlatformCode()}`;
 }
 
 const enc = new TextEncoder();
@@ -62,7 +70,13 @@ export async function verifyPlatformSession(
   if (!token) return null;
   const [body, sig] = token.split(".");
   if (!body || !sig) return null;
-  if ((await hmac(body)) !== sig) return null;
+  let expectedSig: string;
+  try {
+    expectedSig = await hmac(body);
+  } catch {
+    return null;
+  }
+  if (expectedSig !== sig) return null;
   try {
     const payload = JSON.parse(b64urlDecode(body)) as PlatformSessionPayload;
     if (!payload.exp || payload.exp < Date.now()) return null;

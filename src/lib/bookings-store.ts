@@ -409,7 +409,7 @@ export async function cancelBooking(id: string) {
 export async function deleteBooking(id: string) {
   const sb = getSupabase();
   if (sb) {
-    await sb.from("bookings").delete().eq("id", id);
+    await sb.from("bookings").delete().eq("id", id).eq("tenant_id", requireTenantId());
   } else {
     const i = mem.findIndex((b) => b.id === id);
     if (i >= 0) mem.splice(i, 1);

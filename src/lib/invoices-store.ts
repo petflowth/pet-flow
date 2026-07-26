@@ -441,7 +441,11 @@ export async function linkInvoiceToBooking(id: string, bookingId: string) {
   inv.bookingId = bookingId;
   const sb = getSupabase();
   if (sb) {
-    await sb.from("invoices").update({ booking_id: bookingId }).eq("id", id);
+    await sb
+      .from("invoices")
+      .update({ booking_id: bookingId })
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
   }
   return { ok: true as const, invoice: inv };
 }

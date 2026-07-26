@@ -36,7 +36,9 @@ export async function POST(req: NextRequest) {
   const auth = req.headers.get("authorization");
 
   // เรียกจากสคริปต์ภายนอกด้วย Bearer หรือจากหลังบ้านที่ล็อกอินแล้ว
-  if (secret && auth !== `Bearer ${secret}` && !(await getSessionFrom(req))) {
+  // ต้อง fail closed — ถ้ายังไม่ตั้ง secret เลย ห้ามปล่อยผ่านเฉยๆ (เท่ากับเปิดโล่งให้ทุกคน)
+  const hasSession = Boolean(await getSessionFrom(req));
+  if (!hasSession && (!secret || auth !== `Bearer ${secret}`)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

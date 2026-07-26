@@ -2,18 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { withResolvedTenant } from "@/lib/tenant-context";
 import { claimCustomerPromo } from "@/lib/promos-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
+import { requireCustomerSession } from "@/lib/customer-session";
 
 /** ลูกค้ากดใช้โปรจากหน้าแอป */
 async function postHandler(req: NextRequest) {
+  const session = await requireCustomerSession(req);
+  if (!session) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   const body = await req.json().catch(() => ({}));
   const promoId = String(body.promoId || "").trim();
-  const lineUserId = String(body.lineUserId || "").trim();
 
-  if (!promoId || !lineUserId) {
-    return NextResponse.json({ error: "promoId and lineUserId required" }, { status: 400 });
+  if (!promoId) {
+    return NextResponse.json({ error: "promoId required" }, { status: 400 });
   }
 
-  const result = await claimCustomerPromo(promoId, lineUserId, "app");
+  const result = await claimCustomerPromo(promoId, session.lineUserId, "app");
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }

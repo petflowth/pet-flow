@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleTelegramCommand } from "@/lib/telegram-commands";
 import {
+  deriveWebhookSecretToken,
   getTelegramCredentials,
   isTelegramConfigured,
   registerTelegramBot,
@@ -108,6 +109,13 @@ async function handlePost(req: NextRequest) {
       { ok: false, error: "TELEGRAM_BOT_TOKEN missing" },
       { status: 503 }
     );
+  }
+
+  // ต้องตรวจ secret_token เสมอ — ไม่งั้นใครก็ POST เข้ามาแอบอ้างเป็น Telegram ได้
+  const expectedSecret = deriveWebhookSecretToken(creds.botToken, requireBootstrapTenant());
+  const gotSecret = req.headers.get("x-telegram-bot-api-secret-token");
+  if (gotSecret !== expectedSecret) {
+    return NextResponse.json({ ok: false, error: "bad secret token" }, { status: 401 });
   }
 
   let body: { message?: { text?: string; chat?: { id?: number } } };

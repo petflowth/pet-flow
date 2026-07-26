@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pushLineMessage, buildBillSummaryFlex } from "@/lib/line";
+import { getSessionFrom } from "@/lib/auth";
+import { withTenant } from "@/lib/tenant-context";
 
 export const runtime = "nodejs";
 
@@ -8,8 +10,17 @@ type SummaryPayload = Parameters<typeof buildBillSummaryFlex>[0];
 /**
  * ส่งสรุป/แจ้งยอดไปหาลูกค้าทาง LINE — ใช้จากหน้าคิดเงิน
  * ถ้ามี `summary` (ข้อมูลบิล) จะส่งเป็น "การ์ด"; ถ้าไม่มีจะส่งเป็นข้อความ (`text`)
+ *
+ * ต้อง wrap ด้วย withTenant เสมอ — ไม่งั้น requireTenantId() ที่อยู่ลึกใน pushLineMessage
+ * จะ fallback ไปใช้ช่อง LINE ของร้าน bootstrap แทนร้านของคนที่ล็อกอินอยู่จริง
  */
 export async function POST(req: NextRequest) {
+  const session = await getSessionFrom(req);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  return withTenant(session.tenantId, () => handlePost(req));
+}
+
+async function handlePost(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const lineUserId = String(body.lineUserId || "").trim();
   const summary = body.summary as SummaryPayload | undefined;

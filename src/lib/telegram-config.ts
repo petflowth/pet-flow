@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { getSecrets } from "./secrets-store";
 
 export type TelegramCredentials = {
@@ -135,6 +136,15 @@ export async function syncTelegramBotCommands(token: string) {
   }).then((r) => r.json());
 }
 
+/**
+ * โทเคนลับต่อร้าน — Telegram แนบกลับมาใน header X-Telegram-Bot-Api-Secret-Token
+ * ทุก webhook call ให้ handler เทียบกันได้ว่ามาจาก Telegram จริง ไม่ใช่ใครก็ยิง POST เข้ามา
+ * derive จาก token+tenantId เอง ไม่ต้องเก็บเพิ่ม — คำนวณซ้ำได้ตอนตรวจเสมอ
+ */
+export function deriveWebhookSecretToken(token: string, tenantId: string): string {
+  return crypto.createHmac("sha256", token).update(tenantId).digest("hex");
+}
+
 export async function registerTelegramBot(
   token: string,
   appUrl: string,
@@ -149,6 +159,7 @@ export async function registerTelegramBot(
       url: webhookUrl,
       allowed_updates: ["message"],
       drop_pending_updates: true,
+      secret_token: deriveWebhookSecretToken(token, tenantId),
     }),
   }).then((r) => r.json());
 
@@ -187,11 +198,20 @@ export async function registerTelegramBot(
   };
 }
 
-/** ถ้า webhook ยังว่าง แต่ส่งแจ้งเตือนได้ — ลงทะเบียนรับคำสั่งอัตโนมัติ */
+/**
+ * ถ้า webhook ยังว่าง แต่ส่งแจ้งเตือนได้ — ลงทะเบียนรับคำสั่งอัตโนมัติ
+ * ฟังก์ชันนี้ถูกเรียกก่อนส่งแจ้งเตือนทุกครั้ง (sendTelegram) — ห้ามยิง setWebhook ซ้ำทุกครั้ง
+ * เพราะจะเพิ่ม latency + พึ่ง Telegram API ในทุก request โดยไม่จำเป็น จึง short-circuit
+ * เมื่อ URL ตรงกับที่คาดไว้แล้วเหมือนเดิม
+ *
+ * ผลข้างเคียง: ร้านที่เคยลงทะเบียน webhook ไว้ก่อนเพิ่ม secret_token (ความปลอดภัยรอบนี้)
+ * จะยังไม่มี secret_token จนกว่าจะกด "ตั้ง Webhook อัตโนมัติ" ใหม่อีกครั้งในหน้าตั้งค่า —
+ * ต้องแจ้งร้านเดิมให้กดปุ่มนี้ซ้ำหนึ่งครั้งเพื่อให้การป้องกันมีผล
+ */
 export async function ensureTelegramWebhook(token: string, appUrl: string, tenantId: string) {
-  const infoRes = await fetch(
+  const infoRes = (await fetch(
     `https://api.telegram.org/bot${token}/getWebhookInfo`
-  ).then((r) => r.json()) as { ok?: boolean; result?: { url?: string } };
+  ).then((r) => r.json())) as { ok?: boolean; result?: { url?: string } };
 
   const currentUrl = infoRes.result?.url || "";
   const expected = `${appUrl.replace(/\/$/, "")}/api/telegram/webhook/${tenantId}`;

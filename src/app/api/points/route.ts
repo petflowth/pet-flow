@@ -4,19 +4,32 @@ import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import { pushLineMessage } from "@/lib/line";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { withResolvedTenant, withTenant } from "@/lib/tenant-context";
+import { requireCustomerSession } from "@/lib/customer-session";
 
 async function getAdminSession(req: NextRequest) {
   return verifySession(req.cookies.get(SESSION_COOKIE)?.value);
 }
 
 export async function GET(req: NextRequest) {
-  const lineUserId = req.nextUrl.searchParams.get("lineUserId");
-  if (!lineUserId) {
-    return NextResponse.json({ error: "lineUserId required" }, { status: 400 });
-  }
   const session = await getAdminSession(req);
-  if (session) return withTenant(session.tenantId, () => handleGet(req, lineUserId));
-  return withResolvedTenant(req, () => handleGet(req, lineUserId));
+  // แอดมินดูแต้มของลูกค้าคนไหนก็ได้ (มี session หลังบ้านรับรองแล้ว) — เชื่อ query ได้
+  if (session) {
+    const lineUserId = req.nextUrl.searchParams.get("lineUserId");
+    if (!lineUserId) {
+      return NextResponse.json({ error: "lineUserId required" }, { status: 400 });
+    }
+    return withTenant(session.tenantId, () => handleGet(req, lineUserId));
+  }
+  // ลูกค้าเปิดเอง — ต้องมีคุกกี้เซสชันที่ตรวจกับ LINE แล้วจริง ห้ามเชื่อ query lineUserId
+  return withResolvedTenant(req, () => handleCustomerGet(req));
+}
+
+async function handleCustomerGet(req: NextRequest) {
+  const customerSession = await requireCustomerSession(req);
+  if (!customerSession) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  return handleGet(req, customerSession.lineUserId);
 }
 
 async function handleGet(req: NextRequest, lineUserId: string) {
@@ -39,7 +52,8 @@ export async function POST(req: NextRequest) {
 
 async function handlePost(req: NextRequest, isAdmin: boolean) {
   const body = await req.json().catch(() => ({}));
-  const { lineUserId, rewardId, displayName } = body;
+  const { rewardId, displayName } = body;
+  let lineUserId = String(body.lineUserId || "").trim();
 
   // เพิ่ม/ปรับแต้มด้วยมือจากหลังบ้าน (เช่น รีวิวแล้วรับแต้มฟรี) — บันทึกเหตุผลในประวัติ
   if (body.action === "admin_add") {
@@ -80,6 +94,16 @@ async function handlePost(req: NextRequest, isAdmin: boolean) {
       }
     }
     return NextResponse.json({ ok: true, points: acc.points });
+  }
+
+  // แลกรางวัลเอง — ต้องมีคุกกี้เซสชันที่ตรวจกับ LINE แล้วจริง ห้ามเชื่อ lineUserId จาก body
+  // (ไม่งั้นใครก็ใส่ lineUserId ของคนอื่นแล้วแลกแต้มแทนได้)
+  if (!isAdmin) {
+    const customerSession = await requireCustomerSession(req);
+    if (!customerSession) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+    lineUserId = customerSession.lineUserId;
   }
 
   if (!lineUserId || !rewardId) {

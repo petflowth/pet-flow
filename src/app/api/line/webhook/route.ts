@@ -18,7 +18,9 @@ export const dynamic = "force-dynamic";
  *
  * ตั้งค่า: LINE Developers → Messaging API → Webhook URL =
  *   https://<โดเมนแอป>/api/line/webhook  แล้วกด Verify + เปิด "Use webhook"
- * (ไม่บังคับ) ใส่ env LINE_CHANNEL_SECRET เพื่อเปิดการตรวจลายเซ็นความปลอดภัย
+ * ต้องตั้ง Channel Secret ไว้เสมอ (หน้าตั้งค่า LINE ในหลังบ้าน หรือ env LINE_CHANNEL_SECRET
+ * สำหรับร้าน bootstrap) — ไม่งั้น webhook นี้จะปฏิเสธทุก request เพราะตรวจลายเซ็นไม่ได้
+ * (ก่อนหน้านี้ถ้าไม่ตั้ง secret ระบบจะข้ามการตรวจไปเฉยๆ — ใครก็ปลอม event ส่งเข้ามาได้)
  */
 
 type LineMessage = { type: string; text?: string };
@@ -88,12 +90,18 @@ export async function GET() {
 async function postHandler(req: NextRequest) {
   const raw = await req.text();
 
-  const secret = process.env.LINE_CHANNEL_SECRET?.trim();
-  if (secret) {
-    const sig = req.headers.get("x-line-signature");
-    if (!verifySignature(raw, sig, secret)) {
-      return NextResponse.json({ ok: false, error: "bad signature" }, { status: 401 });
-    }
+  // ต้อง fail closed — ถ้ายังไม่ตั้ง secret เลย ห้ามข้ามการตรวจไปเฉยๆ (เท่ากับเปิดโล่งให้ปลอม event ได้)
+  const creds = await getLineCredentials();
+  const secret = creds?.channelSecret?.trim();
+  if (!secret) {
+    return NextResponse.json(
+      { ok: false, error: "channel secret not configured" },
+      { status: 401 }
+    );
+  }
+  const sig = req.headers.get("x-line-signature");
+  if (!verifySignature(raw, sig, secret)) {
+    return NextResponse.json({ ok: false, error: "bad signature" }, { status: 401 });
   }
 
   let payload: { events?: LineEvent[] };
@@ -104,7 +112,6 @@ async function postHandler(req: NextRequest) {
   }
 
   const events = payload.events || [];
-  const creds = await getLineCredentials();
   const token = creds?.channelToken || "";
 
   await Promise.all(

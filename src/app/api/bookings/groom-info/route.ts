@@ -6,13 +6,24 @@ import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import { parseGroomInfo, groomInfoSummary } from "@/lib/groom-info";
 import { getSiteConfig } from "@/lib/config-store";
 import { resolveGroomForm } from "@/lib/groom-form";
+import { requireCustomerSession } from "@/lib/customer-session";
 
-/** ดึงข้อมูลนัดอาบน้ำ + ประวัติที่เคยกรอกไว้ (เก็บถาวรที่แมว) */
+/**
+ * ดึงข้อมูลนัดอาบน้ำ + ประวัติที่เคยกรอกไว้ (เก็บถาวรที่แมว) — มีข้อมูลสุขภาพน้อง
+ * ต้องเป็นเจ้าของนัดจริง (ตรวจจากคุกกี้เซสชัน) ไม่ใช่แค่รู้ bookingId
+ */
 async function getHandler(req: NextRequest) {
+  const session = await requireCustomerSession(req);
+  if (!session) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   const id = req.nextUrl.searchParams.get("id")?.trim();
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
   const b = await getBooking(id);
   if (!b) return NextResponse.json({ found: false });
+  if (b.lineUserId && b.lineUserId !== session.lineUserId) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
   const stored = b.lineUserId
     ? await getCatGroomInfo(b.lineUserId, b.catName)
     : undefined;
@@ -25,6 +36,10 @@ async function getHandler(req: NextRequest) {
 
 /** ลูกค้ากรอกประวัติน้องก่อนอาบน้ำ — บันทึกถาวรที่แมว */
 async function postHandler(req: NextRequest) {
+  const session = await requireCustomerSession(req);
+  if (!session) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   const body = await req.json().catch(() => ({}));
   const bookingId = String(body.bookingId || "").trim();
   const info = body.info || {};
@@ -33,11 +48,11 @@ async function postHandler(req: NextRequest) {
   }
   const b = await getBooking(bookingId);
   if (!b) return NextResponse.json({ error: "not found" }, { status: 404 });
-
-  const lineUserId = String(body.lineUserId || b.lineUserId || "").trim();
-  if (!lineUserId) {
-    return NextResponse.json({ error: "no_line" }, { status: 400 });
+  if (b.lineUserId && b.lineUserId !== session.lineUserId) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
+
+  const lineUserId = session.lineUserId;
 
   // เก็บตามคำถามที่ร้านตั้งไว้จริง (ร้านเพิ่ม/แก้ตัวเลือกเองได้) — sanitize ตามชนิดของคำถาม
   const cfg = await getSiteConfig();

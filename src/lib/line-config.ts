@@ -2,6 +2,7 @@ import { getSecrets } from "./secrets-store";
 
 export type LineCredentials = {
   channelToken: string;
+  channelSecret?: string;
   liffId?: string;
   source: "env" | "database";
 };
@@ -25,12 +26,18 @@ export async function getLineCredentials(): Promise<LineCredentials | null> {
   if (line?.channelToken) {
     return {
       channelToken: line.channelToken,
+      channelSecret: line.channelSecret,
       liffId: line.liffId || envLiff,
       source: "database",
     };
   }
   if (envToken) {
-    return { channelToken: envToken, liffId: envLiff, source: "env" };
+    return {
+      channelToken: envToken,
+      channelSecret: process.env.LINE_CHANNEL_SECRET?.trim(),
+      liffId: envLiff,
+      source: "env",
+    };
   }
   if (line?.liffId) {
     return { channelToken: "", liffId: line.liffId, source: "database" };

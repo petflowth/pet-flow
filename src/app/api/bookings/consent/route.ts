@@ -2,12 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { withResolvedTenant } from "@/lib/tenant-context";
 import { acceptBookingConsent, getBooking } from "@/lib/bookings-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
+import { requireCustomerSession } from "@/lib/customer-session";
 
-/** ลูกค้ากด "ยอมรับข้อตกลง" ก่อนเข้าพัก */
+/**
+ * ลูกค้ากด "ยอมรับข้อตกลง" ก่อนเข้าพัก
+ *
+ * เดิมถ้าไม่ส่ง lineUserId มาเลย เงื่อนไข forbidden ใน acceptBookingConsent จะข้ามไปเฉยๆ
+ * (เช็คเฉพาะตอนมีค่าส่งมาเทียบ) ใครก็เซ็นยอมรับแทนลูกค้าคนอื่นได้แค่รู้ bookingId
+ * ต้องบังคับใช้ lineUserId จากคุกกี้เซสชันที่ตรวจแล้วจริงเท่านั้น
+ */
 async function postHandler(req: NextRequest) {
+  const session = await requireCustomerSession(req);
+  if (!session) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   const body = await req.json().catch(() => ({}));
   const bookingId = String(body.bookingId || "").trim();
-  const lineUserId = String(body.lineUserId || "").trim();
+  const lineUserId = session.lineUserId;
   const careNote = String(body.careNote || "").trim();
   const signature = String(body.signature || "").trim();
   if (!bookingId) {

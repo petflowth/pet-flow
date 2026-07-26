@@ -1828,6 +1828,7 @@ export async function listAllServiceRecords(): Promise<ServiceRecord[]> {
     const { data } = await sb
       .from("service_records")
       .select("*")
+      .eq("tenant_id", requireTenantId())
       .order("created_at", { ascending: false });
     return ((data as ServiceRow[] | null) || []).map((r) => ({
       id: r.id,
@@ -1877,6 +1878,7 @@ export async function listAllMemberTopups(): Promise<MemberTopupRecord[]> {
     const { data } = await sb
       .from("member_topups")
       .select("*")
+      .eq("tenant_id", requireTenantId())
       .order("created_at", { ascending: false });
     return ((data as MemberTopupRow[] | null) || []).map((r) => ({
       id: r.id,

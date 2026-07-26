@@ -6,6 +6,7 @@ import { TIER_LABELS, type CustomerTier } from "@/lib/customer-tier";
 type LineStatus = {
   configured: boolean;
   liffConfigured?: boolean;
+  channelSecretConfigured?: boolean;
   source: string;
   liffId?: string;
   endpointUrl?: string;
@@ -253,6 +254,7 @@ export function LiffSetupSection({ adminCode }: { adminCode?: string }) {
 export function LineMessagingSetupSection({ adminCode }: { adminCode?: string }) {
   const [status, setStatus] = useState<LineStatus | null>(null);
   const [channelToken, setChannelToken] = useState("");
+  const [channelSecret, setChannelSecret] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
@@ -279,12 +281,14 @@ export function LineMessagingSetupSection({ adminCode }: { adminCode?: string })
         adminCode,
         action: "save_token",
         channelToken,
+        channelSecret,
       }),
     });
     const data = await res.json();
     setMsg(data.message || data.error || "");
     if (data.ok) {
       setChannelToken("");
+      setChannelSecret("");
       await load();
     }
     setSaving(false);
@@ -362,6 +366,23 @@ export function LineMessagingSetupSection({ adminCode }: { adminCode?: string })
           className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm"
         />
       </label>
+
+      <label className="block text-xs font-bold text-brown-soft">
+        Channel Secret
+        <input
+          type="password"
+          value={channelSecret}
+          onChange={(e) => setChannelSecret(e.target.value)}
+          placeholder="LINE Developers → Basic settings → Channel secret"
+          className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm"
+        />
+      </label>
+      {status?.configured && !status?.channelSecretConfigured ? (
+        <div className="rounded-petflow-sm bg-red-50 px-3 py-2 text-xs font-bold text-red-600">
+          ⚠️ ยังไม่ได้ตั้ง Channel Secret — ระบบจะปฏิเสธ event LINE ทั้งหมดจนกว่าจะตั้งค่านี้
+          (ป้องกันคนปลอมส่ง webhook เข้ามาแทนลูกค้าจริง)
+        </div>
+      ) : null}
 
       {msg && (
         <p className="rounded-petflow-sm bg-paper px-3 py-2 text-xs font-bold text-brown whitespace-pre-line">

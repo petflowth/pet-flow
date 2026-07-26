@@ -3,6 +3,7 @@ import { withResolvedTenant } from "@/lib/tenant-context";
 import { findCustomerByLine } from "@/lib/customers-store";
 import { getOffer, claimOffer } from "@/lib/coupons-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
+import { requireCustomerSession } from "@/lib/customer-session";
 
 /** ข้อมูลแคมเปญคูปอง (สำหรับหน้ากดรับ) */
 async function getHandler(req: NextRequest) {
@@ -25,13 +26,16 @@ async function getHandler(req: NextRequest) {
 
 /** ลูกค้ากดรับคูปอง */
 async function postHandler(req: NextRequest) {
+  const session = await requireCustomerSession(req);
+  if (!session) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   const body = await req.json().catch(() => ({}));
   const offerId = String(body.offerId || "").trim();
-  const lineUserId = String(body.lineUserId || "").trim();
-  if (!offerId || !lineUserId) {
+  if (!offerId) {
     return NextResponse.json({ error: "missing fields" }, { status: 400 });
   }
-  const cust = await findCustomerByLine(lineUserId);
+  const cust = await findCustomerByLine(session.lineUserId);
   if (!cust) return NextResponse.json({ error: "no_customer" }, { status: 404 });
 
   const res = await claimOffer(offerId, cust.id);

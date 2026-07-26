@@ -32,12 +32,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "รหัสไม่ถูกต้อง" }, { status: 401 });
   }
 
+  let token: string;
+  try {
+    token = await signPlatformSession();
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "ตั้งค่าเซิร์ฟเวอร์ไม่ครบ ล็อกอินไม่ได้" },
+      { status: 500 }
+    );
+  }
+
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(
-    PLATFORM_SESSION_COOKIE,
-    await signPlatformSession(),
-    platformSessionCookieOptions()
-  );
+  res.cookies.set(PLATFORM_SESSION_COOKIE, token, platformSessionCookieOptions());
   return res;
 }
 

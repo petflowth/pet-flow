@@ -396,10 +396,12 @@ export async function getPointsHistory(lineUserId: string) {
 export async function deletePointsHistoryEntry(entryId: string) {
   const sb = getSupabase();
   if (sb) {
+    const tenantId = requireTenantId();
     const { data: row } = await sb
       .from("points_history")
       .select("*")
       .eq("id", entryId)
+      .eq("tenant_id", tenantId)
       .maybeSingle();
     if (!row) return { ok: false as const, error: "not_found" };
     const r = row as HistoryRow;
@@ -407,13 +409,15 @@ export async function deletePointsHistoryEntry(entryId: string) {
       .from("points_accounts")
       .select("points")
       .eq("line_user_id", r.line_user_id)
+      .eq("tenant_id", tenantId)
       .maybeSingle();
     const newPoints = Math.max(0, Number(acc?.points || 0) - Number(r.points));
     await sb
       .from("points_accounts")
       .update({ points: newPoints })
-      .eq("line_user_id", r.line_user_id);
-    await sb.from("points_history").delete().eq("id", entryId);
+      .eq("line_user_id", r.line_user_id)
+      .eq("tenant_id", tenantId);
+    await sb.from("points_history").delete().eq("id", entryId).eq("tenant_id", tenantId);
     return { ok: true as const, points: newPoints };
   }
 

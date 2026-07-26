@@ -57,7 +57,7 @@ async function handlePost(req: NextRequest, isAdmin: boolean) {
 
   // ลบประวัติแต้ม 1 รายการ (กดผิด/ลงซ้ำ) — ปรับยอดคงเหลือย้อนกลับให้เอง ต้องเป็นพนักงานเท่านั้น
   if (body.action === "delete_history") {
-    if (!(await isAdmin(req))) {
+    if (!isAdmin) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
     const entryId = String(body.entryId || "").trim();

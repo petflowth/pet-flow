@@ -1454,8 +1454,8 @@ function CleanupBroadcastSection() {
   };
 
   return (
-    <div className="rounded-catcha-sm border border-sage/40 bg-sage/10 p-3">
-      <p className="text-xs font-extrabold text-catcha-chocolate">
+    <div className="rounded-petflow-sm border border-sage/40 bg-sage/10 p-3">
+      <p className="text-xs font-extrabold text-petflow-chocolate">
         🧹 ล้างรูปโปร broadcast เก่า
       </p>
       <p className="mb-2 text-[10px] text-brown-soft">
@@ -1466,7 +1466,7 @@ function CleanupBroadcastSection() {
         type="button"
         disabled={busy}
         onClick={run}
-        className="w-full rounded-catcha-sm bg-sage/70 py-2 text-xs font-extrabold text-catcha-chocolate disabled:opacity-50"
+        className="w-full rounded-petflow-sm bg-sage/70 py-2 text-xs font-extrabold text-petflow-chocolate disabled:opacity-50"
       >
         {busy ? "กำลังล้าง…" : "🧹 ล้างรูปโปรเก่าตอนนี้"}
       </button>

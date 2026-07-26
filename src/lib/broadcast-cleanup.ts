@@ -1,10 +1,13 @@
 import { getSupabase } from "./supabase/server";
+import { requireTenantId } from "./tenant-context";
 
 /**
  * ลบรูปโปร broadcast เก่าที่เก็บ base64 ในตาราง broadcast_images
  * (ของก่อนย้ายไปเก็บใน Storage) — ลบเฉพาะที่เก่ากว่า keepDays วัน เพราะ LINE
  * ดึงรูปไป cache ไว้ฝั่งเขาตั้งแต่ตอนส่งแล้ว ไม่ต้องใช้แถวนี้อีก
  * ใช้ร่วมกันทั้งปุ่มกดเองในหลังบ้านและ cron รายเดือน · เรียกซ้ำได้ปลอดภัย
+ *
+ * ต้อง scope ด้วย tenant_id เสมอ — ไม่งั้นร้านไหนกดปุ่มนี้ก็ลบรูปเก่าของทุกร้านทิ้งหมด
  */
 export async function cleanupOldBroadcastImages(
   keepDays = 30
@@ -19,6 +22,7 @@ export async function cleanupOldBroadcastImages(
     .from("broadcast_images")
     .delete()
     .lt("created_at", cutoff)
+    .eq("tenant_id", requireTenantId())
     .select("id");
 
   if (error) {

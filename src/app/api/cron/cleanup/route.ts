@@ -1,15 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cleanupOldBroadcastImages } from "@/lib/broadcast-cleanup";
 import { sendTelegram } from "@/lib/telegram";
+import { withTenant } from "@/lib/tenant-context";
+import { listActiveTenantIds } from "@/lib/tenant-directory";
+import { verifyCronSecret } from "@/lib/cron-auth";
 
-/** Cron รายเดือน — รีดพื้นที่ฐานข้อมูลคืน โดยลบรูปโปร broadcast เก่าที่ค้างเป็น base64 */
+/** Cron รายเดือน — รีดพื้นที่ฐานข้อมูลคืน โดยลบรูปโปร broadcast เก่าที่ค้างเป็น base64 — รันแทนทุกร้าน */
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get("authorization");
-  const secret = process.env.CRON_SECRET;
-  if (secret && auth !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const denied = verifyCronSecret(req);
+  if (denied) return denied;
 
+  const tenantIds = await listActiveTenantIds();
+  const results = await Promise.all(
+    tenantIds.map(async (tenantId) => {
+      try {
+        return { tenantId, ...(await withTenant(tenantId, runForTenant)) };
+      } catch (e) {
+        return { tenantId, ok: false, error: e instanceof Error ? e.message : String(e) };
+      }
+    })
+  );
+  return NextResponse.json({ ok: true, tenants: results.length, results });
+}
+
+async function runForTenant() {
   const result = await cleanupOldBroadcastImages();
 
   if (result.ok && result.removed > 0) {
@@ -21,5 +35,5 @@ export async function GET(req: NextRequest) {
     await sendTelegram(`⚠️ ล้างพื้นที่รายเดือนล้มเหลว: ${result.error}`);
   }
 
-  return NextResponse.json(result);
+  return result;
 }

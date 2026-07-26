@@ -385,6 +385,49 @@ export async function getPointsHistory(lineUserId: string) {
   return loadHistory(await resolvePointsKey(lineUserId));
 }
 
+/**
+ * ลบประวัติแต้ม 1 รายการ + ปรับยอดคงเหลือย้อนกลับให้ตรง
+ *
+ * entry.points เก็บเป็นเลขมีเครื่องหมายอยู่แล้ว (ได้แต้ม = บวก, แลกแต้ม = ลบ)
+ * ลบแล้วแค่หักยอดคงเหลือด้วย entry.points ก็ย้อนกลับสภาพก่อนหน้าได้พอดี
+ * (ถ้าเป็นรายการแลกแต้มที่เคยออกคูปองจริงไปแล้ว ลบตรงนี้ไม่ยกเลิกคูปองให้ — ต้องไปจัดการ
+ * คูปองแยกต่างหากถ้าจำเป็น กันลบประวัติแล้วคูปองหายตามไปด้วยโดยไม่ตั้งใจ)
+ */
+export async function deletePointsHistoryEntry(entryId: string) {
+  const sb = getSupabase();
+  if (sb) {
+    const { data: row } = await sb
+      .from("points_history")
+      .select("*")
+      .eq("id", entryId)
+      .maybeSingle();
+    if (!row) return { ok: false as const, error: "not_found" };
+    const r = row as HistoryRow;
+    const { data: acc } = await sb
+      .from("points_accounts")
+      .select("points")
+      .eq("line_user_id", r.line_user_id)
+      .maybeSingle();
+    const newPoints = Math.max(0, Number(acc?.points || 0) - Number(r.points));
+    await sb
+      .from("points_accounts")
+      .update({ points: newPoints })
+      .eq("line_user_id", r.line_user_id);
+    await sb.from("points_history").delete().eq("id", entryId);
+    return { ok: true as const, points: newPoints };
+  }
+
+  for (const acc of mem.values()) {
+    const idx = acc.history.findIndex((h) => h.id === entryId);
+    if (idx >= 0) {
+      const [removed] = acc.history.splice(idx, 1);
+      acc.points = Math.max(0, acc.points - removed.points);
+      return { ok: true as const, points: acc.points };
+    }
+  }
+  return { ok: false as const, error: "not_found" };
+}
+
 /** รวมแต้ม 2 บัญชีเข้าด้วยกัน (ใช้ตอนรวมลูกค้าซ้ำ) — ย้ายทุกอย่างจาก from → to */
 export async function mergePointsAccount(fromCustomerId: string, toCustomerId: string) {
   if (fromCustomerId === toCustomerId) return;

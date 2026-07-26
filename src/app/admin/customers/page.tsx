@@ -2398,9 +2398,41 @@ export default function CustomersPage() {
           <h2 className="mb-2 text-sm font-extrabold">🎁 ประวัติแลกแต้ม</h2>
           <ul className="space-y-2 text-xs text-brown-soft">
             {selected.history.points.map((p) => (
-              <li key={p.id}>
-                {p.at.slice(0, 10)} · {p.labelTh} · {p.points > 0 ? "+" : ""}
-                {p.points} แต้ม
+              <li key={p.id} className="flex items-center justify-between gap-2">
+                <span>
+                  {p.at.slice(0, 10)} · {p.labelTh} · {p.points > 0 ? "+" : ""}
+                  {p.points} แต้ม
+                </span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (
+                      !confirm(
+                        `ลบรายการนี้? (${p.labelTh} · ${p.points > 0 ? "+" : ""}${p.points} แต้ม)\n` +
+                          `ระบบจะปรับยอดแต้มคงเหลือย้อนกลับให้อัตโนมัติ` +
+                          (p.points < 0
+                            ? "\n\n⚠️ ถ้ารายการนี้เคยออกคูปองส่วนลดไปแล้ว การลบนี้ไม่ยกเลิกคูปองให้ — ไปเช็ค/ยกเลิกคูปองแยกต่างหากถ้าจำเป็น"
+                            : "")
+                      )
+                    )
+                      return;
+                    const res = await fetch("/api/points", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "delete_history", entryId: p.id }),
+                    });
+                    if (res.ok) {
+                      toast("ลบประวัติแต้มแล้ว", "success");
+                      open(c.id);
+                    } else {
+                      toast("ลบไม่สำเร็จ", "error");
+                    }
+                  }}
+                  className="shrink-0 text-[11px] font-bold text-wait"
+                  aria-label="ลบรายการนี้"
+                >
+                  🗑️
+                </button>
               </li>
             ))}
             {!selected.history.points.length && <li>ยังไม่มีประวัติแต้ม</li>}

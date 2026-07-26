@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAccount, redeemReward, addPoints } from "@/lib/points-store";
+import { getAccount, redeemReward, addPoints, deletePointsHistoryEntry } from "@/lib/points-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import { pushLineMessage } from "@/lib/line";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
@@ -54,6 +54,22 @@ async function handlePost(req: NextRequest, isAdmin: boolean) {
   const body = await req.json().catch(() => ({}));
   const { rewardId, displayName } = body;
   let lineUserId = String(body.lineUserId || "").trim();
+
+  // ลบประวัติแต้ม 1 รายการ (กดผิด/ลงซ้ำ) — ปรับยอดคงเหลือย้อนกลับให้เอง ต้องเป็นพนักงานเท่านั้น
+  if (body.action === "delete_history") {
+    if (!(await isAdmin(req))) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+    const entryId = String(body.entryId || "").trim();
+    if (!entryId) {
+      return NextResponse.json({ error: "entryId required" }, { status: 400 });
+    }
+    const res = await deletePointsHistoryEntry(entryId);
+    if (!res.ok) {
+      return NextResponse.json({ error: res.error }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true, points: res.points });
+  }
 
   // เพิ่ม/ปรับแต้มด้วยมือจากหลังบ้าน (เช่น รีวิวแล้วรับแต้มฟรี) — บันทึกเหตุผลในประวัติ
   // route นี้เปิดให้แอปลูกค้าเรียกตรงๆ ได้ (ดูแต้ม/แลกรางวัล) แต่ action นี้ปรับแต้มลูกค้าคนไหนก็ได้

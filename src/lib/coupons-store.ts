@@ -181,28 +181,60 @@ export async function getCoupon(id: string): Promise<Coupon | undefined> {
   return c ? withComputedStatus(c) : undefined;
 }
 
-/** ใช้คูปอง (mark used) — ผูกกับบิลที่ใช้ */
+/**
+ * ใช้คูปอง (mark used) — ผูกกับบิลที่ใช้
+ *
+ * เขียนแบบมีเงื่อนไข status='active' อยู่ใน WHERE ของฝั่ง DB เอง (ไม่ใช่แค่เช็คแล้วค่อยเขียนแยกกัน)
+ * กันสองคำขอพร้อมกันแย่งใช้คูปองใบเดียวกันสำเร็จทั้งคู่ (race) — เคยเป็นช่องให้คูปองใช้ซ้ำได้
+ */
 export async function redeemCoupon(id: string, invoiceId?: string) {
-  const c = await getCoupon(id);
-  if (!c) return { ok: false as const, error: "not_found" };
-  if (c.status !== "active") return { ok: false as const, error: "not_usable", coupon: c };
+  const existing = await getCoupon(id); // คำนวณ expired ให้แล้ว
+  if (!existing) return { ok: false as const, error: "not_found" };
+  if (existing.status !== "active")
+    return { ok: false as const, error: "not_usable", coupon: existing };
+
   const now = new Date().toISOString();
   const sb = getSupabase();
   if (sb) {
-    await sb
+    const { data } = await sb
       .from("coupons")
       .update({ status: "used", used_at: now, used_invoice_id: invoiceId || null })
       .eq("id", id)
-      .eq("tenant_id", requireTenantId());
+      .eq("tenant_id", requireTenantId())
+      .eq("status", "active")
+      .select("id")
+      .maybeSingle();
+    if (!data) {
+      // มีคำขออื่นแย่งใช้ไปก่อนในเสี้ยววินาทีนี้
+      return { ok: false as const, error: "not_usable", coupon: existing };
+    }
   } else {
     const m = mem.find((x) => x.id === id);
-    if (m) {
-      m.status = "used";
-      m.usedAt = now;
-      m.usedInvoiceId = invoiceId;
-    }
+    if (!m || m.status !== "active")
+      return { ok: false as const, error: "not_usable", coupon: existing };
+    m.status = "used";
+    m.usedAt = now;
+    m.usedInvoiceId = invoiceId;
   }
-  return { ok: true as const, coupon: { ...c, status: "used" as const, usedAt: now, usedInvoiceId: invoiceId } };
+  return {
+    ok: true as const,
+    coupon: { ...existing, status: "used" as const, usedAt: now, usedInvoiceId: invoiceId },
+  };
+}
+
+/** หาคูปองที่ใช้กับบิลใบนี้ — ใช้ตอนยกเลิก/ลบบิล จะได้คืนคูปองให้ลูกค้าใช้ใหม่ได้ */
+export async function findCouponByInvoice(invoiceId: string): Promise<Coupon | undefined> {
+  if (!invoiceId) return undefined;
+  const sb = getSupabase();
+  if (sb) {
+    const { data } = await sb
+      .from("coupons")
+      .select("*")
+      .eq("used_invoice_id", invoiceId)
+      .maybeSingle();
+    return data ? rowToCoupon(data as CouponRow) : undefined;
+  }
+  return mem.find((x) => x.usedInvoiceId === invoiceId);
 }
 
 /** คืนคูปองกลับมาใช้ได้ (เช่นลบบิลที่ใช้คูปองไป) */

@@ -3,6 +3,7 @@ import { exportToGoogleSheets } from "@/lib/google-sheets-export";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import { withTenant } from "@/lib/tenant-context";
 import { listActiveTenantIds } from "@/lib/tenant-directory";
+import { verifyCronSecret } from "@/lib/cron-auth";
 
 /**
  * Backup อัตโนมัติทุกคืน — ยกข้อมูลทั้งร้านลง Google Sheets
@@ -10,13 +11,8 @@ import { listActiveTenantIds } from "@/lib/tenant-directory";
  * รันแทนทุกร้านที่ยังใช้งานอยู่ (แต่ละร้านมี Google Sheets ของตัวเอง)
  */
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get("authorization");
-  const secret = process.env.CRON_SECRET;
-  // fail-closed: ยังไม่ตั้ง CRON_SECRET = ห้ามรัน (ไม่ใช่เปิดโล่งให้คนนอกยิงสแปมลูกค้า/สั่ง export ได้)
-  // ตั้ง CRON_SECRET ใน Vercel แล้ว Vercel Cron จะแนบ Bearer ให้เองอัตโนมัติ
-  if (!secret || auth !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const denied = verifyCronSecret(req);
+  if (denied) return denied;
 
   const tenantIds = await listActiveTenantIds();
   const results = await Promise.all(

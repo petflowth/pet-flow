@@ -171,7 +171,9 @@ export async function setBookingTime(
 ) {
   const b = await getBooking(id);
   if (!b) return { ok: false as const, error: "not_found" };
-  if (b.lineUserId && lineUserId && b.lineUserId !== lineUserId) {
+  // นัดนี้ผูก LINE ไว้แล้ว → ต้องส่ง lineUserId มาให้ตรงเป๊ะเท่านั้น
+  // (เดิมเช็คแค่ "ถ้าส่งมาต้องตรง" — ไม่ส่งมาเลยก็ข้ามการเช็คไปได้ดื้อๆ ปลอมได้ทุกอย่าง)
+  if (b.lineUserId && b.lineUserId !== lineUserId) {
     return { ok: false as const, error: "forbidden" };
   }
   const col = type === "checkin" ? "arrival_time" : "pickup_time";
@@ -207,7 +209,9 @@ export async function setBookingGroomInfo(
 ) {
   const b = await getBooking(id);
   if (!b) return { ok: false as const, error: "not_found" };
-  if (b.lineUserId && lineUserId && b.lineUserId !== lineUserId) {
+  // นัดนี้ผูก LINE ไว้แล้ว → ต้องส่ง lineUserId มาให้ตรงเป๊ะเท่านั้น
+  // (เดิมเช็คแค่ "ถ้าส่งมาต้องตรง" — ไม่ส่งมาเลยก็ข้ามการเช็คไปได้ดื้อๆ ปลอมได้ทุกอย่าง)
+  if (b.lineUserId && b.lineUserId !== lineUserId) {
     return { ok: false as const, error: "forbidden" };
   }
   const sb = getSupabase();
@@ -242,7 +246,9 @@ export async function acceptBookingConsent(
 ) {
   const b = await getBooking(id);
   if (!b) return { ok: false as const, error: "not_found" };
-  if (b.lineUserId && lineUserId && b.lineUserId !== lineUserId) {
+  // นัดนี้ผูก LINE ไว้แล้ว → ต้องส่ง lineUserId มาให้ตรงเป๊ะเท่านั้น
+  // (เดิมเช็คแค่ "ถ้าส่งมาต้องตรง" — ไม่ส่งมาเลยก็ข้ามการเช็คไปได้ดื้อๆ ปลอมได้ทุกอย่าง)
+  if (b.lineUserId && b.lineUserId !== lineUserId) {
     return { ok: false as const, error: "forbidden" };
   }
   const now = new Date().toISOString();

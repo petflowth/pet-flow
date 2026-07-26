@@ -36,8 +36,7 @@ import {
   politeCat,
 } from "@/lib/line";
 import { renderTemplate } from "@/lib/messages";
-import { redeemCoupon } from "@/lib/coupons-store";
-import { consumePackage } from "@/lib/packages-store";
+import { consumePackage, refundPackageUse } from "@/lib/packages-store";
 import { getBooking } from "@/lib/bookings-store";
 import { bookingScheduleText } from "@/lib/booking-reminders";
 import type { InvoiceRecord } from "@/lib/invoices-store";
@@ -178,25 +177,34 @@ async function handlePost(req: NextRequest) {
       }
     }
 
-    const invoice = await createInvoice({
-      customerId: body.customerId,
-      lineUserId: body.lineUserId,
-      customerName: body.customerName,
-      catName: body.catName,
-      items: body.items,
-      promoId: body.promoId,
-      extraDiscount: body.extraDiscount,
-      deposit: body.deposit,
-      bookingId: body.bookingId,
-      packageId: consumedPackageId,
-    });
-    // ใช้คูปอง — mark used + ผูกกับบิลนี้ (ส่วนลดรวมใน extraDiscount แล้ว)
-    if (body.couponId) {
-      try {
-        await redeemCoupon(String(body.couponId), invoice.id);
-      } catch {
-        /* คูปองใช้ไม่ได้/ไม่เจอ — ไม่ทำให้บิลพัง */
-      }
+    let invoice;
+    try {
+      invoice = await createInvoice({
+        customerId: body.customerId,
+        lineUserId: body.lineUserId,
+        customerName: body.customerName,
+        catName: body.catName,
+        items: body.items,
+        promoId: body.promoId,
+        extraDiscount: body.extraDiscount,
+        deposit: body.deposit,
+        bookingId: body.bookingId,
+        packageId: consumedPackageId,
+        couponId: body.couponId ? String(body.couponId) : undefined,
+      });
+    } catch (e) {
+      // ออกบิลไม่สำเร็จ (ส่วนใหญ่เพราะคูปองใช้ไม่ได้แล้ว) — คืนครั้งคอร์สที่หักไปด้านบนก่อน
+      // ไม่งั้นคอร์สจะถูกหักฟรีๆ ทั้งที่ไม่มีบิลเกิดขึ้นจริง
+      if (consumedPackageId) await refundPackageUse(consumedPackageId);
+      const message = e instanceof Error ? e.message : String(e);
+      const known: Record<string, string> = {
+        coupon_invalid: "คูปองนี้ใช้ไม่ได้แล้ว (หมดอายุ/ใช้ไปแล้ว/ไม่ใช่ของลูกค้าคนนี้)",
+        coupon_race: "คูปองนี้เพิ่งถูกใช้ไปหมาดๆ — เลือกใหม่อีกครั้ง",
+      };
+      return NextResponse.json(
+        { error: known[message] || "ออกบิลไม่สำเร็จ" },
+        { status: 400 }
+      );
     }
     if (invoice.autoAppliedCredit > 0) {
       await sendTelegram(

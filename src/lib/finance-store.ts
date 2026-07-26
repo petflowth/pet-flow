@@ -76,6 +76,74 @@ export async function incomeForInvoice(invoiceId: string): Promise<number> {
     .reduce((s, r) => s + r.amount, 0);
 }
 
+/**
+ * ผูก "มัดจำล่วงหน้า" ที่เคยรับไว้ก่อนมีบิล (ยังไม่ผูก invoiceId) เข้ากับบิลนี้ ตามยอดที่หักไปจริง
+ *
+ * เงินไม่ได้เข้าซ้ำ — แค่ติดป้าย invoiceId ให้รายรับก้อนเดิมที่เคยลงบัญชีไปแล้วตอนรับมัดจำ
+ * (FIFO: ก้อนเก่าก่อน, ถ้าก้อนใหญ่กว่าที่ต้องผูกก็แยกเป็น 2 ก้อน) ไม่งั้นตอนปิดบิล
+ * incomeForInvoice(id) จะหาไม่เจอว่าเคยรับเงินส่วนนี้มาก่อน แล้วบันทึกยอดเต็มซ้ำอีกรอบตอนปิดบิล
+ */
+export async function attachAdvanceIncomeToInvoice(
+  customerId: string,
+  invoiceId: string,
+  amount: number
+) {
+  const target = Math.round(amount);
+  if (target <= 0 || !customerId) return;
+
+  const rows = (await listFinance())
+    .filter(
+      (r) =>
+        r.type === "income" &&
+        r.customerId === customerId &&
+        !r.invoiceId &&
+        r.category === "มัดจำ"
+    )
+    .sort((a, b) => a.date.localeCompare(b.date) || a.createdAt.localeCompare(b.createdAt));
+
+  const sb = getSupabase();
+  let remaining = target;
+  for (const r of rows) {
+    if (remaining <= 0) break;
+    const take = Math.min(r.amount, remaining);
+    if (take >= r.amount) {
+      // ผูกทั้งก้อน
+      if (sb) {
+        await sb
+          .from("finance_records")
+          .update({ invoice_id: invoiceId })
+          .eq("id", r.id)
+          .eq("tenant_id", requireTenantId());
+      } else {
+        const m = mem.find((x) => x.id === r.id);
+        if (m) m.invoiceId = invoiceId;
+      }
+    } else {
+      // ก้อนนี้ใหญ่กว่าที่ต้องผูก — แยกเป็น 2: ก้อนที่ผูกกับบิลนี้ + ก้อนที่เหลือ (ยังไม่ผูก)
+      if (sb) {
+        await sb
+          .from("finance_records")
+          .update({ amount: r.amount - take })
+          .eq("id", r.id)
+          .eq("tenant_id", requireTenantId());
+      } else {
+        const m = mem.find((x) => x.id === r.id);
+        if (m) m.amount -= take;
+      }
+      await addFinanceEntry({
+        type: "income",
+        amount: take,
+        category: r.category,
+        description: r.description,
+        date: r.date,
+        customerId: r.customerId,
+        invoiceId,
+      });
+    }
+    remaining -= take;
+  }
+}
+
 export type FinanceRecordEnriched = FinanceRecord & {
   customerName?: string;
   catName?: string;

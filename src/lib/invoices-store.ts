@@ -1,7 +1,7 @@
 import { getSiteConfig } from "./config-store";
 import {
   deductMemberCredit,
-  addMemberCredit,
+  restoreMemberCredit,
   addServiceRecord,
   deleteServiceRecordByInvoice,
   getCustomer,
@@ -14,8 +14,10 @@ import {
   deleteFinanceByInvoice,
   deleteInvoicePaymentIncome,
   listFinance,
+  attachAdvanceIncomeToInvoice,
 } from "./finance-store";
 import { calcPromoDiscount, recordAdminPromoClaim } from "./promos-store";
+import { getCoupon, redeemCoupon, unredeemCoupon, findCouponByInvoice } from "./coupons-store";
 import { addPoints } from "./points-store";
 import { getSupabase } from "./supabase/server";
 import { requireTenantId } from "./tenant-context";
@@ -242,7 +244,25 @@ export async function createInvoice(data: {
   bookingId?: string;
   /** คอร์สที่บิลนี้หัก 1 ครั้ง — เก็บไว้เพื่อโชว์ประวัติการใช้ + คืนครั้งตอนยกเลิกบิล */
   packageId?: string;
+  /** คูปองที่เลือกใช้ — ยอดส่วนลดคิดจากคูปองจริงในระบบเสมอ ไม่เชื่อยอดที่ฝั่งหน้าเว็บส่งมา */
+  couponId?: string;
 }) {
+  // ตรวจ + จองสิทธิ์คูปองก่อนเริ่มคิดเงินเลย — ถ้าใช้ไม่ได้ (หมด/ใช้ไปแล้ว/ของคนอื่น)
+  // ให้ล้มทั้งการออกบิล ดีกว่าปล่อยให้ออกบิลไปแล้วค่อยพบว่าไม่ได้ลดจริง
+  // (เมื่อก่อนคิดส่วนลดจากยอดที่ฝั่งหน้าเว็บส่งมาเฉยๆ แล้วค่อยลองมาร์คคูปองว่าใช้แล้วทีหลัง
+  //  ถ้ามาร์คไม่ผ่านก็แค่กลืน error ทิ้ง บิลยังได้ส่วนลดอยู่ดี — คูปองใบเดียวเลยใช้ซ้ำได้ไม่จำกัด)
+  let couponAmount = 0;
+  if (data.couponId) {
+    const coupon = await getCoupon(data.couponId);
+    if (
+      !coupon ||
+      coupon.status !== "active" ||
+      (coupon.customerId && coupon.customerId !== data.customerId)
+    ) {
+      throw new Error("coupon_invalid");
+    }
+    couponAmount = Math.max(0, Math.round(coupon.amount || 0));
+  }
   // บังคับให้ทุกยอดเป็นตัวเลขจำนวนเต็มก่อนคิด — กันค่าที่ไม่ใช่ตัวเลขทำบิลพัง
   // (เมื่อก่อน amount ที่เป็น string จะถูกต่อสตริง เช่น 0 + "abc" = "0abc" แล้ว total กลายเป็น null
   //  ส่วนทศนิยมก็โผล่เป็น 0.30000000000000004 บนบิลลูกค้า)
@@ -264,9 +284,21 @@ export async function createInvoice(data: {
     data.promoId,
     subtotal
   );
-  const extra = Math.max(0, Math.round(data.extraDiscount || 0));
+  const extra = Math.max(0, Math.round(data.extraDiscount || 0)) + couponAmount;
   const discount = Math.min(subtotal, promoDiscount + extra);
   const total = subtotal - discount;
+
+  const invoiceId = `INV${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
+
+  // จองสิทธิ์คูปองตอนนี้เลย (mark used) ก่อนเขียนบิลลงจริง — WHERE status='active' ของ
+  // redeemCoupon กันสองคำขอพร้อมกันแย่งใช้คูปองใบเดียวกันสำเร็จทั้งคู่ ถ้าแพ้ race ก็ยังไม่มี
+  // บิลถูกสร้างขึ้นมาเลยสักใบ ไม่ต้องมาไล่ลบทีหลัง
+  if (data.couponId) {
+    const redeemed = await redeemCoupon(data.couponId, invoiceId);
+    if (!redeemed.ok) {
+      throw new Error("coupon_race");
+    }
+  }
   let deposit = Math.min(total, Math.max(0, Math.round(data.deposit || 0)));
 
   // มัดจำที่เคยเรียกเก็บไว้ล่วงหน้า (ยังไม่ผูกบิลไหน — เช่น เรียกเก็บจากหน้าปฏิทินก่อนออกบิล)
@@ -280,13 +312,15 @@ export async function createInvoice(data: {
       if (autoAppliedCredit > 0) {
         deposit += autoAppliedCredit;
         await adjustDepositCredit(data.customerId, -autoAppliedCredit);
+        // ผูกรายรับมัดจำเดิมที่เคยลงบัญชีไว้แล้วเข้ากับบิลนี้ — กันตอนปิดบิลคิดว่ายังไม่เคย
+        // ได้รับส่วนนี้เลย แล้วบันทึกรายรับซ้ำเต็มจำนวนอีกรอบ (เงินไม่ได้เข้าซ้ำ แค่ป้ายเดิมไม่ได้ผูก)
+        await attachAdvanceIncomeToInvoice(data.customerId, invoiceId, autoAppliedCredit);
       }
     }
   }
 
   const invoice: InvoiceRecord = {
-    // สุ่มต่อท้ายด้วย — ออกบิล 2 ใบในมิลลิวินาทีเดียวกันเคยได้ id ชนกัน
-    id: `INV${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
+    id: invoiceId,
     customerId: data.customerId,
     lineUserId: data.lineUserId,
     customerName: data.customerName,
@@ -304,24 +338,31 @@ export async function createInvoice(data: {
     createdAt: new Date().toISOString(),
   };
 
-  const sb = getSupabase();
-  if (sb) {
-    await sb.from("invoices").insert(invoiceToRow(invoice));
-    // package_id เพิ่งเพิ่มมาทีหลัง — เขียนแยกและกลืน error ไว้
-    // เครื่องที่ยังไม่ได้อัปเดตฐานข้อมูลจะได้ไม่พังทั้งการออกบิล
-    if (invoice.packageId) {
-      try {
-        await sb
-          .from("invoices")
-          .update({ package_id: invoice.packageId })
-          .eq("id", invoice.id)
-          .eq("tenant_id", requireTenantId());
-      } catch {
-        /* ยังไม่มีคอลัมน์ — ประวัติการใช้คอร์สจะยังไม่ขึ้นจนกว่าจะอัปเดตฐานข้อมูล */
+  try {
+    const sb = getSupabase();
+    if (sb) {
+      const { error } = await sb.from("invoices").insert(invoiceToRow(invoice));
+      if (error) throw new Error(error.message);
+      // package_id เพิ่งเพิ่มมาทีหลัง — เขียนแยกและกลืน error ไว้
+      // เครื่องที่ยังไม่ได้อัปเดตฐานข้อมูลจะได้ไม่พังทั้งการออกบิล
+      if (invoice.packageId) {
+        try {
+          await sb
+            .from("invoices")
+            .update({ package_id: invoice.packageId })
+            .eq("id", invoice.id)
+            .eq("tenant_id", requireTenantId());
+        } catch {
+          /* ยังไม่มีคอลัมน์ — ประวัติการใช้คอร์สจะยังไม่ขึ้นจนกว่าจะอัปเดตฐานข้อมูล */
+        }
       }
+    } else {
+      mem.unshift(invoice);
     }
-  } else {
-    mem.unshift(invoice);
+  } catch (e) {
+    // เขียนบิลไม่สำเร็จ — คืนสิทธิ์คูปองที่เพิ่งจองไว้ ไม่งั้นคูปองจะถูกเผาทิ้งฟรีๆ
+    if (data.couponId) await unredeemCoupon(data.couponId);
+    throw e;
   }
 
   // เลือกโปรจาก dropdown ตอนออกบิล → บันทึกว่าลูกค้าใช้สิทธิ์แล้ว กันเห็นเป็นใช้ได้อีกในแอป
@@ -457,11 +498,46 @@ export async function linkInvoiceToBooking(id: string, bookingId: string) {
 export async function deleteInvoice(id: string) {
   const inv = await getInvoice(id);
   if (!inv) return { ok: false as const, error: "not_found" };
+
+  // ต้องอ่านยอดที่หักเครดิต Member ไปก่อน "ลบรายรับ" ข้างล่าง ไม่งั้นรายการที่ใช้คำนวณ
+  // ยอดคืนจะหายไปก่อนอ่านทัน แล้วจะคำนวณได้ 0 เสมอ (คืนเครดิตให้ลูกค้าไม่ได้เลย)
+  let memberDeducted = 0;
+  if (inv.customerId && inv.status === "paid" && inv.paymentMethod === "member_credit") {
+    const all = await listFinance();
+    memberDeducted = all
+      .filter((r) => r.invoiceId === id && r.category === "member" && r.type === "income")
+      .reduce((s, r) => s + r.amount, 0);
+  }
+
   await deleteFinanceByInvoice(id);
+
   // ลบบิลที่หักคอร์สไป → คืนครั้งให้ลูกค้าด้วย ไม่งั้นสิทธิ์หายไปเฉยๆ
   if (inv.packageId && inv.status === "paid") {
     const { refundPackageUse } = await import("./packages-store");
     await refundPackageUse(inv.packageId);
+  }
+
+  // ลบบิลที่เคยใช้คูปอง → คืนคูปองให้ลูกค้าใช้ใหม่ได้ ไม่งั้นคูปองค้างสถานะ "ใช้แล้ว" ตลอดไป
+  // ทั้งที่ส่วนลดของบิลนั้นหายไปพร้อมบิลแล้ว (ต่างจากยกเลิกการชำระ ซึ่งบิล+ส่วนลดยังอยู่
+  // จึงห้ามคืนคูปองตรงนั้น ไม่งั้นคูปองเดียวจะเอาไปลดบิลอื่นซ้ำได้อีก)
+  const usedCoupon = await findCouponByInvoice(id);
+  if (usedCoupon) await unredeemCoupon(usedCoupon.id);
+
+  if (inv.customerId) {
+    // ลบบิลที่จ่ายด้วยเครดิต Member ไปแล้ว → คืนเครดิตด้วย (revertInvoicePaid ทำแบบนี้
+    // อยู่แล้ว แต่ "ลบ" ตรงๆ ไม่เคยคืนเครดิตเลย ทำให้เครดิตหายฟรีถ้าลบแทนยกเลิกการชำระ)
+    if (memberDeducted > 0) await restoreMemberCredit(inv.customerId, memberDeducted);
+    // ถอนแต้มที่เคยให้จากบิลนี้ (แบบเดียวกับ revertInvoicePaid) — ลบบิลแทนยกเลิกก็ไม่ควรมีแต้มค้าง
+    if (inv.status === "paid" && inv.lineUserId && (inv.pointsEarned || 0) > 0) {
+      const { addPoints } = await import("./points-store");
+      await addPoints(
+        inv.lineUserId,
+        -(inv.pointsEarned || 0),
+        `ลบบิล ${inv.id}`,
+        `Deleted invoice ${inv.id}`,
+        inv.customerName
+      );
+    }
   }
   const now = new Date().toISOString();
   const sb = getSupabase();
@@ -563,8 +639,9 @@ export async function markInvoicePaid(
       .select("id");
     if (!claimed || claimed.length === 0) {
       // แพ้การแข่ง — คืนเครดิต Member ที่เพิ่งหักไป แล้วรายงานว่าปิดไปแล้ว
+      // (ปรับยอดเฉยๆ ไม่ใช่เติมเงินใหม่ — ไม่งั้นจะขึ้นรายรับปลอมทั้งที่ไม่มีเงินเข้าจริง)
       if (paymentMethod === "member_credit" && settleAmount > 0) {
-        await addMemberCredit(inv.customerId, settleAmount);
+        await restoreMemberCredit(inv.customerId, settleAmount);
       }
       return { ok: false as const, error: "already_paid" };
     }
@@ -644,7 +721,9 @@ export async function revertInvoicePaid(id: string) {
     const memberDeducted = all
       .filter((r) => r.invoiceId === id && r.category === "member" && r.type === "income")
       .reduce((s, r) => s + r.amount, 0);
-    if (memberDeducted > 0) await addMemberCredit(inv.customerId, memberDeducted);
+    // ปรับยอดเฉยๆ ไม่ใช่เติมเงินใหม่ — addMemberCredit เดิมสร้างรายการเติมเงิน + รายรับปลอม
+    // ที่ไม่มี invoiceId ผูกไว้ ทำให้ deleteInvoicePaymentIncome ข้างล่างลบไม่เจอ ค้างอยู่ตลอด
+    if (memberDeducted > 0) await restoreMemberCredit(inv.customerId, memberDeducted);
   }
 
   // ลบรายรับ "ยอดชำระ" (คงรายการมัดจำไว้)

@@ -1430,6 +1430,9 @@ export async function mergeCustomers(sourceId: string, targetId: string) {
       "member_topups",
       "service_records",
       "finance_records",
+      // ออร์เดอร์ซื้อคอร์ส (รอ/ปฏิเสธ/อนุมัติแล้ว) — เมื่อก่อนตกหล่น ทำให้ออร์เดอร์ค้าง
+      // ผูกกับ record ที่ถูกลบไปหลังรวม แล้วหายไปจากลูกค้าปลายทาง
+      "package_orders",
     ];
     for (const tbl of tables) {
       try {
@@ -1658,6 +1661,26 @@ export async function updateCatMedia(
 
 export async function addMemberCredit(customerId: string, amount: number) {
   return topupMemberCredit(customerId, { paidAmount: amount, bonusAmount: 0 });
+}
+
+/**
+ * คืนเครดิต Member แบบ "ปรับยอดคงเหลือเฉยๆ" ไม่ใช่การเติมเงินใหม่
+ *
+ * ใช้ตอนย้อนบิลที่จ่ายด้วยเครดิต (ยกเลิกการชำระ / แพ้ race ตอนปิดบิล) — ต้องการแค่ให้
+ * ยอดคงเหลือกลับมาเท่าก่อนหักเฉยๆ ไม่สร้างประวัติเติมเงิน (member_topups) และไม่ลงรายรับซ้ำ
+ * เพราะไม่ใช่เงินที่เพิ่งรับเข้าร้านจริง — addMemberCredit (ผ่าน topupMemberCredit) จะสร้าง
+ * รายการเติมเงิน + รายรับปลอมทุกครั้ง ซึ่งพอถูกเรียกจากเส้นทาง revert ทำให้บัญชีรายรับบวมปลอม
+ * และ deleteInvoicePaymentIncome หาไม่เจอ (รายรับปลอมนี้ไม่มี invoiceId ผูกไว้) ลบไม่ได้เลย
+ */
+export async function restoreMemberCredit(customerId: string, amount: number) {
+  const amt = Math.round(amount);
+  if (amt <= 0) return null;
+  const c = await getCustomer(customerId);
+  if (!c) return null;
+  c.memberCredit += amt;
+  const updated = await updateCustomer(customerId, { memberCredit: c.memberCredit });
+  if (updated) await recalculateCustomerTier(customerId);
+  return updated;
 }
 
 /**

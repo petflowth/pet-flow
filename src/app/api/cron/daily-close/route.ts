@@ -3,6 +3,7 @@ import { sendTelegram } from "@/lib/telegram";
 import { buildEndOfDaySummaryMessage } from "@/lib/telegram-commands";
 import { withTenant } from "@/lib/tenant-context";
 import { listActiveTenantIds } from "@/lib/tenant-directory";
+import { verifyCronSecret } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,11 +16,8 @@ function addDays(dateStr: string, n: number) {
 
 /** Cron 20:00 น. ไทย (13:00 UTC) — สรุปปิดวัน: ยอดรายได้วันนี้ + ตารางพรุ่งนี้ ส่งเข้า Telegram เจ้าของ — รันแทนทุกร้าน */
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get("authorization");
-  const secret = process.env.CRON_SECRET;
-  if (!secret || auth !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const denied = verifyCronSecret(req);
+  if (denied) return denied;
 
   const tenantIds = await listActiveTenantIds();
   const results = await Promise.all(

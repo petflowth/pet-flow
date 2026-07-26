@@ -837,7 +837,9 @@ export default function BillingPage() {
         catName: cat,
         items: payloadItems,
         promoId: promoId || undefined,
-        extraDiscount: (manualDiscount + couponAmount + packageCovers) || undefined,
+        // ยอดคูปองไม่ส่งไปเป็นตัวเลขแล้ว — เซิร์ฟเวอร์คิดจากคูปองจริงเองผ่าน couponId
+        // (กันหน้าเว็บโดนแก้ค่าแล้วส่งยอดลดมาเอง)
+        extraDiscount: (manualDiscount + packageCovers) || undefined,
         deposit: depositAmount || undefined,
         bookingId: bookingId || undefined,
         couponId: couponId || undefined,
@@ -845,6 +847,11 @@ export default function BillingPage() {
       }),
     });
     const data = await res.json();
+    if (!res.ok) {
+      setCreating(false);
+      toast(data.error || "ออกบิลไม่สำเร็จ", "error");
+      return;
+    }
     setCreating(false);
     if (data.invoice) {
       toast(

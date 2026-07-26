@@ -85,13 +85,13 @@ export function BookingEditModal({
     setAutoOff((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
-  // รับส่งเอง = ร้านนัดเวลากับลูกค้าไว้แล้ว ไม่ต้องส่งการ์ดให้เลือกเวลาเช็คอิน/เอาท์อีก
-  const useTransport = autoOff.includes("checkin") && autoOff.includes("checkout");
-  const toggleTransport = (on: boolean) =>
+  // รับ/ส่งเอง แยกกัน — บางคนให้ร้านรับอย่างเดียว หรือส่งอย่างเดียวก็ได้
+  // รับ = ร้านไปรับน้องจากบ้าน ไม่ต้องถามเวลาเช็คอิน, ส่ง = ร้านไปส่งน้องกลับบ้าน ไม่ต้องถามเวลาเช็คเอาท์
+  const usePickup = autoOff.includes("checkin");
+  const useDropoff = autoOff.includes("checkout");
+  const toggleTransport = (topic: "checkin" | "checkout", on: boolean) =>
     setAutoOff((prev) =>
-      on
-        ? Array.from(new Set([...prev, "checkin", "checkout"]))
-        : prev.filter((x) => x !== "checkin" && x !== "checkout")
+      on ? Array.from(new Set([...prev, topic])) : prev.filter((x) => x !== topic)
     );
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -237,15 +237,26 @@ export function BookingEditModal({
                 defaultValue={booking.checkout || ""}
                 required
               />
-              <label className="flex items-center gap-2 text-[11px] font-bold text-brown-soft">
-                <input
-                  type="checkbox"
-                  checked={useTransport}
-                  onChange={(e) => toggleTransport(e.target.checked)}
-                  className="h-3.5 w-3.5 accent-latte-deep"
-                />
-                🚗 ใช้บริการรับส่งของร้าน (ไม่ต้องถามลูกค้าเรื่องเวลาเช็คอิน/เช็คเอาท์)
-              </label>
+              <div className="space-y-1">
+                <label className="flex items-center gap-2 text-[11px] font-bold text-brown-soft">
+                  <input
+                    type="checkbox"
+                    checked={usePickup}
+                    onChange={(e) => toggleTransport("checkin", e.target.checked)}
+                    className="h-3.5 w-3.5 accent-latte-deep"
+                  />
+                  🚗 ร้านไปรับน้อง (ไม่ต้องถามลูกค้าเรื่องเวลาเช็คอิน)
+                </label>
+                <label className="flex items-center gap-2 text-[11px] font-bold text-brown-soft">
+                  <input
+                    type="checkbox"
+                    checked={useDropoff}
+                    onChange={(e) => toggleTransport("checkout", e.target.checked)}
+                    className="h-3.5 w-3.5 accent-latte-deep"
+                  />
+                  🚗 ร้านไปส่งน้องกลับ (ไม่ต้องถามลูกค้าเรื่องเวลาเช็คเอาท์)
+                </label>
+              </div>
               <div className="flex gap-2">
                 <div className="flex-1">
                   <EditField

@@ -93,6 +93,22 @@ async function getAdminSession(req: NextRequest) {
   return verifySession(req.cookies.get(SESSION_COOKIE)?.value);
 }
 
+/**
+ * บ้านเดียวกัน จองพร้อมกันหลายตัว (ปฏิทินส่ง ids ของทั้งกลุ่มมาใน body.ids) → คืน booking
+ * จำลองที่ catName เป็นชื่อรวมทุกตัว ใช้แทน booking เดิมตอนสร้างการ์ด/ข้อความทุกชนิด
+ * (ยืนยันนัด/เตรียมตัวเข้าพัก/เงื่อนไข/เลือกเวลา/ยอดคงเหลือ) กันการ์ดโชว์แค่ตัวที่กดจากแถวนั้น
+ * ทั้งที่จองมาด้วยกันทั้งบ้าน — ไม่งั้นแต่ละตัวจะได้การ์ดแยก ส่งซ้ำเกินจำเป็น
+ */
+async function resolveGroupBooking(b: StoredBooking, ids: unknown): Promise<StoredBooking> {
+  const list: string[] = Array.isArray(ids) && ids.length > 0 ? ids.map(String) : [b.id];
+  if (list.length <= 1) return b;
+  const group = (
+    await Promise.all(list.map((x) => (x === b.id ? Promise.resolve(b) : getBooking(x))))
+  ).filter((x): x is StoredBooking => !!x);
+  if (group.length <= 1) return b;
+  return { ...b, catName: group.map((x) => x.catName).join(", ") };
+}
+
 export async function GET(req: NextRequest) {
   const lineUserId = req.nextUrl.searchParams.get("lineUserId") || undefined;
   const session = await getAdminSession(req);
@@ -451,19 +467,21 @@ async function handlePatch(req: NextRequest, admin: boolean) {
       return NextResponse.json({ error: NO_LINE_ERROR }, { status: 400 });
     }
     const cfg = await getSiteConfig();
+    // บ้านเดียวกัน จองพร้อมกันหลายตัว — ใช้ booking จำลองที่มีชื่อรวมทุกตัวแทน b เดิม
+    const gb = await resolveGroupBooking(b, body.ids);
     const type = action === "send_checkin_reminder" ? "checkin" : "checkout";
     const url = await getBookingTimeUrl(b.id, type);
     const flex =
       type === "checkin"
         ? buildTimePickerFlex({
             title: "🕒 เลือกเวลาเข้าพัก",
-            body: buildCheckinBodyText(b, cfg),
+            body: buildCheckinBodyText(gb, cfg),
             url: url || undefined,
             label: "🕒 เลือกเวลาส่งน้อง",
           }, cfg.cards?.timePicker)
         : buildTimePickerFlex({
             title: "🕒 เลือกเวลารับน้อง",
-            body: buildCheckoutBodyText(b, cfg),
+            body: buildCheckoutBodyText(gb, cfg),
             url: url || undefined,
             label: "🕒 เลือกเวลารับน้อง",
           }, cfg.cards?.timePicker);
@@ -496,28 +514,16 @@ async function handlePatch(req: NextRequest, admin: boolean) {
     const messages: object[] = [];
     /** การ์ดที่ระบบข้ามให้ พร้อมเหตุผล — ส่งกลับไปบอกพนักงานที่หน้าจอ */
     const skipped: string[] = [];
-    // บ้านเดียวกัน จองพร้อมกันหลายตัว (ปฏิทินส่ง ids ของทั้งกลุ่มมา) — ใช้รวมชื่อแมว
-    // ทุกตัวในการ์ด "แจ้งเตือนนัด" ของชุดการ์ด เหมือนปุ่มส่งเดี่ยว
-    const bundleGroupIds: string[] =
-      Array.isArray(body.ids) && body.ids.length > 0 ? body.ids.map(String) : [id];
-    const bundleGroupCatLabel =
-      bundleGroupIds.length > 1
-        ? (
-            await Promise.all(
-              bundleGroupIds.map((x) => (x === id ? Promise.resolve(b) : getBooking(x)))
-            )
-          )
-            .filter((x): x is StoredBooking => !!x)
-            .map((x) => x.catName)
-            .join(", ")
-        : b.catName;
+    // บ้านเดียวกัน จองพร้อมกันหลายตัว (ปฏิทินส่ง ids ของทั้งกลุ่มมา) — ใช้ booking จำลอง
+    // ที่มีชื่อรวมทุกตัว แทน b เดิม ทุกการ์ดในชุดจะได้มีชื่อครบทุกตัวเหมือนกันหมด
+    const gb = await resolveGroupBooking(b, body.ids);
 
     for (const part of parts) {
       if (part === "reminder") {
         messages.push(
           await buildBookingConfirmFlex({
             id,
-            catName: String(bundleGroupCatLabel),
+            catName: String(gb.catName),
             customerName: String(b.customerName),
             service: String(b.service),
             date: b.date,
@@ -536,10 +542,10 @@ async function handlePatch(req: NextRequest, admin: boolean) {
             buildConsentFlex({
               businessName: cfg.business.name,
               title: cfg.messages.consentTitle || DEFAULT_MESSAGES.consentTitle,
-              catName: String(b.catName),
-              checkin: b.checkin || b.date,
-              checkout: b.checkout,
-              room: b.room,
+              catName: String(gb.catName),
+              checkin: gb.checkin || gb.date,
+              checkout: gb.checkout,
+              room: gb.room,
               terms: cfg.messages.consentTerms?.length
                 ? cfg.messages.consentTerms
                 : DEFAULT_MESSAGES.consentTerms,
@@ -551,7 +557,7 @@ async function handlePatch(req: NextRequest, admin: boolean) {
         // ไม่แนบลิงก์เซ็น — ถ้าต้องการให้ติ๊ก "เงื่อนไข + ลายเซ็น" เพิ่มเอง
         messages.push(
           buildPrestayFlex({
-            ...buildPrestayFlexData(b, cfg),
+            ...buildPrestayFlexData(gb, cfg),
             consentUrl: undefined,
           }, cfg.cards?.prestay)
         );
@@ -670,13 +676,13 @@ async function handlePatch(req: NextRequest, admin: boolean) {
           part === "checkin"
             ? buildTimePickerFlex({
                 title: "🕒 เลือกเวลาเข้าพัก",
-                body: buildCheckinBodyText(b, cfg),
+                body: buildCheckinBodyText(gb, cfg),
                 url: url || undefined,
                 label: "🕒 เลือกเวลาส่งน้อง",
               }, cfg.cards?.timePicker)
             : buildTimePickerFlex({
                 title: "🕒 เลือกเวลารับน้อง",
-                body: buildCheckoutBodyText(b, cfg),
+                body: buildCheckoutBodyText(gb, cfg),
                 url: url || undefined,
                 label: "🕒 เลือกเวลารับน้อง",
               }, cfg.cards?.timePicker)
@@ -782,6 +788,8 @@ async function handlePatch(req: NextRequest, admin: boolean) {
       return NextResponse.json({ error: NO_LINE_ERROR }, { status: 400 });
     }
     const cfg = await getSiteConfig();
+    // บ้านเดียวกัน จองพร้อมกันหลายตัว — ใช้ booking จำลองที่มีชื่อรวมทุกตัวแทน b เดิม
+    const gb = await resolveGroupBooking(b, body.ids);
 
     // เงื่อนไขก่อนเข้าพัก → ส่งเป็น "การ์ด" พร้อมปุ่มไปหน้ากดยอมรับ
     if (action === "send_consent") {
@@ -795,10 +803,10 @@ async function handlePatch(req: NextRequest, admin: boolean) {
       const flex = buildConsentFlex({
         businessName: cfg.business.name,
         title: cfg.messages.consentTitle || DEFAULT_MESSAGES.consentTitle,
-        catName: String(b.catName),
-        checkin: b.checkin || b.date,
-        checkout: b.checkout,
-        room: b.room,
+        catName: String(gb.catName),
+        checkin: gb.checkin || gb.date,
+        checkout: gb.checkout,
+        room: gb.room,
         terms: cfg.messages.consentTerms?.length
           ? cfg.messages.consentTerms
           : DEFAULT_MESSAGES.consentTerms,
@@ -819,7 +827,7 @@ async function handlePatch(req: NextRequest, admin: boolean) {
       // การ์ดแจ้งเข้าพัก = เรื่องเตรียมตัวอย่างเดียว ไม่แนบลิงก์เซ็นแล้ว
       // (เงื่อนไข+ลายเซ็นแยกเป็นปุ่มของตัวเอง จะได้เลือกส่งทีละอย่างได้)
       const flex = buildPrestayFlex({
-        ...buildPrestayFlexData(b, cfg),
+        ...buildPrestayFlexData(gb, cfg),
         consentUrl: undefined,
       }, cfg.cards?.prestay);
       try {
@@ -845,7 +853,7 @@ async function handlePatch(req: NextRequest, admin: boolean) {
           { status: 400 }
         );
       }
-      text = buildDepositReminderText(b, inv, cfg);
+      text = buildDepositReminderText(gb, inv, cfg);
       if (!text) {
         return NextResponse.json(
           { error: "ไม่มียอดคงเหลือที่ต้องโอนแล้ว" },

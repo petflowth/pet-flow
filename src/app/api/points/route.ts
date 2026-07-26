@@ -56,6 +56,8 @@ async function handlePost(req: NextRequest, isAdmin: boolean) {
   let lineUserId = String(body.lineUserId || "").trim();
 
   // เพิ่ม/ปรับแต้มด้วยมือจากหลังบ้าน (เช่น รีวิวแล้วรับแต้มฟรี) — บันทึกเหตุผลในประวัติ
+  // route นี้เปิดให้แอปลูกค้าเรียกตรงๆ ได้ (ดูแต้ม/แลกรางวัล) แต่ action นี้ปรับแต้มลูกค้าคนไหนก็ได้
+  // ตามใจ ต้องเป็นพนักงานหลังบ้านเท่านั้น ไม่งั้นใครก็เติมแต้มให้ตัวเองฟรีได้
   if (body.action === "admin_add") {
     if (!isAdmin) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });

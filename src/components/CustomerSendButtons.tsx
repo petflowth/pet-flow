@@ -135,8 +135,9 @@ export function CustomerSendButtons({
         id: bookingId,
         action,
         lineUserId,
-        // บ้านเดียวกัน จองพร้อมกันหลายตัว — ให้ "แจ้งเตือนนัด" รวมชื่อทุกตัวในการ์ดเดียว
-        ids: action === "send_reminder" ? groomBookingIds : undefined,
+        // บ้านเดียวกัน จองพร้อมกันหลายตัว — ทุกการ์ดที่อิงข้อมูลนัด (แจ้งเตือนนัด/เตรียมตัว/
+        // เงื่อนไข/เลือกเวลา/ยอดคงเหลือ) รวมชื่อทุกตัวในใบเดียวเสมอ ไม่ใช่แค่ตัวที่กดจากแถวนั้น
+        ids: groomBookingIds,
       },
       okMsg,
       action

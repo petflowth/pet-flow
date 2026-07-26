@@ -367,14 +367,14 @@ function StaysConsentSection({ bookings }: { bookings: EditableBooking[] }) {
   const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <section className="mb-4 rounded-catcha bg-card p-4">
+    <section className="mb-4 rounded-petflow bg-card p-4">
       <h2 className="mb-2 text-sm font-extrabold">🏠 การเข้าพัก + เงื่อนไข</h2>
       <ul className="space-y-2">
         {stays.map((b) => {
           const staying =
             (b.checkin || "") <= today && today < (b.checkout || b.checkin || "");
           return (
-            <li key={b.id} className="rounded-catcha-sm bg-paper/60 p-2.5 text-xs">
+            <li key={b.id} className="rounded-petflow-sm bg-paper/60 p-2.5 text-xs">
               <div className="flex flex-wrap items-center justify-between gap-1.5">
                 <span className="font-bold text-brown">
                   {b.checkin || b.date}
@@ -402,14 +402,14 @@ function StaysConsentSection({ bookings }: { bookings: EditableBooking[] }) {
                     href={b.consentSignature}
                     target="_blank"
                     rel="noreferrer"
-                    className="rounded-full bg-latte/30 px-2 py-0.5 text-[10px] font-bold text-catcha-chocolate"
+                    className="rounded-full bg-latte/30 px-2 py-0.5 text-[10px] font-bold text-petflow-chocolate"
                   >
                     ✍️ ดูลายเซ็น
                   </a>
                 )}
               </div>
               {b.careNote && (
-                <p className="mt-1.5 rounded-catcha-sm border border-honey/40 bg-honey/10 px-2 py-1.5 text-[11px] text-brown">
+                <p className="mt-1.5 rounded-petflow-sm border border-honey/40 bg-honey/10 px-2 py-1.5 text-[11px] text-brown">
                   📝 {b.careNote}
                 </p>
               )}

@@ -716,7 +716,9 @@ export default function BillingPage() {
   };
 
   const resetForm = () => {
-    setItems([newGrooming()]);
+    // ยังอยู่โหมดขายเร็วต่อ (ขายของหน้าร้านหลายเจ้าติดกัน) — เริ่มบิลถัดไปด้วยตะกร้าว่าง
+    // ไม่งั้นแถวอาบน้ำเริ่มต้น 450฿ จะโผล่มาอีกทุกครั้งทั้งที่ไม่มีใครตั้งใจขาย
+    setItems(quickSale ? [] : [newGrooming()]);
     setDiscount("");
     setDiscountMode("baht");
     setBillDeposit("");
@@ -1011,7 +1013,11 @@ export default function BillingPage() {
               </span>
               <button
                 type="button"
-                onClick={() => setQuickSale(false)}
+                onClick={() => {
+                  setQuickSale(false);
+                  // กลับไปโหมดปกติ (มีลูกค้า/นัด) — คืนแถวอาบน้ำเริ่มต้นให้เหมือนเดิม
+                  setItems([newGrooming()]);
+                }}
                 className="shrink-0 text-xs font-bold text-wait"
               >
                 ✕ เปลี่ยน
@@ -1021,7 +1027,12 @@ export default function BillingPage() {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setQuickSale(true)}
+                onClick={() => {
+                  setQuickSale(true);
+                  // ขายเร็วมักเป็นบิลซื้อสินค้าล้วนๆ ไม่มีอาบน้ำ — ล้างแถวอาบน้ำเริ่มต้นทิ้ง
+                  // ไม่งั้นค้างเป็นรายการ 450฿ ที่ไม่มีใครตั้งใจขาย ติดไปในบิลโดยไม่รู้ตัว
+                  setItems([]);
+                }}
                 className="mb-1.5 w-full rounded-petflow-sm bg-honey/25 py-2 text-xs font-extrabold text-petflow-chocolate"
               >
                 ⚡ ขายเร็ว ไม่ระบุลูกค้า (ขายของหน้าร้านอย่างเดียว)

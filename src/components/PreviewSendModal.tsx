@@ -22,17 +22,17 @@ export function PreviewSendModal({
       onClick={onCancel}
     >
       <div
-        className="max-h-[85vh] w-full max-w-sm overflow-y-auto rounded-catcha bg-paper p-4 shadow-xl"
+        className="max-h-[85vh] w-full max-w-sm overflow-y-auto rounded-petflow bg-paper p-4 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="mb-3 text-center text-sm font-extrabold text-catcha-chocolate">
+        <p className="mb-3 text-center text-sm font-extrabold text-petflow-chocolate">
           🔍 ตัวอย่างที่ลูกค้าจะได้เห็นใน LINE
         </p>
 
         <FlexPreviewStack messages={messages} />
 
         {skipped && skipped.length > 0 && (
-          <p className="mt-3 rounded-catcha-sm bg-wait/10 px-3 py-2 text-[11px] font-bold text-wait">
+          <p className="mt-3 rounded-petflow-sm bg-wait/10 px-3 py-2 text-[11px] font-bold text-wait">
             ⚠️ ข้ามให้: {skipped.join(", ")}
           </p>
         )}
@@ -42,7 +42,7 @@ export function PreviewSendModal({
             type="button"
             onClick={onCancel}
             disabled={sending}
-            className="flex-1 rounded-catcha-sm bg-latte/25 py-2.5 text-sm font-bold text-catcha-chocolate disabled:opacity-50"
+            className="flex-1 rounded-petflow-sm bg-latte/25 py-2.5 text-sm font-bold text-petflow-chocolate disabled:opacity-50"
           >
             ยกเลิก
           </button>
@@ -50,7 +50,7 @@ export function PreviewSendModal({
             type="button"
             onClick={onConfirm}
             disabled={sending}
-            className="flex-1 rounded-catcha-sm bg-[#06C755] py-2.5 text-sm font-extrabold text-white disabled:opacity-50"
+            className="flex-1 rounded-petflow-sm bg-[#06C755] py-2.5 text-sm font-extrabold text-white disabled:opacity-50"
           >
             {sending ? "กำลังส่ง…" : "✅ ยืนยันส่งจริง"}
           </button>

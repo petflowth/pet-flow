@@ -251,6 +251,15 @@ where staff_note like '%🎁%';`,
     name: "customers.line_user_ids",
     sql: "alter table customers add column if not exists line_user_ids text[];",
   },
+  {
+    // สินค้าขายหน้าร้าน (ของกิน/ทราย/ของเล่น) — แยกจากคอร์ส/แพ็กเกจ เพราะมีสต็อกนับจำนวนได้
+    name: "products.table",
+    sql: "create table if not exists products (id text primary key, tenant_id text not null, name text not null, category text not null default '', price numeric not null default 0, image_url text, stock_count integer not null default 0, active boolean not null default true, created_at timestamptz not null default now());",
+  },
+  {
+    name: "products.tenant_idx",
+    sql: "create index if not exists products_tenant_idx on products(tenant_id);",
+  },
 ];
 
 export type MigrateResult = {

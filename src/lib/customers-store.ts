@@ -989,6 +989,54 @@ export async function upsertCustomerFromBooking(data: {
   return existing;
 }
 
+const WALKIN_CUSTOMER_NAME = "ลูกค้าหน้าร้าน (ขายเร็ว)";
+
+/**
+ * ลูกค้าโครงสำหรับ "ขายเร็ว ไม่ระบุลูกค้า" (POS ขายของหน้าร้านโดยไม่ผูกกับใคร) —
+ * หาก่อนด้วยชื่อ (tenant-scoped อัตโนมัติผ่าน requireTenantId() ใน fetchAllCustomers)
+ * แล้วค่อยสร้างถ้ายังไม่มี ห้าม hardcode id ตายตัว เพราะ customers.id เป็น primary key
+ * แบบ global (ไม่ใช่ composite กับ tenant_id) — id ซ้ำข้ามร้านจะชน constraint
+ */
+export async function getOrCreateWalkInCustomer(): Promise<CustomerRecord> {
+  const all = await fetchAllCustomers();
+  const existing = all
+    .filter((c) => c.name === WALKIN_CUSTOMER_NAME)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0];
+  if (existing) return existing;
+
+  const sb = getSupabase();
+  const now = new Date().toISOString();
+  const id = `WALK${Date.now()}${Math.random().toString(36).slice(2, 7)}`;
+  const rec: CustomerRecord = {
+    id,
+    name: WALKIN_CUSTOMER_NAME,
+    marketingConsent: false,
+    cats: [],
+    isMember: false,
+    memberCredit: 0,
+    depositCredit: 0,
+    tier: "new",
+    createdAt: now,
+    updatedAt: now,
+  };
+  if (sb) {
+    await sb.from("customers").insert({
+      id,
+      tenant_id: requireTenantId(),
+      name: WALKIN_CUSTOMER_NAME,
+      marketing_consent: false,
+      is_member: false,
+      member_credit: 0,
+      tier: "new",
+      created_at: now,
+      updated_at: now,
+    });
+  } else {
+    memCustomers.set(id, rec);
+  }
+  return rec;
+}
+
 export async function findCustomerForBooking(
   booking: Pick<Booking, "customerName" | "catName"> & { lineUserId?: string }
 ) {

@@ -22,6 +22,7 @@ import {
   recalcAllTiers,
   adoptLineFromBookings,
   unlinkCustomerLine,
+  getOrCreateWalkInCustomer,
 } from "@/lib/customers-store";
 import type { CustomerTier } from "@/lib/customer-tier";
 import { getAllPointsMap } from "@/lib/points-store";
@@ -139,6 +140,12 @@ async function handlePatch(req: NextRequest) {
   if (action === "recalc_all_tiers") {
     const res = await recalcAllTiers();
     return NextResponse.json({ ok: true, ...res });
+  }
+
+  // ลูกค้าโครงสำหรับ "ขายเร็ว ไม่ระบุลูกค้า" ในหน้าคิดเงิน (ขายสินค้าหน้าร้านล้วนๆ ไม่มีน้องแมว)
+  if (action === "get_or_create_walkin") {
+    const customer = await getOrCreateWalkInCustomer();
+    return NextResponse.json({ ok: true, customer });
   }
 
   if (action === "update_customer") {

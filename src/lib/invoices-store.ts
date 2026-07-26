@@ -26,13 +26,15 @@ export type InvoiceItem = {
   /** ยอดรวมของรายการนี้แล้ว (คูณจำนวนแล้ว) */
   amount: number;
   /** ประเภทรายการ — ใช้เช็คว่าบิลนี้มีอาบน้ำ/กรูมรวมอยู่ไหม (แม่นกว่าเดารูปแบบข้อความ) */
-  kind?: "grooming" | "room" | "service" | "custom" | "freebie";
+  kind?: "grooming" | "room" | "service" | "custom" | "freebie" | "product";
   /** น้องแมวตัวไหน — บิลบ้านที่มีหลายตัวจะได้รู้ว่าตัวไหนอาบโปรแกรมอะไร */
   catName?: string;
   /** จำนวนชิ้น (ไม่ใส่ = 1) — ซื้อหลายชิ้นไม่ต้องเพิ่มทีละบรรทัด */
   qty?: number;
   /** ราคาต่อหน่วย (ไม่ใส่ = เท่ากับ amount) — เก็บไว้ให้บิลย้อนหลังอ่านออก */
   unitAmount?: number;
+  /** สินค้าหน้าร้านที่ตัดสต็อกไป (products-store.ts) — ใช้ผูก markInvoicePaid/revertInvoicePaid */
+  productId?: string;
 };
 
 export type InvoiceRecord = {
@@ -608,6 +610,14 @@ export async function markInvoicePaid(
     bookingId: inv.bookingId,
   });
 
+  // ตัดสต็อกสินค้าที่ขายในบิลนี้ — ทำหลังผ่าน race-guard ด้านบนแล้วเท่านั้น (กันตัดซ้ำ)
+  for (const it of inv.items) {
+    if (it.productId) {
+      const { adjustProductStock } = await import("./products-store");
+      await adjustProductStock(it.productId, -(it.qty || 1));
+    }
+  }
+
   const updatedCustomer = await getCustomer(inv.customerId);
   return {
     ok: true as const,
@@ -658,6 +668,14 @@ export async function revertInvoicePaid(id: string) {
   if (inv.packageId) {
     const { refundPackageUse } = await import("./packages-store");
     await refundPackageUse(inv.packageId);
+  }
+
+  // คืนสต็อกสินค้าที่ตัดไปตอนปิดบิล
+  for (const it of inv.items) {
+    if (it.productId) {
+      const { adjustProductStock } = await import("./products-store");
+      await adjustProductStock(it.productId, it.qty || 1);
+    }
   }
 
   inv.status = "pending";

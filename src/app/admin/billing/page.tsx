@@ -76,7 +76,7 @@ type Booking = {
   groomProgram?: string;
 };
 
-type ItemKind = "grooming" | "room" | "service" | "custom" | "freebie";
+type ItemKind = "grooming" | "room" | "service" | "custom" | "freebie" | "product";
 type Item = {
   kind: ItemKind;
   program: string;
@@ -91,6 +91,8 @@ type Item = {
   catName?: string;
   /** จำนวนชิ้น (ห้องพักใช้ "คืน" แทน) */
   qty?: number;
+  /** สินค้าหน้าร้านที่แตะเพิ่มจากกริด (products-store.ts) — ใช้ตัดสต็อกตอนจ่ายเงิน */
+  productId?: string;
 };
 
 /** programId มาจากนัด (booking.groomProgram) ถ้ามี — ให้เลือกโปรแกรมที่ลูกค้าเลือกไว้ตอนจองอัตโนมัติ */
@@ -141,6 +143,7 @@ function computeLine(it: Item): {
   catName?: string;
   qty: number;
   unitAmount: number;
+  productId?: string;
 } {
   const cat = joinCatNames(parseCatNames(it.catName));
   /** ใส่ชื่อน้องนำหน้า ให้เจ้าของอ่านบิลแล้วรู้ทันทีว่าตัวไหนใช้อะไร */
@@ -187,6 +190,7 @@ function computeLine(it: Item): {
     catName: cat,
     qty,
     unitAmount: unit,
+    productId: it.productId,
   };
 }
 
@@ -278,6 +282,13 @@ export default function BillingPage() {
     | "due-desc"
   >("issued-desc");
   const [items, setItems] = useState<Item[]>([newGrooming()]);
+  // ขายเร็ว ไม่ระบุลูกค้า — ใช้ลูกค้าโครง "ลูกค้าหน้าร้าน" แทน (สำหรับขายสินค้าล้วนๆ ไม่มีนัด)
+  const [quickSale, setQuickSale] = useState(false);
+  const [products, setProducts] = useState<
+    { id: string; name: string; category: string; price: number; imageUrl?: string; stockCount: number }[]
+  >([]);
+  const [showProductPicker, setShowProductPicker] = useState(false);
+  const [productTab, setProductTab] = useState("ทั้งหมด");
   // ส่วนลดกรอกได้ทั้งบาทและเปอร์เซ็นต์ — ร้านคิดโปรเป็น % บ่อย จะได้ไม่ต้องกดเครื่องคิดเลขเอง
   const [discountMode, setDiscountMode] = useState<"baht" | "percent">("baht");
   const [creating, setCreating] = useState(false);
@@ -331,6 +342,15 @@ export default function BillingPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // โหลดสินค้าหน้าร้านตอนเปิดตัวเลือกครั้งแรกเท่านั้น (ไม่ใช่ทุกบิล) — ยอดขายส่วนใหญ่ไม่มีสินค้า
+  useEffect(() => {
+    if (!showProductPicker) return;
+    fetch("/api/products?activeOnly=1")
+      .then((r) => r.json())
+      .then((d) => setProducts(d.products || []))
+      .catch(() => {});
+  }, [showProductPicker]);
 
   // ดึงนัดจาก URL อัตโนมัติ (มาจากปุ่ม "ออกบิล" ในตารางนัด) — ทำครั้งเดียว
   const autoPicked = useRef(false);
@@ -647,7 +667,9 @@ export default function BillingPage() {
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
 
   const changeKind = (idx: number, kind: ItemKind) => {
-    let patch: Partial<Item> = { kind };
+    // เลือกจาก dropdown นี้ได้เฉพาะ kind ที่พิมพ์เอง (ไม่มี "product" เป็นตัวเลือก) —
+    // ต้องล้าง productId เสมอ ไม่งั้นเปลี่ยนจากสินค้าไปเป็นรายการอื่นแล้วจะยังไปตัดสต็อกสินค้าเดิมตอนจ่ายเงิน
+    let patch: Partial<Item> = { kind, productId: undefined };
     if (kind === "grooming") {
       const prog = GROOM_PROGRAMS[0];
       patch = { kind, program: prog.id, breed: prog.breeds[0].breed, size: "m" };
@@ -676,6 +698,23 @@ export default function BillingPage() {
   const removeItem = (idx: number) =>
     setItems((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== idx)));
 
+  /** แตะสินค้าจากกริด — มีอยู่แล้วในบิลก็บวก qty ต่อ ไม่มีก็เพิ่มบรรทัดใหม่ (บรรทัดว่างเริ่มต้นถูกกรองทิ้งตอนส่งอยู่แล้ว) */
+  const addProduct = (p: { id: string; name: string; price: number }) => {
+    setItems((prev) => {
+      const idx = prev.findIndex((it) => it.kind === "product" && it.productId === p.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], qty: (next[idx].qty || 1) + 1 };
+        return next;
+      }
+      return [
+        ...prev,
+        { ...newGrooming(), kind: "product", productId: p.id, label: p.name, amount: p.price, qty: 1 },
+      ];
+    });
+    toast(`เพิ่ม ${p.name} แล้ว — แตะสินค้าอื่นต่อได้เลย`, "success");
+  };
+
   const resetForm = () => {
     setItems([newGrooming()]);
     setDiscount("");
@@ -687,10 +726,28 @@ export default function BillingPage() {
   };
 
   const createBill = async () => {
-    if (!selected) return toast("เลือกลูกค้าก่อน", "error");
+    let cust = selected;
+    // แก้ไขบิลเดิมไม่ต้องมีลูกค้าตอนนี้ (customerId ผูกไว้ตั้งแต่ตอนเปิดแก้ไขแล้ว)
+    // บิลใหม่ที่ไม่ได้เลือกลูกค้า ต้องเปิดโหมด "ขายเร็ว" ก่อน ไม่งั้นบังคับให้เลือกเหมือนเดิม
+    if (!editingId && !cust) {
+      if (!quickSale) return toast("เลือกลูกค้าก่อน", "error");
+      setCreating(true);
+      const wRes = await fetch("/api/customers", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "get_or_create_walkin" }),
+      });
+      const wData = await wRes.json().catch(() => ({}));
+      if (!wData.ok) {
+        setCreating(false);
+        return toast("สร้างลูกค้าขายเร็วไม่สำเร็จ", "error");
+      }
+      cust = wData.customer;
+    }
     if (subtotal <= 0) return toast("ใส่รายการอย่างน้อย 1 อย่าง", "error");
     setCreating(true);
-    const cat = selected.cats[0]?.name || "น้องแมว";
+    // ขายเร็วไม่มีน้องแมวจริง (cust มาจากการสร้างลูกค้าโครงด้านบน ไม่ใช่ selected) — ปล่อยว่างไว้ ดีกว่าใส่ชื่อปลอม
+    const cat = cust?.cats[0]?.name || (selected ? "น้องแมว" : "");
     // เก็บของแถม (ฟรี) ด้วย — label มี แต่ยอด 0
     const payloadItems = items
       .map((it, i) => ({ ...lines[i], kind: it.kind }))
@@ -727,9 +784,9 @@ export default function BillingPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         action: "create",
-        customerId: selected.id,
-        lineUserId: selected.lineUserId,
-        customerName: selected.name,
+        customerId: cust!.id,
+        lineUserId: cust!.lineUserId,
+        customerName: cust!.name,
         catName: cat,
         items: payloadItems,
         promoId: promoId || undefined,
@@ -947,8 +1004,28 @@ export default function BillingPage() {
                 </p>
               )}
             </div>
+          ) : quickSale ? (
+            <div className="flex items-center justify-between gap-2 rounded-petflow-sm border border-honey-deep/50 bg-honey/15 px-3 py-2">
+              <span className="text-sm font-bold text-petflow-chocolate">
+                ⚡ ขายเร็ว ไม่ระบุลูกค้า — ขายสินค้าหน้าร้านอย่างเดียวได้เลย
+              </span>
+              <button
+                type="button"
+                onClick={() => setQuickSale(false)}
+                className="shrink-0 text-xs font-bold text-wait"
+              >
+                ✕ เปลี่ยน
+              </button>
+            </div>
           ) : (
             <div className="relative">
+              <button
+                type="button"
+                onClick={() => setQuickSale(true)}
+                className="mb-1.5 w-full rounded-petflow-sm bg-honey/25 py-2 text-xs font-extrabold text-petflow-chocolate"
+              >
+                ⚡ ขายเร็ว ไม่ระบุลูกค้า (ขายของหน้าร้านอย่างเดียว)
+              </button>
               <input
                 value={search}
                 onChange={(e) => {
@@ -1009,6 +1086,14 @@ export default function BillingPage() {
                       onChange={(e) => changeKind(i, e.target.value as ItemKind)}
                       className="min-w-0 flex-1 rounded-lg border border-petflow-line bg-card px-3 py-2 text-sm font-bold"
                     >
+                      {/* รายการสินค้าจากกริดเท่านั้นที่มี kind นี้ — ไม่ให้เลือกเองจาก dropdown
+                          (เปลี่ยนจาก dropdown จะล้าง productId ทิ้งเสมอ ดู changeKind) แต่ยังต้อง
+                          มี option ไว้โชว์ค่าปัจจุบัน ไม่งั้น select จะโชว์ว่างเปล่า */}
+                      {item.kind === "product" && (
+                        <option value="product" hidden>
+                          🛒 สินค้า
+                        </option>
+                      )}
                       {KIND_OPTIONS.map((k) => (
                         <option key={k.id} value={k.id}>
                           {k.label}
@@ -1268,14 +1353,94 @@ export default function BillingPage() {
             })}
           </div>
 
-          <button
-            type="button"
-            onClick={() => setItems((prev) => [...prev, newGrooming()])}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-petflow-sm border-2 border-dashed border-latte/60 bg-latte/10 py-2.5 text-sm font-extrabold text-latte-deep transition active:scale-[.98]"
-          >
-            <span className="text-lg">➕</span> เพิ่มรายการ
-            <span className="text-lg">🧾</span>
-          </button>
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setItems((prev) => [...prev, newGrooming()])}
+              className="flex flex-1 items-center justify-center gap-2 rounded-petflow-sm border-2 border-dashed border-latte/60 bg-latte/10 py-2.5 text-sm font-extrabold text-latte-deep transition active:scale-[.98]"
+            >
+              <span className="text-lg">➕</span> เพิ่มรายการ
+              <span className="text-lg">🧾</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowProductPicker((v) => !v)}
+              className="flex flex-1 items-center justify-center gap-2 rounded-petflow-sm border-2 border-dashed border-sky-deep/50 bg-sky/20 py-2.5 text-sm font-extrabold text-sky-deep transition active:scale-[.98]"
+            >
+              <span className="text-lg">🛒</span> เพิ่มสินค้า
+            </button>
+          </div>
+
+          {showProductPicker && (
+            <div className="mt-2 rounded-petflow-sm border border-petflow-line bg-card p-2.5">
+              {products.length === 0 ? (
+                <p className="py-4 text-center text-xs text-brown-soft">
+                  ยังไม่มีสินค้า — ไปเพิ่มที่เมนู &quot;สินค้าหน้าร้าน&quot; ก่อน
+                </p>
+              ) : (
+                <>
+                  <div className="mb-2 flex gap-1.5 overflow-x-auto">
+                    {["ทั้งหมด", ...new Set(products.map((p) => p.category).filter(Boolean))].map(
+                      (t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setProductTab(t)}
+                          className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold transition ${
+                            productTab === t
+                              ? "bg-honey/40 text-petflow-chocolate"
+                              : "bg-paper text-brown-soft"
+                          }`}
+                        >
+                          {t}
+                        </button>
+                      )
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {products
+                      .filter((p) => productTab === "ทั้งหมด" || p.category === productTab)
+                      .map((p) => {
+                        const outOfStock = p.stockCount <= 0;
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            disabled={outOfStock}
+                            onClick={() => addProduct(p)}
+                            className="relative flex flex-col items-center gap-1 rounded-petflow-sm border border-petflow-line bg-paper/50 p-2 text-center transition active:scale-[.97] disabled:opacity-40"
+                          >
+                            <span className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-petflow-sm bg-card">
+                              {p.imageUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={p.imageUrl}
+                                  alt=""
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-xl">📦</span>
+                              )}
+                              {outOfStock && (
+                                <span className="absolute inset-0 flex items-center justify-center bg-black/40 text-[10px] font-extrabold text-white">
+                                  หมด
+                                </span>
+                              )}
+                            </span>
+                            <span className="line-clamp-2 text-[10px] font-bold text-brown">
+                              {p.name}
+                            </span>
+                            <span className="text-[10px] font-extrabold text-latte-deep">
+                              {p.price.toLocaleString()}฿
+                            </span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── โปร + ส่วนลด ── */}

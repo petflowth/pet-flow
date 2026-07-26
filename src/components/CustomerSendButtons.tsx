@@ -3,11 +3,25 @@
 import { useEffect, useState } from "react";
 import { toast } from "@/components/Toast";
 import { relevantAutoMessageTopics } from "@/lib/auto-messages";
+import { PreviewSendModal } from "@/components/PreviewSendModal";
+
+type PendingSend = {
+  url: string;
+  method: "PATCH" | "POST";
+  body: Record<string, unknown>;
+  okMsg: string;
+  busyKey: string;
+  messages: Record<string, unknown>[];
+  skipped?: string[];
+};
 
 /**
  * ปุ่มส่งหาลูกค้าแบบรวมศูนย์ — ใช้ได้ทุกที่ (การ์ดในปฏิทิน · บิล · ฯลฯ)
  * ปุ่มไหนโผล่ขึ้นกับ context ที่มี (booking / invoice / customer)
  * booking-based → /api/bookings · invoice/มัดจำ → /api/invoices
+ *
+ * ทุกปุ่มกดแล้วขึ้นพรีวิวการ์ดก่อนเสมอ (เซิร์ฟเวอร์คืน flex JSON ตัวเดียวกับที่จะส่งจริง
+ * แค่ข้ามขั้นตอน push + การเขียนข้อมูลที่มีผลจริง) กดยืนยันในพรีวิวถึงจะยิงจริง
  */
 export function CustomerSendButtons({
   lineUserId,
@@ -36,6 +50,8 @@ export function CustomerSendButtons({
   onDone?: () => void;
 }) {
   const [busy, setBusy] = useState("");
+  const [pending, setPending] = useState<PendingSend | null>(null);
+  const [sending, setSending] = useState(false);
   const noLine = !lineUserId;
 
   // ถ้ามาจากการ์ดนัด (มี bookingId แต่ไม่มี invoiceId) → ไปหาบิลที่ผูกกับนัดนั้นเอง
@@ -63,36 +79,60 @@ export function CustomerSendButtons({
   const depForBill = invoiceId ? invoiceDeposit : foundDeposit;
   const billPaid = (invoiceId ? invoiceStatus : foundStatus) === "paid";
 
-  const call = async (key: string, run: () => Promise<Response>, okMsg: string) => {
-    setBusy(key);
+  /** ขั้นที่ 1: ขอตัวอย่างการ์ดจากเซิร์ฟเวอร์ (preview: true) — ยังไม่ส่งจริง ยังไม่แตะข้อมูลจริง */
+  const requestPreview = async (
+    url: string,
+    body: Record<string, unknown>,
+    okMsg: string,
+    busyKey: string
+  ) => {
+    setBusy(busyKey);
     try {
-      const res = await run();
+      const res = await fetch(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...body, preview: true }),
+      });
       const d = await res.json().catch(() => ({}));
-      if (res.ok) {
-        toast(okMsg, "success");
-        onDone?.();
+      if (res.ok && Array.isArray(d.preview)) {
+        setPending({ url, method: "PATCH", body, okMsg, busyKey, messages: d.preview, skipped: d.skipped });
       } else {
-        toast(d.error ? `ส่งไม่สำเร็จ: ${d.error}` : "ส่งไม่สำเร็จ — ตรวจ LINE / ตั้งค่า", "error");
+        toast(d.error ? `โหลดตัวอย่างไม่สำเร็จ: ${d.error}` : "โหลดตัวอย่างไม่สำเร็จ", "error");
       }
     } finally {
       setBusy("");
     }
   };
 
+  /** ขั้นที่ 2: กดยืนยันในพรีวิว → ยิงคำขอเดิมซ้ำแบบไม่ preview (ส่งจริง + เขียนข้อมูลจริง) */
+  const confirmSend = async () => {
+    if (!pending) return;
+    setSending(true);
+    try {
+      const res = await fetch(pending.url, {
+        method: pending.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(pending.body),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        const note = d.skipped?.length ? ` · ข้ามให้: ${d.skipped.join(", ")}` : "";
+        toast(pending.okMsg + note, "success");
+        onDone?.();
+        setPending(null);
+      } else {
+        toast(d.error ? `ส่งไม่สำเร็จ: ${d.error}` : "ส่งไม่สำเร็จ — ตรวจ LINE / ตั้งค่า", "error");
+      }
+    } finally {
+      setSending(false);
+    }
+  };
+
   const bookingSend = (action: string, okMsg: string) =>
-    call(
-      action,
-      () =>
-        fetch("/api/bookings", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: bookingId, action, lineUserId }),
-        }),
-      okMsg
-    );
+    requestPreview("/api/bookings", { id: bookingId, action, lineUserId }, okMsg, action);
 
   // นัดที่จองทั้งบ้าน (หลายตัวพร้อมกัน) — ส่งการ์ดเดียว ลิงก์เดียว ให้กรอกประวัติครบทุกตัวในหน้าเดียวกัน
-  const sendGroomInfoAll = async () => {
+  const sendGroomInfoAll = () => {
     const ids =
       groomBookingIds && groomBookingIds.length > 0
         ? groomBookingIds
@@ -100,55 +140,33 @@ export function CustomerSendButtons({
           ? [bookingId]
           : [];
     if (ids.length === 0) return;
-    setBusy("send_groom_info");
-    try {
-      const res = await fetch("/api/bookings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: ids[0],
-          action: "send_groom_info_group",
-          ids,
-          lineUserId,
-        }),
-      });
-      if (res.ok) {
-        toast(
-          ids.length > 1 ? `ส่งการ์ดสอบถามประวัติแล้ว (${ids.length} ตัว) 🩺` : "ส่งการ์ดสอบถามประวัติน้องแล้ว 🩺",
-          "success"
-        );
-        onDone?.();
-      } else {
-        const d = await res.json().catch(() => ({}));
-        toast(d.error ? `ส่งไม่สำเร็จ: ${d.error}` : "ส่งไม่สำเร็จ — ตรวจ LINE / ตั้งค่า", "error");
-      }
-    } finally {
-      setBusy("");
-    }
+    return requestPreview(
+      "/api/bookings",
+      { id: ids[0], action: "send_groom_info_group", ids, lineUserId },
+      ids.length > 1
+        ? `ส่งการ์ดสอบถามประวัติแล้ว (${ids.length} ตัว) 🩺`
+        : "ส่งการ์ดสอบถามประวัติน้องแล้ว 🩺",
+      "send_groom_info"
+    );
   };
 
   const invoiceSummary = (mode: string, okMsg: string) =>
-    call(
-      "inv:" + mode,
-      () =>
-        fetch("/api/invoices", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: invId, action: "send_summary", mode }),
-        }),
-      okMsg
-    );
+    requestPreview("/api/invoices", { id: invId, action: "send_summary", mode }, okMsg, "inv:" + mode);
 
   const sendReview = () =>
-    call(
-      "inv:review",
-      () =>
-        fetch("/api/invoices", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: invId, action: "send_review" }),
-        }),
-      "ส่งการ์ดขอรีวิวแล้ว ⭐"
+    requestPreview(
+      "/api/invoices",
+      { id: invId, action: "send_review" },
+      "ส่งการ์ดขอรีวิวแล้ว ⭐",
+      "inv:review"
+    );
+
+  const sendReceipt = () =>
+    requestPreview(
+      "/api/invoices",
+      { id: invId, action: "send_receipt" },
+      "ส่งใบเสร็จรับเงินแล้ว 🧾",
+      "inv:receipt"
     );
 
   const depositRequest = () => {
@@ -171,23 +189,39 @@ export function CustomerSendButtons({
     }
     // เซิร์ฟเวอร์จะผูกมัดจำให้เอง — มีบิลอยู่แล้วก็ผูกเข้าบิลนั้น
     // ไม่มีบิลก็พักไว้เป็นเครดิตมัดจำล่วงหน้า หักอัตโนมัติตอนออกบิลถัดไป
-    void call(
-      "dep",
-      () =>
-        fetch("/api/invoices", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "send_deposit_request",
-            customerId,
-            amount,
-            invoiceId: invId,
-          }),
-        }),
+    void requestPreviewPost(
+      "/api/invoices",
+      { action: "send_deposit_request", customerId, amount, invoiceId: invId },
       invId
         ? `ส่งการ์ดเรียกเก็บมัดจำ ${amount.toLocaleString()} บาทแล้ว 📨 (ผูกกับบิลนี้แล้ว)`
-        : `ส่งการ์ดเรียกเก็บมัดจำ ${amount.toLocaleString()} บาทแล้ว 📨 (จะหักเข้าบิลถัดไปให้อัตโนมัติ)`
+        : `ส่งการ์ดเรียกเก็บมัดจำ ${amount.toLocaleString()} บาทแล้ว 📨 (จะหักเข้าบิลถัดไปให้อัตโนมัติ)`,
+      "dep"
     );
+  };
+
+  // POST-based preview (send_deposit_request ใช้ POST ไม่ใช่ PATCH เหมือนตัวอื่น)
+  const requestPreviewPost = async (
+    url: string,
+    body: Record<string, unknown>,
+    okMsg: string,
+    busyKey: string
+  ) => {
+    setBusy(busyKey);
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...body, preview: true }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && Array.isArray(d.preview)) {
+        setPending({ url, method: "POST", body, okMsg, busyKey, messages: d.preview });
+      } else {
+        toast(d.error ? `โหลดตัวอย่างไม่สำเร็จ: ${d.error}` : "โหลดตัวอย่างไม่สำเร็จ", "error");
+      }
+    } finally {
+      setBusy("");
+    }
   };
 
   // 🔕 ปิดข้อความอัตโนมัติเฉพาะนัดนี้ — แก้ได้จากทุกที่ที่มีปุ่มส่ง LINE
@@ -241,43 +275,7 @@ export function CustomerSendButtons({
       return [...prev, p];
     });
 
-  /** ส่งการ์ดชุดใดก็ได้ผ่าน endpoint เดียว — ใช้ทั้งตัวเลือกชุดการ์ดและปุ่มเดี่ยวบางปุ่ม */
-  const sendBundleParts = async (
-    parts: string[],
-    okMsg: string,
-    busyKey = "bundle:receipt",
-    depositAmount?: number
-  ) => {
-    if (!bookingId || parts.length === 0) return;
-    setBusy(busyKey);
-    try {
-      const res = await fetch("/api/bookings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: bookingId,
-          action: "send_bundle",
-          parts,
-          depositAmount: depositAmount || undefined,
-          lineUserId,
-        }),
-      });
-      const d = await res.json().catch(() => ({}));
-      if (res.ok) {
-        // ระบบข้ามการ์ดบางใบให้ (เช่น เคยกรอกประวัติแล้ว) — ต้องบอกให้รู้ ไม่ใช่เงียบ
-        const note = d.skipped?.length ? ` · ข้ามให้: ${d.skipped.join(", ")}` : "";
-        toast(okMsg + note, "success");
-        onDone?.();
-        return true;
-      }
-      toast(d.error ? `ส่งไม่สำเร็จ: ${d.error}` : "ส่งไม่สำเร็จ", "error");
-      return false;
-    } finally {
-      setBusy("");
-    }
-  };
-
-  const sendBundle = async () => {
+  const sendBundle = () => {
     if (!bookingId || bundleParts.length === 0) return;
     let depositAmount = 0;
     if (bundleParts.includes("deposit")) {
@@ -292,35 +290,18 @@ export function CustomerSendButtons({
         return;
       }
     }
-    setBusy("bundle");
-    try {
-      const res = await fetch("/api/bookings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: bookingId,
-          action: "send_bundle",
-          parts: bundleParts,
-          depositAmount: depositAmount || undefined,
-          lineUserId,
-        }),
-      });
-      const d = await res.json().catch(() => ({}));
-      if (res.ok) {
-        toast(
-          `ส่งชุดการ์ด ${d.sent} ใบใน 1 ข้อความแล้ว 📦` +
-            (d.skipped?.length ? ` · ข้ามให้: ${d.skipped.join(", ")}` : ""),
-          "success"
-        );
-        setBundleOpen(false);
-        setBundleParts([]);
-        onDone?.();
-      } else {
-        toast(d.error ? `ส่งไม่สำเร็จ: ${d.error}` : "ส่งไม่สำเร็จ", "error");
-      }
-    } finally {
-      setBusy("");
-    }
+    void requestPreview(
+      "/api/bookings",
+      {
+        id: bookingId,
+        action: "send_bundle",
+        parts: bundleParts,
+        depositAmount: depositAmount || undefined,
+        lineUserId,
+      },
+      `ส่งชุดการ์ด ${bundleParts.length} ใบใน 1 ข้อความแล้ว 📦`,
+      "bundle"
+    );
   };
 
   const hasRemaining = depForBill > 0;
@@ -364,12 +345,22 @@ export function CustomerSendButtons({
       onClick={onClick}
       className="rounded-full bg-[#06C755]/15 px-2.5 py-1 text-[10px] font-bold text-[#06883c] disabled:opacity-40"
     >
-      {busy === k ? "กำลังส่ง…" : label}
+      {busy === k ? "กำลังโหลด…" : label}
     </button>
   );
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
+      {pending && (
+        <PreviewSendModal
+          messages={pending.messages}
+          skipped={pending.skipped}
+          sending={sending}
+          onConfirm={confirmSend}
+          onCancel={() => setPending(null)}
+        />
+      )}
+
       <span className="text-[10px] font-bold text-brown-faint">
         ส่ง LINE:{noLine ? " (ยังไม่ผูก LINE)" : ""}
       </span>
@@ -448,22 +439,7 @@ export function CustomerSendButtons({
       {/* จ่ายแล้ว = ส่งใบเสร็จได้ — กดส่งเองเสมอ ระบบไม่ยิงให้อัตโนมัติตอนกดรับเงิน
           ส่งจากบิลตรงๆ ไม่ต้องมีนัดผูก (บิลที่ออกเองก็ส่งใบเสร็จได้) */}
       {invId && billPaid && (
-        <Btn
-          k="inv:receipt"
-          label="🧾 ส่งใบเสร็จรับเงิน"
-          onClick={() =>
-            call(
-              "inv:receipt",
-              () =>
-                fetch("/api/invoices", {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ id: invId, action: "send_receipt" }),
-                }),
-              "ส่งใบเสร็จรับเงินแล้ว 🧾"
-            )
-          }
-        />
+        <Btn k="inv:receipt" label="🧾 ส่งใบเสร็จรับเงิน" onClick={sendReceipt} />
       )}
       {invId && !billPaid && (
         <Btn
@@ -527,7 +503,7 @@ export function CustomerSendButtons({
             className="mt-2 w-full rounded-petflow-sm bg-latte-deep py-2 text-[11px] font-extrabold text-white disabled:opacity-40"
           >
             {busy === "bundle"
-              ? "กำลังส่ง…"
+              ? "กำลังโหลด…"
               : `📦 ส่ง ${bundleParts.length} การ์ดใน 1 ข้อความ`}
           </button>
         </div>

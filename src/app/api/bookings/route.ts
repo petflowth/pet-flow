@@ -211,6 +211,9 @@ export async function PATCH(req: NextRequest) {
 async function handlePatch(req: NextRequest, admin: boolean) {
   const body = await req.json().catch(() => ({}));
   const { id, action, lineUserId, checkinTime } = body;
+  // ดูตัวอย่างการ์ดก่อนส่งจริง — ทำทุกอย่างเหมือนส่งจริงเป๊ะ (ข้อมูล/เงื่อนไขเดียวกัน)
+  // แค่ข้ามขั้นตอน push เข้า LINE + การเขียนข้อมูลที่มีผลจริง (เช่น ผูกมัดจำ) เท่านั้น
+  const preview = body.preview === true;
   const b = await getBooking(id);
   if (!b) return NextResponse.json({ error: "not found" }, { status: 404 });
 
@@ -313,6 +316,7 @@ async function handlePatch(req: NextRequest, admin: boolean) {
         groomProgram: b.groomProgram,
       });
 
+      if (preview) return NextResponse.json({ ok: true, preview: [flex] });
       await pushLineMessage(to, [flex]);
       return NextResponse.json({ ok: true });
     } catch (e) {
@@ -339,6 +343,7 @@ async function handlePatch(req: NextRequest, admin: boolean) {
       label: cfg.cards?.groomInfo?.texts?.button || "🩺 แจ้งประวัติน้อง",
     }, cfg.cards?.groomInfo);
     try {
+      if (preview) return NextResponse.json({ ok: true, preview: [flex] });
       await pushLineMessage(to, [flex]);
       return NextResponse.json({ ok: true });
     } catch (e) {
@@ -379,6 +384,7 @@ async function handlePatch(req: NextRequest, admin: boolean) {
           : cfg.cards?.groomInfo?.texts?.button || "🩺 แจ้งประวัติน้อง",
     }, cfg.cards?.groomInfo);
     try {
+      if (preview) return NextResponse.json({ ok: true, preview: [flex] });
       await pushLineMessage(to, [flex]);
       return NextResponse.json({ ok: true });
     } catch (e) {
@@ -411,6 +417,7 @@ async function handlePatch(req: NextRequest, admin: boolean) {
             label: "🕒 เลือกเวลารับน้อง",
           }, cfg.cards?.timePicker);
     try {
+      if (preview) return NextResponse.json({ ok: true, preview: [flex] });
       await pushLineMessage(to, [flex]);
       return NextResponse.json({ ok: true });
     } catch (e) {
@@ -612,15 +619,18 @@ async function handlePatch(req: NextRequest, admin: boolean) {
         const amount = Math.round(Number(body.depositAmount) || 0);
         if (amount > 0) {
           // ผูกมัดจำเหมือนกดปุ่มเรียกเก็บมัดจำเดี่ยว: มีบิลค้าง → ผูกบิล, ไม่มี → เครดิตล่วงหน้า
-          const all = await listInvoices();
-          const openInv = all.find(
-            (i) => i.bookingId === b.id && i.status !== "paid"
-          );
-          const customer = await findCustomerForBooking(b);
-          if (openInv) {
-            await updateInvoice(openInv.id, { deposit: amount });
-          } else if (customer) {
-            await adjustDepositCredit(customer.id, amount);
+          // ตอนพรีวิว ข้ามการผูกจริง — แค่โชว์ตัวอย่างการ์ดด้วยยอดเดียวกัน ไม่แตะข้อมูลจริง
+          if (!preview) {
+            const all = await listInvoices();
+            const openInv = all.find(
+              (i) => i.bookingId === b.id && i.status !== "paid"
+            );
+            const customer = await findCustomerForBooking(b);
+            if (openInv) {
+              await updateInvoice(openInv.id, { deposit: amount });
+            } else if (customer) {
+              await adjustDepositCredit(customer.id, amount);
+            }
           }
           const payment = await getPaymentConfig();
           messages.push(
@@ -686,6 +696,7 @@ async function handlePatch(req: NextRequest, admin: boolean) {
       );
     }
     try {
+      if (preview) return NextResponse.json({ ok: true, preview: messages, skipped });
       await pushLineMessage(to, messages);
       return NextResponse.json({ ok: true, sent: messages.length, skipped });
     } catch (e) {
@@ -728,6 +739,7 @@ async function handlePatch(req: NextRequest, admin: boolean) {
         url,
       });
       try {
+        if (preview) return NextResponse.json({ ok: true, preview: [flex] });
         await pushLineMessage(to, [flex]);
         return NextResponse.json({ ok: true });
       } catch (e) {
@@ -745,6 +757,7 @@ async function handlePatch(req: NextRequest, admin: boolean) {
         consentUrl: undefined,
       }, cfg.cards?.prestay);
       try {
+        if (preview) return NextResponse.json({ ok: true, preview: [flex] });
         await pushLineMessage(to, [flex]);
         return NextResponse.json({ ok: true });
       } catch (e) {
@@ -776,7 +789,9 @@ async function handlePatch(req: NextRequest, admin: boolean) {
     }
 
     try {
-      await pushLineMessage(to, [{ type: "text", text }]);
+      const textMsg = [{ type: "text", text }];
+      if (preview) return NextResponse.json({ ok: true, preview: textMsg });
+      await pushLineMessage(to, textMsg);
       return NextResponse.json({ ok: true });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);

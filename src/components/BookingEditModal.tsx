@@ -20,6 +20,10 @@ export type EditableBooking = Booking & {
   careNote?: string;
   /** ลายเซ็นที่เซ็นไว้ (URL รูป) */
   consentSignature?: string;
+  /** เวลาที่เจ้าของแจ้งว่าจะมาส่งน้อง */
+  arrivalTime?: string;
+  /** เวลาที่เจ้าของแจ้งว่าจะมารับน้อง */
+  pickupTime?: string;
 };
 
 function EditField({
@@ -97,6 +101,7 @@ export function BookingEditModal({
             time: String(fd.get("time") || "") || undefined,
             notes: String(fd.get("notes") || "") || undefined,
             groomProgram: groomProgram || undefined,
+            arrivalTime: String(fd.get("arrivalTime") || "") || undefined,
             autoOff,
           }
         : {
@@ -109,6 +114,8 @@ export function BookingEditModal({
             checkout: String(fd.get("checkout") || ""),
             date: String(fd.get("checkin") || ""),
             notes: String(fd.get("notes") || "") || undefined,
+            arrivalTime: String(fd.get("arrivalTime") || "") || undefined,
+            pickupTime: String(fd.get("pickupTime") || "") || undefined,
             autoOff,
           };
 
@@ -185,6 +192,12 @@ export function BookingEditModal({
                   ))}
                 </select>
               </label>
+              <EditField
+                label="เวลาที่ลูกค้าแจ้งจะมาส่งน้อง (ถ้ามี)"
+                name="arrivalTime"
+                type="time"
+                defaultValue={booking.arrivalTime || ""}
+              />
             </>
           ) : (
             <>
@@ -216,6 +229,24 @@ export function BookingEditModal({
                 defaultValue={booking.checkout || ""}
                 required
               />
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <EditField
+                    label="เวลาส่งน้อง (ถ้ามี)"
+                    name="arrivalTime"
+                    type="time"
+                    defaultValue={booking.arrivalTime || ""}
+                  />
+                </div>
+                <div className="flex-1">
+                  <EditField
+                    label="เวลารับน้อง (ถ้ามี)"
+                    name="pickupTime"
+                    type="time"
+                    defaultValue={booking.pickupTime || ""}
+                  />
+                </div>
+              </div>
             </>
           )}
           <EditField label="โน้ต" name="notes" defaultValue={booking.notes || ""} textarea />

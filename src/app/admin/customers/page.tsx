@@ -343,6 +343,84 @@ function MemberTopupSection({
   );
 }
 
+function formatThaiDateTimeShort(iso: string) {
+  const d = new Date(iso);
+  const day = d.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
+  const time = d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+  return `${day} ${time} น.`;
+}
+
+/**
+ * การเข้าพัก + เงื่อนไข — หลักฐานที่ลูกค้าเซ็นยอมรับก่อนฝากแมว (วันเข้า-ออก, ลายเซ็น, โน้ตดูแลเพิ่มเติม)
+ *
+ * เมื่อก่อนข้อมูลนี้บันทึกไว้จริง (booking.consentAcceptedAt/careNote/consentSignature)
+ * แต่ไม่เคยโผล่ที่ไหนในหลังบ้านเลย — ต้องไปหาทีละนัดในปฏิทินเอง ตอนนี้รวมมาไว้ที่นี่
+ * ที่เดียว จะได้ใช้เป็นหลักฐานได้ทันทีถ้ามีปัญหา ไม่ต้องไล่หา
+ */
+function StaysConsentSection({ bookings }: { bookings: EditableBooking[] }) {
+  const stays = bookings
+    .filter((b) => b.service === "room" && b.status !== "cancelled")
+    .sort((a, b) => (b.checkin || b.date).localeCompare(a.checkin || a.date));
+
+  if (stays.length === 0) return null;
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  return (
+    <section className="mb-4 rounded-catcha bg-card p-4">
+      <h2 className="mb-2 text-sm font-extrabold">🏠 การเข้าพัก + เงื่อนไข</h2>
+      <ul className="space-y-2">
+        {stays.map((b) => {
+          const staying =
+            (b.checkin || "") <= today && today < (b.checkout || b.checkin || "");
+          return (
+            <li key={b.id} className="rounded-catcha-sm bg-paper/60 p-2.5 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-1.5">
+                <span className="font-bold text-brown">
+                  {b.checkin || b.date}
+                  {b.checkout ? ` → ${b.checkout}` : ""}
+                  {b.room ? ` · ห้อง ${b.room}` : ""}
+                </span>
+                {staying && (
+                  <span className="rounded-full bg-ok/20 px-2 py-0.5 text-[10px] font-extrabold text-ok">
+                    🏠 กำลังเข้าพักอยู่
+                  </span>
+                )}
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                {b.consentAcceptedAt ? (
+                  <span className="text-[10px] font-bold text-ok">
+                    ✅ เซ็นยอมรับแล้ว · {formatThaiDateTimeShort(b.consentAcceptedAt)}
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold text-wait">
+                    ⏳ ยังไม่ได้เซ็นยอมรับ
+                  </span>
+                )}
+                {b.consentSignature && (
+                  <a
+                    href={b.consentSignature}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-full bg-latte/30 px-2 py-0.5 text-[10px] font-bold text-catcha-chocolate"
+                  >
+                    ✍️ ดูลายเซ็น
+                  </a>
+                )}
+              </div>
+              {b.careNote && (
+                <p className="mt-1.5 rounded-catcha-sm border border-honey/40 bg-honey/10 px-2 py-1.5 text-[11px] text-brown">
+                  📝 {b.careNote}
+                </p>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 /**
  * ประวัติใช้บริการ — รวมรายการที่บันทึกไว้กับนัดที่ผ่านมาเป็นไทม์ไลน์เดียว เรียงใหม่ก่อน
  *
@@ -2300,6 +2378,13 @@ export default function CustomersPage() {
         <CustomerAppointmentsSection
           bookings={selected.history.upcomingBookings || []}
           onRefresh={() => open(c.id)}
+        />
+
+        <StaysConsentSection
+          bookings={[
+            ...(selected.history.upcomingBookings || []),
+            ...(selected.history.pastBookings || []),
+          ]}
         />
 
         <ServiceHistorySection

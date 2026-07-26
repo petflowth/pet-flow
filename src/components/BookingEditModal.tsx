@@ -12,6 +12,14 @@ export type EditableBooking = Booking & {
   notes?: string;
   /** หัวข้อข้อความอัตโนมัติที่นัดนี้ปิดไว้ */
   autoOff?: string[];
+  /** โปรแกรมอาบน้ำที่เลือกไว้ (id ของ GROOM_PROGRAMS) */
+  groomProgram?: string;
+  /** ลูกค้ากดยอมรับข้อตกลงก่อนเข้าพักเมื่อไหร่ */
+  consentAcceptedAt?: string;
+  /** โน้ตดูแลเพิ่มเติมที่ลูกค้าพิมพ์มาตอนเซ็นยอมรับ */
+  careNote?: string;
+  /** ลายเซ็นที่เซ็นไว้ (URL รูป) */
+  consentSignature?: string;
 };
 
 function EditField({

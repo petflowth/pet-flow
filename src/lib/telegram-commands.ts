@@ -18,7 +18,7 @@ import { parseTelegramCommand } from "@/lib/telegram";
  */
 export async function buildDayScheduleMessage(
   date: string,
-  opts?: { heading?: string; emptyText?: string }
+  opts?: { heading?: string; emptyText?: string; includeOngoingStays?: boolean }
 ) {
   const heading = opts?.heading ?? `🗓️ ตารางงาน (${date})`;
   const all = await listBookings();
@@ -26,13 +26,35 @@ export async function buildDayScheduleMessage(
   const groom = live.filter((b) => b.service === "groom" && b.date === date);
   const checkin = live.filter((b) => b.service === "room" && b.checkin === date);
   const checkout = live.filter((b) => b.service === "room" && b.checkout === date);
-  const total = groom.length + checkin.length + checkout.length;
+  // ยังพักอยู่วันนี้ แต่ไม่ใช่วันเข้า/ออก — ไม่งั้นแจ้งแค่วันแรกกับวันสุดท้าย ตัวที่พักยาว
+  // หลายคืนตรงกลางจะไม่มีใครเห็นโน้ต/เงื่อนไขที่ลูกค้าเซ็นไว้เลยจนกว่าจะถึงวันออก
+  const ongoing = opts?.includeOngoingStays
+    ? live.filter(
+        (b) =>
+          b.service === "room" &&
+          (b.checkin || "") < date &&
+          date < (b.checkout || b.checkin || "")
+      )
+    : [];
+  const total = groom.length + checkin.length + checkout.length + ongoing.length;
 
   if (total === 0) {
     return `${heading}\n\n${opts?.emptyText ?? "ยังไม่มีนัด/เข้าพัก-ออกพักในระบบค่ะ 🎉"}`;
   }
 
   const lines: string[] = [heading];
+  if (ongoing.length) {
+    lines.push(
+      `\n🏠 กำลังเข้าพักอยู่ (${ongoing.length}):\n` +
+        ongoing
+          .map((b, i) => {
+            const consent = b.consentAcceptedAt ? "✅ เซ็นแล้ว" : "⏳ ยังไม่เซ็น";
+            const note = b.careNote ? ` — 📝 ${b.careNote}` : "";
+            return `${i + 1}. ${b.catName} · ${b.customerName} — ห้อง ${b.room || "-"} · ${consent}${note}`;
+          })
+          .join("\n")
+    );
+  }
   if (groom.length) {
     lines.push(
       `\n🛁 นัดอาบน้ำ (${groom.length}):\n` +
@@ -79,6 +101,9 @@ export async function buildMorningSummaryMessage(today: string) {
   return buildDayScheduleMessage(today, {
     heading: `☀️ สรุปเช้า — งานวันนี้ (${today})`,
     emptyText: "วันนี้ยังไม่มีนัด/เข้าพัก-ออกพักในระบบค่ะ พักผ่อนได้เต็มที่ 🐱",
+    // แจ้งตัวที่ยังพักอยู่ (ไม่ใช่แค่วันเข้า/วันออก) ทุกเช้า จะได้เห็นโน้ต/สถานะเซ็นเงื่อนไข
+    // ของทุกตัวที่ยังอยู่กับร้าน ไม่ใช่แค่วันแรกกับวันสุดท้ายของการพัก
+    includeOngoingStays: true,
   });
 }
 

@@ -1461,11 +1461,26 @@ export async function mergeCustomers(sourceId: string, targetId: string) {
     if (takeLine) {
       await sb.from("customers").update({ line_user_id: null }).eq("id", sourceId);
     }
+    // เติมข้อมูลโปรไฟล์ที่ปลายทางยังขาดจากต้นทาง — เมื่อก่อนย้ายแค่แต้ม/บิล/แมว
+    // ทำให้เบอร์/อีเมล/วันเกิด/ที่อยู่ที่ลูกค้ากรอกตอนสมัคร หายไปกับ record ที่ถูกลบ
+    const backfill: Record<string, unknown> = {};
+    if (!target.phone && source.phone) backfill.phone = source.phone;
+    if (!target.email && source.email) backfill.email = source.email;
+    if (!target.birthday && source.birthday) backfill.birthday = source.birthday;
+    if (!target.address && source.address) backfill.address = source.address;
+    if (!target.addressMapUrl && source.addressMapUrl)
+      backfill.address_map_url = source.addressMapUrl;
+    if (!target.postalCode && source.postalCode) backfill.postal_code = source.postalCode;
+    if (!target.referralSource && source.referralSource)
+      backfill.referral_source = source.referralSource;
+    if (!target.lineDisplayName && source.lineDisplayName && !takeLine)
+      backfill.line_display_name = source.lineDisplayName;
     await sb
       .from("customers")
       .update({
         member_credit: mergedCredit,
         is_member: target.isMember || source.isMember,
+        ...backfill,
         ...(takeLine
           ? {
               line_user_id: source.lineUserId,
@@ -1501,6 +1516,16 @@ export async function mergeCustomers(sourceId: string, targetId: string) {
       t.memberCredit = (t.memberCredit || 0) + (s.memberCredit || 0);
       t.depositCredit = (t.depositCredit || 0) + (s.depositCredit || 0);
       t.cats = [...t.cats, ...s.cats];
+      // เติมโปรไฟล์ที่ขาดจากต้นทาง (เหมือน sb path)
+      t.phone = t.phone || s.phone;
+      t.email = t.email || s.email;
+      t.birthday = t.birthday || s.birthday;
+      t.address = t.address || s.address;
+      t.addressMapUrl = t.addressMapUrl || s.addressMapUrl;
+      t.postalCode = t.postalCode || s.postalCode;
+      t.referralSource = t.referralSource || s.referralSource;
+      t.lineDisplayName = t.lineDisplayName || s.lineDisplayName;
+      if (!t.lineUserId && s.lineUserId) t.lineUserId = s.lineUserId;
       if (!t.lineUserId && s.lineUserId) {
         t.lineUserId = s.lineUserId;
         t.lineDisplayName = s.lineDisplayName;
@@ -2180,11 +2205,32 @@ export async function registerCustomerFromLine(data: {
   // (เคสจริง: ลูกค้าเคยมีนัด/เคยสมัครไว้ แล้วมาสมัครใหม่จากอีกเครื่อง LINE ให้ ID คนละตัว)
   const phoneKey = normPhone(phone);
   if (phoneKey) {
-    const dupes = (await fetchAllCustomers()).filter(
+    const samePhone = (await fetchAllCustomers()).filter(
       (c) => c.id !== customer.id && normPhone(c.phone) === phoneKey
     );
-    for (const dupe of dupes) {
-      await mergeCustomers(dupe.id, customer.id);
+    for (const dupe of samePhone) {
+      // รวมเฉพาะเมื่อ "ชื่อตรงกันด้วย" เท่านั้น — เบอร์อย่างเดียวไม่พอ เพราะ:
+      // 1) คนในครอบครัวใช้เบอร์เดียวกันได้ (คนละคน ห้ามรวม)
+      // 2) endpoint สมัครเปิดสาธารณะ — ถ้ารวมด้วยเบอร์อย่างเดียว คนไม่หวังดีที่รู้เบอร์
+      //    ลูกค้าจะสมัครสวมเบอร์เพื่อดูดแต้ม/คูปอง/เครดิตไปเป็นของตัวเองได้
+      if (normName(dupe.name) === normName(name)) {
+        await mergeCustomers(dupe.id, customer.id);
+      } else {
+        // เบอร์ซ้ำแต่ชื่อไม่ตรง — ไม่รวมเอง แจ้งร้านให้ตรวจและกดรวมเองถ้าเป็นคนเดียวกัน
+        try {
+          const { sendTelegram, formatBookingTelegram } = await import("./telegram");
+          await sendTelegram(
+            formatBookingTelegram("⚠️ สมัครใหม่เบอร์ซ้ำกับลูกค้าเดิม (ยังไม่รวมให้)", {
+              สมัครใหม่: name,
+              ลูกค้าเดิม: dupe.name,
+              เบอร์: phone,
+              ทำไง: "ถ้าเป็นคนเดียวกัน ใช้ปุ่ม 'รวมกับลูกค้าอื่น' ในหน้าลูกค้า",
+            })
+          );
+        } catch {
+          /* แจ้งเตือนไม่ได้ — ไม่ให้ล้มการสมัคร */
+        }
+      }
     }
   }
 

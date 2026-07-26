@@ -20,7 +20,7 @@ import { PackageShopSection } from "@/components/PackageShopSection";
 
 export default function CustomerHome() {
   const { locale } = useLocale();
-  const { profile, ready } = useLiff();
+  const { profile, ready, customer } = useLiff();
   const { config } = useConfig();
   const m = t(locale).home;
   const [nextBooking, setNextBooking] = useState<Booking | null>(null);
@@ -58,8 +58,30 @@ export default function CustomerHome() {
 
   const points = profile?.points ?? 0;
 
+  // ยังไม่ได้สมัคร/ข้อมูลไม่ครบ (ไม่มีเบอร์ = ยังไม่เคยกรอกฟอร์มสมัคร) → ชวนให้กรอกให้จบ
+  // กัน record ว่างค้างในระบบ และร้านติดต่อกลับได้เสมอ
+  const needRegister = ready && !!profile?.lineUserId && !customer?.phone;
+
   return (
     <div className="px-4 pb-6 pt-5">
+      {needRegister && (
+        <Link
+          href="/app/register"
+          className="mb-4 block rounded-catcha border-2 border-honey/60 bg-honey/15 p-3.5"
+        >
+          <p className="text-sm font-extrabold text-catcha-chocolate">
+            📝 {locale === "th" ? "สมัครสมาชิกให้เสร็จก่อนนะคะ" : "Please complete your registration"}
+          </p>
+          <p className="mt-0.5 text-xs text-brown-soft">
+            {locale === "th"
+              ? "กรอกข้อมูลผู้ปกครองและน้องแมวสั้นๆ — รับสิทธิ์สะสมแต้ม โปรโมชัน และให้เราดูแลน้องได้เต็มที่ค่ะ 🧡"
+              : "A quick form about you and your cat — unlock points, promos and better care 🧡"}
+          </p>
+          <span className="mt-2 inline-block rounded-full bg-latte-deep px-3.5 py-1.5 text-xs font-extrabold text-white">
+            {locale === "th" ? "กรอกเลย →" : "Register →"}
+          </span>
+        </Link>
+      )}
       <header className="mb-5 flex items-center gap-3">
         {profile?.pictureUrl ? (
           <Image

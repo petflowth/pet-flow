@@ -818,6 +818,8 @@ function CustomerSummaryCard({
 }) {
   const [name, setName] = useState(customer.name);
   const [phone, setPhone] = useState(customer.phone || "");
+  const [email, setEmail] = useState(customer.email || "");
+  const [birthday, setBirthday] = useState(customer.birthday || "");
   const [address, setAddress] = useState(customer.address || "");
   const [addressMapUrl, setAddressMapUrl] = useState(customer.addressMapUrl || "");
   const [postalCode, setPostalCode] = useState(customer.postalCode || "");
@@ -966,6 +968,8 @@ function CustomerSummaryCard({
   const save = async (patch: {
     name?: string;
     phone?: string;
+    email?: string;
+    birthday?: string;
     address?: string;
     addressMapUrl?: string;
     postalCode?: string;
@@ -1322,6 +1326,31 @@ function CustomerSummaryCard({
             }}
             placeholder="08x-xxx-xxxx"
             className="w-full rounded-petflow-sm border-2 border-petflow-line bg-paper px-3 py-2.5 text-sm outline-none transition focus:border-latte-deep focus:bg-card"
+          />
+        </label>
+        <label className="block text-xs font-bold text-brown-soft">
+          <span className="mb-1 flex items-center gap-1">📧 อีเมล</span>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onBlur={() => {
+              if (email.trim() !== (customer.email || "")) save({ email: email.trim() || undefined });
+            }}
+            placeholder="เช่น customer@email.com"
+            className="w-full rounded-catcha-sm border-2 border-catcha-line bg-paper px-3 py-2.5 text-sm outline-none transition focus:border-latte-deep focus:bg-card"
+          />
+        </label>
+        <label className="block text-xs font-bold text-brown-soft">
+          <span className="mb-1 flex items-center gap-1">🎂 วันเกิดลูกค้า</span>
+          <input
+            type="date"
+            value={birthday}
+            onChange={(e) => setBirthday(e.target.value)}
+            onBlur={() => {
+              if (birthday !== (customer.birthday || "")) save({ birthday: birthday || undefined });
+            }}
+            className="w-full rounded-catcha-sm border-2 border-catcha-line bg-paper px-3 py-2.5 text-sm outline-none transition focus:border-latte-deep focus:bg-card"
           />
         </label>
         <label className="block text-xs font-bold text-brown-soft">

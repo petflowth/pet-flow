@@ -345,7 +345,12 @@ function MemberTopupSection({
 
 function formatThaiDateTimeShort(iso: string) {
   const d = new Date(iso);
-  const day = d.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
+  const day = d.toLocaleDateString("th-TH", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    calendar: "gregory",
+  });
   const time = d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
   return `${day} ${time} น.`;
 }
@@ -2320,6 +2325,7 @@ export default function CustomersPage() {
                               {new Date(gi.submittedAt).toLocaleString("th-TH", {
                                 dateStyle: "medium",
                                 timeStyle: "short",
+                                calendar: "gregory",
                               })}
                             </p>
                           )}

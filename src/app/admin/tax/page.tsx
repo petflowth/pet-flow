@@ -119,7 +119,7 @@ export default function TaxPage() {
           >
             {years.map((y) => (
               <option key={y} value={y}>
-                ปี {y} ({y + 543})
+                ปี {y}
               </option>
             ))}
           </select>
@@ -168,7 +168,7 @@ export default function TaxPage() {
               : "บัญชีรายรับ-รายจ่าย (รายวัน)"}
           </p>
           <p className="text-xs text-brown-soft">
-            ประจำปี {year} (พ.ศ. {year + 543})
+            ประจำปี {year}
           </p>
         </div>
 

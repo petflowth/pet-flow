@@ -114,12 +114,12 @@ export function BirthdayPicker({
         value={y || ""}
         onChange={(e) => commit(Number(e.target.value), m, d)}
         className={cls}
-        aria-label="วันเกิด — ปี พ.ศ."
+        aria-label="วันเกิด — ปี ค.ศ."
       >
-        <option value="">ปี พ.ศ.</option>
+        <option value="">ปี ค.ศ.</option>
         {years.map((yy) => (
           <option key={yy} value={yy}>
-            {yy + 543}
+            {yy}
           </option>
         ))}
       </select>

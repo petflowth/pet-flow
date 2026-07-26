@@ -65,7 +65,8 @@ export default function PointsPage() {
                 ) : null}
                 <p className="mt-1 text-[10px] text-brown-faint">
                   {new Date(h.at).toLocaleDateString(
-                    locale === "th" ? "th-TH" : "en-GB"
+                    locale === "th" ? "th-TH" : "en-GB",
+                    locale === "th" ? { calendar: "gregory" } : undefined
                   )}
                 </p>
               </li>

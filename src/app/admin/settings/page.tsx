@@ -459,6 +459,21 @@ function ShopTab({
         value={String(form.pointsRate)}
         onChange={(v) => setForm({ ...form, pointsRate: Number(v) || 100 })}
       />
+      <label className="flex items-start gap-2 rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5">
+        <input
+          type="checkbox"
+          checked={form.noPointsOnMemberCredit !== false}
+          onChange={(e) => setForm({ ...form, noPointsOnMemberCredit: e.target.checked })}
+          className="mt-0.5 h-4 w-4 accent-latte-deep"
+        />
+        <span className="text-xs font-bold text-brown-soft">
+          จ่ายด้วยเครดิต Member ไม่ให้แต้ม
+          <span className="mt-0.5 block text-[10px] font-normal text-brown-faint">
+            ลูกค้าได้ส่วนลด/เครดิตแถมตอนซื้อแพ็กเกจไปแล้ว ถ้าให้แต้มตอนใช้บริการอีก
+            จะเท่ากับได้ประโยชน์ซ้ำสองรอบจากเงินก้อนเดียว
+          </span>
+        </span>
+      </label>
       <SaveBtn saving={saving} />
     </form>
   );

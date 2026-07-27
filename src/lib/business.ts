@@ -25,6 +25,8 @@ export const BUSINESS = {
     en: "Bangkok",
   },
   pointsRate: 100, // บาท = 1 แต้ม
+  // จ่ายด้วยเครดิต Member ไม่ได้แต้ม — ได้ส่วนลดตอนซื้อเครดิตไปแล้ว
+  noPointsOnMemberCredit: true,
 } as const;
 
 /** ห้องจริงทั้งหมด 13 ยูนิต */

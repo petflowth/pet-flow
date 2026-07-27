@@ -172,6 +172,11 @@ export type SiteConfig = {
     reviewButtonText: string;
     location: { th: string; en: string };
     pointsRate: number;
+    /**
+     * จ่ายด้วยเครดิต Member แล้วไม่ต้องให้แต้ม — ลูกค้าได้ส่วนลดตอนซื้อเครดิตไปแล้ว
+     * ถ้าให้แต้มอีกจะเท่ากับได้ประโยชน์ซ้ำสองรอบจากเงินก้อนเดียว
+     */
+    noPointsOnMemberCredit?: boolean;
     /** เลขประจำตัวผู้เสียภาษี — โชว์บนเอกสารรายได้/ใบสำคัญจ่าย (ไม่บังคับ) */
     taxId?: string;
   };

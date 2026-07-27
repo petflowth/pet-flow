@@ -1935,7 +1935,8 @@ export function buildReceiptFlex(data: {
               },
             ]
           : []),
-        ...(show("points")
+        // ไม่ได้แต้ม (เช่น ตัดเครดิต Member) → ไม่ต้องโชว์แถว "+0" ให้สะดุดตา
+        ...(show("points") && data.pointsEarned > 0
           ? [
               {
                 type: "box",

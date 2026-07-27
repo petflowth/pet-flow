@@ -618,7 +618,11 @@ export async function markInvoicePaid(
   inv.status = "paid";
   inv.paymentMethod = paymentMethod;
   inv.paidAt = new Date().toISOString();
-  inv.pointsEarned = Math.floor(inv.total / (await getSiteConfig()).business.pointsRate);
+  // จ่ายด้วยเครดิต Member ไม่ให้แต้ม — ลูกค้าได้ของแถม/ส่วนลดตอนซื้อเครดิตไปแล้ว
+  // ให้แต้มอีกจะเป็นการได้ประโยชน์ซ้ำสองรอบจากเงินก้อนเดียว (ปิดได้ในตั้งค่า)
+  const bizCfg = (await getSiteConfig()).business;
+  const skipPoints = paymentMethod === "member_credit" && bizCfg.noPointsOnMemberCredit !== false;
+  inv.pointsEarned = skipPoints ? 0 : Math.floor(inv.total / bizCfg.pointsRate);
 
   const sb = getSupabase();
   if (sb) {

@@ -14,6 +14,7 @@ import {
   restoreInvoice,
   listTrashedInvoices,
   linkInvoiceToBooking,
+  invoiceCatNames,
 } from "@/lib/invoices-store";
 import {
   getCustomer,
@@ -424,7 +425,7 @@ async function handlePatch(req: NextRequest) {
     const receiptFlex = buildReceiptFlex({
       invoiceId: inv.id,
       customerName: inv.customerName,
-      catName: inv.catName,
+      catName: invoiceCatNames(inv),
       total: inv.total,
       discount: inv.discount,
       promoLabel: inv.promoLabel,

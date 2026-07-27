@@ -39,6 +39,31 @@ export type InvoiceItem = {
   productId?: string;
 };
 
+/**
+ * ชื่อน้องทุกตัวในบิล — ฟิลด์ catName ของบิลเก็บได้ตัวเดียว (ตัวแรกของบ้าน)
+ * แต่บ้านที่มาหลายตัวออกบิลใบเดียว ชื่อจริงอยู่รายบรรทัดในรายการ
+ * ใช้กับใบเสร็จ/การ์ด เพื่อไม่ให้ขึ้นชื่อน้องแค่ตัวเดียวทั้งที่มากันหลายตัว
+ */
+export function invoiceCatNames(inv: {
+  catName?: string;
+  items?: { catName?: string }[];
+}): string {
+  const seen = new Set<string>();
+  const names: string[] = [];
+  for (const raw of [
+    ...(inv.items || []).flatMap((it) => (it.catName || "").split(",")),
+    ...(inv.catName || "").split(","),
+  ]) {
+    const name = raw.trim();
+    if (!name) continue;
+    const key = name.normalize("NFC").replace(/[​-‍﻿\s]/g, "").toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    names.push(name);
+  }
+  return names.join(", ") || inv.catName || "";
+}
+
 export type InvoiceRecord = {
   id: string;
   customerId: string;

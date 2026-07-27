@@ -76,12 +76,19 @@ export default function InsightsPage() {
     const breeds = [...breedMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
 
     // บริการขายดี (จากบิลที่จ่ายแล้ว)
+    // ชื่อรายการในบิลมีรูปแบบ "🐱 ชื่อน้อง · บริการ · พันธุ์ · ไซส์"
+    // ต้องตัดคำนำหน้าชื่อน้องออกก่อน ไม่งั้นจะไปนับชื่อแมวเป็นชื่อบริการ
     const paid = invoices.filter((i) => i.status === "paid");
     const svcMap = new Map<string, number>();
     for (const inv of paid) {
       for (const it of inv.items || []) {
         if (it.amount <= 0) continue;
-        const key = (it.label || "").split(" · ")[0].split(" ×")[0].trim() || "อื่นๆ";
+        const key =
+          (it.label || "")
+            .replace(/^🐱\s.+?\s·\s/, "")
+            .split(" · ")[0]
+            .split(" ×")[0]
+            .trim() || "อื่นๆ";
         svcMap.set(key, (svcMap.get(key) || 0) + 1);
       }
     }

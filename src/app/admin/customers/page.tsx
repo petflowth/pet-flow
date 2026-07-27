@@ -2164,7 +2164,11 @@ export default function CustomersPage() {
       alert(
         "บันทึกโน้ตลับยังไม่ได้ ต้องรัน SQL เพิ่มคอลัมน์ใน Supabase ก่อน (ดู webapp/OVERNIGHT_SQL.md)"
       );
+      return;
     }
+    // ยืนยันให้เห็นชัด — ก่อนหน้านี้เงียบทั้งตอนสำเร็จและตอนพลาด แยกไม่ออกว่าเซฟติดไหม
+    if (res.ok) toast("บันทึกโน้ตลับร้านแล้ว 🔒", "success");
+    else toast("บันทึกโน้ตลับไม่สำเร็จ", "error");
   };
 
 

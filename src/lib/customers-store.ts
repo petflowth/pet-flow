@@ -1250,6 +1250,20 @@ export async function getCatGroomInfo(lineUserId: string, catName?: string) {
   return r?.cat.groomHealthInfo;
 }
 
+/**
+ * โน้ตที่ช่างควรรู้ก่อนจับน้อง — นิสัยที่ลูกค้าบอก + โน้ตลับร้าน (เช่น "กัด ระวังตอนอาบ")
+ * ใช้เติมในบรีฟก่อนอาบน้ำทาง Telegram ซึ่งเห็นเฉพาะพนักงาน ลูกค้าไม่เห็น
+ */
+export async function getCatStaffNotes(lineUserId: string, catName?: string) {
+  const r = await resolveCatByLine(lineUserId, catName);
+  if (!r) return undefined;
+  return {
+    staffNote: r.cat.staffNote?.trim() || undefined,
+    privateNote: r.cat.staffPrivateNote?.trim() || undefined,
+    medical: r.cat.medical?.trim() || undefined,
+  };
+}
+
 /** บันทึกประวัติน้องก่อนอาบน้ำ ไว้ที่แมว (ถามครั้งแรกครั้งเดียว) — graceful */
 export async function setCatGroomInfo(
   lineUserId: string,

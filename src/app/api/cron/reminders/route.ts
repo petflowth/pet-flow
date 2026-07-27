@@ -28,7 +28,7 @@ import {
   getConsentUrl,
   bookingScheduleText,
 } from "@/lib/booking-reminders";
-import { listCustomers, getCatGroomInfo } from "@/lib/customers-store";
+import { listCustomers, getCatGroomInfo, getCatStaffNotes } from "@/lib/customers-store";
 import { issueCoupon, listCustomerCoupons } from "@/lib/coupons-store";
 import { parseGroomInfo, groomInfoSummary } from "@/lib/groom-info";
 import { resolveGroomForm } from "@/lib/groom-form";
@@ -131,11 +131,39 @@ async function runForTenant() {
         const needInfo = checked.filter((x) => !x.info);
 
         for (const { b: cat, info } of alreadyHave) {
+          // โน้ตนิสัย/โน้ตลับร้าน — สิ่งที่ช่างต้องรู้ก่อนจับน้อง (เช่น กัด ดุตอนอาบ)
+          // Telegram เห็นเฉพาะพนักงาน จึงใส่โน้ตลับได้ ลูกค้าไม่เห็น
+          const notes = cat.lineUserId
+            ? await getCatStaffNotes(cat.lineUserId, cat.catName)
+            : undefined;
           await sendTelegram(
             formatBookingTelegram(`🩺 บรีฟก่อนอาบน้ำ: ${cat.catName}`, {
               ลูกค้า: cat.customerName,
               วันนัด: `${cat.date || ""}${cat.time ? ` ${cat.time}` : ""}`,
               ...groomInfoSummary(info!, resolveGroomForm(cfg.groomForm)),
+              ...(notes?.medical ? { "โรคประจำตัว/ยา": notes.medical } : {}),
+              ...(notes?.staffNote ? { นิสัย: notes.staffNote } : {}),
+              ...(notes?.privateNote ? { "🔒 โน้ตลับร้าน": notes.privateNote } : {}),
+              ...(cat.notes ? { โน้ตนัดนี้: cat.notes } : {}),
+            })
+          );
+          groomBriefs++;
+        }
+        // ยังไม่เคยกรอกประวัติ แต่ร้านเคยจดโน้ตไว้ (เช่น "กัด") — ช่างต้องรู้อยู่ดี
+        // ไม่งั้นเคสอันตรายที่สุดคือเคสที่ไม่มีประวัติ กลับเป็นเคสที่ไม่มีใครเตือน
+        for (const { b: cat } of needInfo) {
+          const notes = cat.lineUserId
+            ? await getCatStaffNotes(cat.lineUserId, cat.catName)
+            : undefined;
+          if (!notes?.privateNote && !notes?.staffNote && !notes?.medical) continue;
+          await sendTelegram(
+            formatBookingTelegram(`🩺 บรีฟก่อนอาบน้ำ: ${cat.catName}`, {
+              ลูกค้า: cat.customerName,
+              วันนัด: `${cat.date || ""}${cat.time ? ` ${cat.time}` : ""}`,
+              ประวัติ: "ยังไม่เคยกรอก — ขอไปในการ์ดวันนี้แล้ว",
+              ...(notes.medical ? { "โรคประจำตัว/ยา": notes.medical } : {}),
+              ...(notes.staffNote ? { นิสัย: notes.staffNote } : {}),
+              ...(notes.privateNote ? { "🔒 โน้ตลับร้าน": notes.privateNote } : {}),
             })
           );
           groomBriefs++;

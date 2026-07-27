@@ -1,5 +1,5 @@
 import { bookingsForDate, listBookings } from "@/lib/bookings-store";
-import { searchCustomers, listCustomers } from "@/lib/customers-store";
+import { searchCustomers, listCustomers, getCatStaffNotes } from "@/lib/customers-store";
 import { todayFinance, monthFinance } from "@/lib/finance-store";
 import { salesSummary } from "@/lib/invoices-store";
 import { adminDashboardStats, bookingsForMonth } from "@/lib/admin-stats";
@@ -56,12 +56,23 @@ export async function buildDayScheduleMessage(
     );
   }
   if (groom.length) {
-    lines.push(
-      `\n🛁 นัดอาบน้ำ (${groom.length}):\n` +
-        groom
-          .map((b, i) => `${i + 1}. ${b.catName} · ${b.customerName} — ${b.time || "ไม่ระบุเวลา"}`)
-          .join("\n")
+    // แปะหมายเหตุที่ช่างต้องรู้ก่อนจับน้อง (โน้ตลับร้าน/โรคประจำตัว/โน้ตนัดนี้)
+    // Telegram เห็นเฉพาะพนักงาน จึงใส่โน้ตลับได้ ลูกค้าไม่เห็น
+    const groomLines = await Promise.all(
+      groom.map(async (b, i) => {
+        const base = `${i + 1}. ${b.catName} · ${b.customerName} — ${b.time || "ไม่ระบุเวลา"}`;
+        const notes = b.lineUserId
+          ? await getCatStaffNotes(b.lineUserId, b.catName).catch(() => undefined)
+          : undefined;
+        const flags = [
+          notes?.privateNote ? `🔒 ${notes.privateNote}` : "",
+          notes?.medical && notes.medical !== "ไม่มี" ? `💊 ${notes.medical}` : "",
+          b.notes ? `📝 ${b.notes}` : "",
+        ].filter(Boolean);
+        return flags.length ? `${base}\n   ⚠️ ${flags.join(" · ")}` : base;
+      })
     );
+    lines.push(`\n🛁 นัดอาบน้ำ (${groom.length}):\n` + groomLines.join("\n"));
   }
   if (checkin.length) {
     lines.push(

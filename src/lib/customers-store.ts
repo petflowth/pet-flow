@@ -1257,6 +1257,9 @@ export async function getCatGroomInfo(lineUserId: string, catName?: string) {
 export async function getCatStaffNotes(lineUserId: string, catName?: string) {
   const r = await resolveCatByLine(lineUserId, catName);
   if (!r) return undefined;
+  // ต้องตรงตัวเท่านั้น — resolveCatByLine จะ fallback เป็นแมวตัวแรกถ้าชื่อไม่ตรง
+  // ซึ่งกับโน้ตเตือน ("กัด") การเดาผิดตัวอันตรายกว่าไม่เตือนเลย
+  if (catName && r.cat.name !== catName) return undefined;
   return {
     staffNote: r.cat.staffNote?.trim() || undefined,
     privateNote: r.cat.staffPrivateNote?.trim() || undefined,

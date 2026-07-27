@@ -459,7 +459,7 @@ function ShopTab({
         value={String(form.pointsRate)}
         onChange={(v) => setForm({ ...form, pointsRate: Number(v) || 100 })}
       />
-      <label className="flex items-start gap-2 rounded-catcha-sm border border-catcha-line bg-paper px-3 py-2.5">
+      <label className="flex items-start gap-2 rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5">
         <input
           type="checkbox"
           checked={form.noPointsOnMemberCredit !== false}

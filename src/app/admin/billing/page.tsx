@@ -127,6 +127,14 @@ function billServiceKind(items?: { label: string; kind?: string }[]): "room" | "
  * เก็บเป็นชื่อคั่นด้วย "," ในฟิลด์เดิม — ไม่ต้องแก้โครงสร้างบิล/ฐานข้อมูล
  */
 const CAT_SEP = ", ";
+/**
+ * เทียบชื่อน้องแบบไม่แคร์ช่องว่าง/อักขระล่องหน — ชื่อไทยที่พิมพ์คนละครั้ง
+ * อาจมี zero-width หรือสระเรียงคนละแบบ ทำให้ === ไม่ตรงทั้งที่ตาเห็นเหมือนกัน
+ * (เป็นเหตุให้ติ๊กชื่อออกไม่ได้ แล้วชื่อน้องตัวอื่นติดมาในบรรทัดบิล)
+ */
+function catKey(name: string): string {
+  return name.normalize("NFC").replace(/[\u200B-\u200D\uFEFF\s]/g, "").toLowerCase();
+}
 function parseCatNames(v?: string): string[] {
   return (v || "")
     .split(",")
@@ -1185,7 +1193,8 @@ export default function BillingPage() {
                       <div className="flex flex-wrap gap-1.5">
                         {selected?.cats.map((c) => {
                           const picked = parseCatNames(item.catName);
-                          const on = picked.includes(c.name);
+                          const key = catKey(c.name);
+                          const on = picked.some((n) => catKey(n) === key);
                           return (
                             <button
                               key={c.id || c.name}
@@ -1194,7 +1203,7 @@ export default function BillingPage() {
                                 updateItem(i, {
                                   catName: joinCatNames(
                                     on
-                                      ? picked.filter((n) => n !== c.name)
+                                      ? picked.filter((n) => catKey(n) !== key)
                                       : [...picked, c.name]
                                   ),
                                 })

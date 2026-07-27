@@ -418,6 +418,9 @@ async function handlePatch(req: NextRequest) {
       return NextResponse.json({ error: "no_line" }, { status: 400 });
     }
     const cfgR = await getSiteConfig();
+    const paidByCredit = inv.paymentMethod === "member_credit";
+    // ยอดเครดิตปัจจุบันของลูกค้า = ยอดหลังหักบิลนี้ไปแล้ว (บิลถูก mark paid ไปก่อนหน้า)
+    const creditCustomer = paidByCredit && inv.customerId ? await getCustomer(inv.customerId) : null;
     const receiptFlex = buildReceiptFlex({
       invoiceId: inv.id,
       customerName: inv.customerName,
@@ -427,6 +430,9 @@ async function handlePatch(req: NextRequest) {
       promoLabel: inv.promoLabel,
       pointsEarned: inv.pointsEarned || 0,
       shopName: cfgR.business.name,
+      items: (inv.items || []).map((it) => ({ label: it.label, amount: it.amount })),
+      memberCreditUsed: paidByCredit ? inv.total : undefined,
+      memberCreditLeft: creditCustomer?.memberCredit,
       paymentMethod:
         inv.paymentMethod === "member_credit"
           ? "Member Credit"

@@ -559,12 +559,24 @@ export function BookingCalendar() {
                       ✏️ แก้ไข
                     </button>
                   )}
+                  {/* บ้านที่มาหลายตัว — ยกเลิกทีละตัวได้ เผื่อน้องตัวใดตัวหนึ่งมาไม่ได้ */}
+                  {group.length > 1 &&
+                    group.map((x) => (
+                      <button
+                        key={`cancel-${x.id}`}
+                        type="button"
+                        onClick={() => cancelGroup([x])}
+                        className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-bold text-wait"
+                      >
+                        ❌ ยกเลิก {x.catName}
+                      </button>
+                    ))}
                   <button
                     type="button"
                     onClick={() => cancelGroup(group)}
                     className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-bold text-wait"
                   >
-                    ❌ ยกเลิก
+                    ❌ ยกเลิก{group.length > 1 ? "ทั้งบ้าน" : ""}
                   </button>
                   <a
                     href={`/api/calendar/${b.id}`}

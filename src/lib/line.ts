@@ -1781,6 +1781,11 @@ export function buildReceiptFlex(data: {
   promoLabel?: string;
   /** ชื่อร้านจาก config — ไม่ส่งมาจะไม่ขึ้นบรรทัดชื่อร้าน (ดีกว่าโชว์ชื่อร้านอื่น) */
   shopName?: string;
+  /** รายการในบิล — ให้ลูกค้าเห็นว่าจ่ายค่าอะไรไปบ้าง ไม่ใช่แค่ยอดรวม */
+  items?: { label: string; amount: number }[];
+  /** ตัดจากเครดิต Member ไปเท่าไหร่ และเหลือเท่าไหร่ (เฉพาะบิลที่จ่ายด้วยเครดิต) */
+  memberCreditUsed?: number;
+  memberCreditLeft?: number;
 }, style?: CardStyleConfig) {
   const st = style || {};
   const show = (k: string) => st.show?.[k] !== false;
@@ -1809,6 +1814,32 @@ export function buildReceiptFlex(data: {
           ? [flexDetailRow("🔖", st.texts?.invoiceNoLabel || "เลขที่", data.invoiceId)]
           : []),
         { type: "separator", margin: "lg", color: "#EFE3D2" },
+        // รายการที่ใช้บริการไป — โดยเฉพาะลูกค้าที่ตัดเครดิต จะได้ตรวจได้ว่าหักค่าอะไร
+        ...(data.items && data.items.length
+          ? [
+              {
+                type: "box",
+                layout: "vertical",
+                margin: "lg",
+                spacing: "sm",
+                contents: data.items.map((it) => ({
+                  type: "box",
+                  layout: "horizontal",
+                  contents: [
+                    { type: "text", text: it.label, size: "xs", color: "#5C4033", flex: 5, wrap: true },
+                    {
+                      type: "text",
+                      text: it.amount > 0 ? `${it.amount.toLocaleString()} ฿` : "ฟรี",
+                      size: "xs",
+                      color: it.amount > 0 ? "#5C4033" : "#4A7348",
+                      align: "end",
+                      flex: 2,
+                    },
+                  ],
+                })),
+              },
+            ]
+          : []),
         {
           type: "box",
           layout: "vertical",
@@ -1852,6 +1883,58 @@ export function buildReceiptFlex(data: {
               : []),
           ],
         },
+        // ตัดเครดิต Member — บอกให้ชัดว่าหักไปเท่าไหร่ เหลือเท่าไหร่ ลูกค้าจะได้ไม่ต้องถาม
+        ...(data.memberCreditUsed && data.memberCreditUsed > 0
+          ? [
+              {
+                type: "box",
+                layout: "vertical",
+                margin: "lg",
+                paddingAll: "12px",
+                backgroundColor: "#F4ECE0",
+                cornerRadius: "10px",
+                spacing: "xs",
+                contents: [
+                  {
+                    type: "box",
+                    layout: "horizontal",
+                    contents: [
+                      { type: "text", text: "💎 ตัดจากเครดิต Member", size: "sm", color: "#5C4033", flex: 3 },
+                      {
+                        type: "text",
+                        text: `−${data.memberCreditUsed.toLocaleString()} ฿`,
+                        weight: "bold",
+                        size: "sm",
+                        color: "#B4634B",
+                        align: "end",
+                        flex: 2,
+                      },
+                    ],
+                  },
+                  ...(data.memberCreditLeft != null
+                    ? [
+                        {
+                          type: "box",
+                          layout: "horizontal",
+                          contents: [
+                            { type: "text", text: "เครดิตคงเหลือ", size: "sm", color: "#A2907E", flex: 3 },
+                            {
+                              type: "text",
+                              text: `${data.memberCreditLeft.toLocaleString()} ฿`,
+                              weight: "bold",
+                              size: "sm",
+                              color: "#4A7348",
+                              align: "end",
+                              flex: 2,
+                            },
+                          ],
+                        },
+                      ]
+                    : []),
+                ],
+              },
+            ]
+          : []),
         ...(show("points")
           ? [
               {

@@ -43,6 +43,7 @@ import {
   recalculateCustomerTier,
   adjustDepositCredit,
   getCatGroomInfo,
+  getCustomer,
 } from "@/lib/customers-store";
 import { getSiteConfig } from "@/lib/config-store";
 import { DEFAULT_MESSAGES, renderTemplate } from "@/lib/messages";
@@ -568,6 +569,10 @@ async function handlePatch(req: NextRequest, admin: boolean) {
           all.find((i) => i.bookingId === b.id && i.status === "paid") ||
           all.find((i) => i.bookingId === b.id);
         if (inv && part === "receipt" && inv.status === "paid") {
+          const paidByCredit = inv.paymentMethod === "member_credit";
+          // เครดิตปัจจุบัน = ยอดหลังหักบิลนี้ไปแล้ว (บิลถูกปิดไปก่อนถึงจะส่งใบเสร็จได้)
+          const creditCustomer =
+            paidByCredit && inv.customerId ? await getCustomer(inv.customerId) : null;
           messages.push(
             buildReceiptFlex({
               invoiceId: inv.id,
@@ -578,6 +583,9 @@ async function handlePatch(req: NextRequest, admin: boolean) {
               promoLabel: inv.promoLabel,
               pointsEarned: inv.pointsEarned || 0,
               shopName: cfg.business.name,
+              items: (inv.items || []).map((it) => ({ label: it.label, amount: it.amount })),
+              memberCreditUsed: paidByCredit ? inv.total : undefined,
+              memberCreditLeft: creditCustomer?.memberCredit,
               paymentMethod:
                 inv.paymentMethod === "member_credit"
                   ? "Member Credit"

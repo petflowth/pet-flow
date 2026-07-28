@@ -862,6 +862,86 @@ function RoomsTab({
               updateRoom(idx, { note: { th: v, en: room.note?.en || v } })
             }
           />
+
+          {/* ความจุ + ห้องเชื่อม — ตารางที่ว่างใช้สองค่านี้คำนวณว่ารับได้อีกกี่ตัว */}
+          <div className="mt-3 rounded-petflow-sm border border-petflow-line bg-paper/50 p-3">
+            <p className="text-[11px] font-extrabold text-petflow-chocolate">
+              🛏️ ความจุ &amp; การจัดห้อง
+            </p>
+            <p className="mb-2 mt-0.5 text-[10px] text-brown-faint">
+              ใช้คำนวณผังห้องและที่ว่าง — ตั้งผิดจะรับลูกค้าได้น้อยกว่าจริง หรือรับเกินห้องที่มี
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Field
+                label="จำนวนห้องจริง (ห้องเชื่อมใส่ 0)"
+                type="number"
+                value={String(room.count ?? 0)}
+                onChange={(v) => updateRoom(idx, { count: Math.max(0, Number(v) || 0) })}
+              />
+              <Field
+                label="จุแมวได้กี่ตัว/ห้อง"
+                type="number"
+                value={String(room.maxCats ?? 1)}
+                onChange={(v) => updateRoom(idx, { maxCats: Math.max(1, Number(v) || 1) })}
+              />
+            </div>
+            <p className="mt-1 text-[10px] text-brown-faint">
+              แมวของบ้านเดียวกันช่วงวันเดียวกันเท่านั้นที่นอนรวมห้องได้ · คนละบ้านไม่รวมกันเสมอ
+            </p>
+
+            <p className="mt-3 text-[10px] font-extrabold text-brown-soft">
+              🔗 ห้องเชื่อม — ห้องนี้เกิดจากเปิดห้องจริงถึงกันหรือเปล่า?
+            </p>
+            <p className="mb-1.5 text-[10px] text-brown-faint">
+              ติ๊กแล้วใส่จำนวนห้องที่ใช้ · ที่ว่างจะคิดจากห้องจริงเหล่านั้นแทน
+            </p>
+            <div className="space-y-1">
+              {rooms
+                .filter((r) => r.id !== room.id && (r.count ?? 0) > 0)
+                .map((part) => {
+                  const cur = room.composedOf?.find((c) => c.typeId === part.id);
+                  return (
+                    <div key={part.id} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={!!cur}
+                        onChange={(e) => {
+                          const rest = (room.composedOf || []).filter(
+                            (c) => c.typeId !== part.id
+                          );
+                          updateRoom(idx, {
+                            composedOf: e.target.checked
+                              ? [...rest, { typeId: part.id, units: cur?.units || 1 }]
+                              : rest,
+                          });
+                        }}
+                        className="h-3.5 w-3.5 accent-latte-deep"
+                      />
+                      <span className="flex-1 text-[11px] font-bold text-brown-soft">
+                        {part.name}
+                      </span>
+                      {cur && (
+                        <input
+                          type="number"
+                          min={1}
+                          value={cur.units}
+                          onChange={(e) =>
+                            updateRoom(idx, {
+                              composedOf: (room.composedOf || []).map((c) =>
+                                c.typeId === part.id
+                                  ? { ...c, units: Math.max(1, Number(e.target.value) || 1) }
+                                  : c
+                              ),
+                            })
+                          }
+                          className="w-16 rounded-petflow-sm border border-petflow-line bg-paper px-2 py-1 text-xs"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
         </div>
       ))}
       <button

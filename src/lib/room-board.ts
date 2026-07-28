@@ -16,25 +16,23 @@ export type BoardRoomType = {
   count: number;
   /** จุแมวได้กี่ตัวต่อห้อง (ไม่ระบุ = 1) */
   maxCats?: number;
+  /** ห้องเชื่อมประกอบจากห้องจริงอะไรบ้าง — ตั้งได้ต่อร้านในหน้าตั้งค่า */
+  composedOf?: { typeId: string; units: number }[];
 };
 
 /**
  * ห้องเชื่อม = เอาห้องจริงที่อยู่ติดกันมาเปิดทะลุถึงกัน ไม่ใช่ห้องเพิ่ม
- * จองห้องเชื่อม 1 ห้อง = กินห้องจริงไป 2 ห้อง ต้องคิดที่ว่างจากห้องจริงเสมอ
+ * จองห้องเชื่อม 1 ห้อง = กินห้องจริงไปหลายห้อง ต้องคิดที่ว่างจากห้องจริงเสมอ
  * ไม่งั้นจะขายเกินจำนวนห้องที่มี หรือซ่อนห้องที่ยังรับลูกค้าได้
+ *
+ * แต่ละร้านตั้งเองว่าห้องเชื่อมของตัวเองประกอบจากห้องไหนบ้าง (ตั้งค่า > ห้องพัก)
  */
-export const ROOM_COMPOSITION: Record<string, { typeId: string; units: number }[]> = {
-  "mini-duo": [{ typeId: "mini-meow", units: 2 }],
-  "cozy-duo": [{ typeId: "mid-cozy", units: 2 }],
-  "cat-tower": [
-    { typeId: "mini-meow", units: 1 },
-    { typeId: "mid-cozy", units: 1 },
-  ],
-};
-
-/** ห้องเชื่อมนี้ประกอบจากห้องจริงอะไรบ้าง (ไม่ใช่ห้องเชื่อม = undefined) */
-export function compositionOf(typeId: string) {
-  return ROOM_COMPOSITION[typeId];
+export function compositionOf(
+  typeId: string,
+  rooms: BoardRoomType[]
+): { typeId: string; units: number }[] | undefined {
+  const parts = rooms.find((r) => r.id === typeId)?.composedOf;
+  return parts && parts.length > 0 ? parts : undefined;
 }
 
 export type BoardBooking = {
@@ -97,22 +95,11 @@ export type RoomBoard = {
 const isLive = (b: BoardBooking) => b.status !== "cancelled" && b.status !== "no_show";
 
 /**
- * ห้องนี้จุแมวได้กี่ตัว — อ่านจาก maxCats ถ้ามี
- * ไม่งั้นเดาจากข้อความ "แมวที่ 2 +50" (จุได้ถึง 2) หรือ "1–2 แมว"
+ * ห้องนี้จุแมวได้กี่ตัว — ใช้ค่าที่ร้านตั้งไว้เท่านั้น ไม่ระบุ = 1
+ * ไม่เดาจากข้อความโฆษณา เพราะแต่ละร้านเขียนคนละแบบ เดาต่ำไปจะรับลูกค้าได้น้อยกว่าที่ทำได้จริง
  */
-export function roomCapacity(type: {
-  maxCats?: number;
-  cats?: { th?: string };
-  extra?: { th?: string };
-}): number {
-  if (type.maxCats && type.maxCats > 0) return Math.floor(type.maxCats);
-  const biggest = (s?: string) => {
-    const nums = (s || "").match(/\d+/g);
-    return nums ? Math.max(...nums.map(Number)) : 0;
-  };
-  // "แมวที่ 3 +50" หมายถึงรับตัวที่ 3 ได้ → จุ 3 (แต่ +50 คือราคา ไม่ใช่จำนวน)
-  const extraTxt = (type.extra?.th || "").replace(/\+\s*\d+/g, "");
-  return Math.max(1, biggest(extraTxt), biggest(type.cats?.th));
+export function roomCapacity(type: { maxCats?: number }): number {
+  return type.maxCats && type.maxCats > 0 ? Math.floor(type.maxCats) : 1;
 }
 
 /** นอนอยู่ในคืนของวันนี้ไหม (วันเช็คเอาท์ไม่นับ — เขาออกเช้าวันนั้น) */
@@ -225,7 +212,7 @@ export function buildRoomBoard(
   // ── ห้องเชื่อม — กินห้องจริงตามส่วนประกอบ (Mini Duo = MiNi Meow 2 ห้องติดกัน) ──
   // เลือกห้องที่ติดกันก่อนเสมอ เพราะเปิดทะลุถึงกันได้จริงเฉพาะห้องที่อยู่ติดกัน
   for (const type of rooms) {
-    const parts = compositionOf(type.id);
+    const parts = compositionOf(type.id, rooms);
     if (!parts) continue;
     const mine = relevant
       .filter((b) => {
@@ -339,7 +326,7 @@ export function typeAvailability(
   ignoreBookingId?: string
 ): { free: number; total: number; tightestDate: string } {
   const type = rooms.find((r) => r.id === typeId);
-  const parts = compositionOf(typeId);
+  const parts = compositionOf(typeId, rooms);
   const pool = ignoreBookingId ? bookings.filter((b) => b.id !== ignoreBookingId) : bookings;
 
   // ห้องเชื่อมขายได้กี่ชุด = ห้องจริงที่ว่างหารด้วยจำนวนห้องที่ต้องใช้ (ส่วนประกอบที่ตึงที่สุด)

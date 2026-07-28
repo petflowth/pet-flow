@@ -51,6 +51,17 @@ export type RoomType = {
   size: RoomSize;
   /** จำนวนยูนิต (เฉพาะห้องเดี่ยว) */
   count?: number;
+  /**
+   * จุแมวได้กี่ตัวต่อห้อง — แมวของบ้านเดียวกันช่วงวันเดียวกันนอนรวมห้องได้ถึงจำนวนนี้
+   * ไม่ระบุ = 1 ตัว (คนละบ้านไม่นอนรวมกันเสมอ ไม่ว่าห้องจะจุได้เท่าไหร่)
+   */
+  maxCats?: number;
+  /**
+   * ห้องเชื่อม — เกิดจากเปิดห้องจริงที่อยู่ติดกันถึงกัน ไม่ใช่ห้องเพิ่ม
+   * เช่น Duo = ห้อง S 2 ห้อง → [{ typeId: "<id ห้อง S>", units: 2 }]
+   * ห้องแบบนี้ตั้ง count เป็น 0 แล้วที่ว่างจะคิดจากห้องจริงที่ใช้ประกอบแทน
+   */
+  composedOf?: { typeId: string; units: number }[];
   price: number;
   cats: { th: string; en: string };
   extra: { th: string; en: string };
@@ -81,6 +92,7 @@ const BASE_AMENITIES = {
 export const ROOMS: RoomType[] = [
   {
     id: "mini-meow",
+    maxCats: 2,
     name: "MiNi Meow",
     size: "S",
     count: 6,
@@ -97,6 +109,7 @@ export const ROOMS: RoomType[] = [
   },
   {
     id: "mid-cozy",
+    maxCats: 3,
     name: "Mid Cozy Room",
     size: "M",
     count: 6,
@@ -113,6 +126,7 @@ export const ROOMS: RoomType[] = [
   },
   {
     id: "catflix",
+    maxCats: 4,
     name: "Catflix & Chill",
     subtitle: { th: "Window with View", en: "Window with View" },
     size: "M",
@@ -141,6 +155,8 @@ export const ROOMS: RoomType[] = [
   },
   {
     id: "mini-duo",
+    maxCats: 4,
+    composedOf: [{ typeId: "mini-meow", units: 2 }],
     name: "Mini Duo",
     size: "S+S",
     price: 700,
@@ -173,6 +189,8 @@ export const ROOMS: RoomType[] = [
   },
   {
     id: "cozy-duo",
+    maxCats: 5,
+    composedOf: [{ typeId: "mid-cozy", units: 2 }],
     name: "Cozy Duo",
     size: "M+M",
     price: 750,
@@ -205,6 +223,11 @@ export const ROOMS: RoomType[] = [
   },
   {
     id: "cat-tower",
+    maxCats: 5,
+    composedOf: [
+      { typeId: "mini-meow", units: 1 },
+      { typeId: "mid-cozy", units: 1 },
+    ],
     name: "Cat Tower Suite",
     size: "S+M",
     price: 700,

@@ -267,6 +267,41 @@ where staff_note like '%🎁%';`,
     name: "chat_watch.first_unanswered_at",
     sql: "alter table chat_watch add column if not exists first_unanswered_at timestamptz;",
   },
+  {
+    // เติมความจุห้อง + สูตรห้องเชื่อม ให้ร้านที่ตั้งค่าห้องไว้ก่อนจะมีสองฟิลด์นี้
+    //
+    // ก่อนหน้านี้ระบบเดาความจุจากข้อความโฆษณา ("แมวที่ 2 +50") ซึ่งใช้ได้เฉพาะร้านที่
+    // เขียนแบบนั้น พอเปลี่ยนมาใช้ค่าที่ตั้งไว้จริง ร้านเดิมจะกลายเป็นจุห้องละ 1 ตัว
+    // และห้องเชื่อมจะไม่รู้ว่ากินห้องจริงกี่ห้อง — เติมค่าที่ถูกต้องกลับให้
+    //
+    // จับคู่ด้วย id ห้อง จึงแตะเฉพาะร้านที่ใช้ชุดห้องนี้จริง และข้ามไปถ้าเคยเติมแล้ว
+    name: "site_config.room_capacity_backfill",
+    sql: `
+      update site_config sc
+      set data = jsonb_set(sc.data, '{rooms}', (
+        select jsonb_agg(
+          case r->>'id'
+            when 'mini-meow' then r || '{"maxCats":2}'::jsonb
+            when 'mid-cozy'  then r || '{"maxCats":3}'::jsonb
+            when 'catflix'   then r || '{"maxCats":4}'::jsonb
+            when 'mini-duo'  then r || '{"maxCats":4,"composedOf":[{"typeId":"mini-meow","units":2}]}'::jsonb
+            when 'cozy-duo'  then r || '{"maxCats":5,"composedOf":[{"typeId":"mid-cozy","units":2}]}'::jsonb
+            when 'cat-tower' then r || '{"maxCats":5,"composedOf":[{"typeId":"mini-meow","units":1},{"typeId":"mid-cozy","units":1}]}'::jsonb
+            else r
+          end order by idx
+        )
+        from jsonb_array_elements(sc.data->'rooms') with ordinality as t(r, idx)
+      ))
+      where sc.data ? 'rooms'
+        and jsonb_typeof(sc.data->'rooms') = 'array'
+        and exists (
+          select 1 from jsonb_array_elements(sc.data->'rooms') e where e->>'id' = 'mini-meow'
+        )
+        and not exists (
+          select 1 from jsonb_array_elements(sc.data->'rooms') e where e ? 'maxCats'
+        );
+    `,
+  },
 ];
 
 export type MigrateResult = {

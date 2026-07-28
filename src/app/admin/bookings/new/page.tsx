@@ -8,7 +8,6 @@ import type { CustomerRecord } from "@/lib/customers-store";
 import { GROOM_PROGRAMS } from "@/lib/grooming-prices";
 import { CustomerSendButtons } from "@/components/CustomerSendButtons";
 import { toast } from "@/components/Toast";
-import { GROOM_PROGRAMS } from "@/lib/grooming-prices";
 import {
   typeAvailability,
   compositionOf,
@@ -286,6 +285,7 @@ export default function NewBookingPage() {
     name: r.name,
     count: r.count || 0,
     maxCats: roomCapacity(r),
+    composedOf: r.composedOf,
   }));
   /** ห้องแต่ละแบบว่างกี่ห้องตลอดช่วงที่ขอ (ติดคืนไหนบอกคืนนั้น) */
   const availability = useMemo(() => {
@@ -294,7 +294,7 @@ export default function NewBookingPage() {
     for (const r of rooms) {
       // ห้องเชื่อมไม่มียูนิตของตัวเอง แต่คิดที่ว่างได้จากห้องจริงที่ใช้ประกอบ
       // (Mini Duo = MiNi Meow 2 ห้อง) — ประเภทที่ไม่มีทั้งห้องจริงและสูตรประกอบ ข้ามไป
-      if (!r.count && !compositionOf(r.id)) continue;
+      if (!r.count && !compositionOf(r.id, boardRooms)) continue;
       out[r.id] = typeAvailability(
         boardRooms,
         existing,
@@ -645,7 +645,7 @@ export default function NewBookingPage() {
               <div className="space-y-1.5">
                 {rooms.map((r) => {
                   const a = availability[r.id];
-                  const combo = !r.count && !!compositionOf(r.id);
+                  const combo = !r.count && !!compositionOf(r.id, boardRooms);
                   const free = a?.free ?? r.count ?? 0;
                   const full = free <= 0;
                   const picked = roomId === r.id;

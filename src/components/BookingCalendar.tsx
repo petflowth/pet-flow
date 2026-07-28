@@ -10,6 +10,7 @@ import { toast } from "@/components/Toast";
 import { PreviewSendModal } from "@/components/PreviewSendModal";
 import { groupBookings } from "@/lib/booking-group";
 import { buildRoomBoard, roomCapacity } from "@/lib/room-board";
+import { BOOKING_STATUS_LABELS, type BookingStatus } from "@/lib/business";
 
 type CalendarDay = EditableBooking & {
   customerId?: string;
@@ -206,8 +207,8 @@ export function BookingCalendar() {
       size: string;
       price: number;
       count: number;
-      cats?: { th: string };
-      extra?: { th: string };
+      maxCats?: number;
+      composedOf?: { typeId: string; units: number }[];
     }[]
   >([]);
   const [groomSlots, setGroomSlots] = useState<string[]>(["09:30", "12:30", "15:30"]);
@@ -452,6 +453,7 @@ export function BookingCalendar() {
       name: r.name,
       count: r.count,
       maxCats: roomCapacity(r),
+      composedOf: r.composedOf,
     })),
     liveBookings,
     activeDate

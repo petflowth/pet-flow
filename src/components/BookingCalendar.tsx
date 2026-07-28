@@ -9,7 +9,7 @@ import { bookingOnDate } from "@/lib/booking-customer-match";
 import { toast } from "@/components/Toast";
 import { PreviewSendModal } from "@/components/PreviewSendModal";
 import { groupBookings } from "@/lib/booking-group";
-import { BOOKING_STATUS_LABELS, type BookingStatus } from "@/lib/business";
+import { buildRoomBoard } from "@/lib/room-board";
 
 type CalendarDay = EditableBooking & {
   customerId?: string;
@@ -199,7 +199,9 @@ export function BookingCalendar() {
   const [zoomSignature, setZoomSignature] = useState<string | null>(null);
   // นัดที่บิลจ่ายจบแล้ว (รายงานขึ้นมาจาก BillButton) — ติดป้าย "จบเคส" ให้เห็นชัดทั้งการ์ด
   const [paidCases, setPaidCases] = useState<Record<string, boolean>>({});
-  const [rooms, setRooms] = useState<{ id: string; name: string; size: string; price: number }[]>([]);
+  const [rooms, setRooms] = useState<
+    { id: string; name: string; size: string; price: number; count: number }[]
+  >([]);
   const [groomSlots, setGroomSlots] = useState<string[]>(["09:30", "12:30", "15:30"]);
   const [closedDates, setClosedDates] = useState<{ date: string; note?: string }[]>([]);
   const [closedWeekdays, setClosedWeekdays] = useState<number[]>([]);
@@ -267,8 +269,8 @@ export function BookingCalendar() {
   };
 
   const [viewMonth, setViewMonth] = useState(() => today.slice(0, 7));
-  /** มุมมองตาราง — เดือนไว้ดูภาพรวม, สัปดาห์ไว้วางแผน, วันไว้ทำงานจริงหน้าร้าน */
-  const [view, setView] = useState<"month" | "week" | "day">("week");
+  /** มุมมองตาราง — เดือนดูภาพรวม, สัปดาห์วางแผน, วันทำงานหน้าร้าน, ห้องดูที่ว่าง */
+  const [view, setView] = useState<"month" | "week" | "day" | "rooms">("week");
 
   const liveBookings = bookings.filter((b) => b.status !== "cancelled");
   const dayBookings = liveBookings.filter((b) => bookingOnDate(b, activeDate));
@@ -435,6 +437,13 @@ export function BookingCalendar() {
   const endHour = Math.max(18, ...hourNums);
   const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
 
+  // ผังห้องของวันที่เลือก — ห้องไหนมีใคร ว่างกี่ห้องจริง วันไหนต้องรับต่อกัน
+  const board = buildRoomBoard(
+    rooms.map((r) => ({ id: r.id, name: r.name, count: r.count })),
+    liveBookings,
+    activeDate
+  );
+
   const viewTitle =
     view === "month"
       ? `เดือน ${m}/${y}`
@@ -474,6 +483,7 @@ export function BookingCalendar() {
               { id: "month" as const, label: "🗓️ เดือน" },
               { id: "week" as const, label: "📆 สัปดาห์" },
               { id: "day" as const, label: "📋 วัน" },
+              { id: "rooms" as const, label: "🏠 ห้อง" },
             ] as const
           ).map((v) => (
             <button
@@ -607,6 +617,165 @@ export function BookingCalendar() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {view === "rooms" && (
+          <div>
+            {/* สรุปหัวตาราง — ว่างกี่ห้องจริง เห็นตัวเดียวจบ */}
+            <div
+              className={`mb-3 flex items-center justify-between gap-3 rounded-petflow-sm px-3 py-2.5 ${
+                board.isFull ? "bg-red-50 ring-1 ring-red-300" : "bg-sage/15"
+              }`}
+            >
+              <div>
+                <p className="text-xs font-extrabold text-petflow-chocolate">
+                  {board.isFull ? "🔴 ห้องเต็มแล้ว" : `🟢 ว่าง ${board.free} ห้อง`}
+                </p>
+                <p className="text-[10px] text-brown-soft">
+                  ใช้อยู่ {board.occupied} / {board.totalUnits} ห้อง ·{" "}
+                  {formatThaiDate(activeDate)}
+                </p>
+              </div>
+              <Link
+                href={`/admin/bookings/new?date=${activeDate}`}
+                className="shrink-0 rounded-petflow-sm bg-gradient-to-r from-honey to-honey-deep px-3 py-2 text-[11px] font-extrabold text-petflow-chocolate shadow-petflow-sm"
+              >
+                ➕ จองห้อง
+              </Link>
+            </div>
+
+            {/* จองเกินจำนวนห้อง — ต้องเห็นก่อนเพื่อน */}
+            {board.overflow.length > 0 && (
+              <div className="mb-3 rounded-petflow-sm bg-red-50 px-3 py-2 ring-1 ring-red-300">
+                <p className="text-[11px] font-extrabold text-red-600">
+                  ⚠️ จองเกินจำนวนห้องที่มี {board.overflow.length} รายการ
+                </p>
+                <p className="mt-0.5 text-[10px] text-brown-soft">
+                  {board.overflow.map((b) => `${b.catName} · ${b.customerName}`).join(" / ")}
+                  {" — ต้องย้ายประเภทห้องหรือเลื่อนวัน"}
+                </p>
+              </div>
+            )}
+
+            {/* รับต่อกันในวันเดียว — ห้องเดิมมีคนออกและคนเข้าวันนี้ */}
+            {board.turnovers.length > 0 && (
+              <div className="mb-3 rounded-petflow-sm bg-wait/10 px-3 py-2.5 ring-1 ring-wait/40">
+                <p className="text-[11px] font-extrabold text-wait">
+                  🔄 ต้องเคลียร์ห้องรับต่อวันนี้ {board.turnovers.length} ห้อง
+                </p>
+                <ul className="mt-1.5 space-y-1.5">
+                  {board.turnovers.map((u) => {
+                    const out = u.leaving!;
+                    const inn = u.staying!;
+                    const gapOk = out.pickupTime && inn.arrivalTime
+                      ? out.pickupTime <= inn.arrivalTime
+                      : true;
+                    return (
+                      <li
+                        key={`${u.typeId}-${u.unit}`}
+                        className="rounded-lg bg-card px-2 py-1.5 text-[10px]"
+                      >
+                        <p className="font-extrabold text-petflow-chocolate">
+                          {u.typeName} #{u.unit}
+                        </p>
+                        <p className="mt-0.5 text-brown-soft">
+                          ⬅️ ออก: {out.catName} · {out.customerName} —{" "}
+                          <span className={out.pickupTime ? "font-bold text-ok" : "text-brown-faint"}>
+                            {out.pickupTime ? `รับ ${out.pickupTime} น.` : "ยังไม่แจ้งเวลารับ"}
+                          </span>
+                        </p>
+                        <p className="text-brown-soft">
+                          ➡️ เข้า: {inn.catName} · {inn.customerName} —{" "}
+                          <span className={inn.arrivalTime ? "font-bold text-ok" : "text-brown-faint"}>
+                            {inn.arrivalTime ? `ส่ง ${inn.arrivalTime} น.` : "ยังไม่แจ้งเวลาส่ง"}
+                          </span>
+                        </p>
+                        {!gapOk && (
+                          <p className="mt-1 rounded bg-red-50 px-1.5 py-1 font-bold text-red-700">
+                            ⚠️ เวลาชนกัน — คนใหม่มาส่ง {inn.arrivalTime} น. ก่อนคนเก่ามารับ{" "}
+                            {out.pickupTime} น.
+                          </p>
+                        )}
+                        {gapOk && (!out.pickupTime || !inn.arrivalTime) && (
+                          <p className="mt-1 text-brown-faint">
+                            💡 ใส่เวลารับ-ส่งในหน้าแก้ไขนัด จะเช็คให้ว่าคิวชนกันไหม
+                          </p>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {/* ผังห้องจริง — แยกตามประเภท ห้องละกล่อง */}
+            <div className="space-y-3">
+              {board.byType.map((t) => (
+                <div key={t.typeId}>
+                  <div className="mb-1.5 flex items-baseline justify-between gap-2">
+                    <p className="text-[11px] font-extrabold text-petflow-chocolate">
+                      {t.typeName}
+                    </p>
+                    <p
+                      className={`text-[10px] font-bold ${
+                        t.free === 0 ? "text-red-600" : "text-ok"
+                      }`}
+                    >
+                      {t.free === 0 ? "เต็ม" : `ว่าง ${t.free}`} / {t.total} ห้อง
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-6">
+                    {t.units.map((u) => {
+                      const occupant = u.staying;
+                      return (
+                        <button
+                          key={u.unit}
+                          type="button"
+                          onClick={() => occupant && setEditing(occupant as CalendarDay)}
+                          disabled={!occupant}
+                          className={`min-h-[62px] rounded-xl px-2 py-1.5 text-left transition ${
+                            u.turnover
+                              ? "bg-wait/20 ring-1 ring-wait"
+                              : occupant
+                                ? "bg-latte/25 ring-1 ring-latte-deep/40 hover:bg-latte/35"
+                                : "bg-paper/50 ring-1 ring-dashed ring-petflow-line"
+                          }`}
+                        >
+                          <p className="text-[9px] font-bold text-brown-faint">
+                            #{u.unit}
+                            {u.turnover && " · 🔄 รับต่อ"}
+                            {!u.turnover && u.arriving && " · 🆕 เข้าวันนี้"}
+                          </p>
+                          {occupant ? (
+                            <>
+                              <p className="truncate text-[11px] font-extrabold text-petflow-chocolate">
+                                {occupant.catName}
+                              </p>
+                              <p className="truncate text-[9px] text-brown-soft">
+                                {occupant.customerName}
+                              </p>
+                              <p className="truncate text-[9px] text-brown-faint">
+                                ถึง {occupant.checkout || "-"}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="pt-2 text-center text-[10px] font-bold text-brown-faint">
+                              ว่าง
+                            </p>
+                          )}
+                          {u.leaving && (
+                            <p className="mt-0.5 truncate text-[9px] text-wait">
+                              ⬅️ {u.leaving.catName} ออก
+                            </p>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

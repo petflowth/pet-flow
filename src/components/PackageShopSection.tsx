@@ -168,13 +168,20 @@ export function PackageShopSection() {
       </p>
 
       {offers.length > 0 && (
-        <div className="mb-3 grid gap-2.5 sm:grid-cols-2">
+        <>
+        {offers.length > 1 && (
+          <p className="mb-1.5 text-[10px] text-brown-faint">← เลื่อนดูคอร์สทั้งหมด →</p>
+        )}
+        {/* เลื่อนซ้าย-ขวาแบบเดียวกับโปรโมชั่น — เพิ่มคอร์สใหม่แล้วไม่ดันหน้ายาว */}
+        <div className="-mx-1 mb-3 flex gap-3 overflow-x-auto px-1 pb-2 scroll-smooth snap-x snap-mandatory overscroll-x-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {offers.map((o) => {
             const perUse = o.totalUses > 0 ? Math.round(o.price / o.totalUses) : 0;
             return (
               <div
                 key={o.id}
-                className="overflow-hidden rounded-petflow-sm bg-card/90 shadow-petflow-sm"
+                className={`flex shrink-0 snap-start flex-col overflow-hidden rounded-petflow-sm bg-card/90 shadow-petflow-sm ${
+                  offers.length > 1 ? "w-[82%] min-w-[240px] max-w-[320px]" : "w-full"
+                }`}
               >
                 {o.imageUrl && (
                   // พื้นหลังนวลๆ กันภาพสัดส่วนแปลกๆ ดูโล่ง — ตัวรูปโชว์เต็มไม่โดน crop
@@ -188,7 +195,7 @@ export function PackageShopSection() {
                     />
                   </div>
                 )}
-                <div className="p-3">
+                <div className="flex flex-1 flex-col p-3">
                   <p className="text-sm font-extrabold leading-snug text-petflow-chocolate">
                     {o.name}
                   </p>
@@ -216,7 +223,7 @@ export function PackageShopSection() {
                       {o.description}
                     </p>
                   )}
-                  <div className="mt-2.5 flex items-end justify-between gap-2">
+                  <div className="mt-auto flex items-end justify-between gap-2 pt-2.5">
                     <p className="text-lg font-extrabold leading-none text-latte-deep">
                       {o.price.toLocaleString()}
                       <span className="text-xs">฿</span>
@@ -235,6 +242,7 @@ export function PackageShopSection() {
             );
           })}
         </div>
+        </>
       )}
 
       {/* รอโอน — โชว์เลขบัญชี ยอดที่ต้องโอน และปุ่มแนบสลิป */}

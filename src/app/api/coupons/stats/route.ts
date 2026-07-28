@@ -75,10 +75,49 @@ async function handleGet() {
     };
   });
 
+  /**
+   * ส่วนลดที่ให้ลูกค้าไปแต่ละเดือน — ยึดจากบิลที่ปิดแล้ว เพราะนั่นคือตอนที่ส่วนลดเกิดขึ้นจริง
+   *
+   * บิลเก็บส่วนลดเป็นยอดรวมก้อนเดียว (โปร + คูปอง + ลดเอง) จึงแยกที่มาแบบนี้:
+   * คูปองรู้ว่าถูกใช้กับบิลไหน (usedInvoiceId) หักออกก่อน ส่วนที่เหลือถ้าบิลผูกโปรไว้
+   * ก็คือส่วนลดจากโปร ไม่งั้นคือพนักงานลดให้เอง — นับบิลละครั้ง ไม่ซ้ำซ้อนกัน
+   */
+  const paidInvoices = invoices.filter((i) => i.status === "paid");
+  const monthMap = new Map<
+    string,
+    { month: string; bills: number; total: number; coupon: number; promo: number; manual: number }
+  >();
+  for (const inv of paidInvoices) {
+    const total = Math.max(0, inv.discount || 0);
+    if (total === 0) continue;
+    const month = (inv.paidAt || inv.createdAt || "").slice(0, 7);
+    if (!month) continue;
+    const couponPart = Math.min(
+      total,
+      coupons
+        .filter((c) => c.usedInvoiceId === inv.id)
+        .reduce((sum, c) => sum + c.amount, 0)
+    );
+    const rest = Math.max(0, total - couponPart);
+    const row =
+      monthMap.get(month) ||
+      { month, bills: 0, total: 0, coupon: 0, promo: 0, manual: 0 };
+    row.bills += 1;
+    row.total += total;
+    row.coupon += couponPart;
+    if (inv.promoId) row.promo += rest;
+    else row.manual += rest;
+    monthMap.set(month, row);
+  }
+  const monthlyDiscount = [...monthMap.values()].sort((a, b) =>
+    b.month.localeCompare(a.month)
+  );
+
   return NextResponse.json({
     couponSummary,
     perOffer,
     referral,
     perPromo,
+    monthlyDiscount,
   });
 }

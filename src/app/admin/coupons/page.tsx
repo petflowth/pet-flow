@@ -27,6 +27,14 @@ type Stats = {
   perOffer: { id: string; title: string; amount: number; issued: number; used: number; valueUsed: number; rate: number }[];
   referral: { issued: number; used: number; valueUsed: number };
   perPromo: { id: string; title: string; active: boolean; claims: number; uses: number; discount: number }[];
+  monthlyDiscount?: {
+    month: string;
+    bills: number;
+    total: number;
+    coupon: number;
+    promo: number;
+    manual: number;
+  }[];
 };
 
 const TIERS = ["all", "new", "regular", "member", "vip"] as const;
@@ -201,6 +209,75 @@ export default function AdminCouponsPage() {
               </table>
             </div>
           )}
+
+          {/* ส่วนลดที่ให้ไปแต่ละเดือน — ดูได้ว่าเดือนไหนแจกไปเท่าไหร่ และมาจากทางไหน */}
+          <p className="pt-1 text-xs font-extrabold text-petflow-chocolate">
+            📅 ส่วนลดที่ให้ไปรายเดือน
+          </p>
+          {!stats.monthlyDiscount || stats.monthlyDiscount.length === 0 ? (
+            <p className="rounded-petflow-sm bg-paper px-3 py-2 text-center text-[11px] text-brown-soft">
+              ยังไม่มีบิลที่มีส่วนลด
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-petflow-sm border border-petflow-line">
+              <table className="w-full text-left text-[11px]">
+                <thead className="bg-paper text-brown-soft">
+                  <tr>
+                    <th className="px-2 py-1.5 font-bold">เดือน</th>
+                    <th className="px-2 py-1.5 text-center font-bold">บิล</th>
+                    <th className="px-2 py-1.5 text-center font-bold">คูปอง</th>
+                    <th className="px-2 py-1.5 text-center font-bold">โปร</th>
+                    <th className="px-2 py-1.5 text-center font-bold">ลดเอง</th>
+                    <th className="px-2 py-1.5 text-center font-bold">รวม</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.monthlyDiscount.map((m) => (
+                    <tr key={m.month} className="border-t border-petflow-line">
+                      <td className="px-2 py-1.5 font-bold text-brown">{m.month}</td>
+                      <td className="px-2 py-1.5 text-center text-brown-soft">{m.bills}</td>
+                      <td className="px-2 py-1.5 text-center">
+                        {m.coupon ? `${m.coupon.toLocaleString()} ฿` : "–"}
+                      </td>
+                      <td className="px-2 py-1.5 text-center">
+                        {m.promo ? `${m.promo.toLocaleString()} ฿` : "–"}
+                      </td>
+                      <td className="px-2 py-1.5 text-center">
+                        {m.manual ? `${m.manual.toLocaleString()} ฿` : "–"}
+                      </td>
+                      <td className="px-2 py-1.5 text-center font-extrabold text-latte-deep">
+                        {m.total.toLocaleString()} ฿
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-petflow-line bg-paper/60">
+                    <td className="px-2 py-1.5 font-extrabold text-brown">รวมทุกเดือน</td>
+                    <td className="px-2 py-1.5 text-center font-bold text-brown-soft">
+                      {stats.monthlyDiscount.reduce((s, m) => s + m.bills, 0)}
+                    </td>
+                    <td className="px-2 py-1.5 text-center font-bold">
+                      {stats.monthlyDiscount.reduce((s, m) => s + m.coupon, 0).toLocaleString()} ฿
+                    </td>
+                    <td className="px-2 py-1.5 text-center font-bold">
+                      {stats.monthlyDiscount.reduce((s, m) => s + m.promo, 0).toLocaleString()} ฿
+                    </td>
+                    <td className="px-2 py-1.5 text-center font-bold">
+                      {stats.monthlyDiscount.reduce((s, m) => s + m.manual, 0).toLocaleString()} ฿
+                    </td>
+                    <td className="px-2 py-1.5 text-center font-extrabold text-latte-deep">
+                      {stats.monthlyDiscount.reduce((s, m) => s + m.total, 0).toLocaleString()} ฿
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+          <p className="text-[10px] text-brown-faint">
+            นับจากบิลที่ปิดแล้ว ตามเดือนที่ชำระ · คูปองแยกตามใบที่ถูกใช้จริง
+            ที่เหลือถ้าบิลผูกโปรไว้นับเป็นโปร ไม่งั้นคือลดหน้าร้าน
+          </p>
 
           <p className="pt-1 text-xs font-extrabold text-petflow-chocolate">✨ สถิติโปรโมชั่น</p>
           {stats.perPromo.length === 0 ? (

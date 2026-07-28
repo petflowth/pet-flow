@@ -454,6 +454,23 @@ function ShopTab({
         onChange={(v) => setForm({ ...form, taxId: v })}
       />
       <Field
+        label="อีเมลเจ้าของปฏิทินนัด (คั่นด้วย , · ไม่บังคับ)"
+        value={(form.calendarOwnerEmails || []).join(", ")}
+        onChange={(v) =>
+          setForm({
+            ...form,
+            calendarOwnerEmails: v
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean),
+          })
+        }
+      />
+      <p className="-mt-2 text-[10px] text-brown-faint">
+        อีเมลนี้จะถูกเชิญเป็นเจ้าของนัดใน Google Calendar และโชว์ในไฟล์ปฏิทิน (.ics)
+        เฉพาะของร้านนี้เท่านั้น — ร้านอื่นไม่เห็นอีเมลของร้านนี้ และร้านนี้ก็ไม่เห็นของร้านอื่น
+      </p>
+      <Field
         label="อัตราแต้ม (บาท = 1 แต้ม)"
         type="number"
         value={String(form.pointsRate)}

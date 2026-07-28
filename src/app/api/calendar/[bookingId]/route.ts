@@ -18,7 +18,7 @@ async function handleGet(bookingId: string) {
   const b = await getBooking(bookingId);
   if (!b) return NextResponse.json({ error: "not found" }, { status: 404 });
 
-  const ics = buildIcsContent({
+  const ics = await buildIcsContent({
     uid: b.calendarEventId || b.id,
     summary: `🐱 ${b.catName} (${b.customerName}) — PetFlow`,
     description: `${b.service === "room" ? "ห้องพัก" : "อาบน้ำ"} · ${b.notes || ""}`,

@@ -4,12 +4,13 @@
 
 import type { calendar_v3 } from "googleapis";
 import { getGoogleCredentials, isGoogleConfigured } from "./google-config";
+import { getSiteConfig } from "./config-store";
 
-export const CALENDAR_OWNER_EMAILS = [
-  "chutchanok.than@gmail.com",
-  "chatphat.choti@gmail.com",
-  "pitchapawong.pw@gmail.com",
-];
+/** อีเมล "เจ้าของปฏิทิน" ของร้านปัจจุบัน — ตั้งค่าได้ต่อร้านในหน้าตั้งค่า ร้านอื่นไม่เห็นค่านี้ */
+async function ownerEmails(): Promise<string[]> {
+  const cfg = await getSiteConfig();
+  return cfg.business.calendarOwnerEmails || [];
+}
 
 const TIMEZONE = "Asia/Bangkok";
 const GROOM_DURATION_MIN = 90;
@@ -72,7 +73,7 @@ function toIcsUtc(isoDate: string, time?: string) {
   );
 }
 
-export function buildIcsContent(event: {
+export async function buildIcsContent(event: {
   uid: string;
   summary: string;
   description: string;
@@ -90,9 +91,10 @@ export function buildIcsContent(event: {
     ? `DTEND;VALUE=DATE:${addDaysYmd(endDate, 1).replace(/-/g, "")}`
     : `DTEND:${toIcsUtc(endDate, event.endTime || event.time)}`;
 
-  const attendees = CALENDAR_OWNER_EMAILS.map(
-    (email) => `ATTENDEE;CN=${email}:mailto:${email}`
-  ).join("\r\n");
+  const emails = await ownerEmails();
+  const attendees = emails
+    .map((email) => `ATTENDEE;CN=${email}:mailto:${email}`)
+    .join("\r\n");
 
   return [
     "BEGIN:VCALENDAR",
@@ -108,13 +110,13 @@ export function buildIcsContent(event: {
     `SUMMARY:${event.summary}`,
     `DESCRIPTION:${event.description.replace(/\n/g, "\\n")}`,
     `LOCATION:PetFlow Bang Na`,
-    attendees,
+    ...(attendees ? [attendees] : []),
     "END:VEVENT",
     "END:VCALENDAR",
   ].join("\r\n");
 }
 
-export function buildGoogleCalendarUrl(event: {
+export async function buildGoogleCalendarUrl(event: {
   summary: string;
   description: string;
   start: string;
@@ -126,9 +128,13 @@ export function buildGoogleCalendarUrl(event: {
   const dates = event.allDay
     ? `${event.start.replace(/-/g, "")}/${addDaysYmd(event.end || event.start, 1).replace(/-/g, "")}`
     : `${toIcsUtc(event.start, event.time)}/${toIcsUtc(event.end || event.start, event.time)}`;
+  const emails = await ownerEmails();
+  const details = emails.length
+    ? `${event.description}\n\nเจ้าของ: ${emails.join(", ")}`
+    : event.description;
   const params = new URLSearchParams({
     text: event.summary,
-    details: `${event.description}\n\nเจ้าของ: ${CALENDAR_OWNER_EMAILS.join(", ")}`,
+    details,
     location: "PetFlow Bang Na",
     dates,
   });
@@ -171,20 +177,21 @@ async function getCalendarApi() {
   return google.calendar({ version: "v3", auth });
 }
 
-function buildGoogleEventResource(
+async function buildGoogleEventResource(
   booking: CalendarBookingInput,
   opts?: { confirmed?: boolean }
-): calendar_v3.Schema$Event {
+): Promise<calendar_v3.Schema$Event> {
   const confirmed = opts?.confirmed;
   const summary = confirmed
     ? `✅ ${booking.summary.replace(/^✅\s*/, "")}`
     : booking.summary;
 
+  const emails = await ownerEmails();
   const description = [
     booking.description,
     booking.bookingId ? `— PetFlow Booking ${booking.bookingId}` : "",
     `สถานะ: ${confirmed ? "ยืนยันแล้ว" : "รอยืนยัน"}`,
-    `เจ้าของ: ${CALENDAR_OWNER_EMAILS.join(", ")}`,
+    emails.length ? `เจ้าของ: ${emails.join(", ")}` : "",
   ]
     .filter(Boolean)
     .join("\n");
@@ -218,15 +225,18 @@ function buildGoogleEventResource(
   };
 }
 
-function fallbackResult(
+async function fallbackResult(
   booking: CalendarBookingInput,
   uid: string,
   reason: string
-): CalendarResult {
-  const ics = buildIcsContent({
+): Promise<CalendarResult> {
+  const emails = await ownerEmails();
+  const ics = await buildIcsContent({
     uid,
     summary: booking.summary,
-    description: `${booking.description}\n\nแจ้งเตือน: ${CALENDAR_OWNER_EMAILS.join(", ")}`,
+    description: emails.length
+      ? `${booking.description}\n\nแจ้งเตือน: ${emails.join(", ")}`
+      : booking.description,
     start: booking.start,
     end: booking.end,
     time: booking.time,
@@ -239,8 +249,8 @@ function fallbackResult(
     reason,
     eventId: uid,
     ics,
-    googleUrl: buildGoogleCalendarUrl(booking),
-    ownerEmails: CALENDAR_OWNER_EMAILS,
+    googleUrl: await buildGoogleCalendarUrl(booking),
+    ownerEmails: emails,
   };
 }
 
@@ -260,7 +270,7 @@ export async function createCalendarEvent(
 
     const calendar = await getCalendarApi();
     const calId = creds.calendarId;
-    const resource = buildGoogleEventResource(payload);
+    const resource = await buildGoogleEventResource(payload);
 
     const res = await calendar.events.insert({
       calendarId: calId,
@@ -269,7 +279,7 @@ export async function createCalendarEvent(
     });
 
     const googleEventId = res.data.id || uid;
-    const ics = buildIcsContent({
+    const ics = await buildIcsContent({
       uid: googleEventId,
       summary: booking.summary,
       description: booking.description,
@@ -285,8 +295,8 @@ export async function createCalendarEvent(
       calendarId: calId,
       htmlLink: res.data.htmlLink || undefined,
       ics,
-      googleUrl: res.data.htmlLink || buildGoogleCalendarUrl(booking),
-      ownerEmails: CALENDAR_OWNER_EMAILS,
+      googleUrl: res.data.htmlLink || (await buildGoogleCalendarUrl(booking)),
+      ownerEmails: await ownerEmails(),
     };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -309,7 +319,7 @@ export async function updateCalendarEventConfirmed(
     const calendar = await getCalendarApi();
     const calId = creds.calendarId;
     const existing = await calendar.events.get({ calendarId: calId, eventId: googleEventId });
-    const base = buildGoogleEventResource(booking, { confirmed: true });
+    const base = await buildGoogleEventResource(booking, { confirmed: true });
 
     const description = [
       existing.data.description || booking.description,
@@ -351,15 +361,16 @@ export async function updateCalendarEvent(
     const calendar = await getCalendarApi();
     const calId = creds.calendarId;
     const cancelled = opts?.cancelled;
-    const base = buildGoogleEventResource(booking, { confirmed: false });
+    const base = await buildGoogleEventResource(booking, { confirmed: false });
     const summary = cancelled
       ? `❌ ยกเลิก — ${booking.summary.replace(/^(✅|❌)\s*/, "")}`
       : booking.summary;
 
+    const emails = await ownerEmails();
     const description = [
       booking.description,
       cancelled ? "สถานะ: ยกเลิกแล้ว" : "สถานะ: แก้ไขนัด",
-      `เจ้าของ: ${CALENDAR_OWNER_EMAILS.join(", ")}`,
+      emails.length ? `เจ้าของ: ${emails.join(", ")}` : "",
     ]
       .filter(Boolean)
       .join("\n");

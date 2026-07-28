@@ -184,6 +184,8 @@ export type SiteConfig = {
     pointsOnMemberTopup?: boolean;
     /** เลขประจำตัวผู้เสียภาษี — โชว์บนเอกสารรายได้/ใบสำคัญจ่าย (ไม่บังคับ) */
     taxId?: string;
+    /** อีเมลที่จะเชิญเป็น "เจ้าของ" ปฏิทินนัดของร้านนี้ — เฉพาะร้านนี้เห็น ร้านอื่นไม่เห็น */
+    calendarOwnerEmails?: string[];
   };
   payment: {
     bankName: string;

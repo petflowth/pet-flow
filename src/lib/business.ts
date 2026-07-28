@@ -29,6 +29,9 @@ export const BUSINESS = {
   noPointsOnMemberCredit: true,
   // ให้แต้มตอนเติมเครดิตแทน คิดจากยอดที่จ่ายจริง (ไม่รวมเครดิตแถม)
   pointsOnMemberTopup: true,
+  // อีเมลที่จะเชิญเป็น "เจ้าของ" ปฏิทินนัดของร้านนี้ (Google Calendar attendee + ที่โชว์ในไฟล์ .ics)
+  // ต้องเว้นว่างเป็นค่าเริ่มต้นเสมอ — ห้ามใส่อีเมลของร้านใดร้านหนึ่งเป็นค่า fallback ให้ร้านอื่น
+  calendarOwnerEmails: [] as string[],
 } as const;
 
 /** ห้องจริงทั้งหมด 13 ยูนิต */

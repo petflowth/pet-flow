@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
-import { PageHeader } from "@/components/PageHeader";
+import { BookingOnlyNotice, PageHeader } from "@/components/PageHeader";
 
 export default function ServicesPage() {
   const { locale } = useLocale();
@@ -37,20 +37,12 @@ export default function ServicesPage() {
 
   return (
     <div className="px-4 pb-6 pt-5">
-      <PageHeader title={`✨ ${m.services}`} />
-      <Link
-        href="/app/book"
-        className="mb-4 flex items-center gap-3 rounded-petflow bg-gradient-to-r from-latte-deep to-petflow-chocolate p-4 text-card shadow-petflow-sm transition active:scale-[0.98]"
-      >
-        <span className="text-2xl">📅</span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-extrabold">จองคิวเอง</span>
-          <span className="block text-[11px] opacity-80">
-            เลือกวัน-เวลาว่างเอง ไม่ต้องคุยกับพนักงาน
-          </span>
-        </span>
-        <span>→</span>
-      </Link>
+      <PageHeader
+        title={`✨ ${m.services}`}
+        back="/app"
+        backLabel={locale === "th" ? "หน้าหลัก" : "Home"}
+      />
+      <BookingOnlyNotice locale={locale} />
       <div className="grid gap-4">
         {cards.map((c) => (
           <Link

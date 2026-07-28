@@ -4,7 +4,7 @@ import Link from "next/link";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 import { useConfig } from "@/components/ConfigProvider";
-import { PageHeader } from "@/components/PageHeader";
+import { BookingOnlyNotice, PageHeader } from "@/components/PageHeader";
 import { RoomCard } from "@/components/RoomCard";
 
 export default function RoomsPage() {
@@ -18,13 +18,10 @@ export default function RoomsPage() {
       <PageHeader
         title={`🏠 ${m.title}`}
         subtitle={`${m.total} · ${inv.miniMeow}S + ${inv.midCozy}M + ${inv.catflix} Netflix`}
+        back="/app/services"
+        backLabel={locale === "th" ? "บริการทั้งหมด" : "All services"}
       />
-      <Link
-        href="/app/book?service=room"
-        className="mb-4 block rounded-petflow-sm bg-latte-deep py-3.5 text-center text-sm font-extrabold text-white shadow-petflow-sm"
-      >
-        📅 จองห้องพักเอง
-      </Link>
+      <BookingOnlyNotice locale={locale} />
       <div className="grid gap-4">
         {config.rooms.map((room) => (
           <RoomCard key={room.id} room={room} locale={locale} />

@@ -170,6 +170,13 @@ export type SiteConfig = {
     reviewUrl: string;
     /** คำในปุ่มรีวิว */
     reviewButtonText: string;
+    /**
+     * ร้านรับเฉพาะลูกค้าที่จองล่วงหน้าไหม — เปิดแล้วจะขึ้นป้ายบอกในหน้าบริการ/ห้องพัก/อาบน้ำ
+     * ปิดไว้เป็นค่าเริ่มต้น เพราะหลายร้านรับ walk-in ตามปกติ
+     */
+    byAppointmentOnly?: boolean;
+    /** ข้อความในป้าย (ไม่ใส่ = ใช้ข้อความมาตรฐาน) */
+    byAppointmentNote?: { th: string; en: string };
     location: { th: string; en: string };
     pointsRate: number;
     /**

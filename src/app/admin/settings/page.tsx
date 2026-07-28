@@ -446,6 +446,48 @@ function ShopTab({
         value={form.reviewButtonText || ""}
         onChange={(v) => setForm({ ...form, reviewButtonText: v })}
       />
+      {/* รับเฉพาะจองล่วงหน้าไหม — ป้ายในหน้าลูกค้า (ร้านที่รับ walk-in ปิดไว้) */}
+      <div className="rounded-petflow-sm border border-petflow-line bg-paper px-3 py-3">
+        <label className="flex items-start gap-2">
+          <input
+            type="checkbox"
+            checked={!!form.byAppointmentOnly}
+            onChange={(e) => setForm({ ...form, byAppointmentOnly: e.target.checked })}
+            className="mt-0.5 h-4 w-4 accent-latte-deep"
+          />
+          <span className="text-xs font-bold text-brown-soft">
+            📌 รับเฉพาะลูกค้าที่จองล่วงหน้า (ไม่รับ Walk-in)
+            <span className="mt-0.5 block text-[10px] font-normal text-brown-faint">
+              เปิดแล้วจะขึ้นป้ายบอกลูกค้าในหน้าบริการ · ห้องพัก · อาบน้ำ
+              ลูกค้าจะได้ไม่เดินทางมาถึงร้านแล้วต้องกลับ
+            </span>
+          </span>
+        </label>
+        {form.byAppointmentOnly && (
+          <div className="mt-2 space-y-2">
+            <Field
+              label="ข้อความในป้าย (ไทย) — เว้นว่างเพื่อใช้ข้อความมาตรฐาน"
+              value={form.byAppointmentNote?.th || ""}
+              onChange={(v) =>
+                setForm({
+                  ...form,
+                  byAppointmentNote: { th: v, en: form.byAppointmentNote?.en || "" },
+                })
+              }
+            />
+            <Field
+              label="ข้อความในป้าย (EN)"
+              value={form.byAppointmentNote?.en || ""}
+              onChange={(v) =>
+                setForm({
+                  ...form,
+                  byAppointmentNote: { th: form.byAppointmentNote?.th || "", en: v },
+                })
+              }
+            />
+          </div>
+        )}
+      </div>
       <Field label="ที่อยู่ (ไทย)" value={form.location.th} onChange={(v) => setForm({ ...form, location: { ...form.location, th: v } })} />
       <Field label="ที่อยู่ (EN)" value={form.location.en} onChange={(v) => setForm({ ...form, location: { ...form.location, en: v } })} />
       <Field

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 import { useConfig } from "@/components/ConfigProvider";
-import { LineBookingCta, PageHeader } from "@/components/PageHeader";
+import { BookingOnlyNotice, LineBookingCta, PageHeader } from "@/components/PageHeader";
 
 export default function GroomingPage() {
   const { locale } = useLocale();
@@ -23,7 +23,12 @@ export default function GroomingPage() {
 
   return (
     <div className="px-4 pb-6 pt-5">
-      <PageHeader title={`🛁 ${m.title}`} />
+      <PageHeader
+        title={`🛁 ${m.title}`}
+        back="/app/services"
+        backLabel={locale === "th" ? "บริการทั้งหมด" : "All services"}
+      />
+      <BookingOnlyNotice locale={locale} />
 
       <div className="space-y-4">
         {posters.map((src) => (

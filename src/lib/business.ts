@@ -301,7 +301,34 @@ export const GROOM_SLOTS = ["09:30", "12:30", "15:30"] as const;
 
 export type Locale = "th" | "en";
 
-export type BookingStatus = "pending" | "confirmed" | "cancelled";
+/**
+ * ขั้นของนัด: จอง → ยืนยัน → พร้อมรับกลับ → เสร็จ
+ * "ready" = ทำเสร็จแล้ว รอเจ้าของมารับ (กดแล้วลูกค้ารู้ทันที ไม่ต้องโทรถาม)
+ * "no_show" แยกจาก "cancelled" เพื่อดูได้ว่าใครชอบไม่มาโดยไม่แจ้ง
+ */
+export type BookingStatus =
+  | "pending"
+  | "confirmed"
+  | "ready"
+  | "done"
+  | "cancelled"
+  | "no_show";
+
+export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
+  pending: "รอยืนยัน",
+  confirmed: "ยืนยันแล้ว",
+  ready: "พร้อมรับกลับ",
+  done: "เสร็จสิ้น",
+  cancelled: "ยกเลิก",
+  no_show: "ไม่มา",
+};
+
+/** นัดที่ยัง "มีชีวิต" — ยังกินคิว/กินห้องอยู่ */
+export const ACTIVE_BOOKING_STATUSES: BookingStatus[] = [
+  "pending",
+  "confirmed",
+  "ready",
+];
 
 export type Booking = {
   id: string;

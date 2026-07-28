@@ -22,7 +22,8 @@ export async function buildDayScheduleMessage(
 ) {
   const heading = opts?.heading ?? `🗓️ ตารางงาน (${date})`;
   const all = await listBookings();
-  const live = all.filter((b) => b.status !== "cancelled");
+  // ยกเลิก/ไม่มา ไม่ต้องขึ้นตารางงาน — ไม่มีอะไรให้ทำแล้ว
+  const live = all.filter((b) => b.status !== "cancelled" && b.status !== "no_show");
   const groom = live.filter((b) => b.service === "groom" && b.date === date);
   const checkin = live.filter((b) => b.service === "room" && b.checkin === date);
   const checkout = live.filter((b) => b.service === "room" && b.checkout === date);

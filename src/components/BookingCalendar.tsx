@@ -7,8 +7,9 @@ import { CustomerSendButtons } from "@/components/CustomerSendButtons";
 import { InvoiceActionButtons } from "@/components/InvoiceActionButtons";
 import { bookingOnDate } from "@/lib/booking-customer-match";
 import { toast } from "@/components/Toast";
+import { PreviewSendModal } from "@/components/PreviewSendModal";
 import { groupBookings } from "@/lib/booking-group";
-import { groomProgram } from "@/lib/grooming-prices";
+import { BOOKING_STATUS_LABELS, type BookingStatus } from "@/lib/business";
 
 type CalendarDay = EditableBooking & {
   customerId?: string;
@@ -203,6 +204,13 @@ export function BookingCalendar() {
   const [closedDates, setClosedDates] = useState<{ date: string; note?: string }[]>([]);
   const [closedWeekdays, setClosedWeekdays] = useState<number[]>([]);
   const [togglingClosed, setTogglingClosed] = useState(false);
+  /** การ์ดที่รอยืนยันก่อนส่งจริง พร้อมงานที่จะทำต่อเมื่อกดยืนยัน */
+  const [stagePreview, setStagePreview] = useState<{
+    messages: Record<string, unknown>[];
+    run: () => Promise<void>;
+  } | null>(null);
+  /** กรองรายการตามสถานะ — ไว้กวาดงานค้างเร็วๆ */
+  const [statusFilter, setStatusFilter] = useState<BookingStatus | "all">("all");
   const queueRef = useRef<HTMLElement>(null);
 
   const load = useCallback(async () => {
@@ -300,6 +308,52 @@ export function BookingCalendar() {
     load();
   };
 
+  /**
+   * เดินสถานะทั้งบ้านพร้อมกัน — "พร้อมรับกลับ" จะแจ้งลูกค้าทาง LINE ให้ด้วย
+   * (ดูตัวอย่างการ์ดก่อนส่งเสมอ เพราะเป็นข้อความที่ลูกค้าได้รับจริง)
+   */
+  const setStageFor = async (group: CalendarDay[], action: string) => {
+    const b = group[0];
+    const ids = group.map((x) => x.id);
+    const names = group.map((x) => x.catName).join(", ");
+
+    if (action === "set_no_show") {
+      if (!confirm(`บันทึกว่า ${names} · ${b.customerName} ไม่มาตามนัด?`)) return;
+    }
+
+    const run = async () => {
+      const res = await fetch("/api/bookings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: b.id, action, ids, lineUserId: b.lineUserId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setStagePreview(null);
+      if (!res.ok) return toast(data.error || "บันทึกไม่สำเร็จ", "error");
+      if (action === "set_ready") {
+        toast(data.sent ? "แจ้งลูกค้าแล้ว — น้องพร้อมกลับบ้าน 🎉" : "บันทึกแล้ว (ส่ง LINE ไม่ได้)", data.sent ? "success" : "info");
+      } else {
+        toast(action === "set_done" ? "ปิดงานแล้ว ✅" : "บันทึกว่าไม่มาแล้ว", "info");
+      }
+      load();
+    };
+
+    // ขั้นที่ส่งข้อความหาลูกค้า → ขอดูการ์ดก่อน
+    if (action === "set_ready") {
+      const res = await fetch("/api/bookings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: b.id, action, ids, lineUserId: b.lineUserId, preview: true }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.preview?.length) {
+        setStagePreview({ messages: data.preview, run });
+        return;
+      }
+    }
+    await run();
+  };
+
   const cancelGroup = async (group: CalendarDay[]) => {
     const names = group.map((b) => b.catName).join(", ");
     const label = group[0].service === "room" ? "การเข้าพัก" : "นัด";
@@ -349,6 +403,31 @@ export function BookingCalendar() {
 
   // มุมมองรายวัน — แถวละชั่วโมง ครอบคลุมช่วงที่มีนัดจริง (อย่างน้อย 9:00–18:00)
   const dayGroups = groupBookings(dayBookings);
+
+  // นับตามสถานะจาก "การ์ด" (บ้านละใบ) ไม่ใช่รายตัว — ให้ตรงกับที่ตาเห็นในลิสต์
+  const statusChips = (
+    [
+      { id: "all" as const, label: "ทั้งหมด" },
+      { id: "pending" as const, label: "รอยืนยัน" },
+      { id: "confirmed" as const, label: "ยืนยันแล้ว" },
+      { id: "ready" as const, label: "พร้อมรับกลับ" },
+      { id: "done" as const, label: "เสร็จสิ้น" },
+      { id: "no_show" as const, label: "ไม่มา" },
+    ] as const
+  )
+    .map((c) => ({
+      ...c,
+      count:
+        c.id === "all"
+          ? dayGroups.length
+          : dayGroups.filter((g) => g[0].status === c.id).length,
+    }))
+    .filter((c) => c.id === "all" || c.count > 0);
+
+  const shownGroups =
+    statusFilter === "all"
+      ? dayGroups
+      : dayGroups.filter((g) => g[0].status === statusFilter);
   const timedGroups = dayGroups.filter((g) => g[0].time);
   const allDayGroups = dayGroups.filter((g) => !g[0].time);
   const hourNums = timedGroups.map((g) => Number(g[0].time!.slice(0, 2)));
@@ -369,6 +448,14 @@ export function BookingCalendar() {
 
   return (
     <div className="space-y-5">
+      {stagePreview && (
+        <PreviewSendModal
+          messages={stagePreview.messages}
+          sending={false}
+          onConfirm={() => stagePreview.run()}
+          onCancel={() => setStagePreview(null)}
+        />
+      )}
       {editing && (
         <BookingEditModal
           booking={editing}
@@ -634,18 +721,33 @@ export function BookingCalendar() {
             </Link>
           </div>
         </div>
-        {dayIsClosed && (
-          <p className="mb-3 rounded-petflow-sm bg-wait/10 px-3 py-2 text-xs font-bold text-wait">
-            🚫 ลูกค้าจองคิวเอง/ห้องพักเองในวันนี้ไม่ได้
-            {closedByWeekday
-              ? " (วันหยุดประจำสัปดาห์)"
-              : " — กดปุ่มด้านบนอีกครั้งเพื่อเปิดรับคิว"}
-          </p>
+        {/* กรองตามสถานะ พร้อมตัวเลข — กวาดงานค้างได้เร็วโดยไม่ต้องไล่อ่านทีละใบ */}
+        {dayBookings.length > 0 && (
+          <div className="mb-2.5 flex flex-wrap gap-1.5">
+            {statusChips.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setStatusFilter(c.id)}
+                className={`rounded-full px-2.5 py-1 text-[10px] font-bold transition ${
+                  statusFilter === c.id
+                    ? "bg-latte-deep text-white"
+                    : "bg-paper text-brown-soft hover:bg-honey/20"
+                }`}
+              >
+                {c.label} {c.count}
+              </button>
+            ))}
+          </div>
         )}
         <ul className="space-y-2">
-          {dayBookings.length === 0 ? (
+          {shownGroups.length === 0 ? (
             <li className="rounded-petflow-sm border border-dashed border-petflow-line py-6 text-center">
-              <p className="text-xs text-brown-soft">ไม่มีนัด/การเข้าพักในวันนี้</p>
+              <p className="text-xs text-brown-soft">
+                {dayBookings.length === 0
+                  ? "ไม่มีนัด/การเข้าพักในวันนี้"
+                  : "ไม่มีรายการในสถานะนี้"}
+              </p>
               <Link
                 href={`/admin/bookings/new?date=${activeDate}`}
                 className="mt-2 inline-block text-xs font-bold text-latte-deep underline"
@@ -654,9 +756,10 @@ export function BookingCalendar() {
               </Link>
             </li>
           ) : (
-            groupBookings(dayBookings).map((group) => {
+            shownGroups.map((group) => {
               const b = group[0];
               const allConfirmed = group.every((x) => x.status === "confirmed");
+              const stage = group[0].status as BookingStatus;
               const catNames = group.map((x) => x.catName).join(", ");
               const caseDone = paidCases[b.id] === true;
               return (
@@ -750,24 +853,60 @@ export function BookingCalendar() {
                   </div>
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                      caseDone
+                      caseDone || stage === "done"
                         ? "bg-ok text-white"
-                        : allConfirmed
-                          ? "bg-sage/20 text-ok"
-                          : "bg-honey/25 text-wait"
+                        : stage === "ready"
+                          ? "bg-latte-deep text-white"
+                          : stage === "no_show"
+                            ? "bg-red-50 text-red-600"
+                            : allConfirmed
+                              ? "bg-sage/20 text-ok"
+                              : "bg-honey/25 text-wait"
                     }`}
                   >
-                    {caseDone ? "✅ จบเคส" : allConfirmed ? "ยืนยัน" : "รอยืนยัน"}
+                    {caseDone
+                      ? "✅ จบเคส"
+                      : stage === "ready"
+                        ? "🎉 พร้อมรับกลับ"
+                        : BOOKING_STATUS_LABELS[stage] || "รอยืนยัน"}
                   </span>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  {!allConfirmed && (
+                  {!allConfirmed && stage !== "ready" && stage !== "done" && (
                     <button
                       type="button"
                       onClick={() => confirmGroup(group)}
                       className="rounded-full bg-sage/25 px-2.5 py-1 text-[10px] font-bold text-ok"
                     >
                       ✔️ ยืนยันนัด
+                    </button>
+                  )}
+                  {/* เดินงานทีละขั้น: ยืนยันแล้ว → พร้อมรับกลับ (แจ้งลูกค้า) → ปิดงาน */}
+                  {allConfirmed && stage !== "ready" && stage !== "done" && (
+                    <button
+                      type="button"
+                      onClick={() => setStageFor(group, "set_ready")}
+                      className="rounded-full bg-latte-deep px-2.5 py-1 text-[10px] font-extrabold text-white"
+                    >
+                      🎉 น้องพร้อมกลับบ้าน
+                    </button>
+                  )}
+                  {stage === "ready" && (
+                    <button
+                      type="button"
+                      onClick={() => setStageFor(group, "set_done")}
+                      className="rounded-full bg-ok/20 px-2.5 py-1 text-[10px] font-bold text-ok"
+                    >
+                      ✅ ปิดงาน
+                    </button>
+                  )}
+                  {stage !== "done" && stage !== "no_show" && (
+                    <button
+                      type="button"
+                      onClick={() => setStageFor(group, "set_no_show")}
+                      className="rounded-full bg-paper px-2.5 py-1 text-[10px] font-bold text-brown-soft"
+                    >
+                      🚫 ไม่มา
                     </button>
                   )}
                   {group.length > 1 ? (

@@ -2470,3 +2470,93 @@ export function buildPointsAwardFlex(data: {
     },
   };
 }
+
+/**
+ * การ์ด "น้องพร้อมกลับบ้านแล้ว" — ร้านกดปุ่มเดียวตอนอาบเสร็จ/เช็คเอาท์พร้อม
+ * ลูกค้ารู้ทันทีโดยไม่ต้องทักมาถามว่าเสร็จหรือยัง (ลดงานตอบแชทไปเยอะ)
+ */
+export function buildReadyForPickupFlex(data: {
+  customerName: string;
+  catName: string;
+  service: "groom" | "room";
+  shopName?: string;
+  pickupTime?: string;
+}, style?: CardStyleConfig) {
+  const show = (k: string) => style?.show?.[k] !== false;
+  const contents: Record<string, unknown>[] = [
+    {
+      type: "text",
+      text: style?.texts?.title || "🎉 น้องพร้อมกลับบ้านแล้วค่ะ",
+      weight: "bold",
+      size: style?.titleSize || "lg",
+      color: style?.headerColor || "#5C4033",
+      wrap: true,
+    },
+  ];
+  if (show("customerName")) {
+    contents.push({
+      type: "text",
+      text: politeName(data.customerName),
+      size: "sm",
+      color: "#A2907E",
+      margin: "md",
+      wrap: true,
+    });
+  }
+  contents.push({
+    type: "box",
+    layout: "vertical",
+    margin: "lg",
+    paddingAll: "12px",
+    backgroundColor: "#F4ECE0",
+    cornerRadius: "10px",
+    contents: [
+      {
+        type: "text",
+        text: politeCat(data.catName),
+        weight: "bold",
+        size: "md",
+        color: style?.accentColor || "#C4956A",
+        wrap: true,
+      },
+      {
+        type: "text",
+        text:
+          data.service === "room"
+            ? style?.texts?.roomBody || "เช็คเอาท์เรียบร้อย รอคุณแม่มารับได้เลยค่ะ"
+            : style?.texts?.groomBody || "อาบน้ำเสร็จเรียบร้อย สวยหล่อพร้อมกลับบ้านแล้วค่ะ",
+        size: "sm",
+        color: "#4E3E32",
+        margin: "sm",
+        wrap: true,
+      },
+    ],
+  });
+  if (show("pickupTime") && data.pickupTime) {
+    contents.push({
+      type: "text",
+      text: `🚗 เวลาที่แจ้งไว้ว่าจะมารับ: ${data.pickupTime} น.`,
+      size: "xs",
+      color: "#A2907E",
+      margin: "md",
+      wrap: true,
+    });
+  }
+  contents.push({
+    type: "text",
+    text: style?.closing || `ขอบคุณที่ไว้ใจ ${data.shopName || "CatCha Hotel"} นะคะ 🧡`,
+    size: "xs",
+    color: "#A2907E",
+    margin: "lg",
+    wrap: true,
+  });
+
+  return {
+    type: "flex",
+    altText: `${politeCat(data.catName)} พร้อมกลับบ้านแล้วค่ะ`,
+    contents: {
+      type: "bubble",
+      body: { type: "box", layout: "vertical", contents },
+    },
+  };
+}

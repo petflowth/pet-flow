@@ -33,6 +33,7 @@ import {
   buildReviewRequestFlex,
   reviewMessageFor,
   buildReceiptFlex,
+  buildReadyForPickupFlex,
   buildDepositThanksFlex,
   politeName,
   politeCat,
@@ -951,6 +952,71 @@ async function handlePatch(req: NextRequest, admin: boolean) {
     );
 
     return NextResponse.json({ ok: true, booking: toBooking(updated) });
+  }
+
+  // ── น้องพร้อมกลับบ้าน — กดปุ่มเดียว ลูกค้ารู้ทันที ไม่ต้องโทรมาถามว่าเสร็จยัง ──
+  if (action === "set_ready" || action === "set_done" || action === "set_no_show") {
+    const status =
+      action === "set_ready" ? "ready" : action === "set_done" ? "done" : "no_show";
+    const gb = await resolveGroupBooking(b, body.ids);
+    const ids: string[] =
+      Array.isArray(body.ids) && body.ids.length > 0 ? body.ids.map(String) : [id];
+    const cfg = await getSiteConfig();
+
+    // แจ้งลูกค้าเฉพาะตอน "พร้อมรับกลับ" — อีก 2 สถานะเป็นงานหลังบ้านล้วน
+    const notify = status === "ready" && body.notify !== false;
+    const flex = buildReadyForPickupFlex(
+      {
+        customerName: String(b.customerName),
+        catName: String(gb.catName),
+        service: b.service === "room" ? "room" : "groom",
+        shopName: cfg.business.name,
+        pickupTime: b.pickupTime,
+      },
+      cfg.cards?.readyForPickup
+    );
+
+    if (preview) {
+      return NextResponse.json({ ok: true, preview: notify ? [flex] : [] });
+    }
+
+    for (const x of ids) {
+      const target = x === id ? b : await getBooking(x);
+      // กันกดข้ามเคสของบ้านอื่นที่ id หลุดมาใน ids
+      if (!target || target.customerName !== b.customerName) continue;
+      await updateBooking(x, { status });
+    }
+
+    let sent = false;
+    if (notify) {
+      const to = await resolveRecipient(b, lineUserId);
+      if (to) {
+        try {
+          await pushLineMessage(to, [flex]);
+          sent = true;
+        } catch {
+          /* ส่งไม่ผ่านก็ไม่ย้อนสถานะ — พนักงานเห็นผลที่หน้าจอแล้วแจ้งเองได้ */
+        }
+      }
+    }
+
+    await sendTelegram(
+      formatBookingTelegram(
+        status === "ready"
+          ? "🎉 น้องพร้อมกลับบ้าน"
+          : status === "done"
+            ? "✅ ปิดงานแล้ว"
+            : "🚫 ลูกค้าไม่มาตามนัด",
+        {
+          ลูกค้า: String(b.customerName),
+          น้องแมว: String(gb.catName),
+          บริการ: b.service === "room" ? "ห้องพัก" : "อาบน้ำ",
+          ...(status === "ready" ? { แจ้งลูกค้า: sent ? "ส่งแล้ว" : "ไม่ได้ส่ง" } : {}),
+        }
+      )
+    );
+
+    return NextResponse.json({ ok: true, sent, status });
   }
 
   if (action === "cancel") {

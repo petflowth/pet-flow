@@ -87,9 +87,7 @@ async function runForTenant() {
           (b) =>
             b.lineUserId &&
             b.status !== "cancelled" &&
-            // นัดที่ลูกค้าจองเองแต่ร้านยังไม่กดรับ — ห้ามเตือนเหมือนนัดจริง
-            // (ยังไม่ถูกอนุมัติ และปุ่มยืนยันบนการ์ดจะถูก API ปฏิเสธอยู่ดี)
-            !(b.selfBooked && b.status !== "confirmed") &&
+            b.status !== "no_show" &&
             !autoMuted(b, "confirm") &&
             (b.checkin || b.date) === confirmDate
         );
@@ -211,9 +209,13 @@ async function runForTenant() {
   let reviewRequests = 0;
 
   for (const b of allBookings) {
-    if (b.service !== "room" || !b.lineUserId || b.status === "cancelled") continue;
-    // นัดจองเองที่ร้านยังไม่กดรับ — ยังไม่ใช่นัดจริง ห้ามส่งชุดเตรียมเข้าพัก/เลือกเวลา/ทวงยอด
-    if (b.selfBooked && b.status !== "confirmed") continue;
+    if (
+      b.service !== "room" ||
+      !b.lineUserId ||
+      b.status === "cancelled" ||
+      b.status === "no_show"
+    )
+      continue;
 
     // #1 — แจ้งยอดคงเหลือ N วันก่อนเข้าพัก (ถ้ามีมัดจำ + ยังค้าง)
     if (

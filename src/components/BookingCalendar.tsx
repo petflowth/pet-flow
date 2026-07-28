@@ -112,6 +112,35 @@ function formatThaiDate(iso: string) {
 }
 
 /** ตารางนัด + รายการนัดรายวัน — ใช้ในหน้า /admin/schedule */
+/**
+ * รายการย่อในตารางสัปดาห์/รายวัน — แถบสีซ้ายบอกสถานะทันทีโดยไม่ต้องอ่าน
+ * เขียว = เข้าพัก · น้ำตาลเข้ม = ยืนยันแล้ว · เหลือง = ยังไม่ยืนยัน
+ */
+function MiniEntry({ group, onClick }: { group: CalendarDay[]; onClick: () => void }) {
+  const b = group[0];
+  const isRoom = b.service === "room";
+  const confirmed = group.every((x) => x.status === "confirmed");
+  const names = group.map((x) => x.catName).join(", ");
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={`${names} · ${b.customerName}`}
+      className={`block w-full truncate rounded-lg border-l-[3px] px-1.5 py-1 text-left text-[10px] font-bold leading-tight ${
+        isRoom
+          ? "border-ok bg-sage/20 text-brown"
+          : confirmed
+            ? "border-latte-deep bg-latte/20 text-petflow-chocolate"
+            : "border-honey-deep bg-honey/25 text-petflow-chocolate"
+      }`}
+    >
+      {isRoom ? "🏠 " : b.time ? `${b.time} ` : "🛁 "}
+      {names}
+      <span className="font-normal text-brown-faint"> · {b.customerName}</span>
+    </button>
+  );
+}
+
 export function BookingCalendar() {
   const [bookings, setBookings] = useState<CalendarDay[]>([]);
   const [selectedDate, setSelectedDate] = useState("");
@@ -181,6 +210,8 @@ export function BookingCalendar() {
   };
 
   const [viewMonth, setViewMonth] = useState(() => today.slice(0, 7));
+  /** มุมมองตาราง — เดือนไว้ดูภาพรวม, สัปดาห์ไว้วางแผน, วันไว้ทำงานจริงหน้าร้าน */
+  const [view, setView] = useState<"month" | "week" | "day">("week");
 
   const liveBookings = bookings.filter((b) => b.status !== "cancelled");
   const dayBookings = liveBookings.filter((b) => bookingOnDate(b, activeDate));
@@ -241,6 +272,48 @@ export function BookingCalendar() {
   const daysInMonth = new Date(y, m, 0).getDate();
   const startPad = firstDay.getDay();
 
+  // เลื่อนวัน/สัปดาห์ — เที่ยงวันกัน timezone ดึงวันเพี้ยนตอนแปลงกลับเป็น ISO
+  const shiftDays = (delta: number) => {
+    const d = new Date(`${activeDate}T12:00:00`);
+    d.setDate(d.getDate() + delta);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate()
+    ).padStart(2, "0")}`;
+    setSelectedDate(key);
+    setViewMonth(key.slice(0, 7));
+  };
+  const shiftView = (delta: number) =>
+    view === "month" ? shiftMonth(delta) : shiftDays(view === "week" ? delta * 7 : delta);
+
+  // 7 วันของสัปดาห์ที่กำลังดู (เริ่มวันอาทิตย์ ให้ตรงกับหัวตารางเดือน)
+  const weekDates = (() => {
+    const d = new Date(`${activeDate}T12:00:00`);
+    d.setDate(d.getDate() - d.getDay());
+    return Array.from({ length: 7 }, (_, i) => {
+      const x = new Date(d);
+      x.setDate(d.getDate() + i);
+      return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(
+        x.getDate()
+      ).padStart(2, "0")}`;
+    });
+  })();
+
+  // มุมมองรายวัน — แถวละชั่วโมง ครอบคลุมช่วงที่มีนัดจริง (อย่างน้อย 9:00–18:00)
+  const dayGroups = groupBookings(dayBookings);
+  const timedGroups = dayGroups.filter((g) => g[0].time);
+  const allDayGroups = dayGroups.filter((g) => !g[0].time);
+  const hourNums = timedGroups.map((g) => Number(g[0].time!.slice(0, 2)));
+  const startHour = Math.min(9, ...hourNums);
+  const endHour = Math.max(18, ...hourNums);
+  const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
+
+  const viewTitle =
+    view === "month"
+      ? `เดือน ${m}/${y}`
+      : view === "week"
+        ? `${formatThaiDate(weekDates[0])} – ${formatThaiDate(weekDates[6])}`
+        : formatThaiDate(activeDate);
+
   if (loading) {
     return <p className="py-10 text-center text-sm text-brown-soft">กำลังโหลด…</p>;
   }
@@ -258,24 +331,46 @@ export function BookingCalendar() {
       )}
 
       <section className="rounded-petflow bg-card p-4 shadow-petflow-sm">
+        {/* สลับมุมมอง — เดือนดูภาพรวม / สัปดาห์วางแผน / วันใช้ทำงานหน้าร้าน */}
+        <div className="mb-3 flex gap-1.5">
+          {(
+            [
+              { id: "month" as const, label: "🗓️ เดือน" },
+              { id: "week" as const, label: "📆 สัปดาห์" },
+              { id: "day" as const, label: "📋 วัน" },
+            ] as const
+          ).map((v) => (
+            <button
+              key={v.id}
+              type="button"
+              onClick={() => setView(v.id)}
+              className={`flex-1 rounded-petflow-sm py-2 text-xs font-bold transition ${
+                view === v.id
+                  ? "bg-honey/45 text-petflow-chocolate shadow-petflow-sm"
+                  : "bg-paper text-brown-soft"
+              }`}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+
         <div className="mb-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
+          <div className="flex min-w-0 items-center gap-1.5">
             <button
               type="button"
-              onClick={() => shiftMonth(-1)}
-              aria-label="เดือนก่อนหน้า"
-              className="rounded-full bg-paper px-2.5 py-1 text-sm font-extrabold text-brown-soft"
+              onClick={() => shiftView(-1)}
+              aria-label="ก่อนหน้า"
+              className="shrink-0 rounded-full bg-paper px-2.5 py-1 text-sm font-extrabold text-brown-soft"
             >
               ‹
             </button>
-            <h2 className="text-base font-extrabold text-petflow-chocolate">
-              🗓️ ตารางนัดเดือน {m}/{y}
-            </h2>
+            <h2 className="truncate text-sm font-extrabold text-petflow-chocolate">{viewTitle}</h2>
             <button
               type="button"
-              onClick={() => shiftMonth(1)}
-              aria-label="เดือนถัดไป"
-              className="rounded-full bg-paper px-2.5 py-1 text-sm font-extrabold text-brown-soft"
+              onClick={() => shiftView(1)}
+              aria-label="ถัดไป"
+              className="shrink-0 rounded-full bg-paper px-2.5 py-1 text-sm font-extrabold text-brown-soft"
             >
               ›
             </button>
@@ -287,12 +382,101 @@ export function BookingCalendar() {
                 setViewMonth(today.slice(0, 7));
                 pickDate(today);
               }}
-              className="rounded-full bg-honey/30 px-3 py-1 text-[10px] font-bold text-petflow-chocolate"
+              className="shrink-0 rounded-full bg-honey/30 px-3 py-1 text-[10px] font-bold text-petflow-chocolate"
             >
               กลับวันนี้
             </button>
           )}
         </div>
+
+        {view === "week" && (
+          <div className="grid gap-1.5 sm:grid-cols-7">
+            {weekDates.map((key) => {
+              const items = groupBookings(liveBookings.filter((b) => bookingOnDate(b, key)));
+              const d = new Date(`${key}T12:00:00`);
+              const isToday = key === today;
+              const isSelected = key === activeDate;
+              return (
+                <div
+                  key={key}
+                  className={`rounded-xl p-1.5 ${
+                    isSelected
+                      ? "bg-latte/25 ring-2 ring-latte-deep"
+                      : isToday
+                        ? "bg-honey/25 ring-1 ring-honey-deep"
+                        : "bg-paper/50"
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => pickDate(key)}
+                    className="mb-1 flex w-full items-baseline gap-1.5 px-1 text-left sm:justify-center"
+                  >
+                    <span className="text-[10px] font-bold text-brown-faint">
+                      {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"][d.getDay()]}
+                    </span>
+                    <span className="text-sm font-extrabold text-petflow-chocolate">
+                      {d.getDate()}
+                    </span>
+                    {items.length > 0 && (
+                      <span className="text-[9px] font-bold text-brown-faint">
+                        · {items.length}
+                      </span>
+                    )}
+                  </button>
+                  <div className="space-y-1">
+                    {items.length === 0 ? (
+                      <p className="px-1 pb-1 text-[9px] text-brown-faint sm:text-center">—</p>
+                    ) : (
+                      items.map((g) => (
+                        <MiniEntry key={g[0].id} group={g} onClick={() => pickDate(key)} />
+                      ))
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {view === "day" && (
+          <div>
+            {allDayGroups.length > 0 && (
+              <div className="mb-2 rounded-xl bg-sage/15 p-2">
+                <p className="mb-1 text-[10px] font-bold text-brown-faint">🏠 ทั้งวัน / เข้าพัก</p>
+                <div className="space-y-1">
+                  {allDayGroups.map((g) => (
+                    <MiniEntry key={g[0].id} group={g} onClick={() => setEditing(g[0])} />
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="divide-y divide-petflow-line">
+              {hours.map((h) => {
+                const slot = timedGroups.filter((g) => Number(g[0].time!.slice(0, 2)) === h);
+                return (
+                  <div key={h} className="flex gap-2 py-1.5">
+                    <span className="w-11 shrink-0 pt-0.5 text-[10px] font-bold text-brown-faint">
+                      {String(h).padStart(2, "0")}:00
+                    </span>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      {slot.length === 0 ? (
+                        <div className="h-4 rounded bg-paper/40" />
+                      ) : (
+                        slot.map((g) => (
+                          <MiniEntry key={g[0].id} group={g} onClick={() => setEditing(g[0])} />
+                        ))
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {view === "month" && (
+        <>
         <p className="mb-2.5 text-xs text-brown-soft">แตะวันที่เพื่อดูรายการ · กดจองคิวได้เลย</p>
         <div className="grid grid-cols-7 gap-1.5 text-center">
           {["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((d) => (
@@ -352,6 +536,8 @@ export function BookingCalendar() {
             );
           })}
         </div>
+        </>
+        )}
       </section>
 
       <section ref={queueRef} className="rounded-petflow bg-card p-4 shadow-petflow-sm">

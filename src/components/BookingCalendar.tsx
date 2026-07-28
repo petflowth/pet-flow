@@ -12,6 +12,10 @@ import { groomProgram } from "@/lib/grooming-prices";
 
 type CalendarDay = EditableBooking & {
   customerId?: string;
+  /** ป้ายเตือนของแมวตัวนี้ — หลังบ้านเท่านั้น (API ไม่ส่งให้ฝั่งลูกค้า) */
+  catMedical?: string;
+  catStaffNote?: string;
+  catPrivateNote?: string;
   careNote?: string;
   consentAcceptedAt?: string;
   consentSignature?: string;
@@ -116,6 +120,51 @@ function formatThaiDate(iso: string) {
  * รายการย่อในตารางสัปดาห์/รายวัน — แถบสีซ้ายบอกสถานะทันทีโดยไม่ต้องอ่าน
  * เขียว = เข้าพัก · น้ำตาลเข้ม = ยืนยันแล้ว · เหลือง = ยังไม่ยืนยัน
  */
+/**
+ * ป้ายเตือนต่อแมว — สิ่งที่ช่าง/พนักงานต้องรู้ก่อนจับน้อง โดยไม่ต้องเปิดหน้าลูกค้า
+ * โน้ตลับร้านเป็นสีแดงเพราะเป็นเรื่องความปลอดภัย (กัด/ข่วน) ไม่ใช่ข้อมูลทั่วไป
+ * การ์ดของบ้านที่มีหลายตัวจะติดชื่อน้องกำกับ จะได้ไม่สับสนว่าป้ายของตัวไหน
+ */
+function CatTags({ group }: { group: CalendarDay[] }) {
+  const rows = group
+    .map((b) => ({
+      name: b.catName,
+      tags: [
+        b.catPrivateNote ? { text: b.catPrivateNote, kind: "danger" as const } : null,
+        b.catMedical && b.catMedical !== "ไม่มี"
+          ? { text: `💊 ${b.catMedical}`, kind: "warn" as const }
+          : null,
+        b.catStaffNote ? { text: b.catStaffNote, kind: "info" as const } : null,
+      ].filter(Boolean) as { text: string; kind: "danger" | "warn" | "info" }[],
+    }))
+    .filter((r) => r.tags.length > 0);
+  if (rows.length === 0) return null;
+
+  const many = group.length > 1;
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-1">
+      {rows.flatMap((r) =>
+        r.tags.map((tag, i) => (
+          <span
+            key={`${r.name}-${i}`}
+            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+              tag.kind === "danger"
+                ? "bg-red-50 text-red-700 ring-1 ring-red-200"
+                : tag.kind === "warn"
+                  ? "bg-wait/15 text-wait"
+                  : "bg-latte/20 text-brown"
+            }`}
+          >
+            {tag.kind === "danger" && "⚠️ "}
+            {many ? `${r.name}: ` : ""}
+            {tag.text}
+          </span>
+        ))
+      )}
+    </div>
+  );
+}
+
 function MiniEntry({ group, onClick }: { group: CalendarDay[]; onClick: () => void }) {
   const b = group[0];
   const isRoom = b.service === "room";
@@ -643,11 +692,7 @@ export function BookingCalendar() {
                     <p className="text-xs text-brown-soft break-words">
                       {b.service === "room" ? "🏠 ห้องพัก" : "🛁 อาบน้ำ"} · {bookingWhen(b)}
                     </p>
-                    {b.groomProgram && (
-                      <p className="text-[11px] font-bold text-latte-deep">
-                        🧴 {groomProgram(b.groomProgram)?.name || b.groomProgram}
-                      </p>
-                    )}
+                    <CatTags group={group} />
                     {b.service === "room" &&
                       (b.consentAcceptedAt ? (
                         <div className="mt-1 flex items-center gap-2">

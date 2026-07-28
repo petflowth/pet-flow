@@ -126,6 +126,9 @@ async function handleGet(lineUserId?: string) {
   const allCustomers = lineUserId ? [] : await listCustomers();
   const items = (await listBookings(lineUserId)).map((b) => {
     const customer = allCustomers.find((c) => bookingMatchesCustomer(b, c));
+    // ป้ายเตือนที่พนักงานต้องเห็นก่อนจับน้อง — โน้ตลับร้านอยู่ในนี้ด้วย
+    // จึงแนบเฉพาะฝั่งหลังบ้าน (allCustomers ว่างเสมอเมื่อเป็นแอปลูกค้า)
+    const cat = customer?.cats.find((c) => c.name === b.catName);
     return {
       ...toBooking(b),
       lineUserId: b.lineUserId,
@@ -143,6 +146,9 @@ async function handleGet(lineUserId?: string) {
       autoOff: b.autoOff || [],
       groomProgram: b.groomProgram,
       customerId: customer?.id,
+      catMedical: cat?.medical || undefined,
+      catStaffNote: cat?.staffNote || undefined,
+      catPrivateNote: cat?.staffPrivateNote || undefined,
     };
   });
   return NextResponse.json({ bookings: items });

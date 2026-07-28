@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { RoomType } from "@/lib/business";
@@ -8,6 +8,8 @@ import type { CustomerRecord } from "@/lib/customers-store";
 import { GROOM_PROGRAMS } from "@/lib/grooming-prices";
 import { CustomerSendButtons } from "@/components/CustomerSendButtons";
 import { toast } from "@/components/Toast";
+import { GROOM_PROGRAMS } from "@/lib/grooming-prices";
+import { typeAvailability, type BoardBooking } from "@/lib/room-board";
 
 type CustomerListItem = CustomerRecord & { upcomingAppointments?: number };
 
@@ -261,6 +263,51 @@ export default function NewBookingPage() {
         if (d.config?.options?.freebies?.length) setFreebies_(d.config.options.freebies);
       });
   }, []);
+
+  // นัดที่มีอยู่ — ใช้คำนวณว่าห้องแต่ละแบบเหลือจริงกี่ห้องในช่วงวันที่เลือก
+  const [existing, setExisting] = useState<BoardBooking[]>([]);
+  useEffect(() => {
+    fetch("/api/bookings")
+      .then((r) => r.json())
+      .then((d) => setExisting(d.bookings || []))
+      .catch(() => {
+        /* ดูที่ว่างไม่ได้ก็ยังจองได้ตามปกติ แค่ไม่มีตัวช่วย */
+      });
+  }, []);
+
+  const [roomId, setRoomId] = useState("");
+  const boardRooms = rooms.map((r) => ({ id: r.id, name: r.name, count: r.count || 0 }));
+  /** ห้องแต่ละแบบว่างกี่ห้องตลอดช่วงที่ขอ (ติดคืนไหนบอกคืนนั้น) */
+  const availability = useMemo(() => {
+    if (service !== "room" || !appointmentDate || rooms.length === 0) return {};
+    const out: Record<string, { free: number; total: number; tightestDate: string }> = {};
+    for (const r of rooms) {
+      // ห้องเชื่อม (count 0) ไม่ใช่ยูนิตของตัวเอง — เกิดจากรวมห้องอื่นเข้าด้วยกัน
+      // นับที่ว่างไม่ได้ ต้องปล่อยให้เลือกเองเหมือนเดิม ไม่งั้นจะกดไม่ได้ตลอดกาล
+      if (!r.count) continue;
+      out[r.id] = typeAvailability(
+        boardRooms,
+        existing,
+        r.id,
+        appointmentDate,
+        checkoutDate || appointmentDate
+      );
+    }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [service, appointmentDate, checkoutDate, rooms, existing]);
+
+  // ห้องที่เลือกไว้เต็มไปแล้ว (เช่นเพิ่งเปลี่ยนวัน) → เด้งไปห้องที่ยังว่าง
+  useEffect(() => {
+    if (service !== "room" || rooms.length === 0) return;
+    const cur = availability[roomId];
+    // ห้องเชื่อมไม่มีข้อมูลที่ว่าง (ไม่อยู่ใน availability) — เลือกไว้แล้วก็ปล่อยไว้
+    if (roomId && (!cur || cur.free > 0)) return;
+    const firstFree = rooms.find((r) => (availability[r.id]?.free ?? 0) > 0);
+    if (firstFree && firstFree.id !== roomId) setRoomId(firstFree.id);
+    else if (!roomId && rooms[0]) setRoomId(rooms[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availability, service, rooms]);
 
   const addCatFromInput = () => {
     const name = catInput.trim();
@@ -579,20 +626,69 @@ export default function NewBookingPage() {
           </>
         ) : (
           <>
-            <label className="block text-xs font-bold text-brown-soft">
-              ห้อง
-              <select
-                name="room"
-                className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm"
-              >
-                {rooms.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name} ({r.size}) — {r.price} บาท/คืน
-                    {r.count ? ` · ${r.count} ห้อง` : " · ห้องเชื่อม"}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div>
+              <p className="text-xs font-bold text-brown-soft">ห้อง</p>
+              <p className="mb-1.5 text-[10px] text-brown-faint">
+                ตัวเลขคือห้องที่ว่างจริงตลอดช่วงที่เลือก · ห้องเต็มจะกดไม่ได้
+              </p>
+              <input type="hidden" name="room" value={roomId} />
+              <div className="space-y-1.5">
+                {rooms.map((r) => {
+                  const a = availability[r.id];
+                  const combo = !r.count;
+                  const free = a?.free ?? r.count ?? 0;
+                  const full = !combo && free <= 0;
+                  const picked = roomId === r.id;
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      disabled={full}
+                      onClick={() => setRoomId(r.id)}
+                      className={`flex w-full items-center justify-between gap-2 rounded-petflow-sm px-3 py-2.5 text-left transition ${
+                        full
+                          ? "cursor-not-allowed bg-paper/50 opacity-60"
+                          : picked
+                            ? "bg-honey/40 ring-2 ring-honey-deep"
+                            : "bg-paper hover:bg-honey/15"
+                      }`}
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-xs font-extrabold text-petflow-chocolate">
+                          {picked && !full ? "✓ " : ""}
+                          {r.name} ({r.size})
+                        </span>
+                        <span className="block text-[10px] text-brown-soft">
+                          {r.price} บาท/คืน
+                          {combo
+                            ? " · ห้องเชื่อม (รวมห้องอื่น)"
+                            : full && a
+                              ? ` · เต็มวันที่ ${a.tightestDate}`
+                              : ` · ทั้งหมด ${r.count} ห้อง`}
+                        </span>
+                      </span>
+                      <span
+                        className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-extrabold ${
+                          combo
+                            ? "bg-paper text-brown-soft"
+                            : full
+                              ? "bg-red-50 text-red-600"
+                              : "bg-ok/15 text-ok"
+                        }`}
+                      >
+                        {combo ? "เช็คเอง" : full ? "เต็ม" : `ว่าง ${free}`}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {Object.keys(availability).length > 0 &&
+                Object.values(availability).every((a) => a.free <= 0) && (
+                <p className="mt-2 rounded-petflow-sm bg-red-50 px-3 py-2 text-[10px] font-bold text-red-700">
+                  🔴 ช่วงวันนี้ห้องเต็มทุกแบบ — ต้องเลื่อนวันหรือเช็คห้องที่จะเช็คเอาท์ก่อน
+                </p>
+              )}
+            </div>
             <Field
               label="เช็คอิน"
               name="checkin"

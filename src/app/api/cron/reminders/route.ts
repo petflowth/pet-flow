@@ -208,29 +208,38 @@ async function runForTenant() {
   let checkoutReminders = 0;
   let reviewRequests = 0;
 
-  for (const b of allBookings) {
-    if (
-      b.service !== "room" ||
-      !b.lineUserId ||
-      b.status === "cancelled" ||
-      b.status === "no_show"
-    )
-      continue;
+  // บ้านเดียวกันเข้าพักพร้อมกันหลายตัว = การ์ดใบเดียว ไม่ใช่ใบต่อแมวหนึ่งตัว
+  // (เมื่อก่อนวนทีละนัด บ้านที่ฝาก 3 ตัวจึงได้การ์ดเลือกเวลารับ-ส่งรัวๆ 3 ใบ)
+  const roomStays = allBookings.filter(
+    (b) =>
+      b.service === "room" &&
+      b.lineUserId &&
+      b.status !== "cancelled" &&
+      b.status !== "no_show"
+  );
+  for (const group of groupBookings(roomStays)) {
+    const primary = group[0];
+    const ids = group.map((x) => x.id);
+    // ใช้ชื่อรวมทุกตัวในการ์ด แต่คงข้อมูลนัดอื่นๆ ของตัวแทนกลุ่มไว้
+    const b = { ...primary, catName: groupCatNames(group) };
+    const to = String(primary.lineUserId);
+    /** ปิดเฉพาะเมื่อปิดครบทุกตัวในบ้าน — ปิดตัวเดียวไม่ควรทำให้ทั้งบ้านเงียบ */
+    const groupMuted = (topic: string) => group.every((x) => autoMuted(x, topic));
 
     // #1 — แจ้งยอดคงเหลือ N วันก่อนเข้าพัก (ถ้ามีมัดจำ + ยังค้าง)
     if (
       auto?.depositReminderEnabled !== false &&
-      !autoMuted(b, "deposit") &&
+      !groupMuted("deposit") &&
       b.checkin === in7
     ) {
       const inv = allInvoices.find(
-        (i) => i.bookingId === b.id && i.status === "pending" && (i.deposit || 0) > 0
+        (i) => i.bookingId && ids.includes(i.bookingId) && i.status === "pending" && (i.deposit || 0) > 0
       );
       if (inv) {
         const text = buildDepositReminderText(b, inv, cfg);
         if (text) {
           try {
-            await pushLineMessage(b.lineUserId, [{ type: "text", text }]);
+            await pushLineMessage(to, [{ type: "text", text }]);
             depositReminders++;
           } catch (e) {
             errors.push(`deposit ${b.id}: ${String(e)}`);
@@ -243,7 +252,7 @@ async function runForTenant() {
     // รวมทั้งหมดใน push เดียว = นับ 1 ข้อความ LINE — ลิงก์ยอมรับชี้ที่นัดนี้เท่านั้น
     if (
       auto?.prestayReminderEnabled !== false &&
-      !autoMuted(b, "prestay") &&
+      !groupMuted("prestay") &&
       b.checkin === in3
     ) {
       const consentUrl = await getConsentUrl(b.id);
@@ -272,7 +281,7 @@ async function runForTenant() {
       }
       // มีบิลค้าง + มัดจำแล้ว → แนบการ์ดยอดคงเหลือที่ต้องโอนก่อนเข้าพัก
       const pendingInv = allInvoices.find(
-        (i) => i.bookingId === b.id && i.status === "pending" && (i.deposit || 0) > 0
+        (i) => i.bookingId && ids.includes(i.bookingId) && i.status === "pending" && (i.deposit || 0) > 0
       );
       if (pendingInv && pendingInv.total - (pendingInv.deposit || 0) > 0) {
         const payment = await getPaymentConfig();
@@ -308,7 +317,7 @@ async function runForTenant() {
         }, cfg.cards?.timePicker)
       );
       try {
-        await pushLineMessage(b.lineUserId, prestayBundle);
+        await pushLineMessage(to, prestayBundle);
         prestayReminders++;
       } catch (e) {
         errors.push(`prestay ${b.id}: ${String(e)}`);
@@ -319,9 +328,9 @@ async function runForTenant() {
     // (ข้ามถ้าลูกค้าเลือกเวลาแล้วจากชุดก่อนเข้าพัก — ไม่ถามซ้ำ)
     if (
       auto?.checkinReminderEnabled !== false &&
-      !autoMuted(b, "checkin") &&
+      !groupMuted("checkin") &&
       b.checkin === inCheckin &&
-      !b.arrivalTime
+      group.some((x) => !x.arrivalTime)
     ) {
       const url = await getBookingTimeUrl(b.id, "checkin");
       const flex = buildTimePickerFlex({
@@ -331,7 +340,7 @@ async function runForTenant() {
         label: "🕒 เลือกเวลาส่งน้อง",
       }, cfg.cards?.timePicker);
       try {
-        await pushLineMessage(b.lineUserId, [flex]);
+        await pushLineMessage(to, [flex]);
         checkinReminders++;
       } catch (e) {
         errors.push(`checkin ${b.id}: ${String(e)}`);
@@ -341,10 +350,10 @@ async function runForTenant() {
     // เตือนเช็คเอาท์ N วันก่อนออก → การ์ดให้ลูกค้าเลือกเวลามารับน้อง
     if (
       auto?.checkoutReminderEnabled !== false &&
-      !autoMuted(b, "checkout") &&
+      !groupMuted("checkout") &&
       b.checkout &&
       b.checkout === inCheckout &&
-      !b.pickupTime
+      group.some((x) => !x.pickupTime)
     ) {
       const url = await getBookingTimeUrl(b.id, "checkout");
       const flex = buildTimePickerFlex({
@@ -354,7 +363,7 @@ async function runForTenant() {
         label: "🕒 เลือกเวลารับน้อง",
       }, cfg.cards?.timePicker);
       try {
-        await pushLineMessage(b.lineUserId, [flex]);
+        await pushLineMessage(to, [flex]);
         checkoutReminders++;
       } catch (e) {
         errors.push(`checkout ${b.id}: ${String(e)}`);
@@ -364,7 +373,7 @@ async function runForTenant() {
     // ⭐ ขอรีวิว หลังเช็คเอาท์ (แยกจากใบเสร็จ — ลูกค้าใช้บริการจริงแล้ว)
     if (
       auto?.reviewRequestEnabled !== false &&
-      !autoMuted(b, "review") &&
+      !groupMuted("review") &&
       b.checkout &&
       b.checkout === afterCheckoutReview
     ) {
@@ -380,7 +389,7 @@ async function runForTenant() {
           reviewLabel: cfg.business.reviewButtonText,
         }, cfg.cards?.review);
         try {
-          await pushLineMessage(b.lineUserId, [flex]);
+          await pushLineMessage(to, [flex]);
           reviewRequests++;
         } catch (e) {
           errors.push(`review ${b.id}: ${String(e)}`);

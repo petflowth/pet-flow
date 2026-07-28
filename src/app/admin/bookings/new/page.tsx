@@ -9,7 +9,12 @@ import { GROOM_PROGRAMS } from "@/lib/grooming-prices";
 import { CustomerSendButtons } from "@/components/CustomerSendButtons";
 import { toast } from "@/components/Toast";
 import { GROOM_PROGRAMS } from "@/lib/grooming-prices";
-import { typeAvailability, type BoardBooking } from "@/lib/room-board";
+import {
+  typeAvailability,
+  compositionOf,
+  roomCapacity,
+  type BoardBooking,
+} from "@/lib/room-board";
 
 type CustomerListItem = CustomerRecord & { upcomingAppointments?: number };
 
@@ -276,15 +281,20 @@ export default function NewBookingPage() {
   }, []);
 
   const [roomId, setRoomId] = useState("");
-  const boardRooms = rooms.map((r) => ({ id: r.id, name: r.name, count: r.count || 0 }));
+  const boardRooms = rooms.map((r) => ({
+    id: r.id,
+    name: r.name,
+    count: r.count || 0,
+    maxCats: roomCapacity(r),
+  }));
   /** ห้องแต่ละแบบว่างกี่ห้องตลอดช่วงที่ขอ (ติดคืนไหนบอกคืนนั้น) */
   const availability = useMemo(() => {
     if (service !== "room" || !appointmentDate || rooms.length === 0) return {};
     const out: Record<string, { free: number; total: number; tightestDate: string }> = {};
     for (const r of rooms) {
-      // ห้องเชื่อม (count 0) ไม่ใช่ยูนิตของตัวเอง — เกิดจากรวมห้องอื่นเข้าด้วยกัน
-      // นับที่ว่างไม่ได้ ต้องปล่อยให้เลือกเองเหมือนเดิม ไม่งั้นจะกดไม่ได้ตลอดกาล
-      if (!r.count) continue;
+      // ห้องเชื่อมไม่มียูนิตของตัวเอง แต่คิดที่ว่างได้จากห้องจริงที่ใช้ประกอบ
+      // (Mini Duo = MiNi Meow 2 ห้อง) — ประเภทที่ไม่มีทั้งห้องจริงและสูตรประกอบ ข้ามไป
+      if (!r.count && !compositionOf(r.id)) continue;
       out[r.id] = typeAvailability(
         boardRooms,
         existing,
@@ -635,9 +645,9 @@ export default function NewBookingPage() {
               <div className="space-y-1.5">
                 {rooms.map((r) => {
                   const a = availability[r.id];
-                  const combo = !r.count;
+                  const combo = !r.count && !!compositionOf(r.id);
                   const free = a?.free ?? r.count ?? 0;
-                  const full = !combo && free <= 0;
+                  const full = free <= 0;
                   const picked = roomId === r.id;
                   return (
                     <button
@@ -660,23 +670,19 @@ export default function NewBookingPage() {
                         </span>
                         <span className="block text-[10px] text-brown-soft">
                           {r.price} บาท/คืน
-                          {combo
-                            ? " · ห้องเชื่อม (รวมห้องอื่น)"
-                            : full && a
-                              ? ` · เต็มวันที่ ${a.tightestDate}`
+                          {full && a
+                            ? ` · เต็มวันที่ ${a.tightestDate}`
+                            : combo
+                              ? " · ห้องเชื่อม (ใช้ห้องจริง 2 ห้อง)"
                               : ` · ทั้งหมด ${r.count} ห้อง`}
                         </span>
                       </span>
                       <span
                         className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-extrabold ${
-                          combo
-                            ? "bg-paper text-brown-soft"
-                            : full
-                              ? "bg-red-50 text-red-600"
-                              : "bg-ok/15 text-ok"
+                          full ? "bg-red-50 text-red-600" : "bg-ok/15 text-ok"
                         }`}
                       >
-                        {combo ? "เช็คเอง" : full ? "เต็ม" : `ว่าง ${free}`}
+                        {full ? "เต็ม" : `ว่าง ${free}${combo ? " ชุด" : ""}`}
                       </span>
                     </button>
                   );

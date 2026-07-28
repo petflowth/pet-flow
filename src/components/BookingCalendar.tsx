@@ -9,7 +9,7 @@ import { bookingOnDate } from "@/lib/booking-customer-match";
 import { toast } from "@/components/Toast";
 import { PreviewSendModal } from "@/components/PreviewSendModal";
 import { groupBookings } from "@/lib/booking-group";
-import { buildRoomBoard } from "@/lib/room-board";
+import { buildRoomBoard, roomCapacity } from "@/lib/room-board";
 
 type CalendarDay = EditableBooking & {
   customerId?: string;
@@ -200,7 +200,15 @@ export function BookingCalendar() {
   // นัดที่บิลจ่ายจบแล้ว (รายงานขึ้นมาจาก BillButton) — ติดป้าย "จบเคส" ให้เห็นชัดทั้งการ์ด
   const [paidCases, setPaidCases] = useState<Record<string, boolean>>({});
   const [rooms, setRooms] = useState<
-    { id: string; name: string; size: string; price: number; count: number }[]
+    {
+      id: string;
+      name: string;
+      size: string;
+      price: number;
+      count: number;
+      cats?: { th: string };
+      extra?: { th: string };
+    }[]
   >([]);
   const [groomSlots, setGroomSlots] = useState<string[]>(["09:30", "12:30", "15:30"]);
   const [closedDates, setClosedDates] = useState<{ date: string; note?: string }[]>([]);
@@ -439,7 +447,12 @@ export function BookingCalendar() {
 
   // ผังห้องของวันที่เลือก — ห้องไหนมีใคร ว่างกี่ห้องจริง วันไหนต้องรับต่อกัน
   const board = buildRoomBoard(
-    rooms.map((r) => ({ id: r.id, name: r.name, count: r.count })),
+    rooms.map((r) => ({
+      id: r.id,
+      name: r.name,
+      count: r.count,
+      maxCats: roomCapacity(r),
+    })),
     liveBookings,
     activeDate
   );
@@ -667,8 +680,10 @@ export function BookingCalendar() {
                 </p>
                 <ul className="mt-1.5 space-y-1.5">
                   {board.turnovers.map((u) => {
-                    const out = u.leaving!;
-                    const inn = u.staying!;
+                    const out = u.leaving[0];
+                    const inn = u.staying[0];
+                    const outNames = u.leaving.map((x) => x.catName).join(", ");
+                    const innNames = u.staying.map((x) => x.catName).join(", ");
                     const gapOk = out.pickupTime && inn.arrivalTime
                       ? out.pickupTime <= inn.arrivalTime
                       : true;
@@ -681,13 +696,13 @@ export function BookingCalendar() {
                           {u.typeName} #{u.unit}
                         </p>
                         <p className="mt-0.5 text-brown-soft">
-                          ⬅️ ออก: {out.catName} · {out.customerName} —{" "}
+                          ⬅️ ออก: {outNames} · {out.customerName} —{" "}
                           <span className={out.pickupTime ? "font-bold text-ok" : "text-brown-faint"}>
                             {out.pickupTime ? `รับ ${out.pickupTime} น.` : "ยังไม่แจ้งเวลารับ"}
                           </span>
                         </p>
                         <p className="text-brown-soft">
-                          ➡️ เข้า: {inn.catName} · {inn.customerName} —{" "}
+                          ➡️ เข้า: {innNames} · {inn.customerName} —{" "}
                           <span className={inn.arrivalTime ? "font-bold text-ok" : "text-brown-faint"}>
                             {inn.arrivalTime ? `ส่ง ${inn.arrivalTime} น.` : "ยังไม่แจ้งเวลาส่ง"}
                           </span>
@@ -724,21 +739,23 @@ export function BookingCalendar() {
                       }`}
                     >
                       {t.free === 0 ? "เต็ม" : `ว่าง ${t.free}`} / {t.total} ห้อง
+                      {t.cats > 0 && ` · ${t.cats} ตัว`}
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-6">
                     {t.units.map((u) => {
-                      const occupant = u.staying;
+                      const host = u.staying[0];
+                      const busy = u.staying.length > 0 || !!u.partOf;
                       return (
                         <button
                           key={u.unit}
                           type="button"
-                          onClick={() => occupant && setEditing(occupant as CalendarDay)}
-                          disabled={!occupant}
+                          onClick={() => host && setEditing(host as CalendarDay)}
+                          disabled={!host}
                           className={`min-h-[62px] rounded-xl px-2 py-1.5 text-left transition ${
                             u.turnover
                               ? "bg-wait/20 ring-1 ring-wait"
-                              : occupant
+                              : busy
                                 ? "bg-latte/25 ring-1 ring-latte-deep/40 hover:bg-latte/35"
                                 : "bg-paper/50 ring-1 ring-dashed ring-petflow-line"
                           }`}
@@ -747,27 +764,42 @@ export function BookingCalendar() {
                             #{u.unit}
                             {u.turnover && " · 🔄 รับต่อ"}
                             {!u.turnover && u.arriving && " · 🆕 เข้าวันนี้"}
+                            {u.staying.length > 1 && ` · ${u.staying.length} ตัว`}
                           </p>
-                          {occupant ? (
+                          {u.partOf && (
+                            <p className="truncate text-[9px] font-bold text-latte-deep">
+                              🔗 {u.partOf}
+                            </p>
+                          )}
+                          {host ? (
                             <>
                               <p className="truncate text-[11px] font-extrabold text-petflow-chocolate">
-                                {occupant.catName}
+                                {u.staying.map((x) => x.catName).join(", ")}
                               </p>
                               <p className="truncate text-[9px] text-brown-soft">
-                                {occupant.customerName}
+                                {host.customerName}
                               </p>
                               <p className="truncate text-[9px] text-brown-faint">
-                                ถึง {occupant.checkout || "-"}
+                                ถึง {host.checkout || "-"}
                               </p>
                             </>
+                          ) : u.partOf ? (
+                            <p className="pt-1 text-center text-[9px] text-brown-faint">
+                              (ห้องที่เชื่อมอยู่)
+                            </p>
                           ) : (
                             <p className="pt-2 text-center text-[10px] font-bold text-brown-faint">
                               ว่าง
                             </p>
                           )}
-                          {u.leaving && (
+                          {u.leaving.length > 0 && (
                             <p className="mt-0.5 truncate text-[9px] text-wait">
-                              ⬅️ {u.leaving.catName} ออก
+                              ⬅️ {u.leaving.map((x) => x.catName).join(", ")} ออก
+                            </p>
+                          )}
+                          {u.overCapacity && (
+                            <p className="mt-0.5 truncate text-[9px] font-bold text-red-600">
+                              ⚠️ เกินความจุ ({u.capacity})
                             </p>
                           )}
                         </button>

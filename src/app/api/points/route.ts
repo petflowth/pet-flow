@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAccount, redeemReward, addPoints, deletePointsHistoryEntry } from "@/lib/points-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
-import { pushLineMessage } from "@/lib/line";
+import { pushLineMessage, buildPointsAwardFlex } from "@/lib/line";
+import { getSiteConfig } from "@/lib/config-store";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { withResolvedTenant, withTenant } from "@/lib/tenant-context";
 import { requireCustomerSession } from "@/lib/customer-session";
@@ -84,6 +85,28 @@ async function handlePost(req: NextRequest, isAdmin: boolean) {
     if (!uid || amount === 0) {
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
     }
+
+    // ดูตัวอย่างการ์ดก่อนส่งจริง — ยังไม่เติมแต้ม ไม่ส่งอะไรทั้งนั้น
+    if (body.preview === true) {
+      const cfg = await getSiteConfig();
+      const cur = await getAccount(uid, displayName || "");
+      return NextResponse.json({
+        ok: true,
+        preview: [
+          buildPointsAwardFlex(
+            {
+              customerName: cur.displayName || displayName || "ลูกค้า",
+              pointsAwarded: amount,
+              reason,
+              totalPoints: cur.points + amount,
+              shopName: cfg.business.name,
+            },
+            cfg.cards?.pointsAward
+          ),
+        ],
+      });
+    }
+
     const label = amount > 0 ? `🎁 ${reason}` : `ปรับแต้ม: ${reason}`;
     const acc = await addPoints(uid, amount, label, label, displayName || "");
     await sendTelegram(
@@ -101,11 +124,18 @@ async function handlePost(req: NextRequest, isAdmin: boolean) {
     // จะแจ้งก็ต่อเมื่อกดติ๊ก "แจ้งลูกค้าทาง LINE" ในหน้าหลังบ้าน
     if (amount > 0 && body.notify === true) {
       try {
+        const cfg = await getSiteConfig();
         await pushLineMessage(uid, [
-          {
-            type: "text",
-            text: `🎁 คุณได้รับ ${amount} แต้มฟรี!\nเหตุผล: ${reason}\nแต้มสะสมรวม ${acc.points} แต้ม ขอบคุณนะคะ 🧡`,
-          },
+          buildPointsAwardFlex(
+            {
+              customerName: acc.displayName || displayName || "ลูกค้า",
+              pointsAwarded: amount,
+              reason,
+              totalPoints: acc.points,
+              shopName: cfg.business.name,
+            },
+            cfg.cards?.pointsAward
+          ),
         ]);
       } catch {
         /* ไม่มี LINE ก็ไม่เป็นไร — แต้มถูกบันทึกแล้ว */

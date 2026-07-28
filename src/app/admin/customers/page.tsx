@@ -12,6 +12,7 @@ import { catCurrentAgeLabel } from "@/lib/cat-age";
 import { RegistrationQrSection } from "@/components/LineSetupSection";
 import { AddCustomerModal } from "@/components/AddCustomerModal";
 import { toast } from "@/components/Toast";
+import { PreviewSendModal } from "@/components/PreviewSendModal";
 import { CustomerLinkSection } from "@/components/CustomerLinkSection";
 import type { PointsHistoryEntry } from "@/lib/points-store";
 import { parseGroomInfo, groomInfoSummary } from "@/lib/groom-info";
@@ -915,6 +916,36 @@ function CustomerSummaryCard({
   /** ค่าเริ่มต้น = ไม่แจ้ง — เพิ่มแต้มหลังบ้านไม่ต้องรบกวนลูกค้า */
   const [addNotify, setAddNotify] = useState(false);
 
+  /** การ์ดที่รอยืนยันก่อนส่งจริง — null = ยังไม่ได้กดพรีวิว */
+  const [pointsPreview, setPointsPreview] = useState<Record<string, unknown>[] | null>(null);
+
+  const pointsPayload = () => ({
+    action: "admin_add",
+    lineUserId: customer.lineUserId,
+    amount: Math.round(Number(addAmt) || 0),
+    reason: addReason.trim() || "แต้มพิเศษจากร้าน",
+    displayName: customer.name,
+  });
+
+  /** ติ๊กแจ้งลูกค้า → ขอตัวอย่างการ์ดมาดูก่อน ยังไม่เติมแต้มจริง */
+  const previewBonusPoints = async () => {
+    const n = Math.round(Number(addAmt) || 0);
+    if (!n || !customer.lineUserId) return;
+    setAddBusy(true);
+    try {
+      const res = await fetch("/api/points", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...pointsPayload(), preview: true }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.preview) setPointsPreview(data.preview);
+      else setMsg("❌ ดูตัวอย่างไม่สำเร็จ");
+    } finally {
+      setAddBusy(false);
+    }
+  };
+
   const addBonusPoints = async () => {
     const n = Math.round(Number(addAmt) || 0);
     if (!n || !customer.lineUserId) return;
@@ -924,15 +955,9 @@ function CustomerSummaryCard({
       const res = await fetch("/api/points", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "admin_add",
-          lineUserId: customer.lineUserId,
-          amount: n,
-          reason,
-          displayName: customer.name,
-          notify: addNotify,
-        }),
+        body: JSON.stringify({ ...pointsPayload(), reason, notify: addNotify }),
       });
+      setPointsPreview(null);
       if (res.ok) {
         setMsg(
           `✅ ${n > 0 ? "เพิ่ม" : "ปรับ"} ${n} แต้มแล้ว (${reason})` +
@@ -1250,12 +1275,20 @@ function CustomerSummaryCard({
               <button
                 type="button"
                 disabled={addBusy || !addAmt}
-                onClick={addBonusPoints}
+                onClick={addNotify ? previewBonusPoints : addBonusPoints}
                 className="shrink-0 rounded-petflow-sm bg-latte-deep px-4 py-2 text-sm font-extrabold text-white disabled:opacity-40"
               >
-                {addBusy ? "…" : "➕ เพิ่ม"}
+                {addBusy ? "…" : addNotify ? "🔍 ดูการ์ด" : "➕ เพิ่ม"}
               </button>
             </div>
+            {pointsPreview && (
+              <PreviewSendModal
+                messages={pointsPreview}
+                sending={addBusy}
+                onConfirm={addBonusPoints}
+                onCancel={() => setPointsPreview(null)}
+              />
+            )}
             <label className="mt-2 flex items-center gap-2 text-[11px] font-bold text-brown-soft">
               <input
                 type="checkbox"

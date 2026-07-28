@@ -2371,3 +2371,102 @@ export function buildPackageFlex(data: {
     },
   };
 }
+
+
+/**
+ * การ์ดแจ้งลูกค้าว่าได้รับแต้มสะสม — ใช้ได้ทั้งตอนร้านเติมแต้มให้เอง
+ * และตอนร้านกดใช้โปรแทนลูกค้า (เช่น ลูกค้ารีวิวร้านให้แล้ว)
+ * reason = เหตุผล/ชื่อกิจกรรม ที่ทำให้ได้แต้มก้อนนี้
+ */
+export function buildPointsAwardFlex(data: {
+  customerName: string;
+  pointsAwarded: number;
+  reason?: string;
+  totalPoints?: number;
+  shopName?: string;
+}, style?: CardStyleConfig) {
+  const show = (k: string) => style?.show?.[k] !== false;
+  const contents: Record<string, unknown>[] = [
+    {
+      type: "text",
+      text: style?.texts?.title || "🎁 ได้รับแต้มสะสมแล้ว",
+      weight: "bold",
+      size: style?.titleSize || "lg",
+      color: style?.headerColor || "#5C4033",
+      wrap: true,
+    },
+  ];
+  if (show("customerName")) {
+    contents.push({
+      type: "text",
+      text: politeName(data.customerName),
+      size: "sm",
+      color: "#A2907E",
+      margin: "md",
+      wrap: true,
+    });
+  }
+  contents.push({
+    type: "box",
+    layout: "horizontal",
+    margin: "lg",
+    paddingAll: "12px",
+    backgroundColor: "#F4ECE0",
+    cornerRadius: "10px",
+    contents: [
+      {
+        type: "text",
+        text: style?.texts?.pointsLabel || "แต้มที่ได้รับ",
+        size: "sm",
+        color: "#5C4033",
+        flex: 3,
+      },
+      {
+        type: "text",
+        text: `+${data.pointsAwarded.toLocaleString()}`,
+        size: "xl",
+        weight: "bold",
+        color: style?.accentColor || "#C4956A",
+        align: "end",
+        flex: 2,
+      },
+    ],
+  });
+  if (show("reason") && data.reason) {
+    contents.push({
+      type: "text",
+      text: `${style?.texts?.reasonLabel || "เหตุผล"}: ${data.reason}`,
+      size: "sm",
+      color: "#4E3E32",
+      margin: "lg",
+      wrap: true,
+    });
+  }
+  if (show("totalPoints") && typeof data.totalPoints === "number") {
+    contents.push({
+      type: "text",
+      text: `${style?.texts?.totalLabel || "แต้มสะสมรวมตอนนี้"} ${data.totalPoints.toLocaleString()} แต้ม`,
+      size: "xs",
+      color: "#A2907E",
+      margin: "md",
+      wrap: true,
+    });
+  }
+  contents.push({
+    type: "text",
+    text: style?.closing || `ขอบคุณที่ไว้ใจ ${data.shopName || "CatCha Hotel"} นะคะ 🧡`,
+    size: "xs",
+    color: "#A2907E",
+    margin: "lg",
+    wrap: true,
+  });
+
+  return {
+    type: "flex",
+    altText: `ได้รับ ${data.pointsAwarded} แต้ม${data.reason ? ` — ${data.reason}` : ""}`,
+    contents: {
+      type: "bubble",
+      body: { type: "box", layout: "vertical", contents },
+    },
+  };
+}

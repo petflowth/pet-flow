@@ -11,8 +11,14 @@ import {
   listPromoClaims,
   getBestPromoForCustomer,
   type PromoKind,
+  claimCustomerPromo,
+  getPromo,
   type CustomerTier,
 } from "@/lib/promos-store";
+import { findCustomerByLine } from "@/lib/customers-store";
+import { getSiteConfig } from "@/lib/config-store";
+import { pushLineMessage, buildPointsAwardFlex } from "@/lib/line";
+import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 
 export async function GET(req: NextRequest) {
   const withClaims = req.nextUrl.searchParams.get("claims") === "1";
@@ -63,6 +69,87 @@ export async function POST(req: NextRequest) {
 
 async function handlePost(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
+
+  // ── ร้านกดใช้โปรแทนลูกค้า (เช่น ลูกค้ารีวิวให้แล้ว ร้านกดให้แต้ม) ──
+  // ตัดโปรออกจากรายการของลูกค้า + ให้แต้ม + บันทึกว่าแต้มมาจากโปรไหน
+  // แล้วส่งการ์ดบอกลูกค้า — ดูตัวอย่างการ์ดก่อนส่งได้ด้วย preview:true
+  if (body.action === "staff_claim") {
+    const promoId = String(body.promoId || "").trim();
+    const lineUserId = String(body.lineUserId || "").trim();
+    if (!promoId || !lineUserId) {
+      return NextResponse.json({ error: "promoId and lineUserId required" }, { status: 400 });
+    }
+    const cfg = await getSiteConfig();
+
+    if (body.preview === true) {
+      // ตัวอย่างเท่านั้น — ยังไม่ตัดโปร ไม่ให้แต้ม ไม่ส่งอะไรทั้งนั้น
+      const promo = await getPromo(promoId);
+      if (!promo) return NextResponse.json({ error: "ไม่พบโปรนี้" }, { status: 404 });
+      const customer = await findCustomerByLine(lineUserId);
+      const pts =
+        promo.rewardType === "points" || promo.rewardType === "both"
+          ? Math.max(0, promo.pointsBonus || 0)
+          : 0;
+      return NextResponse.json({
+        ok: true,
+        preview: [
+          buildPointsAwardFlex(
+            {
+              customerName: customer?.name || "ลูกค้า",
+              pointsAwarded: pts,
+              reason: body.note ? String(body.note) : promo.title.th,
+              shopName: cfg.business.name,
+            },
+            cfg.cards?.pointsAward
+          ),
+        ],
+        pointsAwarded: pts,
+      });
+    }
+
+    const result = await claimCustomerPromo(promoId, lineUserId, "admin");
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+
+    let sent = false;
+    try {
+      await pushLineMessage(lineUserId, [
+        buildPointsAwardFlex(
+          {
+            customerName: result.claim.customerName,
+            pointsAwarded: result.pointsAwarded,
+            reason: body.note ? String(body.note) : result.claim.promoTitle,
+            totalPoints: result.newPoints,
+            shopName: cfg.business.name,
+          },
+          cfg.cards?.pointsAward
+        ),
+      ]);
+      sent = true;
+    } catch {
+      /* ส่ง LINE ไม่ผ่าน — แต้มให้ไปแล้ว ไม่ย้อนกลับ แค่บอกหน้าจอว่าส่งไม่สำเร็จ */
+    }
+
+    await sendTelegram(
+      formatBookingTelegram("🎁 ร้านกดใช้โปรแทนลูกค้า", {
+        ลูกค้า: result.claim.customerName,
+        โปรโมชั่น: result.claim.promoTitle,
+        ...(result.pointsAwarded > 0 ? { แต้มที่ให้: `${result.pointsAwarded} แต้ม` } : {}),
+        ...(result.newPoints != null ? { แต้มรวมตอนนี้: String(result.newPoints) } : {}),
+        แจ้งลูกค้า: sent ? "ส่งการ์ดแล้ว" : "ส่งการ์ดไม่สำเร็จ",
+      })
+    );
+
+    return NextResponse.json({
+      ok: true,
+      sent,
+      claim: result.claim,
+      pointsAwarded: result.pointsAwarded,
+      newPoints: result.newPoints,
+    });
+  }
+
   const promo = await addPromo({
     title: body.title,
     body: body.body,

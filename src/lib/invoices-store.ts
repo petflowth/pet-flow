@@ -691,12 +691,16 @@ export async function markInvoicePaid(
   const serviceSummary = summarizeInvoiceItems(inv.items);
 
   // บันทึกรายรับเฉพาะ "ยอดคงเหลือจริง" ที่เก็บรอบนี้ (มัดจำถูกบันทึกไปก่อนแล้ว)
-  if (settleAmount > 0) {
+  //
+  // ตัดเครดิต Member ไม่ใช่รายรับ — เงินเข้าร้านไปแล้วตอนลูกค้าซื้อเครดิต
+  // (topupMemberCredit ลงรายรับหมวด "member" ให้ตอนนั้น) ถ้าลงอีกรอบตอนใช้
+  // ยอดขายจะบวมเป็นสองเท่าของเงินที่รับมาจริง ตอนใช้จึงแค่ตัดหนี้ที่รับล่วงหน้าไว้
+  if (settleAmount > 0 && paymentMethod !== "member_credit") {
     const isRemainder = alreadyReceived > 0;
     await addFinanceEntry({
       type: "income",
       amount: settleAmount,
-      category: paymentMethod === "member_credit" ? "member" : serviceSummary,
+      category: serviceSummary,
       description: `${inv.catName} · ${inv.customerName} — ${serviceSummary}${
         isRemainder ? " (ยอดคงเหลือ)" : ""
       }`,
@@ -744,12 +748,19 @@ export async function revertInvoicePaid(id: string) {
     return { ok: false as const, error: "not_paid" };
   }
 
-  // คืนเครดิต Member ที่หักไป (รายรับหมวด "member" ของบิลนี้)
+  // คืนเครดิต Member ที่หักไป
   if (inv.paymentMethod === "member_credit") {
+    // บิลเก่า (ก่อนเลิกลงรายรับซ้ำตอนตัดเครดิต) ยังมีรายรับหมวด "member" ผูก invoiceId อยู่
+    // — ใช้ยอดนั้นตรงๆ, บิลใหม่ไม่มีแถวนั้นแล้ว จึงคิดย้อนจาก "ยอดบิล − มัดจำที่รับไปแล้ว"
+    // ซึ่งเป็นสูตรเดียวกับตอนหักไป (settleAmount)
     const all = await listFinance();
-    const memberDeducted = all
+    const legacyMemberIncome = all
       .filter((r) => r.invoiceId === id && r.category === "member" && r.type === "income")
       .reduce((s, r) => s + r.amount, 0);
+    const memberDeducted =
+      legacyMemberIncome > 0
+        ? legacyMemberIncome
+        : Math.max(0, inv.total - (await incomeForInvoice(id)));
     // ปรับยอดเฉยๆ ไม่ใช่เติมเงินใหม่ — addMemberCredit เดิมสร้างรายการเติมเงิน + รายรับปลอม
     // ที่ไม่มี invoiceId ผูกไว้ ทำให้ deleteInvoicePaymentIncome ข้างล่างลบไม่เจอ ค้างอยู่ตลอด
     if (memberDeducted > 0) await restoreMemberCredit(inv.customerId, memberDeducted);

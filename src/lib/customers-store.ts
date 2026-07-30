@@ -1805,7 +1805,7 @@ export async function topupMemberCredit(
 
   const isLegacy = Boolean(data.isLegacy);
   const topup: MemberTopupRecord = {
-    id: `MT${Date.now()}`,
+    id: `MT${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
     customerId,
     paidAmount: paid,
     bonusAmount: bonus,
@@ -1895,7 +1895,7 @@ export async function addServiceRecord(
 ) {
   const rec: ServiceRecord = {
     ...data,
-    id: `S${Date.now()}`,
+    id: `S${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
     at: data.at || new Date().toISOString(),
   };
 

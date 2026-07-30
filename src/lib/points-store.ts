@@ -291,7 +291,7 @@ export async function redeemReward(
     }
   }
   const entry: PointsHistoryEntry = {
-    id: `H${Date.now()}`,
+    id: `H${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
     type: "redeem",
     points: -tier.points,
     labelTh: tier.reward.th,
@@ -346,7 +346,7 @@ export async function addPoints(
 ) {
   const acc = await getAccount(lineUserId, displayName);
   const entry: PointsHistoryEntry = {
-    id: `H${Date.now()}`,
+    id: `H${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
     type: "earn",
     points: amount,
     labelTh,

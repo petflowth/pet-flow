@@ -22,6 +22,7 @@ export type PromoRecord = {
   discountAmount?: number;
   imageUrl?: string;
   startDate: string;
+  /** วันสิ้นสุด — เว้นว่าง = ไม่มีวันหมดอายุ */
   until: string;
   active: boolean;
   kind: PromoKind;
@@ -272,7 +273,9 @@ export function checkPromoEligibility(
 
   if (!promo.active) return { eligible: false, reason: "โปรนี้ปิดใช้งานแล้ว" };
   if (promo.startDate > today) return { eligible: false, reason: "โปรยังไม่เริ่ม" };
-  if (promo.until < today) return { eligible: false, reason: "โปรหมดอายุแล้ว" };
+  // ไม่ระบุวันสิ้นสุด = ใช้ได้เรื่อยๆ จนกว่าจะปิดโปรเอง
+  if (promo.until && promo.until < today)
+    return { eligible: false, reason: "โปรหมดอายุแล้ว" };
 
   if (promo.restriction === "calendar_month" && promo.validMonth) {
     if (currentMonth(now) !== promo.validMonth) {
@@ -398,7 +401,7 @@ export async function listPromos() {
       .order("until", { ascending: false });
     return ((data as PromoRow[] | null) || []).map(rowToPromo);
   }
-  return [...mem].sort((a, b) => b.until.localeCompare(a.until));
+  return [...mem].sort((a, b) => (b.until || "9999-12-31").localeCompare(a.until || "9999-12-31"));
 }
 
 export async function getActivePromos(now = new Date(), kind?: PromoKind) {
@@ -408,7 +411,7 @@ export async function getActivePromos(now = new Date(), kind?: PromoKind) {
     (p) =>
       p.active &&
       p.startDate <= today &&
-      p.until >= today &&
+      (!p.until || p.until >= today) &&
       (kind ? p.kind === kind : true)
   );
 }
@@ -462,7 +465,7 @@ export async function recordAdminPromoClaim(
 
   const promo = await getPromo(promoId);
   const claim: PromoClaimRecord = {
-    id: `CL${Date.now()}`,
+    id: `CL${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
     promoId,
     customerId,
     lineUserId,
@@ -516,7 +519,7 @@ export async function claimCustomerPromo(
       : 0;
 
   const claim: PromoClaimRecord = {
-    id: `CL${Date.now()}`,
+    id: `CL${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
     promoId,
     customerId: customer.id,
     lineUserId,
@@ -567,7 +570,7 @@ export async function getPromo(id: string) {
 export async function addPromo(data: Omit<PromoRecord, "id">) {
   const promo: PromoRecord = {
     ...data,
-    id: `P${Date.now()}`,
+    id: `P${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
     kind: data.kind || "display",
     restriction: data.restriction || "none",
     tiers: data.tiers?.length ? data.tiers : ["all"],
@@ -629,7 +632,7 @@ export async function calcPromoDiscount(
   const p = await getPromo(promoId);
   if (!p || !p.active) return { discount: 0 };
   const today = new Date().toISOString().slice(0, 10);
-  if (p.startDate > today || p.until < today) return { discount: 0 };
+  if (p.startDate > today || (p.until && p.until < today)) return { discount: 0 };
 
   let discount = 0;
   if (p.discountPercent) discount = Math.round((subtotal * p.discountPercent) / 100);

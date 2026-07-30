@@ -208,7 +208,7 @@ export async function addFinanceEntry(
 ) {
   const rec: FinanceRecord = {
     ...data,
-    id: `F${Date.now()}`,
+    id: `F${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
     createdAt: new Date().toISOString(),
   };
 

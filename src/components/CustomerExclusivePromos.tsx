@@ -153,7 +153,7 @@ export function CustomerExclusivePromos({ compact, onHasPromos }: Props) {
                         {promo.body[locale]}
                       </p>
                       <p className="mt-2 text-[10px] font-bold text-brown-faint">
-                        {m.until} {promo.until}
+                        {promo.until ? `${m.until} ${promo.until}` : ""}
                         {promo.validMonth ? ` · ${m.monthOnly} ${promo.validMonth}` : ""}
                       </p>
                     </>

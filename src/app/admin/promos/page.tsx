@@ -388,7 +388,8 @@ export default function PromosAdminPage() {
       let cmp = 0;
       if (promoSortKey === "title") cmp = a.title.th.localeCompare(b.title.th, "th");
       else if (promoSortKey === "start") cmp = a.startDate.localeCompare(b.startDate);
-      else if (promoSortKey === "end") cmp = a.until.localeCompare(b.until);
+      else if (promoSortKey === "end")
+        cmp = (a.until || "9999-12-31").localeCompare(b.until || "9999-12-31");
       else if (promoSortKey === "claims") cmp = claimsFor(a.id).length - claimsFor(b.id).length;
       else if (promoSortKey === "status") cmp = Number(a.active) - Number(b.active);
       return promoSortDir === "asc" ? cmp : -cmp;
@@ -824,8 +825,14 @@ export default function PromosAdminPage() {
               )}
 
               <div className="grid grid-cols-2 gap-2">
-                <input name="startDate" type="date" required defaultValue={editing?.startDate ?? ""} className="rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm" />
-                <input name="until" type="date" required defaultValue={editing?.until ?? ""} className="rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm" />
+                <label className="block text-[10px] font-bold text-brown-soft">
+                  เริ่มใช้ได้
+                  <input name="startDate" type="date" required defaultValue={editing?.startDate ?? ""} className="mt-0.5 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm" />
+                </label>
+                <label className="block text-[10px] font-bold text-brown-soft">
+                  วันสิ้นสุด <span className="font-normal text-brown-faint">(เว้นว่าง = ไม่หมดอายุ)</span>
+                  <input name="until" type="date" defaultValue={editing?.until ?? ""} className="mt-0.5 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm" />
+                </label>
               </div>
 
               <label className="block text-[10px] font-bold text-latte-deep">
@@ -922,7 +929,7 @@ export default function PromosAdminPage() {
                   </td>
                   <td className="px-3 py-2.5 text-brown-soft">{p.tiers.join(", ")}</td>
                   <td className="px-3 py-2.5 text-brown-soft">{p.startDate}</td>
-                  <td className="px-3 py-2.5 text-brown-soft">{p.until}</td>
+                  <td className="px-3 py-2.5 text-brown-soft">{p.until || "ไม่มีวันหมดอายุ"}</td>
                   <td className="px-3 py-2.5">
                     {p.imageUrl ? (
                       <Image src={p.imageUrl} alt="" width={40} height={40} className="h-10 w-10 rounded-petflow-sm object-cover" unoptimized />
@@ -994,7 +1001,7 @@ export default function PromosAdminPage() {
                     </p>
                     <p className="text-xs text-brown-soft">{p.body.th}</p>
                     <p className="mt-1 text-[10px] text-brown-faint">
-                      {p.startDate} → {p.until}
+                      {p.startDate} → {p.until || "ไม่มีวันหมดอายุ"}
                       {reward ? ` · ${reward}` : ""}
                       {" · "}
                       {restrictionLabel(p.restriction, p.validMonth)}

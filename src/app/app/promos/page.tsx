@@ -80,7 +80,7 @@ export default function PromosPage() {
                     : "More details ▾"}
               </button>
               <p className="mt-3 text-[10px] font-bold text-brown-faint">
-                {m.until} {promo.until}
+                {promo.until ? `${m.until} ${promo.until}` : ""}
               </p>
             </div>
           </li>

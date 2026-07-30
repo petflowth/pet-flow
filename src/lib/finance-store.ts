@@ -214,6 +214,10 @@ export async function listFinanceEnriched(
 export async function addFinanceEntry(
   data: Omit<FinanceRecord, "id" | "createdAt">
 ) {
+  // ยอดติดลบทำให้รายงานเพี้ยน (รายรับติดลบ = ยอดขายหายไปเฉยๆ) — บันทึกเป็นค่าสัมบูรณ์
+  // ถ้าตั้งใจจะลงรายจ่าย ให้เลือกประเภท "รายจ่าย" ไม่ใช่ใส่เลขติดลบในรายรับ
+  data = { ...data, amount: Math.abs(Math.round(Number(data.amount) || 0)) };
+
   const rec: FinanceRecord = {
     ...data,
     id: `F${Date.now()}${Math.random().toString(36).slice(2, 6)}`,

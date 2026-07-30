@@ -345,10 +345,13 @@ export async function addPoints(
   displayName = ""
 ) {
   const acc = await getAccount(lineUserId, displayName);
+  // ยอดแต้มติดลบไม่มีความหมาย — ปรับลดได้มากสุดเท่าที่มีอยู่
+  // (พิมพ์ผิดตอนปรับแต้มมือ เคยทำให้ยอดลูกค้าติดลบแล้วต้องมานั่งไล่แก้)
+  const applied = Math.max(amount, -acc.points);
   const entry: PointsHistoryEntry = {
     id: `H${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
     type: "earn",
-    points: amount,
+    points: applied,
     labelTh,
     labelEn,
     at: new Date().toISOString(),
@@ -356,7 +359,7 @@ export async function addPoints(
 
   const sb = getSupabase();
   if (sb) {
-    const newPoints = acc.points + amount;
+    const newPoints = acc.points + applied;
     // ใช้คีย์ลูกค้าจาก getAccount (acc.lineUserId) ไม่ใช่ LINE ID ดิบที่ส่งเข้ามา
     await sb
       .from("points_accounts")
@@ -376,7 +379,7 @@ export async function addPoints(
     return { ...acc, points: newPoints, history: [entry, ...acc.history] };
   }
 
-  acc.points += amount;
+  acc.points += applied;
   acc.history.unshift(entry);
   return acc;
 }

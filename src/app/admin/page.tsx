@@ -119,19 +119,33 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-2 gap-3">
         <StatCard
           emoji="💰"
-          label={`ยอดขาย · ${range.label}`}
-          value={`${stats.salesToday.total.toLocaleString()} ฿`}
+          label={`รายรับ · ${range.label}`}
+          value={`${stats.financeToday.income.toLocaleString()} ฿`}
           sub={
-            // ตัดเครดิต Member ไม่ใช่เงินเข้ารอบนี้ (รับไปแล้วตอนขายเครดิต)
-            // แยกบรรทัดไว้ให้เห็นว่าให้บริการไปเท่าไหร่ ไม่ใช่หายไปเลย
-            stats.salesToday.creditTotal > 0
-              ? `${stats.salesToday.count} บิล · ตัดเครดิต ${stats.salesToday.creditTotal.toLocaleString()} ฿`
-              : `${stats.salesToday.count} บิล`
+            // ใช้ยอดจากบัญชีรายรับ ไม่ใช่เฉพาะบิล — ขายคอร์ส/เติมเครดิตก็คือเงินเข้าเหมือนกัน
+            // (เมื่อก่อนการ์ดนี้นับเฉพาะบิล เลยไม่ตรงกับ "สุทธิ" ที่นับทุกอย่าง)
+            [
+              `${stats.salesToday.count} บิล`,
+              stats.salesToday.creditTotal > 0
+                ? `ตัดเครดิต ${stats.salesToday.creditTotal.toLocaleString()} ฿`
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" · ")
           }
         />
         <StatCard emoji="⏳" label="คิวรอยืนยัน" value={String(stats.queue)} sub="นัด" />
         <StatCard emoji="📅" label="นัดวันนี้" value={String(stats.todayAppointments)} sub={`ยืนยัน ${stats.todayConfirmed}`} />
-        <StatCard emoji="📒" label={`สุทธิ · ${range.label}`} value={`${stats.financeToday.net.toLocaleString()} ฿`} sub={`เดือน ${stats.financeMonth.net.toLocaleString()} ฿`} />
+        <StatCard
+          emoji="📒"
+          label={`สุทธิ · ${range.label}`}
+          value={`${stats.financeToday.net.toLocaleString()} ฿`}
+          sub={
+            stats.financeToday.expense > 0
+              ? `หักรายจ่าย ${stats.financeToday.expense.toLocaleString()} ฿`
+              : "ยังไม่มีรายจ่าย"
+          }
+        />
       </div>
 
       {/* งานที่ต้องทำ */}

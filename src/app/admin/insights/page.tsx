@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { DateRangePicker } from "@/components/DateRangePicker";
+import { resolveRange, inRange, type RangeId } from "@/lib/date-range";
 
 type Cat = { name?: string; breed?: string };
 type Customer = {
@@ -10,14 +12,32 @@ type Customer = {
   isMember?: boolean;
   tier?: string;
   createdAt?: string;
+  /** ลูกค้ารู้จักร้านจากไหน (กรอกตอนสมัคร) — ใช้วัดว่าช่องทางไหนได้ผล */
+  referralSource?: string;
 };
 type Invoice = {
   customerId?: string;
   customerName: string;
   status: string;
   total: number;
-  items?: { label: string; amount: number }[];
+  discount?: number;
+  promoId?: string;
+  promoLabel?: string;
+  paidAt?: string;
+  createdAt?: string;
+  items?: { label: string; amount: number; kind?: string }[];
 };
+type Pkg = {
+  id: string;
+  name: string;
+  price: number;
+  totalUses: number;
+  usedUses: number;
+  status: string;
+  unit?: "use" | "night";
+  createdAt: string;
+};
+type PromoStat = { id: string; title: string; uses: number; discount: number };
 
 function Bar({ label, value, max, suffix }: { label: string; value: number; max: number; suffix?: string }) {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0;
@@ -49,16 +69,28 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 export default function InsightsPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [packages, setPackages] = useState<Pkg[]>([]);
+  const [promoStats, setPromoStats] = useState<PromoStat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rangeId, setRangeId] = useState<RangeId>("all");
+  const [customRange, setCustomRange] = useState(() => {
+    const t = new Date().toISOString().slice(0, 10);
+    return { from: t, to: t };
+  });
+  const range = resolveRange(rangeId, new Date().toISOString().slice(0, 10), customRange);
 
   useEffect(() => {
     Promise.all([
       fetch("/api/customers").then((r) => r.json()),
       fetch("/api/invoices").then((r) => r.json()),
+      fetch("/api/packages?all=1").then((r) => r.json()).catch(() => ({ packages: [] })),
+      fetch("/api/coupons/stats").then((r) => r.json()).catch(() => ({ perPromo: [] })),
     ])
-      .then(([c, i]) => {
+      .then(([c, i, p, cp]) => {
         setCustomers(c.customers || []);
         setInvoices(i.invoices || []);
+        setPackages(p.packages || []);
+        setPromoStats(cp.perPromo || []);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -78,7 +110,10 @@ export default function InsightsPage() {
     // บริการขายดี (จากบิลที่จ่ายแล้ว)
     // ชื่อรายการในบิลมีรูปแบบ "🐱 ชื่อน้อง · บริการ · พันธุ์ · ไซส์"
     // ต้องตัดคำนำหน้าชื่อน้องออกก่อน ไม่งั้นจะไปนับชื่อแมวเป็นชื่อบริการ
-    const paid = invoices.filter((i) => i.status === "paid");
+    // นับเฉพาะช่วงที่เลือก — บิลใช้วันที่จ่าย ลูกค้า/คอร์สใช้วันที่สร้าง
+    const paid = invoices.filter(
+      (i) => i.status === "paid" && inRange(i.paidAt || i.createdAt, range)
+    );
     const svcMap = new Map<string, number>();
     for (const inv of paid) {
       for (const it of inv.items || []) {
@@ -105,7 +140,54 @@ export default function InsightsPage() {
     const topSpenders = [...spendMap.values()].sort((a, b) => b.total - a.total).slice(0, 8);
     const revenuePaid = paid.reduce((s, i) => s + i.total, 0);
 
+    // ── คอร์สที่ขายได้ ──
+    const soldPkgs = packages.filter(
+      (p) => p.status !== "cancelled" && inRange(p.createdAt, range)
+    );
+    const pkgMap = new Map<string, { name: string; sold: number; revenue: number; unit: string }>();
+    for (const p of soldPkgs) {
+      const cur = pkgMap.get(p.name) || {
+        name: p.name,
+        sold: 0,
+        revenue: 0,
+        unit: p.unit === "night" ? "คืน" : "ครั้ง",
+      };
+      cur.sold += 1;
+      cur.revenue += p.price || 0;
+      pkgMap.set(p.name, cur);
+    }
+    const coursesSold = [...pkgMap.values()].sort((a, b) => b.sold - a.sold);
+    const courseRevenue = coursesSold.reduce((s, c) => s + c.revenue, 0);
+    // สิทธิ์ที่ขายไปแล้วแต่ลูกค้ายังไม่ได้ใช้ = ภาระที่ร้านต้องให้บริการในอนาคต
+    const courseUnitsLeft = soldPkgs.reduce(
+      (n, p) => n + Math.max(0, p.totalUses - p.usedUses),
+      0
+    );
+
+    // ── ลูกค้ารู้จักร้านจากไหน ──
+    const srcMap = new Map<string, number>();
+    for (const c of customers) {
+      if (!inRange(c.createdAt, range)) continue;
+      const key = (c.referralSource || "").trim() || "ไม่ได้ระบุ";
+      srcMap.set(key, (srcMap.get(key) || 0) + 1);
+    }
+    const sources = [...srcMap.entries()].sort((a, b) => b[1] - a[1]);
+    const knownSources = sources.filter(([k]) => k !== "ไม่ได้ระบุ");
+
+    // ── ค่าโปรที่จ่ายไป ──
+    const promoRows = promoStats.filter((p) => p.uses > 0 || p.discount > 0);
+    const promoCost = promoRows.reduce((s, p) => s + p.discount, 0);
+    const discountTotal = paid.reduce((s, i) => s + (i.discount || 0), 0);
+
     return {
+      coursesSold,
+      courseRevenue,
+      courseUnitsLeft,
+      sources,
+      knownSources,
+      promoRows,
+      promoCost,
+      discountTotal,
       totalCustomers: customers.length,
       totalCats: cats.length,
       members,
@@ -115,7 +197,7 @@ export default function InsightsPage() {
       revenuePaid,
       paidCount: paid.length,
     };
-  }, [customers, invoices]);
+  }, [customers, invoices, packages, promoStats, range.from, range.to]);
 
   if (loading) {
     return <p className="py-10 text-center text-sm text-brown-soft">กำลังโหลด…</p>;
@@ -128,6 +210,14 @@ export default function InsightsPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-extrabold text-petflow-chocolate">📊 สรุปข้อมูลร้าน</h1>
+
+      <DateRangePicker
+        value={rangeId}
+        onChange={setRangeId}
+        custom={customRange}
+        onCustomChange={setCustomRange}
+      />
+      <p className="text-[10px] text-brown-faint">ช่วงที่ดู: {range.label}</p>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-petflow-sm bg-card p-4 shadow-petflow-sm">
@@ -179,6 +269,101 @@ export default function InsightsPage() {
           </div>
         ) : (
           <p className="text-xs text-brown-faint">ยังไม่มีข้อมูล</p>
+        )}
+      </Card>
+
+      <Card title="🎫 คอร์ส/แพ็กเกจที่ขายได้">
+        {stats.coursesSold.length ? (
+          <>
+            <div className="mb-2 grid grid-cols-2 gap-2 text-center">
+              <div className="rounded-catcha-sm bg-paper p-2">
+                <p className="text-sm font-extrabold text-latte-deep">
+                  {stats.courseRevenue.toLocaleString()} ฿
+                </p>
+                <p className="text-[10px] text-brown-soft">รายได้จากคอร์ส</p>
+              </div>
+              <div className="rounded-catcha-sm bg-paper p-2">
+                <p className="text-sm font-extrabold text-wait">{stats.courseUnitsLeft}</p>
+                <p className="text-[10px] text-brown-soft">สิทธิ์ค้างที่ต้องให้บริการ</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {stats.coursesSold.map((c) => (
+                <Bar
+                  key={c.name}
+                  label={`${c.name} · ${c.revenue.toLocaleString()} ฿`}
+                  value={c.sold}
+                  max={stats.coursesSold[0]?.sold || 1}
+                  suffix=" ชุด"
+                />
+              ))}
+            </div>
+            <p className="mt-2 text-[10px] text-brown-faint">
+              💡 &quot;สิทธิ์ค้าง&quot; คือครั้ง/คืนที่ลูกค้าจ่ายมาแล้วแต่ยังไม่ได้ใช้ —
+              เป็นบริการที่ร้านติดค้างอยู่ ไม่ใช่กำไรที่ใช้ได้เลย
+            </p>
+          </>
+        ) : (
+          <p className="text-xs text-brown-faint">ช่วงนี้ยังไม่มีคอร์สที่ขายได้</p>
+        )}
+      </Card>
+
+      <Card title="🎁 โปรโมชั่น — ใช้ไปเท่าไหร่ เสียส่วนลดเท่าไหร่">
+        {stats.promoRows.length ? (
+          <>
+            <div className="mb-2 grid grid-cols-2 gap-2 text-center">
+              <div className="rounded-catcha-sm bg-paper p-2">
+                <p className="text-sm font-extrabold text-wait">
+                  {stats.promoCost.toLocaleString()} ฿
+                </p>
+                <p className="text-[10px] text-brown-soft">ส่วนลดจากโปร</p>
+              </div>
+              <div className="rounded-catcha-sm bg-paper p-2">
+                <p className="text-sm font-extrabold text-brown">
+                  {stats.discountTotal.toLocaleString()} ฿
+                </p>
+                <p className="text-[10px] text-brown-soft">ส่วนลดรวมทุกแบบ (ช่วงนี้)</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {stats.promoRows.map((p) => (
+                <Bar
+                  key={p.id}
+                  label={`${p.title} · ลดไป ${p.discount.toLocaleString()} ฿`}
+                  value={p.uses}
+                  max={stats.promoRows[0]?.uses || 1}
+                  suffix=" ครั้ง"
+                />
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="text-xs text-brown-faint">ยังไม่มีโปรที่ถูกใช้</p>
+        )}
+      </Card>
+
+      <Card title="📣 ลูกค้ารู้จักร้านจากไหน">
+        {stats.knownSources.length ? (
+          <>
+            <div className="space-y-2">
+              {stats.sources.map(([src, n]) => (
+                <Bar
+                  key={src}
+                  label={src}
+                  value={n}
+                  max={stats.sources[0]?.[1] || 1}
+                  suffix=" คน"
+                />
+              ))}
+            </div>
+            <p className="mt-2 text-[10px] text-brown-faint">
+              💡 ช่องทางที่ได้ลูกค้าเยอะสุดคือที่ควรลงแรง/ลงเงินต่อ
+            </p>
+          </>
+        ) : (
+          <p className="text-xs text-brown-faint">
+            ยังไม่มีใครกรอกว่ารู้จักร้านจากไหน — เปิดช่องนี้ในหน้าสมัครสมาชิกเพื่อเก็บข้อมูล
+          </p>
         )}
       </Card>
 

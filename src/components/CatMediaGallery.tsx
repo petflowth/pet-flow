@@ -33,6 +33,9 @@ export function CatMediaGallery({
   const [needSql, setNeedSql] = useState(false);
   const media = cat.media || [];
 
+  /** รูปที่กดดูแบบเต็มจออยู่ */
+  const [viewing, setViewing] = useState<CatMediaItem | null>(null);
+
   const save = async (next: CatMediaItem[]) => {
     const res = await fetch("/api/customers", {
       method: "PATCH",
@@ -128,6 +131,32 @@ export function CatMediaGallery({
         </p>
       )}
 
+      {viewing && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setViewing(null)}
+        >
+          <div className="max-h-full w-full max-w-lg text-center" onClick={(e) => e.stopPropagation()}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={viewing.dataUrl}
+              alt={viewing.caption || ""}
+              className="mx-auto max-h-[75vh] w-auto rounded-catcha-sm object-contain"
+            />
+            {viewing.caption && (
+              <p className="mt-2 text-xs font-bold text-white">{viewing.caption}</p>
+            )}
+            <button
+              type="button"
+              onClick={() => setViewing(null)}
+              className="mt-3 rounded-full bg-white/90 px-5 py-2 text-xs font-extrabold text-brown"
+            >
+              ปิด
+            </button>
+          </div>
+        </div>
+      )}
+
       {media.length > 0 && (
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {media.map((m) => (
@@ -135,8 +164,16 @@ export function CatMediaGallery({
               {m.type === "video" ? (
                 <video src={m.dataUrl} controls className="h-24 w-full bg-black object-contain" />
               ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={m.dataUrl} alt="" className="h-24 w-full object-cover" />
+                // รูปย่อในตารางเล็กมาก ดูรายละเอียดไม่ออก — กดแล้วเปิดเต็มจอ
+                <button
+                  type="button"
+                  onClick={() => setViewing(m)}
+                  className="block w-full"
+                  title="กดเพื่อดูรูปเต็ม"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={m.dataUrl} alt={m.caption || ""} className="h-24 w-full object-cover" />
+                </button>
               )}
               <input
                 defaultValue={m.caption || ""}

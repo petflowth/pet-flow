@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { DateRangePicker } from "@/components/DateRangePicker";
+import { resolveRange, inRange, type RangeId } from "@/lib/date-range";
 import Link from "next/link";
 import { ExportSheetsButton } from "@/components/ExportSheetsButton";
 import { toJpegDataUrl } from "@/lib/image-convert";
@@ -25,7 +27,9 @@ const EMPTY_FORM = { type: "income", amount: "", category: "", description: "", 
 
 export default function FinancePage() {
   const [records, setRecords] = useState<Record[]>([]);
-  const [summary, setSummary] = useState({ income: 0, expense: 0, net: 0 });
+  /** ช่วงเวลาที่กำลังดู — ยอดสรุปและรายการคิดจากช่วงนี้เท่านั้น */
+  const [rangeId, setRangeId] = useState<RangeId>("month");
+  const [customRange, setCustomRange] = useState({ from: TODAY(), to: TODAY() });
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -34,9 +38,8 @@ export default function FinancePage() {
   const [busyReceipt, setBusyReceipt] = useState(false);
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/finance?summary=1");
-    const data = await res.json();
-    setSummary(data.summary);
+    // ดึงทั้งหมดครั้งเดียวแล้วกรองในหน้า — ยอดสรุปกับรายการจะตรงกันเสมอ
+    // (เมื่อก่อนยอดสรุปมาจาก API คนละรอบกับรายการ มีโอกาสไม่ตรงกัน)
     const list = await fetch("/api/finance");
     const listData = await list.json();
     setRecords(listData.records || []);
@@ -45,6 +48,20 @@ export default function FinancePage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const range = useMemo(
+    () => resolveRange(rangeId, TODAY(), customRange),
+    [rangeId, customRange]
+  );
+  const shown = useMemo(
+    () => records.filter((r) => inRange(r.date, range)),
+    [records, range]
+  );
+  const summary = useMemo(() => {
+    const income = shown.filter((r) => r.type === "income").reduce((s, r) => s + r.amount, 0);
+    const expense = shown.filter((r) => r.type === "expense").reduce((s, r) => s + r.amount, 0);
+    return { income, expense, net: income - expense };
+  }, [shown]);
 
   const resetForm = () => {
     setForm({ ...EMPTY_FORM, date: TODAY() });
@@ -143,6 +160,17 @@ export default function FinancePage() {
       </div>
 
       <ExportSheetsButton className="mb-4" />
+
+      <DateRangePicker
+        className="mb-3"
+        value={rangeId}
+        onChange={setRangeId}
+        custom={customRange}
+        onCustomChange={setCustomRange}
+      />
+      <p className="mb-2 text-[10px] text-brown-faint">
+        {range.label} · {shown.length} รายการ
+      </p>
 
       <div className="mb-4 grid grid-cols-3 gap-2 text-center">
         <div className="rounded-petflow-sm bg-sage/15 p-3">
@@ -253,7 +281,7 @@ export default function FinancePage() {
       </form>
 
       <ul className="space-y-1.5">
-        {records.map((r) => {
+        {shown.map((r) => {
           const open = openId === r.id;
           // ชื่อย่อ — โชว์แค่แมว·เจ้าของ (หรือหมวด) ให้แถวสั้น กดค่อยกางดูรายละเอียดเต็ม
           const compact = r.customerName

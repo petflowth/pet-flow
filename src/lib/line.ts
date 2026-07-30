@@ -1786,6 +1786,11 @@ export function buildReceiptFlex(data: {
   /** ตัดจากเครดิต Member ไปเท่าไหร่ และเหลือเท่าไหร่ (เฉพาะบิลที่จ่ายด้วยเครดิต) */
   memberCreditUsed?: number;
   memberCreditLeft?: number;
+  /** คอร์สที่หักไปในบิลนี้ + ที่เหลือ — ให้ลูกค้าเห็นสิทธิ์คงเหลือในใบเสร็จเลย */
+  packageName?: string;
+  packageUsed?: number;
+  packageLeft?: number;
+  packageUnitLabel?: string;
 }, style?: CardStyleConfig) {
   const st = style || {};
   const show = (k: string) => st.show?.[k] !== false;
@@ -1921,6 +1926,33 @@ export function buildReceiptFlex(data: {
                             {
                               type: "text",
                               text: `${data.memberCreditLeft.toLocaleString()} ฿`,
+                              weight: "bold",
+                              size: "sm",
+                              color: "#4A7348",
+                              align: "end",
+                              flex: 2,
+                            },
+                          ],
+                        },
+                      ]
+                    : []),
+                  ...(data.packageLeft != null
+                    ? [
+                        {
+                          type: "box",
+                          layout: "horizontal",
+                          contents: [
+                            {
+                              type: "text",
+                              text: `คอร์สคงเหลือ${data.packageName ? ` (${data.packageName})` : ""}`,
+                              size: "sm",
+                              color: "#A2907E",
+                              flex: 3,
+                              wrap: true,
+                            },
+                            {
+                              type: "text",
+                              text: `${data.packageLeft.toLocaleString()} ${data.packageUnitLabel || "ครั้ง"}`,
                               weight: "bold",
                               size: "sm",
                               color: "#4A7348",

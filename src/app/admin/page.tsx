@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { adminJson } from "@/lib/admin-fetch";
+import { DateRangePicker } from "@/components/DateRangePicker";
+import { resolveRange, type RangeId } from "@/lib/date-range";
 
 type Stats = {
   today: string;
@@ -29,11 +31,20 @@ export default function AdminDashboard() {
   const [tasks, setTasks] = useState<Tasks | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  /** ช่วงเวลาของตัวเลขยอดขาย/บัญชี — คิว "รอยืนยัน" กับ "นัดวันนี้" ยึดวันนี้เสมอ */
+  const [rangeId, setRangeId] = useState<RangeId>("today");
+  const [customRange, setCustomRange] = useState(() => {
+    const t = new Date().toISOString().slice(0, 10);
+    return { from: t, to: t };
+  });
+  const range = resolveRange(rangeId, new Date().toISOString().slice(0, 10), customRange);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
-    const res = await adminJson<{ stats: Stats }>("/api/admin/stats");
+    const res = await adminJson<{ stats: Stats }>(
+      `/api/admin/stats?from=${range.from}&to=${range.to}`
+    );
     if (res.ok && res.data.stats) {
       setStats(res.data.stats);
     } else {
@@ -70,7 +81,8 @@ export default function AdminDashboard() {
       setTasks(null);
     }
     setLoading(false);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range.from, range.to]);
 
   useEffect(() => {
     load();
@@ -97,10 +109,17 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-5">
+      <DateRangePicker
+        value={rangeId}
+        onChange={setRangeId}
+        custom={customRange}
+        onCustomChange={setCustomRange}
+      />
+
       <div className="grid grid-cols-2 gap-3">
         <StatCard
           emoji="💰"
-          label="ยอดขายวันนี้"
+          label={`ยอดขาย · ${range.label}`}
           value={`${stats.salesToday.total.toLocaleString()} ฿`}
           sub={
             // ตัดเครดิต Member ไม่ใช่เงินเข้ารอบนี้ (รับไปแล้วตอนขายเครดิต)
@@ -112,7 +131,7 @@ export default function AdminDashboard() {
         />
         <StatCard emoji="⏳" label="คิวรอยืนยัน" value={String(stats.queue)} sub="นัด" />
         <StatCard emoji="📅" label="นัดวันนี้" value={String(stats.todayAppointments)} sub={`ยืนยัน ${stats.todayConfirmed}`} />
-        <StatCard emoji="📒" label="สุทธิวันนี้" value={`${stats.financeToday.net.toLocaleString()} ฿`} sub={`เดือน ${stats.financeMonth.net.toLocaleString()} ฿`} />
+        <StatCard emoji="📒" label={`สุทธิ · ${range.label}`} value={`${stats.financeToday.net.toLocaleString()} ฿`} sub={`เดือน ${stats.financeMonth.net.toLocaleString()} ฿`} />
       </div>
 
       {/* งานที่ต้องทำ */}
@@ -125,7 +144,7 @@ export default function AdminDashboard() {
           <div className="space-y-1.5 text-sm">
             {stats.queue > 0 && (
               <Link
-                href="/admin/schedule"
+                href="/admin/pending"
                 className="flex items-center justify-between rounded-petflow-sm bg-card px-3 py-2"
               >
                 <span className="font-bold text-brown">⏳ นัดรอยืนยัน</span>

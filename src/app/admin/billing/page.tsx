@@ -995,6 +995,79 @@ export default function BillingPage() {
     }
   };
 
+  /** บิลที่กำลังจะตัดเครดิต — โชว์สรุปให้ดูก่อนว่าหักเท่าไหร่ เหลือเท่าไหร่ */
+  const [confirmCredit, setConfirmCredit] = useState<Invoice | null>(null);
+
+  const CreditConfirmModal = () => {
+    if (!confirmCredit) return null;
+    const inv = confirmCredit;
+    const cust = customers.find((c) => c.id === inv.customerId);
+    const balance = cust?.memberCredit ?? 0;
+    const due = Math.max(0, inv.total - (inv.deposit || 0));
+    const after = balance - due;
+    const short = after < 0;
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-3 sm:items-center"
+        onClick={() => setConfirmCredit(null)}
+      >
+        <div
+          className="w-full max-w-sm rounded-petflow bg-card p-4 shadow-petflow"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <p className="mb-3 text-center text-sm font-extrabold text-petflow-chocolate">
+            💎 ตัดจากเครดิต Member
+          </p>
+          <div className="space-y-1.5 rounded-petflow-sm bg-paper px-3 py-2.5 text-xs">
+            <div className="flex justify-between">
+              <span className="text-brown-soft">ยอดที่ต้องเก็บ</span>
+              <span className="font-bold text-brown">{due.toLocaleString()} ฿</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-brown-soft">เครดิตคงเหลือตอนนี้</span>
+              <span className="font-bold text-brown">{balance.toLocaleString()} ฿</span>
+            </div>
+            <div className="flex justify-between border-t border-petflow-line pt-1.5">
+              <span className="font-bold text-brown-soft">หลังหัก จะเหลือ</span>
+              <span
+                className={`font-extrabold ${short ? "text-red-600" : "text-ok"}`}
+              >
+                {after.toLocaleString()} ฿
+              </span>
+            </div>
+          </div>
+          {short && (
+            <p className="mt-2 rounded-petflow-sm bg-red-50 px-3 py-2 text-[11px] font-bold text-red-700">
+              ⚠️ เครดิตไม่พอ ขาดอีก {Math.abs(after).toLocaleString()} ฿ —
+              เติมเครดิตก่อน หรือเก็บเป็นเงินสด/โอนแทน
+            </p>
+          )}
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setConfirmCredit(null)}
+              className="flex-1 rounded-petflow-sm bg-paper py-2.5 text-xs font-bold text-brown-soft"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              disabled={short || !!invoiceBusy}
+              onClick={() => {
+                const id = inv.id;
+                setConfirmCredit(null);
+                markPaid(id, "member_credit");
+              }}
+              className="flex-1 rounded-petflow-sm bg-honey/45 py-2.5 text-xs font-extrabold text-petflow-chocolate disabled:opacity-40"
+            >
+              ยืนยันตัดเครดิต
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const markPaid = async (
     id: string,
     method: "transfer" | "member_credit" | "cash"
@@ -1032,6 +1105,7 @@ export default function BillingPage() {
 
   return (
     <div>
+      <CreditConfirmModal />
       <h1 className="mb-4 text-lg font-extrabold text-petflow-chocolate">💳 คิดเงิน</h1>
 
       <div className="mb-4 space-y-3 rounded-petflow bg-card p-4 shadow-petflow-sm">
@@ -2047,7 +2121,7 @@ export default function BillingPage() {
                   <button
                     type="button"
                     disabled={!!invoiceBusy}
-                    onClick={() => markPaid(inv.id, "member_credit")}
+                    onClick={() => setConfirmCredit(inv)}
                     className="rounded-full bg-honey/30 px-3 py-1.5 text-xs font-bold disabled:opacity-50"
                   >
                     💎 หัก Member

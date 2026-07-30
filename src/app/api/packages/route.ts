@@ -3,6 +3,7 @@ import { getCustomer, findCustomerByLine } from "@/lib/customers-store";
 import {
   sellPackage,
   listCustomerPackages,
+  listAllPackages,
   activeCustomerPackages,
   cancelPackage,
 } from "@/lib/packages-store";
@@ -33,6 +34,19 @@ async function handleGet(req: NextRequest) {
   const customerId = req.nextUrl.searchParams.get("customerId")?.trim();
   const lineUserId = req.nextUrl.searchParams.get("lineUserId")?.trim();
   const activeOnly = req.nextUrl.searchParams.get("active") === "1";
+
+  // ไม่ได้ล็อกอิน = แอปลูกค้า → ดูได้เฉพาะคอร์สของตัวเอง (ต้องระบุ lineUserId ของตัวเอง)
+  // ห้ามถามด้วย customerId ตรงๆ ไม่งั้นเดา id คนอื่นแล้วดูคอร์สเขาได้
+  if (!lineUserId && !(await isAdmin(req))) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  // หลังบ้านขอดูคอร์สทั้งร้าน (ใช้ในหน้าสรุปข้อมูล) — ลูกค้าขอแบบนี้ไม่ได้
+  if (req.nextUrl.searchParams.get("all") === "1") {
+    if (!(await isAdmin(req))) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+    return NextResponse.json({ found: true, packages: await listAllPackages() });
+  }
 
   const cust = lineUserId
     ? await findCustomerByLine(lineUserId)

@@ -37,7 +37,7 @@ import {
   politeCat,
 } from "@/lib/line";
 import { renderTemplate } from "@/lib/messages";
-import { consumePackage, refundPackageUse } from "@/lib/packages-store";
+import { consumePackage, refundPackageUse, getPackage } from "@/lib/packages-store";
 import { getBooking } from "@/lib/bookings-store";
 import { bookingScheduleText } from "@/lib/booking-reminders";
 import type { InvoiceRecord } from "@/lib/invoices-store";
@@ -425,6 +425,8 @@ async function handlePatch(req: NextRequest) {
     const paidByCredit = inv.paymentMethod === "member_credit";
     // ยอดเครดิตปัจจุบันของลูกค้า = ยอดหลังหักบิลนี้ไปแล้ว (บิลถูก mark paid ไปก่อนหน้า)
     const creditCustomer = paidByCredit && inv.customerId ? await getCustomer(inv.customerId) : null;
+    // คอร์สที่บิลนี้หักไป — โชว์สิทธิ์คงเหลือในใบเสร็จ ลูกค้าจะได้ไม่ต้องถาม
+    const usedPkg = inv.packageId ? await getPackage(inv.packageId) : undefined;
     const receiptFlex = buildReceiptFlex({
       invoiceId: inv.id,
       customerName: inv.customerName,
@@ -437,6 +439,10 @@ async function handlePatch(req: NextRequest) {
       items: (inv.items || []).map((it) => ({ label: it.label, amount: it.amount })),
       memberCreditUsed: paidByCredit ? inv.total : undefined,
       memberCreditLeft: creditCustomer?.memberCredit,
+      packageName: usedPkg?.name,
+      packageUsed: usedPkg ? inv.packageUnits || 1 : undefined,
+      packageLeft: usedPkg ? usedPkg.totalUses - usedPkg.usedUses : undefined,
+      packageUnitLabel: usedPkg?.unit === "night" ? "คืน" : "ครั้ง",
       paymentMethod:
         inv.paymentMethod === "member_credit"
           ? "Member Credit"

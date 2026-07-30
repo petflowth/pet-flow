@@ -1,12 +1,19 @@
 import { listBookings } from "./bookings-store";
 import { datesForBooking } from "./booking-customer-match";
-import { todayFinance, monthFinance } from "./finance-store";
+import { monthFinance, financeSummary } from "./finance-store";
 import { salesSummary, listInvoices } from "./invoices-store";
 import { isAwaitingConfirmation } from "./booking-status";
 
-export async function adminDashboardStats() {
+/**
+ * ตัวเลขหน้าแดชบอร์ด
+ * @param range ช่วงที่อยากดู (ไม่ระบุ = วันนี้) — ยอดขาย/บัญชีจะคิดตามช่วงนี้
+ *              ส่วนคิวรอยืนยันกับนัดวันนี้ยึด "วันนี้" เสมอ เพราะเป็นงานที่ต้องทำตอนนี้
+ */
+export async function adminDashboardStats(range?: { from: string; to: string }) {
   const today = new Date().toISOString().slice(0, 10);
   const ym = today.slice(0, 7);
+  const from = range?.from || today;
+  const to = range?.to || today;
   const bookings = await listBookings();
   const active = bookings.filter((b) => b.status !== "cancelled");
   const todayBookings = active.filter(
@@ -25,9 +32,10 @@ export async function adminDashboardStats() {
     queue: pending.length,
     todayAppointments: todayBookings.length,
     todayConfirmed: confirmedToday.length,
-    salesToday: await salesSummary(today, today),
+    range: { from, to },
+    salesToday: await salesSummary(from, to),
     salesMonth: await salesSummary(`${ym}-01`, `${ym}-31`),
-    financeToday: await todayFinance(),
+    financeToday: await financeSummary(from, to),
     financeMonth: await monthFinance(ym),
   };
 }

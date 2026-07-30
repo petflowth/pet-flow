@@ -649,7 +649,30 @@ export async function markInvoiceSent(id: string) {
   return inv;
 }
 
+/**
+ * บิลที่กำลังปิดอยู่ในคำขอนี้ — กันกดรับเงินซ้อนกันหลายครั้งพร้อมกัน
+ *
+ * ระหว่างเช็ค "จ่ายหรือยัง" กับตอนเขียนจริง มี await คั่นอยู่หลายจุด สองคำขอที่เข้ามา
+ * พร้อมกันจึงผ่านด่านเช็คไปได้ทั้งคู่ ฝั่ง Supabase มี conditional update กันไว้อีกชั้น
+ * แต่โหมดหน่วยความจำ (dev / ต่อฐานข้อมูลไม่ได้) ไม่มีอะไรกัน — กดรัวสามที
+ * ก็ลงรายรับสามรอบและแจกแต้มสามรอบ
+ */
+const payingNow = new Set<string>();
+
 export async function markInvoicePaid(
+  id: string,
+  paymentMethod: "transfer" | "member_credit" | "cash" = "transfer"
+) {
+  if (payingNow.has(id)) return { ok: false as const, error: "already_paid" };
+  payingNow.add(id);
+  try {
+    return await markInvoicePaidInner(id, paymentMethod);
+  } finally {
+    payingNow.delete(id);
+  }
+}
+
+async function markInvoicePaidInner(
   id: string,
   paymentMethod: "transfer" | "member_credit" | "cash" = "transfer"
 ) {

@@ -24,27 +24,29 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  if (session) {
-    return withTenant(session.tenantId, () => handleGet(req));
+  // ขอดูคอร์สทั้งร้าน (หน้าสรุปข้อมูล) — เฉพาะคนที่ล็อกอินหลังบ้านเท่านั้น
+  if (req.nextUrl.searchParams.get("all") === "1" && !session) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  return withResolvedTenant(req, () => handleGet(req));
+
+  if (session) {
+    return withTenant(session.tenantId, () => handleGet(req, true));
+  }
+  return withResolvedTenant(req, () => handleGet(req, false));
 }
 
-async function handleGet(req: NextRequest) {
+async function handleGet(req: NextRequest, isStaff: boolean) {
   const customerId = req.nextUrl.searchParams.get("customerId")?.trim();
   const lineUserId = req.nextUrl.searchParams.get("lineUserId")?.trim();
   const activeOnly = req.nextUrl.searchParams.get("active") === "1";
 
   // ไม่ได้ล็อกอิน = แอปลูกค้า → ดูได้เฉพาะคอร์สของตัวเอง (ต้องระบุ lineUserId ของตัวเอง)
   // ห้ามถามด้วย customerId ตรงๆ ไม่งั้นเดา id คนอื่นแล้วดูคอร์สเขาได้
-  if (!lineUserId && !(await isAdmin(req))) {
+  if (!lineUserId && !isStaff) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   // หลังบ้านขอดูคอร์สทั้งร้าน (ใช้ในหน้าสรุปข้อมูล) — ลูกค้าขอแบบนี้ไม่ได้
-  if (req.nextUrl.searchParams.get("all") === "1") {
-    if (!(await isAdmin(req))) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
+  if (isStaff && req.nextUrl.searchParams.get("all") === "1") {
     return NextResponse.json({ found: true, packages: await listAllPackages() });
   }
 

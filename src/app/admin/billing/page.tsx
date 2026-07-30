@@ -839,7 +839,7 @@ export default function BillingPage() {
       new Set(items.flatMap((it) => parseCatNames(it.catName)))
     );
     const cat =
-      billedCatNames.join(CAT_SEP) || selected.cats[0]?.name || "น้องแมว";
+      billedCatNames.join(CAT_SEP) || cust?.cats[0]?.name || "น้องแมว";
     // เก็บของแถม (ฟรี) ด้วย — label มี แต่ยอด 0
     const payloadItems = items
       .map((it, i) => ({ ...lines[i], kind: it.kind }))

@@ -267,6 +267,22 @@ where staff_note like '%🎁%';`,
     // คอร์สแบบ "ซื้อวันเข้าพัก" — หักตามจำนวนคืนที่พักจริง ไม่ใช่ 1 ครั้งต่อบิล
     // unit บอกว่า 1 หน่วยของคอร์สคือ ครั้ง หรือ คืน (คอร์สเดิมทั้งหมด = ครั้ง)
     // package_units จำว่าบิลนั้นหักไปกี่หน่วย เพื่อคืนให้ครบตอนยกเลิกบิล
+    // บันทึกว่าใครทำอะไรกับเงิน/สิทธิ์ลูกค้า — ร้านที่มีพนักงานหลายคนจะไล่ย้อนได้
+    name: "audit_logs.table",
+    sql: `
+      create table if not exists audit_logs (
+        id bigserial primary key,
+        actor text not null default '',
+        action text not null,
+        resource_type text not null,
+        resource_id text,
+        detail jsonb,
+        created_at timestamptz not null default now()
+      );
+      create index if not exists audit_logs_created_idx on audit_logs (created_at desc);
+    `,
+  },
+  {
     // ยอดยกมาจากระบบเก่า / รายการที่ไม่ใช่เงินเข้า-ออกจริง — เก็บแถวไว้ แต่ไม่นับในยอดสรุป
     name: "finance.excluded",
     sql: "alter table finance_records add column if not exists excluded boolean not null default false;",

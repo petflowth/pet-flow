@@ -6,9 +6,17 @@ import { getSiteConfig } from "@/lib/config-store";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { withResolvedTenant, withTenant } from "@/lib/tenant-context";
 import { requireCustomerSession } from "@/lib/customer-session";
+import { logAudit } from "@/lib/audit-log";
+import { requireTenantId } from "@/lib/tenant-context";
 
 async function getAdminSession(req: NextRequest) {
   return verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+}
+
+/** ใครกดปุ่มนี้ — ไว้ลงบันทึกว่าใครแตะแต้มลูกค้า */
+async function actorName(req: NextRequest): Promise<string> {
+  const s = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+  return s?.name || s?.role || "ไม่ทราบ";
 }
 
 export async function GET(req: NextRequest) {
@@ -69,6 +77,15 @@ async function handlePost(req: NextRequest, isAdmin: boolean) {
     if (!res.ok) {
       return NextResponse.json({ error: res.error }, { status: 404 });
     }
+    await logAudit({
+      tenantId: requireTenantId(),
+      actorType: "tenant",
+      actorId: await actorName(req),
+      action: "delete_points_history",
+      resourceType: "points",
+      resourceId: entryId,
+      afterState: { points: res.points },
+    });
     return NextResponse.json({ ok: true, points: res.points });
   }
 
@@ -141,6 +158,15 @@ async function handlePost(req: NextRequest, isAdmin: boolean) {
         /* ไม่มี LINE ก็ไม่เป็นไร — แต้มถูกบันทึกแล้ว */
       }
     }
+    await logAudit({
+      tenantId: requireTenantId(),
+      actorType: "tenant",
+      actorId: await actorName(req),
+      action: amount > 0 ? "add_points" : "reduce_points",
+      resourceType: "points",
+      resourceId: uid,
+      afterState: { customer: acc.displayName || uid, delta: amount, reason, balance: acc.points },
+    });
     return NextResponse.json({ ok: true, points: acc.points });
   }
 

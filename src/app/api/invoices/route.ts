@@ -109,6 +109,8 @@ function summaryFlexFromInvoice(
   }, cardStyle);
 }
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
+import { logAudit } from "@/lib/audit-log";
+import { requireTenantId } from "@/lib/tenant-context";
 
 export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
@@ -150,6 +152,12 @@ async function handleGet(req: NextRequest, id: string | null) {
   }
 
   return NextResponse.json({ invoices: await listInvoices(customerId) });
+}
+
+/** ใครกดปุ่มนี้ — เอาไว้ลงบันทึกว่าใครทำอะไรกับเงิน */
+async function actorName(req: NextRequest): Promise<string> {
+  const s = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+  return s?.name || s?.role || "ไม่ทราบ";
 }
 
 export async function POST(req: NextRequest) {
@@ -479,6 +487,20 @@ async function handlePatch(req: NextRequest) {
 
     const paid = result.invoice!;
     const customer = result.customer;
+    await logAudit({
+      tenantId: requireTenantId(),
+      actorType: "tenant",
+      actorId: await actorName(req),
+      action: "mark_paid",
+      resourceType: "invoice",
+      resourceId: id,
+      afterState: {
+        ลูกค้า: paid.customerName,
+        ยอด: paid.total,
+        เก็บรอบนี้: result.settleAmount,
+        วิธีจ่าย: body.paymentMethod || "transfer",
+      },
+    });
     // "รับเงินแล้ว" = แค่ปิดบิล + ลงบัญชี + แต้ม (ภายในร้านเท่านั้น) — ไม่ยิงการ์ดหาลูกค้า
     // เคสโรงแรมจ่ายก่อนเข้าพัก ใบเสร็จ/รีวิวต้องแยกกดส่งเอง (ปุ่ม "ส่งใบเสร็จ" / "ขอรีวิว")
     // จะได้ไม่ส่งรีวิวตั้งแต่ยังไม่เข้าพัก
@@ -645,10 +667,24 @@ async function handlePatch(req: NextRequest) {
   }
 
   if (action === "delete") {
+    const target = await getInvoice(id);
     const res = await deleteInvoice(id);
     if (!res.ok) {
       return NextResponse.json({ error: res.error }, { status: 400 });
     }
+    await logAudit({
+      tenantId: requireTenantId(),
+      actorType: "tenant",
+      actorId: await actorName(req),
+      action: "delete_invoice",
+      resourceType: "invoice",
+      resourceId: id,
+      afterState: {
+        ลูกค้า: target?.customerName,
+        ยอด: target?.total,
+        สถานะก่อนลบ: target?.status,
+      },
+    });
     return NextResponse.json({ ok: true });
   }
 

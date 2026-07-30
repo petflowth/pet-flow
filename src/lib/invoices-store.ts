@@ -52,12 +52,19 @@ export function invoiceCatNames(inv: {
   catName?: string;
   items?: { catName?: string }[];
 }): string {
+  // ชื่อในรายการคือตัวที่มาจริง — ถือเป็นข้อมูลหลักเสมอเมื่อมี
+  //
+  // ห้ามรวมกับ inv.catName เพราะฟิลด์นั้นเก็บ "แมวตัวแรกของบ้าน" ไม่ใช่ตัวที่มา
+  // (บ้านมี 3 ตัว มาแค่ 2 ตัว — ถ้ารวมเข้าไปจะมีชื่อตัวที่ไม่ได้มาโผล่ในใบเสร็จ)
+  // ใช้ inv.catName เฉพาะบิลที่ไม่ได้ระบุตัวไว้ในรายการเลย
+  const itemNames = (inv.items || []).flatMap((it) => (it.catName || "").split(","));
+  const source = itemNames.some((n) => n.trim())
+    ? itemNames
+    : (inv.catName || "").split(",");
+
   const seen = new Set<string>();
   const names: string[] = [];
-  for (const raw of [
-    ...(inv.items || []).flatMap((it) => (it.catName || "").split(",")),
-    ...(inv.catName || "").split(","),
-  ]) {
+  for (const raw of source) {
     const name = raw.trim();
     if (!name) continue;
     const key = name.normalize("NFC").replace(/[​-‍﻿\s]/g, "").toLowerCase();
@@ -848,9 +855,20 @@ export async function salesSummary(from?: string, to?: string) {
     if (to && d > to) return false;
     return true;
   });
+  // ตัดเครดิต Member ไม่ใช่เงินที่เข้าร้านรอบนี้ — รับไปแล้วตอนลูกค้าซื้อเครดิต
+  // แยกออกจากยอดขาย แต่ยังรายงานไว้ให้เห็นว่าให้บริการไปเท่าไหร่
+  const byCredit = paid.filter((i) => i.paymentMethod === "member_credit");
+  const creditTotal = byCredit.reduce((s, i) => s + i.total, 0);
+  const grossTotal = paid.reduce((s, i) => s + i.total, 0);
   return {
-    total: paid.reduce((s, i) => s + i.total, 0),
-    count: paid.length,
+    /** เงินที่รับเข้ามารอบนี้จริง (ไม่รวมที่ตัดจากเครดิตที่ซื้อไว้ก่อน) */
+    total: grossTotal - creditTotal,
+    count: paid.length - byCredit.length,
+    /** มูลค่าบริการที่ตัดจากเครดิต Member */
+    creditTotal,
+    creditCount: byCredit.length,
+    /** มูลค่าบริการทั้งหมดที่ให้ไป (เงินสด/โอน + ตัดเครดิต) */
+    grossTotal,
     pending: all.filter((i) => i.status === "pending").length,
   };
 }

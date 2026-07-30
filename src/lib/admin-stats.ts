@@ -1,7 +1,8 @@
 import { listBookings } from "./bookings-store";
 import { datesForBooking } from "./booking-customer-match";
 import { todayFinance, monthFinance } from "./finance-store";
-import { salesSummary } from "./invoices-store";
+import { salesSummary, listInvoices } from "./invoices-store";
+import { isAwaitingConfirmation } from "./booking-status";
 
 export async function adminDashboardStats() {
   const today = new Date().toISOString().slice(0, 10);
@@ -11,7 +12,12 @@ export async function adminDashboardStats() {
   const todayBookings = active.filter(
     (b) => b.date === today || b.checkin === today
   );
-  const pending = active.filter((b) => b.status === "pending");
+  // นัดที่ผ่านมาแล้วหรือออกบิลไปแล้ว = ลูกค้ามาแล้ว ไม่ต้องรอยืนยันอีก
+  const invoices = await listInvoices();
+  const billed = new Set(
+    invoices.filter((i) => i.bookingId).map((i) => i.bookingId as string)
+  );
+  const pending = active.filter((b) => isAwaitingConfirmation(b, today, billed));
   const confirmedToday = todayBookings.filter((b) => b.status === "confirmed");
 
   return {

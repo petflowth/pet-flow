@@ -11,6 +11,7 @@ import { PreviewSendModal } from "@/components/PreviewSendModal";
 import { groupBookings } from "@/lib/booking-group";
 import { buildRoomBoard, roomCapacity } from "@/lib/room-board";
 import { BOOKING_STATUS_LABELS, type BookingStatus } from "@/lib/business";
+import { effectiveBookingStatus } from "@/lib/booking-status";
 
 type CalendarDay = EditableBooking & {
   customerId?: string;
@@ -224,12 +225,27 @@ export function BookingCalendar() {
   const [statusFilter, setStatusFilter] = useState<BookingStatus | "all">("all");
   const queueRef = useRef<HTMLElement>(null);
 
+  /** นัดที่มีบิลผูกอยู่ — นัดที่ออกบิลแล้วถือว่าลูกค้ามาแล้ว ไม่ต้องรอยืนยัน */
+  const [billedIds, setBilledIds] = useState<Set<string>>(new Set());
+
   const load = useCallback(async () => {
     setLoading(true);
     const res = await fetch("/api/bookings");
     const data = await res.json().catch(() => ({ bookings: [] }));
     setBookings(data.bookings || []);
     setLoading(false);
+    try {
+      const inv = await fetch("/api/invoices").then((r) => r.json());
+      setBilledIds(
+        new Set(
+          ((inv.invoices || []) as { bookingId?: string }[])
+            .map((i) => i.bookingId)
+            .filter(Boolean) as string[]
+        )
+      );
+    } catch {
+      /* อ่านบิลไม่ได้ก็ยังใช้ตารางได้ แค่สถานะอิงวันที่เท่านั้น */
+    }
   }, []);
 
   useEffect(() => {
@@ -962,7 +978,7 @@ export function BookingCalendar() {
             shownGroups.map((group) => {
               const b = group[0];
               const allConfirmed = group.every((x) => x.status === "confirmed");
-              const stage = group[0].status as BookingStatus;
+              const stage = effectiveBookingStatus(group[0], today, billedIds);
               const catNames = group.map((x) => x.catName).join(", ");
               const caseDone = paidCases[b.id] === true;
               return (

@@ -2129,23 +2129,44 @@ export async function getCustomerHistory(customerId: string) {
   };
 }
 
+/**
+ * จำนวน "ครั้งที่มาใช้บริการจริง" — นับเป็นวันที่มา ไม่ใช่จำนวนนัดหรือจำนวนแมว
+ *
+ * เดิมนับ services + นัดที่ยืนยันแล้ว ซึ่งผิดสองทาง:
+ *  1) กดยืนยันนัดไม่ได้แปลว่าลูกค้ามาแล้ว — ลูกค้าที่แค่ลงนัดขึ้นเป็น "มาใช้บริการ" ทันที
+ *  2) นับต่อนัด ซึ่งระบบเก็บ 1 นัดต่อแมว 1 ตัว — บ้านที่พามา 2 ตัววันเดียวกลายเป็น 2 ครั้ง
+ *  3) พอปิดบิลแล้วจะมีทั้ง service record และนัดที่ยืนยันแล้ว = นับซ้ำอีกรอบ
+ *
+ * นับจาก "วันที่ต่างกัน" ที่มีหลักฐานว่าได้ให้บริการจริง คือมีบิลที่ปิดแล้ว
+ * (service record) หรือปิดงานในระบบแล้ว (นัดสถานะ ready/done)
+ */
+function countVisitDays(history: {
+  services: { date: string }[];
+  bookings: { status: string; date?: string; checkin?: string }[];
+}): number {
+  const days = new Set<string>();
+  for (const s of history.services) {
+    if (s.date) days.add(s.date.slice(0, 10));
+  }
+  for (const b of history.bookings) {
+    if (b.status !== "ready" && b.status !== "done") continue;
+    const d = b.date || b.checkin || "";
+    if (d) days.add(d.slice(0, 10));
+  }
+  return days.size;
+}
+
 export async function customerSummary(customerId: string) {
   const c = await getCustomer(customerId);
   if (!c) return null;
   const history = await getCustomerHistory(customerId);
   const points = c.lineUserId ? (await getAccount(c.lineUserId, c.name)).points : 0;
-  const visits =
-    history.services.length +
-    history.bookings.filter((b) => b.status === "confirmed").length;
+  const visits = countVisitDays(history);
   return { customer: c, history, points, visits };
 }
 
 export async function countCustomerVisits(customerId: string) {
-  const history = await getCustomerHistory(customerId);
-  return (
-    history.services.length +
-    history.bookings.filter((b) => b.status === "confirmed").length
-  );
+  return countVisitDays(await getCustomerHistory(customerId));
 }
 
 /** ยอดสะสมรวม (บิลที่ชำระแล้ว) — ใช้เป็นเงื่อนไขเลื่อนระดับ VIP */

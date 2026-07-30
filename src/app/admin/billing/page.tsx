@@ -833,8 +833,13 @@ export default function BillingPage() {
     }
     if (subtotal <= 0) return toast("ใส่รายการอย่างน้อย 1 อย่าง", "error");
     setCreating(true);
-    // ขายเร็วไม่มีน้องแมวจริง (cust มาจากการสร้างลูกค้าโครงด้านบน ไม่ใช่ selected) — ปล่อยว่างไว้ ดีกว่าใส่ชื่อปลอม
-    const cat = cust?.cats[0]?.name || (selected ? "น้องแมว" : "");
+    // ชื่อน้องของบิล = ตัวที่ติ๊กไว้ในรายการ (ตัวที่มาจริง)
+    // ไม่ใช่แมวตัวแรกของบ้าน — บ้านมี 3 ตัวแต่มา 2 ตัว ต้องไม่มีชื่อตัวที่ไม่ได้มา
+    const billedCatNames = Array.from(
+      new Set(items.flatMap((it) => parseCatNames(it.catName)))
+    );
+    const cat =
+      billedCatNames.join(CAT_SEP) || selected.cats[0]?.name || "น้องแมว";
     // เก็บของแถม (ฟรี) ด้วย — label มี แต่ยอด 0
     const payloadItems = items
       .map((it, i) => ({ ...lines[i], kind: it.kind }))

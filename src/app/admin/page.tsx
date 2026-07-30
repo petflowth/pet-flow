@@ -9,7 +9,14 @@ type Stats = {
   queue: number;
   todayAppointments: number;
   todayConfirmed: number;
-  salesToday: { total: number; count: number; pending: number };
+  salesToday: {
+    total: number;
+    count: number;
+    creditTotal: number;
+    creditCount: number;
+    grossTotal: number;
+    pending: number;
+  };
   salesMonth: { total: number; count: number; pending: number };
   financeToday: { income: number; expense: number; net: number };
   financeMonth: { income: number; expense: number; net: number };
@@ -91,7 +98,18 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3">
-        <StatCard emoji="💰" label="ยอดขายวันนี้" value={`${stats.salesToday.total.toLocaleString()} ฿`} sub={`${stats.salesToday.count} บิล`} />
+        <StatCard
+          emoji="💰"
+          label="ยอดขายวันนี้"
+          value={`${stats.salesToday.total.toLocaleString()} ฿`}
+          sub={
+            // ตัดเครดิต Member ไม่ใช่เงินเข้ารอบนี้ (รับไปแล้วตอนขายเครดิต)
+            // แยกบรรทัดไว้ให้เห็นว่าให้บริการไปเท่าไหร่ ไม่ใช่หายไปเลย
+            stats.salesToday.creditTotal > 0
+              ? `${stats.salesToday.count} บิล · ตัดเครดิต ${stats.salesToday.creditTotal.toLocaleString()} ฿`
+              : `${stats.salesToday.count} บิล`
+          }
+        />
         <StatCard emoji="⏳" label="คิวรอยืนยัน" value={String(stats.queue)} sub="นัด" />
         <StatCard emoji="📅" label="นัดวันนี้" value={String(stats.todayAppointments)} sub={`ยืนยัน ${stats.todayConfirmed}`} />
         <StatCard emoji="📒" label="สุทธิวันนี้" value={`${stats.financeToday.net.toLocaleString()} ฿`} sub={`เดือน ${stats.financeMonth.net.toLocaleString()} ฿`} />

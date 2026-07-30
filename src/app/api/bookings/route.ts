@@ -20,6 +20,7 @@ import { bookingMatchesCustomer } from "@/lib/booking-customer-match";
 import { groomProgram } from "@/lib/grooming-prices";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { withResolvedTenant, withTenant } from "@/lib/tenant-context";
+import { requireCustomerSession } from "@/lib/customer-session";
 import { listCustomers, resolveCustomerForBooking } from "@/lib/customers-store";
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
 import {
@@ -113,14 +114,23 @@ async function resolveGroupBooking(b: StoredBooking, ids: unknown): Promise<Stor
 }
 
 export async function GET(req: NextRequest) {
-  const lineUserId = req.nextUrl.searchParams.get("lineUserId") || undefined;
+  const claimed = req.nextUrl.searchParams.get("lineUserId") || undefined;
   const session = await getAdminSession(req);
-  // ไม่ได้ล็อกอิน = แอปลูกค้า → ดูได้เฉพาะนัดของตัวเอง ห้ามดึงทั้งร้าน
-  if (!lineUserId && !session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-  if (session) return withTenant(session.tenantId, () => handleGet(lineUserId));
-  return withResolvedTenant(req, () => handleGet(lineUserId));
+
+  // หลังบ้าน: ใช้ค่าที่ส่งมาตามเดิม (พนักงานอาจดูนัดของลูกค้ารายใดรายหนึ่ง)
+  // และต้องไม่หยิบคุกกี้ลูกค้าที่อาจค้างอยู่ในเบราว์เซอร์เดียวกันมาใช้
+  if (session) return withTenant(session.tenantId, () => handleGet(claimed));
+
+  // แอปลูกค้า: ยึดตัวตนจากคุกกี้ที่ตรวจกับ LINE แล้ว ไม่ใช่ค่าที่ client ส่งมา
+  // ไม่งั้นใครรู้ lineUserId ของคนอื่นก็ดึงนัดทั้งหมดของเขาได้
+  return withResolvedTenant(req, async () => {
+    const customer = await requireCustomerSession(req);
+    const lineUserId = customer?.lineUserId || claimed;
+    if (!lineUserId) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+    return handleGet(lineUserId);
+  });
 }
 
 async function handleGet(lineUserId?: string) {

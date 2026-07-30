@@ -27,8 +27,12 @@ export type InvoiceItem = {
   label: string;
   /** ยอดรวมของรายการนี้แล้ว (คูณจำนวนแล้ว) */
   amount: number;
-  /** ประเภทรายการ — ใช้เช็คว่าบิลนี้มีอาบน้ำ/กรูมรวมอยู่ไหม (แม่นกว่าเดารูปแบบข้อความ) */
-  kind?: "grooming" | "room" | "service" | "custom" | "freebie" | "product";
+  /**
+   * ประเภทรายการ — ใช้เช็คว่าบิลนี้มีอาบน้ำ/กรูมรวมอยู่ไหม (แม่นกว่าเดารูปแบบข้อความ)
+   * "package" = ขายคอร์ส/เติมเครดิต Member — ไม่ให้แต้ม เพราะยังไม่ใช่การใช้บริการ
+   * (ถ้าให้ตรงนี้ ลูกค้าจะได้แต้มสองรอบ: รอบซื้อ กับรอบเอาคอร์สมาใช้)
+   */
+  kind?: "grooming" | "room" | "service" | "custom" | "freebie" | "product" | "package";
   /** น้องแมวตัวไหน — บิลบ้านที่มีหลายตัวจะได้รู้ว่าตัวไหนอาบโปรแกรมอะไร */
   catName?: string;
   /** จำนวนชิ้น (ไม่ใส่ = 1) — ซื้อหลายชิ้นไม่ต้องเพิ่มทีละบรรทัด */
@@ -664,7 +668,13 @@ export async function markInvoicePaid(
   // ให้แต้มอีกจะเป็นการได้ประโยชน์ซ้ำสองรอบจากเงินก้อนเดียว (ปิดได้ในตั้งค่า)
   const bizCfg = (await getSiteConfig()).business;
   const skipPoints = paymentMethod === "member_credit" && bizCfg.noPointsOnMemberCredit !== false;
-  inv.pointsEarned = skipPoints ? 0 : Math.floor(inv.total / bizCfg.pointsRate);
+  // ยอดที่ขายคอร์ส/เครดิตไม่นับเป็นฐานแต้ม — ลูกค้าจะได้แต้มตอนเอาคอร์สมาใช้บริการแล้ว
+  // (และคอร์สแบบเครดิตให้แต้มตอนเติมอยู่แล้ว) ไม่งั้นเงินก้อนเดียวได้แต้มสองรอบ
+  const packageSales = (inv.items || [])
+    .filter((it) => it.kind === "package")
+    .reduce((sum, it) => sum + Math.max(0, it.amount || 0), 0);
+  const pointsBase = Math.max(0, inv.total - packageSales);
+  inv.pointsEarned = skipPoints ? 0 : Math.floor(pointsBase / bizCfg.pointsRate);
 
   const sb = getSupabase();
   if (sb) {

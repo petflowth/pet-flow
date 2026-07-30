@@ -5,6 +5,7 @@ import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 import { LangSwitch } from "@/components/LangSwitch";
 import { CustomerExclusivePromos } from "@/components/CustomerExclusivePromos";
+import { PackageShopSection } from "@/components/PackageShopSection";
 
 type Promo = {
   id: string;
@@ -35,6 +36,10 @@ export default function PromosPage() {
         <h1 className="text-xl font-extrabold text-petflow-chocolate">🎁 {m.title}</h1>
         <LangSwitch />
       </div>
+
+      {/* คอร์สที่เปิดขาย — ไว้บนสุด เพราะเป็นของที่ร้านอยากให้ลูกค้าเห็นก่อน
+          (ซ่อนตัวเองอยู่แล้วถ้าไม่มีของขายและไม่มีออร์เดอร์ค้าง) */}
+      <PackageShopSection />
 
       <CustomerExclusivePromos />
 

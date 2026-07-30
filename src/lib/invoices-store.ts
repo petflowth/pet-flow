@@ -83,8 +83,10 @@ export type InvoiceRecord = {
   paidAt?: string;
   pointsEarned?: number;
   bookingId?: string;
-  /** คอร์สที่บิลนี้หักไป 1 ครั้ง — ไว้โชว์ประวัติการใช้ + คืนครั้งให้ตอนยกเลิกบิล */
+  /** คอร์สที่บิลนี้หักไป — ไว้โชว์ประวัติการใช้ + คืนให้ตอนยกเลิกบิล */
   packageId?: string;
+  /** หักไปกี่หน่วย (คอร์สแบบคืน = จำนวนคืนที่พัก) ไม่ระบุ = 1 */
+  packageUnits?: number;
   sentAt?: string;
   createdAt: string;
   /** เวลาที่กด "รับมัดจำแล้ว" (ต้องรัน migration ก่อน) */
@@ -112,6 +114,7 @@ type InvoiceRow = {
   points_earned: number | null;
   booking_id: string | null;
   package_id?: string | null;
+  package_units?: number | null;
   sent_at: string | null;
   created_at: string;
   deposit_received_at?: string | null;
@@ -140,6 +143,7 @@ function rowToInvoice(r: InvoiceRow): InvoiceRecord {
     pointsEarned: r.points_earned ?? undefined,
     bookingId: r.booking_id || undefined,
     packageId: r.package_id || undefined,
+    packageUnits: r.package_units ?? undefined,
     sentAt: r.sent_at || undefined,
     createdAt: r.created_at,
     depositReceivedAt: r.deposit_received_at ?? undefined,
@@ -269,6 +273,8 @@ export async function createInvoice(data: {
   bookingId?: string;
   /** คอร์สที่บิลนี้หัก 1 ครั้ง — เก็บไว้เพื่อโชว์ประวัติการใช้ + คืนครั้งตอนยกเลิกบิล */
   packageId?: string;
+  /** หักคอร์สกี่หน่วย (คอร์สแบบคืน = จำนวนคืนที่พัก) ไม่ระบุ = 1 */
+  packageUnits?: number;
   /** คูปองที่เลือกใช้ — ยอดส่วนลดคิดจากคูปองจริงในระบบเสมอ ไม่เชื่อยอดที่ฝั่งหน้าเว็บส่งมา */
   couponId?: string;
 }) {
@@ -360,6 +366,7 @@ export async function createInvoice(data: {
     status: "pending",
     bookingId: data.bookingId,
     packageId: data.packageId,
+    packageUnits: data.packageUnits && data.packageUnits > 1 ? Math.round(data.packageUnits) : undefined,
     createdAt: new Date().toISOString(),
   };
 
@@ -372,11 +379,19 @@ export async function createInvoice(data: {
       // เครื่องที่ยังไม่ได้อัปเดตฐานข้อมูลจะได้ไม่พังทั้งการออกบิล
       if (invoice.packageId) {
         try {
-          await sb
+          // package_units ก็เพิ่งเพิ่มเหมือนกัน — ลองเขียนคู่กันก่อน
+          // ถ้าคอลัมน์ยังไม่มีให้ตกไปเขียนแค่ package_id (บิลยังหักคอร์สได้ปกติ
+          // แค่ตอนยกเลิกจะคืนให้ 1 หน่วยตามค่าเริ่มต้น)
+          const both = await sb
             .from("invoices")
-            .update({ package_id: invoice.packageId })
-            .eq("id", invoice.id)
-            .eq("tenant_id", requireTenantId());
+            .update({ package_id: invoice.packageId, package_units: invoice.packageUnits ?? null })
+            .eq("id", invoice.id);
+          if (both.error) {
+            await sb
+              .from("invoices")
+              .update({ package_id: invoice.packageId })
+              .eq("id", invoice.id);
+          }
         } catch {
           /* ยังไม่มีคอลัมน์ — ประวัติการใช้คอร์สจะยังไม่ขึ้นจนกว่าจะอัปเดตฐานข้อมูล */
         }
@@ -536,10 +551,12 @@ export async function deleteInvoice(id: string) {
 
   await deleteFinanceByInvoice(id);
 
-  // ลบบิลที่หักคอร์สไป → คืนครั้งให้ลูกค้าด้วย ไม่งั้นสิทธิ์หายไปเฉยๆ
-  if (inv.packageId && inv.status === "paid") {
+  // ลบบิลที่หักคอร์สไป → คืนสิทธิ์ให้ลูกค้าด้วย ไม่งั้นสิทธิ์หายไปเฉยๆ
+  // ไม่เช็คว่าจ่ายแล้วหรือยัง เพราะคอร์สถูกหักตอน "ออกบิล" ไม่ใช่ตอนจ่าย
+  // (เดิมเช็ค status==="paid" ทำให้ลบบิลที่ยังไม่จ่าย สิทธิ์ที่หักไปหายเลย)
+  if (inv.packageId) {
     const { refundPackageUse } = await import("./packages-store");
-    await refundPackageUse(inv.packageId);
+    await refundPackageUse(inv.packageId, inv.packageUnits || 1);
   }
 
   // ลบบิลที่เคยใช้คูปอง → คืนคูปองให้ลูกค้าใช้ใหม่ได้ ไม่งั้นคูปองค้างสถานะ "ใช้แล้ว" ตลอดไป
@@ -783,11 +800,9 @@ export async function revertInvoicePaid(id: string) {
   // ลบประวัติบริการ (กันจำนวนครั้งเกินจริง)
   await deleteServiceRecordByInvoice(id);
 
-  // คืนครั้งที่หักจากคอร์สไป — ไม่งั้นยกเลิกบิลแล้วลูกค้าเสียสิทธิ์ฟรีๆ
-  if (inv.packageId) {
-    const { refundPackageUse } = await import("./packages-store");
-    await refundPackageUse(inv.packageId);
-  }
+  // ไม่คืนสิทธิ์คอร์สที่นี่ — "ยกเลิกการชำระ" แค่ปลดสถานะจ่ายแล้ว บิลยังอยู่และยัง
+  // ใช้คอร์สคลุมยอดอยู่ ถ้าคืนตรงนี้แล้วกดรับเงินใหม่ (ซึ่งไม่หักซ้ำ) สิทธิ์จะงอกขึ้นมาฟรี
+  // ทุกครั้งที่กดยกเลิก-รับเงินใหม่ · สิทธิ์จะถูกคืนตอน "ลบบิล" ซึ่งเป็นคู่ของการหักตอนออกบิล
 
   // คืนสต็อกสินค้าที่ตัดไปตอนปิดบิล
   for (const it of inv.items) {

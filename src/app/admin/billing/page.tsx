@@ -318,7 +318,7 @@ export default function BillingPage() {
   >([]);
   const [packageId, setPackageId] = useState("");
   const [customerPackages, setCustomerPackages] = useState<
-    { id: string; name: string; totalUses: number; usedUses: number }[]
+    { id: string; name: string; totalUses: number; usedUses: number; unit?: "use" | "night" }[]
   >([]);
   const [billDeposit, setBillDeposit] = useState("");
   const [billDepPct, setBillDepPct] = useState<number | null>(null);
@@ -500,10 +500,41 @@ export default function BillingPage() {
         )
       : discountInput;
   const couponAmount = customerCoupons.find((c) => c.id === couponId)?.amount || 0;
-  // คอร์ส: หัก 1 ครั้ง → คลุมยอดที่เหลือทั้งบิลให้เป็น 0 (จ่ายไปแล้วตอนซื้อคอร์ส)
-  const packageCovers = packageId
-    ? Math.max(0, subtotal - promoDiscount - manualDiscount - couponAmount)
+
+  const pickedPackage = customerPackages.find((p) => p.id === packageId);
+  const packageLeft = pickedPackage
+    ? pickedPackage.totalUses - pickedPackage.usedUses
     : 0;
+  /**
+   * คอร์สแบบคืน: หักตามจำนวนคืนที่พักจริง แล้วคลุมเฉพาะค่าห้องของคืนที่หักได้
+   * (ค่าอาบน้ำ/ของเสริมในบิลเดียวกันยังต้องจ่าย) ถ้าคืนที่เหลือไม่พอ
+   * จะคลุมเท่าที่เหลือ แล้วส่วนที่เกินลูกค้าจ่ายเพิ่มตามปกติ
+   */
+  const roomLines = lines
+    .map((l, i) => ({ ...l, kind: items[i]?.kind }))
+    .filter((l) => l.kind === "room");
+  const nightsOnBill = roomLines.reduce((n, l) => n + Math.max(1, l.qty || 1), 0);
+  const nightsToUse =
+    pickedPackage?.unit === "night" ? Math.min(packageLeft, nightsOnBill) : 0;
+  const nightsCover = (() => {
+    if (!nightsToUse) return 0;
+    let left = nightsToUse;
+    let covered = 0;
+    for (const l of roomLines) {
+      if (left <= 0) break;
+      const take = Math.min(left, Math.max(1, l.qty || 1));
+      covered += take * (l.unitAmount || 0);
+      left -= take;
+    }
+    return covered;
+  })();
+
+  // คอร์สนับครั้ง: หัก 1 ครั้ง → คลุมยอดที่เหลือทั้งบิลให้เป็น 0 (จ่ายไปแล้วตอนซื้อคอร์ส)
+  const packageCovers = !packageId
+    ? 0
+    : pickedPackage?.unit === "night"
+      ? Math.min(nightsCover, Math.max(0, subtotal - promoDiscount - manualDiscount - couponAmount))
+      : Math.max(0, subtotal - promoDiscount - manualDiscount - couponAmount);
   const total = Math.max(
     0,
     subtotal - promoDiscount - manualDiscount - couponAmount - packageCovers
@@ -852,6 +883,7 @@ export default function BillingPage() {
         bookingId: bookingId || undefined,
         couponId: couponId || undefined,
         packageId: packageId || undefined,
+        packageUnits: nightsToUse || undefined,
       }),
     });
     const data = await res.json();
@@ -1584,7 +1616,7 @@ export default function BillingPage() {
           {customerPackages.length > 0 && (
             <div>
               <span className="mb-1 block text-xs font-bold text-brown-soft">
-                🎫 คอร์สของลูกค้า (กดหัก 1 ครั้ง → บิลนี้ฟรี)
+                🎫 คอร์สของลูกค้า (นับครั้ง = บิลนี้ฟรี · นับคืน = หักตามคืนที่พัก)
               </span>
               <div className="flex flex-wrap gap-2">
                 {customerPackages.map((pk) => (
@@ -1597,13 +1629,30 @@ export default function BillingPage() {
                     }`}
                   >
                     {packageId === pk.id ? "✓ " : ""}
-                    {pk.name} (เหลือ {pk.totalUses - pk.usedUses}/{pk.totalUses})
+                    {pk.name} (เหลือ {pk.totalUses - pk.usedUses}/{pk.totalUses}{" "}
+                    {pk.unit === "night" ? "คืน" : "ครั้ง"})
                   </button>
                 ))}
               </div>
             </div>
           )}
         </div>
+
+        {pickedPackage?.unit === "night" && (
+          <p className="rounded-catcha-sm bg-sage/15 px-3 py-1.5 text-[11px] font-bold text-ok">
+            {nightsToUse > 0
+              ? `🏠 หักคอร์ส ${nightsToUse} คืน (คลุมค่าห้าง ${nightsCover.toLocaleString()} บาท)`.replace(
+                  "ค่าห้าง",
+                  "ค่าห้อง"
+                )
+              : "⚠️ บิลนี้ไม่มีรายการห้องพัก หรือคอร์สหมดคืนแล้ว — ยังหักไม่ได้"}
+            {nightsToUse > 0 && nightsOnBill > nightsToUse && (
+              <span className="block font-normal text-brown-soft">
+                บิลนี้พัก {nightsOnBill} คืน แต่คอร์สเหลือ {nightsToUse} คืน — ส่วนที่เกินคิดเงินตามปกติ
+              </span>
+            )}
+          </p>
+        )}
 
         {autoPromoLabel && promoId && (
           <p className="rounded-petflow-sm bg-sage/15 px-3 py-1.5 text-[11px] font-bold text-ok">

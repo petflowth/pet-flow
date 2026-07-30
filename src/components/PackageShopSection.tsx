@@ -6,7 +6,7 @@ import { toJpegDataUrl } from "@/lib/image-convert";
 
 type Offer = {
   id: string;
-  kind: "package" | "credit";
+  kind: "package" | "credit" | "nights";
   name: string;
   totalUses: number;
   price: number;
@@ -17,7 +17,7 @@ type Offer = {
 
 type Order = {
   id: string;
-  kind: "package" | "credit";
+  kind: "package" | "credit" | "nights";
   name: string;
   totalUses: number;
   price: number;
@@ -80,7 +80,9 @@ export function PackageShopSection() {
     const detail =
       offer.kind === "credit"
         ? `ได้รับเครดิต ${(offer.creditAmount ?? offer.price).toLocaleString()} บาท`
-        : `(${offer.totalUses} ครั้ง)`;
+        : offer.kind === "nights"
+          ? `(เข้าพักได้ ${offer.totalUses} คืน)`
+          : `(${offer.totalUses} ครั้ง)`;
     if (
       !confirm(
         `สั่งซื้อ "${offer.name}" ${detail}\n` +
@@ -205,6 +207,17 @@ export function PackageShopSection() {
                         ได้เครดิต {(o.creditAmount ?? o.price).toLocaleString()}฿
                         {(o.creditAmount ?? o.price) > o.price ? " 🎁" : ""}
                       </span>
+                    ) : o.kind === "nights" ? (
+                      <>
+                        <span className="rounded-full bg-sage/20 px-2 py-0.5 text-ok">
+                          🏠 เข้าพักได้ {o.totalUses} คืน
+                        </span>
+                        {o.totalUses > 0 && (
+                          <span className="text-brown-faint">
+                            ตกคืนละ {Math.round(o.price / o.totalUses).toLocaleString()}฿
+                          </span>
+                        )}
+                      </>
                     ) : (
                       <>
                         <span className="rounded-full bg-sage/20 px-2 py-0.5 text-ok">

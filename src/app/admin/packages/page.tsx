@@ -5,7 +5,7 @@ import Link from "next/link";
 import { toast } from "@/components/Toast";
 import { toJpegDataUrl } from "@/lib/image-convert";
 
-type OfferKind = "package" | "credit";
+type OfferKind = "package" | "credit" | "nights";
 
 type Offer = {
   id: string;
@@ -46,6 +46,7 @@ function OfferRow({
 }) {
   const o = offer;
   const isCredit = o.kind === "credit";
+  const isNights = o.kind === "nights";
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(o.name);
   const [uses, setUses] = useState(String(o.totalUses));
@@ -135,7 +136,7 @@ function OfferRow({
                 min={1}
                 value={uses}
                 onChange={(e) => setUses(e.target.value)}
-                placeholder="กี่ครั้ง"
+                placeholder={isNights ? "กี่คืน" : "กี่ครั้ง"}
                 className={field}
               />
               <input
@@ -554,7 +555,24 @@ export default function AdminPackagesPage() {
           >
             💰 เติมเครดิต Member
           </button>
+          <button
+            type="button"
+            onClick={() => setKind("nights")}
+            className={`flex-1 py-2 transition ${
+              kind === "nights" ? "bg-latte-deep text-card" : "bg-paper text-brown-soft"
+            }`}
+          >
+            🏠 ซื้อวันเข้าพัก
+          </button>
         </div>
+        {kind === "nights" && (
+          <p className="mb-2 rounded-petflow-sm bg-honey/15 px-3 py-2 text-[11px] font-bold text-petflow-chocolate">
+            ลูกค้าซื้อจำนวนคืนล่วงหน้าในราคาถูกกว่า แล้วหักตามคืนที่เข้าพักจริง
+            <span className="mt-0.5 block font-normal text-brown-soft">
+              คลุมเฉพาะค่าห้อง — ค่าอาบน้ำ/ของเสริมในบิลเดียวกันยังคิดตามปกติ
+            </span>
+          </p>
+        )}
 
         <div className="space-y-2">
           <input
@@ -589,7 +607,7 @@ export default function AdminPackagesPage() {
                 min={1}
                 value={uses}
                 onChange={(e) => setUses(e.target.value)}
-                placeholder="กี่ครั้ง"
+                placeholder={kind === "nights" ? "กี่คืน" : "กี่ครั้ง"}
                 className={field}
               />
               <input

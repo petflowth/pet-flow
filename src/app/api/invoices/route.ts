@@ -168,9 +168,11 @@ async function handlePost(req: NextRequest) {
     // consumePackage คืนผลลัพธ์ ไม่ได้ throw ถ้าคอร์สหมด ถ้าเช็คแค่ try/catch
     // คอร์สที่ใช้ครบแล้วจะยังออกบิลฟรีให้ได้อยู่
     let consumedPackageId: string | undefined;
+    // คอร์สแบบคืนหักหลายหน่วยในบิลเดียว (พัก 5 คืน = หัก 5) ไม่ระบุ = 1 เหมือนเดิม
+    const packageUnits = Math.max(1, Math.round(Number(body.packageUnits) || 1));
     if (body.packageId) {
       try {
-        const used = await consumePackage(String(body.packageId));
+        const used = await consumePackage(String(body.packageId), packageUnits);
         if (used.ok) consumedPackageId = String(body.packageId);
       } catch {
         /* คอร์สไม่เจอ — ออกบิลต่อได้ แต่ไม่ผูกคอร์ส */
@@ -193,12 +195,13 @@ async function handlePost(req: NextRequest) {
         deposit: body.deposit,
         bookingId: body.bookingId,
         packageId: consumedPackageId,
+        packageUnits: consumedPackageId ? packageUnits : undefined,
         couponId: body.couponId ? String(body.couponId) : undefined,
       });
     } catch (e) {
       // ออกบิลไม่สำเร็จ (ส่วนใหญ่เพราะคูปองใช้ไม่ได้แล้ว) — คืนครั้งคอร์สที่หักไปด้านบนก่อน
       // ไม่งั้นคอร์สจะถูกหักฟรีๆ ทั้งที่ไม่มีบิลเกิดขึ้นจริง
-      if (consumedPackageId) await refundPackageUse(consumedPackageId);
+      if (consumedPackageId) await refundPackageUse(consumedPackageId, packageUnits);
       const message = e instanceof Error ? e.message : String(e);
       const known: Record<string, string> = {
         coupon_invalid: "คูปองนี้ใช้ไม่ได้แล้ว (หมดอายุ/ใช้ไปแล้ว/ไม่ใช่ของลูกค้าคนนี้)",

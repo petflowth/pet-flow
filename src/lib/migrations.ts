@@ -264,6 +264,16 @@ where staff_note like '%🎁%';`,
     // แจ้งเตือน "ลูกค้ารอเกิน 10 นาที" เดิมนับจากช่องว่างระหว่างข้อความล่าสุด 2 อันของลูกค้า
     // (ผิด — ยิงทุกครั้งที่ลูกค้าทักห่างกันเกิน 10 นาที ไม่ว่าจะเคยตอบไปแล้วหรือไม่)
     // คอลัมน์นี้ไว้จับ "เวลาที่เริ่มเงียบจริงๆ" ของแต่ละรอบสนทนา นับ 10 นาทีจากจุดนี้แทน
+    // คอร์สแบบ "ซื้อวันเข้าพัก" — หักตามจำนวนคืนที่พักจริง ไม่ใช่ 1 ครั้งต่อบิล
+    // unit บอกว่า 1 หน่วยของคอร์สคือ ครั้ง หรือ คืน (คอร์สเดิมทั้งหมด = ครั้ง)
+    // package_units จำว่าบิลนั้นหักไปกี่หน่วย เพื่อคืนให้ครบตอนยกเลิกบิล
+    name: "packages.night_unit",
+    sql: `
+      alter table customer_packages add column if not exists unit text not null default 'use';
+      alter table invoices add column if not exists package_units integer;
+    `,
+  },
+  {
     name: "chat_watch.first_unanswered_at",
     sql: "alter table chat_watch add column if not exists first_unanswered_at timestamptz;",
   },

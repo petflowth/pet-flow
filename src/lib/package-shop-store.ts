@@ -13,7 +13,12 @@ import { requireTenantId } from "./tenant-context";
  * คอร์สจะถูกสร้างตอนร้านกดยืนยันเท่านั้น (ดู confirmPackageOrder)
  */
 
-export type PackageOfferKind = "package" | "credit";
+/**
+ * package = คอร์สนับครั้ง — 1 ครั้งคลุมทั้งบิล
+ * credit  = เติมเครดิต Member
+ * nights  = ซื้อวันเข้าพักล่วงหน้า — totalUses คือจำนวนคืน หักตามคืนที่พักจริง
+ */
+export type PackageOfferKind = "package" | "credit" | "nights";
 
 export type PackageOffer = {
   id: string;
@@ -92,7 +97,7 @@ const memOrders: PackageOrder[] = [];
 function rowToOffer(r: OfferRow): PackageOffer {
   return {
     id: r.id,
-    kind: r.kind === "credit" ? "credit" : "package",
+    kind: r.kind === "credit" || r.kind === "nights" ? r.kind : "package",
     name: r.name || "",
     totalUses: Number(r.total_uses) || 0,
     price: Number(r.price) || 0,
@@ -111,7 +116,7 @@ function rowToOrder(r: OrderRow): PackageOrder {
     customerName: r.customer_name || "",
     lineUserId: r.line_user_id || undefined,
     offerId: r.offer_id || undefined,
-    kind: r.kind === "credit" ? "credit" : "package",
+    kind: r.kind === "credit" || r.kind === "nights" ? r.kind : "package",
     name: r.name || "",
     totalUses: Number(r.total_uses) || 0,
     price: Number(r.price) || 0,
@@ -158,7 +163,8 @@ export async function createPackageOffer(data: {
   /** data URL จากช่องอัปโหลด — จะถูกเก็บขึ้น Storage ให้ ไม่ยัด base64 ลง DB */
   image?: string;
 }): Promise<PackageOffer | null> {
-  const kind: PackageOfferKind = data.kind === "credit" ? "credit" : "package";
+  const kind: PackageOfferKind =
+    data.kind === "credit" || data.kind === "nights" ? data.kind : "package";
   const name = data.name.trim();
   const price = Math.max(0, Math.round(data.price) || 0);
   // เติมเครดิตไม่มีแนวคิด "จำนวนครั้ง" — เก็บ 0 ไว้เฉยๆ กันโค้ดเก่าที่อ่าน total_uses พัง
@@ -561,6 +567,8 @@ export async function confirmPackageOrder(
     name: order.name,
     totalUses: order.totalUses,
     price: order.price,
+    // ซื้อวันเข้าพัก = หน่วยเป็นคืน หักตามจำนวนคืนที่พักจริงตอนคิดเงิน
+    unit: order.kind === "nights" ? "night" : "use",
     isLegacy: opts?.isLegacy,
   });
 

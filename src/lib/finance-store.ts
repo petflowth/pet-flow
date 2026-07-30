@@ -12,6 +12,12 @@ export type FinanceRecord = {
   invoiceId?: string;
   /** รูปบิล/ใบเสร็จที่แนบไว้ (URL ใน storage) — ไว้เป็นหลักฐานตอนยื่นภาษี */
   receiptUrl?: string;
+  /**
+   * ไม่นับเป็นรายรับ/รายจ่ายของกิจการ — เก็บแถวไว้ดูได้ แต่ไม่เข้ายอดสรุปและเอกสารภาษี
+   * ใช้กับยอดยกมาจากระบบเก่า หรือรายการที่ไม่ใช่เงินเข้า-ออกจริง
+   * (ต้องรัน "อัปเดตฐานข้อมูล" ก่อนถึงจะบันทึกได้)
+   */
+  excluded?: boolean;
   createdAt: string;
 };
 
@@ -25,6 +31,7 @@ type FinanceRow = {
   customer_id: string | null;
   invoice_id: string | null;
   receipt_url?: string | null;
+  excluded?: boolean | null;
   created_at: string;
 };
 
@@ -41,6 +48,7 @@ function rowToFinance(r: FinanceRow): FinanceRecord {
     customerId: r.customer_id || undefined,
     invoiceId: r.invoice_id || undefined,
     receiptUrl: r.receipt_url || undefined,
+    excluded: r.excluded === true,
     createdAt: r.created_at,
   };
 }
@@ -335,10 +343,28 @@ export async function deleteInvoicePaymentIncome(invoiceId: string) {
 }
 
 export async function financeSummary(from?: string, to?: string) {
-  const list = await listFinance(from, to);
+  // รายการที่ติ๊ก "ไม่นับเป็นรายได้" ไม่เข้ายอดสรุป (เช่นยอดยกมาจากระบบเก่า)
+  const list = (await listFinance(from, to)).filter((r) => !r.excluded);
   const income = list.filter((r) => r.type === "income").reduce((s, r) => s + r.amount, 0);
   const expense = list.filter((r) => r.type === "expense").reduce((s, r) => s + r.amount, 0);
   return { income, expense, net: income - expense, count: list.length };
+}
+
+/** ติ๊ก/ปลดติ๊ก "ไม่นับเป็นรายได้" — graceful ถ้ายังไม่ได้อัปเดตฐานข้อมูล */
+export async function setFinanceExcluded(id: string, excluded: boolean) {
+  const sb = getSupabase();
+  if (sb) {
+    const { error } = await sb
+      .from("finance_records")
+      .update({ excluded })
+      .eq("id", id);
+    if (error) return { ok: false as const, error: "need_sql" };
+    return { ok: true as const };
+  }
+  const m = mem.find((r) => r.id === id);
+  if (!m) return { ok: false as const, error: "not_found" };
+  m.excluded = excluded;
+  return { ok: true as const };
 }
 
 export async function todayFinance() {

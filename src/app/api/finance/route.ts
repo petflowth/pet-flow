@@ -6,6 +6,7 @@ import {
   updateFinanceEntry,
   deleteFinanceEntry,
   financeSummary,
+  setFinanceExcluded,
 } from "@/lib/finance-store";
 import { getSessionFrom } from "@/lib/auth";
 import { withTenant } from "@/lib/tenant-context";
@@ -77,6 +78,18 @@ export async function PATCH(req: NextRequest) {
 async function handlePatch(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   if (!body.id) return NextResponse.json({ error: "id required" }, { status: 400 });
+
+  // ติ๊ก "ไม่นับเป็นรายได้" — ยอดยกมาจากระบบเก่า เก็บแถวไว้แต่ไม่เข้ายอดสรุป/เอกสารภาษี
+  if (body.action === "set_excluded") {
+    const res = await setFinanceExcluded(String(body.id), body.excluded === true);
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: res.error, needSql: res.error === "need_sql" },
+        { status: res.error === "need_sql" ? 200 : 404 }
+      );
+    }
+    return NextResponse.json({ ok: true });
+  }
   // receipt: data URL = แนบใหม่, "" = เอารูปออก, undefined = ไม่แตะ
   let receiptUrl: string | undefined;
   if (body.receipt !== undefined) {

@@ -39,7 +39,8 @@ export default function TaxPage() {
     try {
       const res = await fetch(`/api/finance?from=${year}-01-01&to=${year}-12-31`);
       const d = await res.json();
-      setRecords(d.records || []);
+      // รายการที่ติ๊ก "ไม่นับเป็นรายได้" (ยอดยกมาจากระบบเก่า) ไม่ควรอยู่ในเอกสารภาษี
+      setRecords((d.records || []).filter((r: { excluded?: boolean }) => !r.excluded));
     } catch {
       /* โหลดไม่ได้ = โชว์ว่าง */
     } finally {

@@ -20,6 +20,8 @@ type Record = {
   catName?: string;
   displayTitle: string;
   receiptUrl?: string;
+  /** ไม่นับเป็นรายรับ/รายจ่ายของกิจการ (ยอดยกมาจากระบบเก่า ฯลฯ) */
+  excluded?: boolean;
 };
 
 const TODAY = () => new Date().toISOString().slice(0, 10);
@@ -36,6 +38,21 @@ export default function FinancePage() {
   const [receipt, setReceipt] = useState("");
   const [zoomUrl, setZoomUrl] = useState<string | null>(null);
   const [busyReceipt, setBusyReceipt] = useState(false);
+
+  /** ติ๊กว่ารายการนี้ไม่ใช่รายได้ของกิจการ (ยอดยกมาจากระบบเก่า ฯลฯ) */
+  const toggleExcluded = async (id: string, excluded: boolean) => {
+    const res = await fetch("/api/finance", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, action: "set_excluded", excluded }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data?.needSql) {
+      alert("ยังใช้ไม่ได้ — ไปที่ ตั้งค่า > ขั้นสูง แล้วกด 'อัปเดตฐานข้อมูล' ครั้งเดียวก่อนนะคะ");
+      return;
+    }
+    load();
+  };
 
   const load = useCallback(async () => {
     // ดึงทั้งหมดครั้งเดียวแล้วกรองในหน้า — ยอดสรุปกับรายการจะตรงกันเสมอ
@@ -58,8 +75,10 @@ export default function FinancePage() {
     [records, range]
   );
   const summary = useMemo(() => {
-    const income = shown.filter((r) => r.type === "income").reduce((s, r) => s + r.amount, 0);
-    const expense = shown.filter((r) => r.type === "expense").reduce((s, r) => s + r.amount, 0);
+    // รายการที่ติ๊ก "ไม่นับเป็นรายได้" ยังโชว์ในลิสต์ แต่ไม่เข้ายอดสรุป
+    const counted = shown.filter((r) => !r.excluded);
+    const income = counted.filter((r) => r.type === "income").reduce((s, r) => s + r.amount, 0);
+    const expense = counted.filter((r) => r.type === "expense").reduce((s, r) => s + r.amount, 0);
     return { income, expense, net: income - expense };
   }, [shown]);
 
@@ -288,7 +307,14 @@ export default function FinancePage() {
             ? `${r.catName ? `🐱 ${r.catName} · ` : "👤 "}${r.customerName}`
             : r.category || r.displayTitle;
           return (
-            <li key={r.id} className="overflow-hidden rounded-petflow-sm border border-petflow-line bg-card text-xs">
+            <li
+              key={r.id}
+              className={`overflow-hidden rounded-petflow-sm border text-xs ${
+                r.excluded
+                  ? "border-dashed border-brown-faint bg-paper/40 opacity-70"
+                  : "border-petflow-line bg-card"
+              }`}
+            >
               <button
                 type="button"
                 onClick={() => setOpenId(open ? null : r.id)}
@@ -365,6 +391,14 @@ export default function FinancePage() {
                       className="text-[11px] font-bold text-latte-deep"
                     >
                       ✏️ แก้ไข
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleExcluded(r.id, !r.excluded)}
+                      className="text-[11px] font-bold text-brown-soft hover:text-brown"
+                      title="ยอดยกมาจากระบบเก่า หรือรายการที่ไม่ใช่เงินเข้า-ออกจริง"
+                    >
+                      {r.excluded ? "↩️ นับเป็นรายได้" : "🚫 ไม่นับเป็นรายได้"}
                     </button>
                     <button
                       type="button"

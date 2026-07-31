@@ -84,6 +84,8 @@ export type MessagesConfig = {
   depositTerms: string[];
   /** อวยพรวันเกิดแมวอัตโนมัติ — {shop} {name} {cat} */
   birthdayGreeting: string;
+  /** วันเกิดเจ้าของ — คนละข้อความกับวันเกิดน้องแมว */
+  birthdayGreetingOwner: string;
   /** แจ้งลูกค้าทันทีที่ร้านกดยืนยันคิว — ยืนยันว่าได้คิววันที่จองมาแล้ว
    * (คนละอันกับ checkinReminder ที่เตือนล่วงหน้าก่อนถึงวันจริง)
    * — {shop} {cat} {when} (วันที่+เวลา+ประเภทนัด จัดรูปแบบมาแล้วจาก bookingScheduleText) */

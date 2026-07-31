@@ -438,14 +438,35 @@ async function runForTenant() {
         }
       }
 
-      const text =
-        renderTemplate(cfg.messages.birthdayGreeting, {
-          shop: cfg.business.name,
-          name: politeName(c.name),
-          cat: politeCat(bdayCat ? bdayCat.name : c.name) || "น้องแมว",
-        }) + couponLine;
+      // วันเกิดเจ้าของกับวันเกิดน้องแมวเป็นคนละเรื่อง ต้องใช้คนละข้อความ
+      // (เดิมใช้ข้อความของแมวกับทั้งคู่ พอเป็นวันเกิดเจ้าของเลยกลายเป็นอวยพร
+      //  "น้อง<ชื่อเจ้าของ>" ให้สุขภาพแข็งแรงน่ารัก — เรียกลูกค้าเป็นแมวไปเลย)
+      const texts: string[] = [];
+      if (bdayCat) {
+        texts.push(
+          renderTemplate(cfg.messages.birthdayGreeting, {
+            shop: cfg.business.name,
+            name: politeName(c.name),
+            cat: politeCat(bdayCat.name),
+          })
+        );
+      }
+      if (ownerBday) {
+        texts.push(
+          renderTemplate(
+            cfg.messages.birthdayGreetingOwner || DEFAULT_MESSAGES.birthdayGreetingOwner,
+            { shop: cfg.business.name, name: politeName(c.name) }
+          )
+        );
+      }
+      // ของขวัญแจกครั้งเดียว จึงต่อท้ายใบสุดท้ายใบเดียว ไม่ประกาศซ้ำสองรอบ
+      if (couponLine && texts.length > 0) texts[texts.length - 1] += couponLine;
+
       try {
-        await pushLineMessage(c.lineUserId, [{ type: "text", text }]);
+        await pushLineMessage(
+          c.lineUserId,
+          texts.map((text) => ({ type: "text", text }))
+        );
         birthdayGreetings++;
       } catch (e) {
         errors.push(`birthday ${c.id}: ${String(e)}`);

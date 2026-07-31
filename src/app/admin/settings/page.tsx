@@ -808,16 +808,24 @@ function MessagesTab({
 
       <hr className="border-petflow-line" />
       <p className="text-xs font-extrabold text-petflow-chocolate">
-        🎂 อวยพรวันเกิดแมวอัตโนมัติ
+        🎂 อวยพรวันเกิดอัตโนมัติ
       </p>
       <p className="text-[10px] text-brown-soft">
-        ส่งอัตโนมัติเที่ยงวันที่ตรงกับวันเกิดน้อง (เฉพาะลูกค้าที่ยินยอมรับข่าวสาร)
+        ส่งอัตโนมัติเที่ยงวันที่ตรงกับวันเกิด (เฉพาะลูกค้าที่ยินยอมรับข่าวสาร) — วันเกิดน้องแมวกับวันเกิดเจ้าของใช้คนละข้อความ ถ้าตรงกันวันเดียวจะส่งทั้งสองใบ
       </p>
       <TextAreaField
-        label="ข้อความอวยพร"
+        label="ข้อความอวยพร — วันเกิดน้องแมว"
         hint="ใช้ได้: {shop} {name} {cat}"
         value={msgs?.birthdayGreeting || ""}
         onChange={(v) => setMsgs({ ...msgs, birthdayGreeting: v })}
+        rows={5}
+      />
+
+      <TextAreaField
+        label="ข้อความอวยพร — วันเกิดเจ้าของ"
+        hint="ใช้ได้: {shop} {name} · ไม่มี {cat} เพราะอวยพรคน ไม่ใช่แมว"
+        value={msgs?.birthdayGreetingOwner || ""}
+        onChange={(v) => setMsgs({ ...msgs, birthdayGreetingOwner: v })}
         rows={5}
       />
 

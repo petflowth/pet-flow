@@ -267,6 +267,32 @@ where staff_note like '%🎁%';`,
     // คอร์สแบบ "ซื้อวันเข้าพัก" — หักตามจำนวนคืนที่พักจริง ไม่ใช่ 1 ครั้งต่อบิล
     // unit บอกว่า 1 หน่วยของคอร์สคือ ครั้ง หรือ คืน (คอร์สเดิมทั้งหมด = ครั้ง)
     // package_units จำว่าบิลนั้นหักไปกี่หน่วย เพื่อคืนให้ครบตอนยกเลิกบิล
+    /**
+     * เปิด Row Level Security ทุกตารางใน public
+     *
+     * แอปต่อ Supabase ด้วย service_role จากฝั่งเซิร์ฟเวอร์เท่านั้น (ไม่มี anon key
+     * ในโค้ดเลย) และ service_role ข้าม RLS อยู่แล้ว — เปิดตรงนี้จึงไม่กระทบการทำงาน
+     *
+     * แต่ทุกโปรเจกต์ Supabase มี anon key ติดมาด้วยเสมอ และ URL ของโปรเจกต์อยู่ใน
+     * โค้ดฝั่งเบราว์เซอร์ ถ้า anon key หลุดออกไปเมื่อไหร่ (ภาพหน้าจอ/คอมมิตเก่า)
+     * ตารางที่ไม่ได้เปิด RLS จะถูกอ่านและแก้ได้ทั้งหมด — ชื่อ เบอร์ ที่อยู่ลูกค้า บัญชีเงิน
+     *
+     * เปิด RLS โดยไม่สร้าง policy ใดๆ = ปฏิเสธทุกคนที่ไม่ใช่ service_role
+     */
+    name: "public.enable_rls_all",
+    sql: `
+      do $$
+      declare t record;
+      begin
+        for t in
+          select tablename from pg_tables where schemaname = 'public'
+        loop
+          execute format('alter table public.%I enable row level security', t.tablename);
+        end loop;
+      end $$;
+    `,
+  },
+  {
     // บันทึกว่าใครทำอะไรกับเงิน/สิทธิ์ลูกค้า — ร้านที่มีพนักงานหลายคนจะไล่ย้อนได้
     name: "audit_logs.table",
     sql: `

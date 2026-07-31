@@ -441,22 +441,23 @@ async function runForTenant() {
       // วันเกิดเจ้าของกับวันเกิดน้องแมวเป็นคนละเรื่อง ต้องใช้คนละข้อความ
       // (เดิมใช้ข้อความของแมวกับทั้งคู่ พอเป็นวันเกิดเจ้าของเลยกลายเป็นอวยพร
       //  "น้อง<ชื่อเจ้าของ>" ให้สุขภาพแข็งแรงน่ารัก — เรียกลูกค้าเป็นแมวไปเลย)
+      // ตรงกันทั้งคู่ (มักเป็นเพราะกรอกวันเกิดตัวเองใส่ช่องแมวไปด้วย) ส่งใบเดียว
+      // และเลือกใบของเจ้าของ — ทักคนผิดเป็นแมวเสียหายกว่าอวยพรแมวช้าไปหนึ่งปี
       const texts: string[] = [];
-      if (bdayCat) {
-        texts.push(
-          renderTemplate(cfg.messages.birthdayGreeting, {
-            shop: cfg.business.name,
-            name: politeName(c.name),
-            cat: politeCat(bdayCat.name),
-          })
-        );
-      }
       if (ownerBday) {
         texts.push(
           renderTemplate(
             cfg.messages.birthdayGreetingOwner || DEFAULT_MESSAGES.birthdayGreetingOwner,
             { shop: cfg.business.name, name: politeName(c.name) }
           )
+        );
+      } else if (bdayCat) {
+        texts.push(
+          renderTemplate(cfg.messages.birthdayGreeting, {
+            shop: cfg.business.name,
+            name: politeName(c.name),
+            cat: politeCat(bdayCat.name),
+          })
         );
       }
       // ของขวัญแจกครั้งเดียว จึงต่อท้ายใบสุดท้ายใบเดียว ไม่ประกาศซ้ำสองรอบ

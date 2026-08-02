@@ -309,6 +309,22 @@ where staff_note like '%🎁%';`,
     `,
   },
   {
+    // ที่เก็บรูป broadcast สำรอง — ปกติรูปขึ้น Supabase Storage แต่ถ้าอัปไม่สำเร็จ
+    // โค้ดจะถอยมาเก็บ base64 ในตารางนี้แล้วเสิร์ฟผ่าน /api/line/broadcast-image/[id]
+    // ถ้าไม่มีตาราง ทางถอยจะไปตกที่หน่วยความจำของ instance เดียว แล้ว LINE
+    // ดึงรูปไม่เจอ = ยิงโปรออกไปแบบรูปเสีย โดยไม่มีใครรู้
+    name: "broadcast_images.table",
+    sql: `
+      create table if not exists broadcast_images (
+        id uuid primary key,
+        data text not null,
+        content_type text not null default 'image/jpeg',
+        created_at timestamptz not null default now()
+      );
+      create index if not exists broadcast_images_created_idx on broadcast_images (created_at desc);
+    `,
+  },
+  {
     // ยอดยกมาจากระบบเก่า / รายการที่ไม่ใช่เงินเข้า-ออกจริง — เก็บแถวไว้ แต่ไม่นับในยอดสรุป
     name: "finance.excluded",
     sql: "alter table finance_records add column if not exists excluded boolean not null default false;",

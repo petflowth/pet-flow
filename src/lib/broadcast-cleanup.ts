@@ -26,6 +26,13 @@ export async function cleanupOldBroadcastImages(
     .select("id");
 
   if (error) {
+    // ไม่มีตารางนี้ = ไม่เคยเก็บ base64 เลย (ร้านที่เริ่มใช้หลังย้ายไป Storage แล้ว)
+    // ไม่ใช่ความผิดพลาด — ไม่มีอะไรให้ล้างก็คือล้างเสร็จ ไม่งั้น cron รายเดือน
+    // จะเตือนล้มเหลวเข้า Telegram ทุกเดือนตลอดไปทั้งที่ไม่มีอะไรต้องแก้
+    const missingTable =
+      error.code === "PGRST205" ||
+      /could not find the table|does not exist/i.test(error.message || "");
+    if (missingTable) return { ok: true, removed: 0, keepDays };
     return { ok: false, removed: 0, keepDays, error: error.message };
   }
 

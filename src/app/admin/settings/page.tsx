@@ -1659,10 +1659,34 @@ function CleanupBroadcastSection() {
   );
 }
 
+type SchemaCheckRow = {
+  table: string;
+  column: string;
+  feature: string;
+  ok: boolean;
+  error?: string;
+};
+
 function MigrateSection() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [bootSql, setBootSql] = useState("");
+  const [checkRows, setCheckRows] = useState<SchemaCheckRow[] | null>(null);
+
+  // ตรวจซ้ำจากของจริงใน DB — ปุ่มตอบว่า "สำเร็จ" ไม่ได้แปลว่าคอลัมน์มาจริง
+  const verify = async () => {
+    try {
+      const res = await fetch("/api/admin/migrate?check=1");
+      const d = await res.json();
+      setCheckRows(d.check?.connected ? d.check.rows : null);
+    } catch {
+      setCheckRows(null);
+    }
+  };
+
+  useEffect(() => {
+    verify();
+  }, []);
 
   const run = async () => {
     setBusy(true);
@@ -1691,8 +1715,11 @@ function MigrateSection() {
     } catch {
       setMsg("❌ เชื่อมต่อไม่สำเร็จ");
     }
+    await verify();
     setBusy(false);
   };
+
+  const missing = (checkRows || []).filter((r) => !r.ok);
 
   return (
     <div className="rounded-petflow-sm border border-honey/50 bg-honey/10 p-3">
@@ -1713,6 +1740,30 @@ function MigrateSection() {
       </button>
       {msg && (
         <p className="mt-2 text-[11px] font-bold text-brown">{msg}</p>
+      )}
+
+      {checkRows && (
+        <div className="mt-2 rounded-petflow-sm bg-paper px-2.5 py-2">
+          {missing.length === 0 ? (
+            <p className="text-[11px] font-bold text-brown">
+              ✅ ตรวจแล้ว: ครบทุกรายการ ({checkRows.length}/{checkRows.length}) — ฟีเจอร์ทั้งหมดใช้ได้จริง
+            </p>
+          ) : (
+            <>
+              <p className="text-[11px] font-bold text-brown">
+                ⚠️ ยังขาด {missing.length} รายการ — กดปุ่มด้านบนอีกครั้ง ถ้ายังขาดอยู่แปลว่า
+                รันไม่ผ่านจริง
+              </p>
+              <ul className="mt-1 space-y-0.5">
+                {missing.map((r) => (
+                  <li key={`${r.table}.${r.column}`} className="text-[10px] text-brown-soft">
+                    • {r.feature} <span className="font-mono">({r.table}.{r.column})</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
       )}
       {bootSql && (
         <div className="mt-2">

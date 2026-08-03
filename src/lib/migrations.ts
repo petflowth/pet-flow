@@ -36,6 +36,50 @@ notify pgrst, 'reload schema';`;
  * ใช้ "add column if not exists" / "create table if not exists" เท่านั้น
  * เพิ่มฟีเจอร์ใหม่ที่ต้องใช้คอลัมน์ใหม่ → เพิ่มบรรทัดที่นี่ได้เลย
  */
+/**
+ * รายการที่ต้องมีจริงใน DB หลังรัน migration ครบ — ไว้ "ตรวจ" ว่าปุ่มอัปเดตทำงานจริง
+ * ไม่ใช่แค่ตอบว่าสำเร็จ. เช็คด้วยการ select คอลัมน์นั้นแบบไม่เอาแถว (limit 0)
+ * ถ้าคอลัมน์/ตารางหาย PostgREST จะฟ้องกลับมาเอง — อ่านได้โดยไม่ต้องมีสิทธิ์ DDL
+ */
+const SCHEMA_CHECKS: { table: string; column: string; feature: string }[] = [
+  { table: "customers", column: "deposit_credit", feature: "เครดิตมัดจำ" },
+  { table: "customers", column: "line_user_ids", feature: "ลูกค้าหลาย LINE" },
+  { table: "cats", column: "staff_private_note", feature: "โน้ตลับร้าน" },
+  { table: "bookings", column: "consent_accepted_at", feature: "กดยอมรับเงื่อนไข" },
+  { table: "bookings", column: "care_note", feature: "โน้ตการดูแล" },
+  { table: "invoices", column: "deleted_at", feature: "ถังขยะบิล" },
+  { table: "finance_records", column: "excluded", feature: "ยอดยกมา (ไม่นับเป็นรายได้)" },
+  { table: "customer_packages", column: "unit", feature: "คอร์สแบบนับคืน" },
+  { table: "products", column: "tenant_id", feature: "สินค้าหน้าร้าน" },
+  { table: "audit_logs", column: "action", feature: "ประวัติการใช้งาน" },
+  { table: "broadcast_images", column: "content_type", feature: "รูปโปร (ทางสำรอง)" },
+];
+
+export type SchemaCheckRow = {
+  table: string;
+  column: string;
+  feature: string;
+  ok: boolean;
+  error?: string;
+};
+
+/** ตรวจว่าโครงสร้างจริงใน DB ครบตามที่โค้ดต้องใช้ไหม (อ่านอย่างเดียว ไม่แก้อะไร) */
+export async function checkSchema(): Promise<{
+  ok: boolean;
+  connected: boolean;
+  rows: SchemaCheckRow[];
+}> {
+  const sb = getSupabase();
+  if (!sb) return { ok: false, connected: false, rows: [] };
+
+  const rows: SchemaCheckRow[] = [];
+  for (const c of SCHEMA_CHECKS) {
+    const { error } = await sb.from(c.table).select(c.column).limit(0);
+    rows.push({ ...c, ok: !error, error: error?.message });
+  }
+  return { ok: rows.every((r) => r.ok), connected: true, rows };
+}
+
 export const MIGRATIONS: { name: string; sql: string }[] = [
   {
     name: "customers.deposit_credit",

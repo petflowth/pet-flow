@@ -402,7 +402,12 @@ export default function BillingPage() {
     if (config?.billing) setBillMsg(config.billing);
     if (config?.options?.servicePresets?.length) setServicePresets(config.options.servicePresets);
     if (config?.options?.freebies?.length) setFreebiePresets(config.options.freebies);
-    setBookings((bj.bookings || []).filter((x: Booking) => x.status !== "cancelled"));
+    // ดึงจากนัดเฉพาะที่ยังไม่จบ — เสร็จสิ้น/ยกเลิก/ไม่มา ไม่ควรโผล่ให้ออกบิลซ้ำอีก
+    // (บิลที่ออกไปแล้วตัดออกด้วย paidForGroup ด้านล่าง)
+    const ACTIVE_STATUSES = new Set(["pending", "confirmed", "ready"]);
+    setBookings(
+      (bj.bookings || []).filter((x: Booking) => ACTIVE_STATUSES.has(x.status))
+    );
   }, []);
 
   useEffect(() => {
@@ -473,13 +478,15 @@ export default function BillingPage() {
   const bookingGroups = groupBookings(bookings)
     .map((group) => {
       const groupIds = new Set(group.map((b) => b.id));
-      const paidForGroup = invoices.filter(
-        (i) => i.status === "paid" && i.bookingId && groupIds.has(i.bookingId)
+      // ทั้งบิลที่จ่ายแล้วและบิลที่แค่ร่างไว้ (pending) ถือว่า "ออกบิลแล้ว" —
+      // ไม่งั้นกดออกบิลจากนัดเดิมซ้ำได้ก่อนบิลแรกจะถูกจ่ายหรือลบทิ้ง
+      const billedForGroup = invoices.filter(
+        (i) => i.bookingId && groupIds.has(i.bookingId)
       );
-      if (paidForGroup.length === 0) return group;
+      if (billedForGroup.length === 0) return group;
       // บิลเก่าที่ยังไม่มีชื่อน้องรายรายการ → ถือว่าคุมแค่น้องหลักของบิลนั้น (ปลอดภัยกว่าซ่อนเกิน)
       const billedCats = new Set(
-        paidForGroup.flatMap((i) => {
+        billedForGroup.flatMap((i) => {
           // 1 รายการใส่ชื่อน้องได้หลายตัว (คั่นด้วย ",") → ต้องแตกออกให้ครบ
           // ไม่งั้นบิลที่คุมแมว 2 ตัวจะซ่อนนัดให้แค่ตัวเดียว
           const perItem = (i.items || []).flatMap((it) => parseCatNames(it.catName));

@@ -14,6 +14,7 @@ import {
   groomSizeLabel,
   type GroomSize,
 } from "@/lib/grooming-prices";
+import { priceSignature, findLastPrice } from "@/lib/special-price";
 
 type Customer = {
   id: string;
@@ -93,6 +94,9 @@ type Item = {
   qty?: number;
   /** สินค้าหน้าร้านที่แตะเพิ่มจากกริด (products-store.ts) — ใช้ตัดสต็อกตอนจ่ายเงิน */
   productId?: string;
+  /** ราคาต่อหน่วยที่ตกลงกับลูกค้าคนนี้ — ทับราคากลางของร้านเฉพาะบิลนี้
+   *  undefined = ใช้ราคาปกติ, 0 = ตั้งใจให้ฟรี (จึงเช็ค undefined ไม่ใช่ falsy) */
+  priceOverride?: number;
 };
 
 /** programId มาจากนัด (booking.groomProgram) ถ้ามี — ให้เลือกโปรแกรมที่ลูกค้าเลือกไว้ตอนจองอัตโนมัติ */
@@ -160,7 +164,7 @@ function computeLine(it: Item): {
 
   if (it.kind === "grooming") {
     const prog = groomProgram(it.program);
-    const unit = groomPrice(it.program, it.breed, it.size);
+    const unit = it.priceOverride ?? groomPrice(it.program, it.breed, it.size);
     const base = `${prog?.name || "อาบน้ำ"} · ${it.breed} · ${groomSizeLabel(it.size)}`;
     return {
       label: withCat(qty > 1 ? `${base} × ${qty}` : base),
@@ -173,7 +177,7 @@ function computeLine(it: Item): {
   if (it.kind === "room") {
     // ห้องพักคิดเป็น "คืน" อยู่แล้ว จึงไม่ใช้ qty ซ้ำ
     const n = Math.max(1, it.nights || 1);
-    const unit = it.roomPrice || 0;
+    const unit = it.priceOverride ?? (it.roomPrice || 0);
     return {
       label: withCat(`${it.roomLabel || "ห้องพัก"} × ${n} คืน`),
       amount: unit * n,
@@ -191,7 +195,7 @@ function computeLine(it: Item): {
       unitAmount: 0,
     };
   }
-  const unit = it.amount || 0;
+  const unit = it.priceOverride ?? (it.amount || 0);
   return {
     label: withCat(qty > 1 ? `${it.label} × ${qty}` : it.label),
     amount: unit * qty,
@@ -200,6 +204,14 @@ function computeLine(it: Item): {
     unitAmount: unit,
     productId: it.productId,
   };
+}
+
+/** ราคากลางของร้านสำหรับรายการนี้ — ไว้เทียบว่าราคาที่คิดอยู่ "พิเศษ" จริงไหม */
+function standardUnitPrice(it: Item): number {
+  if (it.kind === "grooming") return groomPrice(it.program, it.breed, it.size);
+  if (it.kind === "room") return it.roomPrice || 0;
+  if (it.kind === "freebie") return 0;
+  return it.amount || 0;
 }
 
 /** สรุปการจอง (วัน/เวลา) จากนัดที่ผูกกับบิล — โชว์ในบิล + การ์ดสรุปให้ลูกค้า */
@@ -748,6 +760,25 @@ export default function BillingPage() {
     }
   };
 
+  /** ราคาเก่าที่พนักงานกด "ใช้ราคาปกติ" ไปแล้ว — อย่าถามซ้ำในบิลใบเดียวกัน */
+  const [dismissedRecalls, setDismissedRecalls] = useState<Set<string>>(new Set());
+  const dismissRecall = (sig: string) =>
+    setDismissedRecalls((prev) => new Set(prev).add(sig));
+
+  /** ตั้งราคาต่อหน่วยของรายการ — ตรงกับราคากลางก็ล้าง override ทิ้ง
+   *  ไม่งั้นบิลจะค้างราคาที่ "เท่าราคาปกติพอดี" ไว้ แล้วขึ้นป้ายราคาพิเศษหลอกตา */
+  const setUnitPrice = (idx: number, n: number) => {
+    const it = items[idx];
+    if (!it) return;
+    const std = standardUnitPrice(it);
+    if (it.kind === "service" || it.kind === "custom" || it.kind === "package") {
+      // สามอย่างนี้ราคาอยู่ในช่อง amount อยู่แล้ว แก้ตรงนั้นตรงไปตรงมากว่า
+      updateItem(idx, { amount: n, priceOverride: undefined });
+      return;
+    }
+    updateItem(idx, { priceOverride: n === std ? undefined : n });
+  };
+
   const updateItem = (idx: number, patch: Partial<Item>) =>
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
 
@@ -1258,6 +1289,19 @@ export default function BillingPage() {
             {items.map((item, i) => {
               const line = computeLine(item);
               const prog = groomProgram(item.program);
+              const stdUnit = standardUnitPrice(item);
+              const isSpecial =
+                item.priceOverride !== undefined && item.priceOverride !== stdUnit;
+              const sig = priceSignature(line.label);
+              // เตือนเฉพาะตอนที่ยังคิดราคาปกติอยู่ และราคาเก่าต่างจากราคาปกติจริงๆ
+              const past =
+                item.kind === "freebie" || item.priceOverride !== undefined
+                  ? null
+                  : findLastPrice(invoices, customerId, sig);
+              const recall =
+                past && past.unitAmount !== stdUnit && !dismissedRecalls.has(sig)
+                  ? past
+                  : null;
               return (
                 <div
                   key={i}
@@ -1511,23 +1555,73 @@ export default function BillingPage() {
                     <span className="min-w-0 truncate text-[11px] text-brown-faint">
                       {line.label}
                     </span>
-                    {item.kind === "service" || item.kind === "custom" || item.kind === "package" ? (
-                      <NumField
-                        value={item.amount}
-                        min={0}
-                        onCommit={(n) => updateItem(i, { amount: n })}
-                        className="w-24 shrink-0 rounded-lg border border-petflow-line bg-paper px-3 py-1.5 text-right text-sm font-bold"
-                      />
-                    ) : item.kind === "freebie" ? (
+                    {item.kind === "freebie" ? (
                       <span className="shrink-0 text-sm font-extrabold text-ok">
                         ฟรี 🎁
                       </span>
                     ) : (
-                      <span className="shrink-0 text-sm font-extrabold text-latte-deep">
-                        {line.amount.toLocaleString()} ฿
-                      </span>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        {(item.qty || 1) > 1 || item.kind === "room" ? (
+                          <span className="text-[10px] text-brown-faint">
+                            = {line.amount.toLocaleString()} ฿
+                          </span>
+                        ) : null}
+                        <NumField
+                          value={line.unitAmount}
+                          min={0}
+                          onCommit={(n) => setUnitPrice(i, n)}
+                          className={`w-24 rounded-lg border bg-paper px-3 py-1.5 text-right text-sm font-bold ${
+                            isSpecial
+                              ? "border-honey-deep text-honey-deep"
+                              : "border-petflow-line"
+                          }`}
+                        />
+                      </div>
                     )}
                   </div>
+
+                  {isSpecial && (
+                    <div className="flex items-center justify-between gap-2 rounded-lg bg-honey/15 px-2 py-1">
+                      <span className="text-[10px] font-bold text-brown">
+                        ⭐ ราคาพิเศษ (ปกติ {stdUnit.toLocaleString()} ฿)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => updateItem(i, { priceOverride: undefined })}
+                        className="text-[10px] font-bold text-latte-deep underline"
+                      >
+                        ใช้ราคาปกติ
+                      </button>
+                    </div>
+                  )}
+
+                  {/* เคยให้ราคาอื่นกับลูกค้าคนนี้มาก่อน — ถามก่อน ไม่เปลี่ยนให้เอง
+                      เพราะราคาพิเศษครั้งก่อนอาจเป็นโปรที่จบไปแล้ว */}
+                  {recall && (
+                    <div className="rounded-lg border border-honey-deep/40 bg-honey/10 px-2 py-1.5">
+                      <p className="text-[10px] font-bold text-brown">
+                        💡 ครั้งก่อนลูกค้าคนนี้จ่าย {recall.unitAmount.toLocaleString()} ฿
+                        {recall.when ? ` (${recall.when.slice(0, 10)})` : ""} · ราคาปกติ{" "}
+                        {stdUnit.toLocaleString()} ฿
+                      </p>
+                      <div className="mt-1 flex gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setUnitPrice(i, recall.unitAmount)}
+                          className="rounded-md bg-honey-deep/80 px-2 py-1 text-[10px] font-extrabold text-petflow-chocolate"
+                        >
+                          ใช้ราคาเดิม {recall.unitAmount.toLocaleString()} ฿
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => dismissRecall(sig)}
+                          className="rounded-md border border-petflow-line px-2 py-1 text-[10px] font-bold text-brown-soft"
+                        >
+                          ใช้ราคาปกติ
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

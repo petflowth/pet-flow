@@ -21,6 +21,7 @@ const ACTION_LABEL: Record<string, string> = {
   delete_points_history: "🗑️ ลบประวัติแต้ม",
   exclude_finance: "🚫 ตั้งไม่นับเป็นรายได้",
   include_finance: "↩️ กลับมานับเป็นรายได้",
+  send_birthday_greetings: "🎂 ส่งการ์ดวันเกิด",
 };
 
 function when(iso: string) {

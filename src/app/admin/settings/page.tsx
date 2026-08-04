@@ -1932,6 +1932,33 @@ function TextAreaField({
   );
 }
 
+/** เวลาที่ส่ง — ตัวเลือกจำกัดตามรอบ cron ที่ตั้งไว้จริง (08:00 / 12:00 / 18:00 ไทย)
+ *  เลือกได้เท่านี้เพราะ cron รันเป็นรอบตายตัว ไม่ใช่นาฬิกาที่ตั้งเวลาไหนก็ได้ */
+function TimeSlotField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="block text-xs font-bold text-brown-soft">
+      {label}
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
+      >
+        <option value="08:00">เช้า (8 โมง)</option>
+        <option value="12:00">เที่ยง (12 โมง)</option>
+        <option value="18:00">หัวค่ำ (6 โมงเย็น)</option>
+      </select>
+    </label>
+  );
+}
+
 const AUTOMATION_DEFAULT = {
   confirmTomorrowEnabled: true,
   confirmDaysBefore: 1,
@@ -1941,8 +1968,10 @@ const AUTOMATION_DEFAULT = {
   prestayReminderDays: 3,
   checkinReminderEnabled: true,
   checkinReminderDays: 1,
+  checkinReminderTime: "12:00",
   checkoutReminderEnabled: true,
   checkoutReminderDays: 1,
+  checkoutReminderTime: "18:00",
   reviewRequestEnabled: true,
   reviewRequestDaysAfter: 1,
   groomInfoEnabled: true,
@@ -2074,12 +2103,24 @@ function AutomationTab({
           onChange={(v) => set({ checkinReminderEnabled: v })}
         />
         {form.checkinReminderEnabled && (
-          <Field
-            label="ส่งก่อนเข้าพัก (วัน)"
-            type="number"
-            value={String(form.checkinReminderDays)}
-            onChange={(v) => set({ checkinReminderDays: Math.max(0, Number(v) || 0) })}
-          />
+          <div className="mt-1 grid grid-cols-2 gap-2">
+            <Field
+              label="ส่งก่อนเข้าพัก (วัน)"
+              type="number"
+              value={String(form.checkinReminderDays)}
+              onChange={(v) => set({ checkinReminderDays: Math.max(0, Number(v) || 0) })}
+            />
+            <TimeSlotField
+              label="ส่งช่วงไหน"
+              value={form.checkinReminderTime || "12:00"}
+              onChange={(v) => set({ checkinReminderTime: v })}
+            />
+          </div>
+        )}
+        {form.checkinReminderEnabled && (
+          <p className="mt-1 text-[10px] text-brown-faint">
+            ใส่ 0 = ส่งวันเข้าพักเลย (ไม่ต้องรอวันก่อนหน้า)
+          </p>
         )}
       </div>
 
@@ -2090,12 +2131,24 @@ function AutomationTab({
           onChange={(v) => set({ checkoutReminderEnabled: v })}
         />
         {form.checkoutReminderEnabled && (
-          <Field
-            label="ส่งก่อนเช็คเอาท์ (วัน)"
-            type="number"
-            value={String(form.checkoutReminderDays)}
-            onChange={(v) => set({ checkoutReminderDays: Math.max(0, Number(v) || 0) })}
-          />
+          <div className="mt-1 grid grid-cols-2 gap-2">
+            <Field
+              label="ส่งก่อนเช็คเอาท์ (วัน)"
+              type="number"
+              value={String(form.checkoutReminderDays)}
+              onChange={(v) => set({ checkoutReminderDays: Math.max(0, Number(v) || 0) })}
+            />
+            <TimeSlotField
+              label="ส่งช่วงไหน"
+              value={form.checkoutReminderTime || "18:00"}
+              onChange={(v) => set({ checkoutReminderTime: v })}
+            />
+          </div>
+        )}
+        {form.checkoutReminderEnabled && (
+          <p className="mt-1 text-[10px] text-brown-faint">
+            ใส่ 0 = ส่งวันเช็คเอาท์เลย (ไม่ต้องรอวันก่อนหน้า)
+          </p>
         )}
       </div>
 
@@ -2143,14 +2196,21 @@ function AutomationTab({
       </div>
 
       <Toggle
-        label="🎂 อวยพรวันเกิดแมวอัตโนมัติ"
+        label="🎂 คัดกรองวันเกิดเข้าคิวรอตรวจ"
         checked={form.birthdayEnabled}
         onChange={(v) => set({ birthdayEnabled: v })}
       />
+      <p className="-mt-1 text-[10px] text-brown-faint">
+        ไม่ส่งอัตโนมัติแล้ว — ระบบแค่คัดวันเกิดของวันนี้ไว้ให้ที่{" "}
+        <a href="/admin/birthdays" className="underline">
+          🎂 วันเกิดลูกค้า
+        </a>{" "}
+        ต้องเข้าไปตรวจข้อความแล้วกดส่งเอง (คูปองก็แจกตอนกดส่งเท่านั้น)
+      </p>
 
       <div className="rounded-petflow-sm border border-petflow-line p-3">
         <Toggle
-          label="🎁 แจกคูปองวันเกิดอัตโนมัติ (แมว/เจ้าของ)"
+          label="🎁 แจกคูปองวันเกิดตอนกดส่ง (แมว/เจ้าของ)"
           checked={form.birthdayCouponEnabled}
           onChange={(v) => set({ birthdayCouponEnabled: v })}
         />

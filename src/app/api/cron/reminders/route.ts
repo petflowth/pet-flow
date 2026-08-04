@@ -12,7 +12,6 @@ import {
   buildGroomInfoFlex,
   buildBillSummaryFlex,
   buildConsentFlex,
-  politeName,
   politeCat,
 } from "@/lib/line";
 import { getPaymentConfig } from "@/lib/payment-config";
@@ -21,7 +20,6 @@ import {
   buildDepositReminderText,
   buildPrestayFlexData,
   buildCheckinBodyText,
-  buildCheckoutBodyText,
   buildGroomInfoBody,
   getBookingTimeUrl,
   getGroomInfoUrl,
@@ -29,7 +27,6 @@ import {
   bookingScheduleText,
 } from "@/lib/booking-reminders";
 import { listCustomers, getCatGroomInfo, getCatStaffNotes } from "@/lib/customers-store";
-import { issueCoupon, listCustomerCoupons } from "@/lib/coupons-store";
 import { parseGroomInfo, groomInfoSummary } from "@/lib/groom-info";
 import { resolveGroomForm } from "@/lib/groom-form";
 import { renderTemplate, DEFAULT_MESSAGES } from "@/lib/messages";
@@ -37,6 +34,9 @@ import { withTenant } from "@/lib/tenant-context";
 import { listActiveTenantIds } from "@/lib/tenant-directory";
 import { verifyCronSecret } from "@/lib/cron-auth";
 import { groupBookings, groupCatNames } from "@/lib/booking-group";
+import { findBirthdayMatch } from "@/lib/birthday-greeting";
+import { queueBirthdayGreeting } from "@/lib/birthday-queue";
+import { getAppUrlFromEnv } from "@/lib/telegram-config";
 
 function addDays(dateStr: string, n: number) {
   const dt = new Date(`${dateStr}T12:00:00Z`);
@@ -198,14 +198,10 @@ async function runForTenant() {
   // ── เตือนก่อนเข้าพัก (ห้องพัก) — จำนวนวันตั้งค่าได้ในหลังบ้าน ──
   const in7 = addDays(todayStr, auto?.depositReminderDays ?? 7);
   const in3 = addDays(todayStr, auto?.prestayReminderDays ?? 3);
-  const inCheckin = addDays(todayStr, auto?.checkinReminderDays ?? 1);
-  const inCheckout = addDays(todayStr, auto?.checkoutReminderDays ?? 1);
   const afterCheckoutReview = addDays(todayStr, -(auto?.reviewRequestDaysAfter ?? 1));
 
   let depositReminders = 0;
   let prestayReminders = 0;
-  let checkinReminders = 0;
-  let checkoutReminders = 0;
   let reviewRequests = 0;
 
   // บ้านเดียวกันเข้าพักพร้อมกันหลายตัว = การ์ดใบเดียว ไม่ใช่ใบต่อแมวหนึ่งตัว
@@ -324,51 +320,9 @@ async function runForTenant() {
       }
     }
 
-    // เตือนเช็คอิน N วันก่อนเข้าพัก → การ์ดให้ลูกค้าเลือกเวลามาส่งน้อง
-    // (ข้ามถ้าลูกค้าเลือกเวลาแล้วจากชุดก่อนเข้าพัก — ไม่ถามซ้ำ)
-    if (
-      auto?.checkinReminderEnabled !== false &&
-      !groupMuted("checkin") &&
-      b.checkin === inCheckin &&
-      group.some((x) => !x.arrivalTime)
-    ) {
-      const url = await getBookingTimeUrl(b.id, "checkin");
-      const flex = buildTimePickerFlex({
-        title: "🕒 เลือกเวลาเข้าพัก",
-        body: buildCheckinBodyText(b, cfg),
-        url: url || undefined,
-        label: "🕒 เลือกเวลาส่งน้อง",
-      }, cfg.cards?.timePicker);
-      try {
-        await pushLineMessage(to, [flex]);
-        checkinReminders++;
-      } catch (e) {
-        errors.push(`checkin ${b.id}: ${String(e)}`);
-      }
-    }
-
-    // เตือนเช็คเอาท์ N วันก่อนออก → การ์ดให้ลูกค้าเลือกเวลามารับน้อง
-    if (
-      auto?.checkoutReminderEnabled !== false &&
-      !groupMuted("checkout") &&
-      b.checkout &&
-      b.checkout === inCheckout &&
-      group.some((x) => !x.pickupTime)
-    ) {
-      const url = await getBookingTimeUrl(b.id, "checkout");
-      const flex = buildTimePickerFlex({
-        title: "🕒 เลือกเวลารับน้อง",
-        body: buildCheckoutBodyText(b, cfg),
-        url: url || undefined,
-        label: "🕒 เลือกเวลารับน้อง",
-      }, cfg.cards?.timePicker);
-      try {
-        await pushLineMessage(to, [flex]);
-        checkoutReminders++;
-      } catch (e) {
-        errors.push(`checkout ${b.id}: ${String(e)}`);
-      }
-    }
+    // เตือนเช็คอิน/เช็คเอาท์ (ถามเวลามาส่ง/มารับน้อง) ย้ายไปที่ cron/checkin-checkout
+    // แล้ว — เวลาที่ส่งตั้งได้ในหลังบ้าน (เช้า/เที่ยง/หัวค่ำ) จึงต้องมี cron แยกที่รันได้
+    // หลายรอบต่อวัน ไม่ใช่ผูกกับรอบเที่ยงของ cron นี้ตัวเดียวเหมือนก่อน
 
     // ⭐ ขอรีวิว หลังเช็คเอาท์ (แยกจากใบเสร็จ — ลูกค้าใช้บริการจริงแล้ว)
     if (
@@ -398,96 +352,53 @@ async function runForTenant() {
     }
   }
 
-  // ── 🎂 อวยพรวันเกิด (แมว/เจ้าของ) + แจกคูปองวันเกิด (เปิด/ปิดได้) ──
-  let birthdayGreetings = 0;
-  let birthdayCoupons = 0;
+  // ── 🎂 คัดกรองวันเกิด (แมว/เจ้าของ) เข้าคิวรอตรวจ — ไม่ส่งอัตโนมัติ ──
+  // เดิมส่งทันทีตอนเจอ ข้อความหรือชื่อผิดแก้ทีหลังไม่ได้ ตอนนี้จอดในคิวให้คนตรวจ
+  // แล้วกดส่งเองที่ /admin/birthdays — คูปองก็ยังไม่แจกจนกว่าจะกดส่งจริง (ดูใน route นั้น)
+  let birthdayQueued = 0;
   const mmdd = todayStr.slice(5); // "MM-DD"
-  const year = todayStr.slice(0, 4);
   try {
-    if (auto?.birthdayEnabled === false) {
-      // ปิดอวยพรวันเกิด — ข้าม
-    } else {
-    const allCustomers = await listCustomers();
-    for (const c of allCustomers) {
-      if (!c.lineUserId || c.marketingConsent === false) continue;
-      const bdayCat = c.cats.find((cat) => cat.birthday && cat.birthday.slice(5) === mmdd);
-      const ownerBday = Boolean(c.birthday && c.birthday.slice(5) === mmdd);
-      if (!bdayCat && !ownerBday) continue;
-
-      // แจกคูปองวันเกิด (ครั้งเดียวต่อปี)
-      let couponLine = "";
-      const amt = Math.round(auto?.birthdayCouponAmount ?? 100);
-      if (auto?.birthdayCouponEnabled !== false && amt > 0) {
+    if (auto?.birthdayEnabled !== false) {
+      const allCustomers = await listCustomers();
+      for (const c of allCustomers) {
+        if (!c.lineUserId || c.marketingConsent === false) continue;
+        const hit = findBirthdayMatch(c, mmdd);
+        if (!hit) continue;
         try {
-          const mine = await listCustomerCoupons(c.id);
-          const already = mine.some(
-            (cp) => /วันเกิด/.test(cp.reason) && cp.createdAt.slice(0, 4) === year
-          );
-          if (!already) {
-            await issueCoupon({
-              customerId: c.id,
-              amount: amt,
-              reason: `🎂 ของขวัญวันเกิด ${year}`,
-              expiresInDays: 30,
-            });
-            birthdayCoupons++;
-            couponLine = `\n\n🎁 ร้านมีของขวัญวันเกิดให้ — คูปองส่วนลด ${amt} บาท เก็บไว้ในกระเป๋าคูปองแล้วนะคะ (ใช้ได้ 30 วัน) 🎟️`;
-          }
+          const res = await queueBirthdayGreeting({
+            customerId: c.id,
+            customerName: c.name,
+            kind: hit.kind,
+            catName: hit.catName,
+            forDate: todayStr,
+          });
+          if (res.queued) birthdayQueued++;
         } catch (e) {
-          errors.push(`birthday-coupon ${c.id}: ${String(e)}`);
+          errors.push(`birthday-queue ${c.id}: ${String(e)}`);
         }
       }
-
-      // วันเกิดเจ้าของกับวันเกิดน้องแมวเป็นคนละเรื่อง ต้องใช้คนละข้อความ
-      // (เดิมใช้ข้อความของแมวกับทั้งคู่ พอเป็นวันเกิดเจ้าของเลยกลายเป็นอวยพร
-      //  "น้อง<ชื่อเจ้าของ>" ให้สุขภาพแข็งแรงน่ารัก — เรียกลูกค้าเป็นแมวไปเลย)
-      // ตรงกันทั้งคู่ (มักเป็นเพราะกรอกวันเกิดตัวเองใส่ช่องแมวไปด้วย) ส่งใบเดียว
-      // และเลือกใบของเจ้าของ — ทักคนผิดเป็นแมวเสียหายกว่าอวยพรแมวช้าไปหนึ่งปี
-      const texts: string[] = [];
-      if (ownerBday) {
-        texts.push(
-          renderTemplate(
-            cfg.messages.birthdayGreetingOwner || DEFAULT_MESSAGES.birthdayGreetingOwner,
-            { shop: cfg.business.name, name: politeName(c.name) }
-          )
-        );
-      } else if (bdayCat) {
-        texts.push(
-          renderTemplate(cfg.messages.birthdayGreeting, {
-            shop: cfg.business.name,
-            name: politeName(c.name),
-            cat: politeCat(bdayCat.name),
-          })
-        );
-      }
-      // ของขวัญแจกครั้งเดียว จึงต่อท้ายใบสุดท้ายใบเดียว ไม่ประกาศซ้ำสองรอบ
-      if (couponLine && texts.length > 0) texts[texts.length - 1] += couponLine;
-
-      try {
-        await pushLineMessage(
-          c.lineUserId,
-          texts.map((text) => ({ type: "text", text }))
-        );
-        birthdayGreetings++;
-      } catch (e) {
-        errors.push(`birthday ${c.id}: ${String(e)}`);
-      }
-    }
     }
   } catch (e) {
     errors.push(`birthday-scan: ${String(e)}`);
+  }
+
+  if (birthdayQueued > 0) {
+    const base = getAppUrlFromEnv();
+    await sendTelegram(
+      formatBookingTelegram("🎂 มีวันเกิดรอตรวจก่อนส่ง", {
+        จำนวน: String(birthdayQueued),
+        ตรวจที่: base ? `${base}/admin/birthdays` : "หลังบ้าน > วันเกิดลูกค้า",
+      })
+    );
   }
 
   if (
     confirmList.length > 0 ||
     depositReminders > 0 ||
     prestayReminders > 0 ||
-    checkinReminders > 0 ||
-    checkoutReminders > 0 ||
     reviewRequests > 0 ||
     groomInfoCards > 0 ||
-    groomBriefs > 0 ||
-    birthdayGreetings > 0
+    groomBriefs > 0
   ) {
     await sendTelegram(
       formatBookingTelegram("⏰ เตือนอัตโนมัติ 12:00", {
@@ -495,13 +406,9 @@ async function runForTenant() {
         ส่งการ์ดสำเร็จ: String(sent),
         แจ้งยอดคงเหลือ: String(depositReminders),
         แจ้งเข้าพัก: String(prestayReminders),
-        เตือนเช็คอิน: String(checkinReminders),
-        เตือนเช็คเอาท์: String(checkoutReminders),
         ขอรีวิว: String(reviewRequests),
         ประวัติก่อนอาบน้ำ: String(groomInfoCards),
         บรีฟก่อนอาบน้ำ: String(groomBriefs),
-        อวยพรวันเกิด: String(birthdayGreetings),
-        คูปองวันเกิด: String(birthdayCoupons),
       })
     );
   }
@@ -515,13 +422,10 @@ async function runForTenant() {
     sent,
     depositReminders,
     prestayReminders,
-    checkinReminders,
-    checkoutReminders,
     reviewRequests,
     groomInfoCards,
     groomBriefs,
-    birthdayGreetings,
-    birthdayCoupons,
+    birthdayQueued,
     errors,
   };
 }

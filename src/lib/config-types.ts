@@ -108,12 +108,16 @@ export type AutomationConfig = {
   prestayReminderDays: number;
   /** เตือนเช็คอิน ก่อนวันเข้าพัก */
   checkinReminderEnabled: boolean;
-  /** กี่วันก่อนเข้าพัก ที่จะเตือนเช็คอิน */
+  /** กี่วันก่อนเข้าพัก ที่จะเตือนเช็คอิน (0 = วันเข้าพักเลย) */
   checkinReminderDays: number;
+  /** เวลาที่จะส่ง (ตามรอบ cron ที่มี: "08:00" | "12:00" | "18:00") */
+  checkinReminderTime?: string;
   /** เตือนเช็คเอาท์ ก่อนวันออก */
   checkoutReminderEnabled: boolean;
-  /** กี่วันก่อนเช็คเอาท์ ที่จะเตือน */
+  /** กี่วันก่อนเช็คเอาท์ ที่จะเตือน (0 = วันเช็คเอาท์เลย) */
   checkoutReminderDays: number;
+  /** เวลาที่จะส่ง (ตามรอบ cron ที่มี: "08:00" | "12:00" | "18:00") */
+  checkoutReminderTime?: string;
   /** ขอรีวิวอัตโนมัติ หลังลูกค้าเช็คเอาท์ (ห้องพัก) */
   reviewRequestEnabled: boolean;
   /** ส่งขอรีวิวหลังเช็คเอาท์ (วัน) */

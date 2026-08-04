@@ -13,6 +13,18 @@
       "schedule": "0 5 * * *"
     },
     {
+      "path": "/api/cron/checkin-checkout?slot=08:00",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/checkin-checkout?slot=12:00",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/checkin-checkout?slot=18:00",
+      "schedule": "0 11 * * *"
+    },
+    {
       "path": "/api/cron/daily-close",
       "schedule": "0 13 * * *"
     },

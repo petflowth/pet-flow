@@ -6,6 +6,7 @@ import { useLiff } from "@/components/LiffProvider";
 import { useConfig } from "@/components/ConfigProvider";
 import { BREED_OPTIONS, OTHER_BREED } from "@/lib/cat-breeds";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { StaffNoteTagPicker } from "@/components/StaffNoteTagPicker";
 
 const REFERRAL_FALLBACK = [
   "Facebook",
@@ -304,8 +305,11 @@ export default function ProfilePage() {
                   วันเกิดน้อง <span className="font-normal text-brown-faint">(ถ้าทราบ)</span>
                   <input type="date" value={cat.birthday} onChange={(e) => updateCat(idx, { birthday: e.target.value })} className={`${sub} mt-0.5`} />
                 </label>
-                <input value={cat.medical} onChange={(e) => updateCat(idx, { medical: e.target.value })} placeholder="โรคประจำตัว (ถ้ามี)" className={sub} />
-                <input value={cat.note} onChange={(e) => updateCat(idx, { note: e.target.value })} placeholder="🐾 รายละเอียดเพิ่มเติม (ถ้ามี)" className={`${sub} text-xs`} />
+                <StaffNoteTagPicker
+                  medicalValue={cat.medical}
+                  noteValue={cat.note}
+                  onChange={(medical, note) => updateCat(idx, { medical, note })}
+                />
               </div>
             ))}
             <button

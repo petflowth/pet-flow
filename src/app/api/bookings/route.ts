@@ -150,6 +150,8 @@ async function handleGet(lineUserId?: string) {
       notes: b.notes,
       consentAcceptedAt: b.consentAcceptedAt,
       consentSignature: b.consentSignature,
+      vaccinePhotoUrl: b.vaccinePhotoUrl,
+      fleaTickTreated: b.fleaTickTreated,
       careNote: b.careNote,
       arrivalTime: b.arrivalTime,
       pickupTime: b.pickupTime,

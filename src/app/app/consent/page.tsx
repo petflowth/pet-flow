@@ -9,6 +9,7 @@ import type { Booking } from "@/lib/business";
 
 import { DEFAULT_MESSAGES } from "@/lib/messages";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { toJpegDataUrl } from "@/lib/image-convert";
 
 type StayBooking = Booking & {
   checkin?: string;
@@ -115,6 +116,10 @@ function ConsentContent() {
   const [careNote, setCareNote] = useState("");
   const [signature, setSignature] = useState("");
   const [signError, setSignError] = useState(false);
+  const [vaccinePhoto, setVaccinePhoto] = useState("");
+  const [vaccineUploading, setVaccineUploading] = useState(false);
+  const [fleaTickTreated, setFleaTickTreated] = useState(false);
+  const [fleaError, setFleaError] = useState(false);
 
   const terms =
     config.messages?.consentTerms?.length
@@ -146,11 +151,18 @@ function ConsentContent() {
 
   const submit = async () => {
     if (!booking || !profile?.lineUserId) return;
+    let hasError = false;
     if (!signature) {
       setSignError(true);
-      return;
+      hasError = true;
     }
+    if (!fleaTickTreated) {
+      setFleaError(true);
+      hasError = true;
+    }
+    if (hasError) return;
     setSignError(false);
+    setFleaError(false);
     setSaving(true);
     try {
       const res = await fetch("/api/bookings/consent", {
@@ -161,6 +173,8 @@ function ConsentContent() {
           lineUserId: profile.lineUserId,
           careNote: careNote.trim(),
           signature,
+          vaccinePhoto,
+          fleaTickTreated,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -172,6 +186,18 @@ function ConsentContent() {
       setAccepted(true);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const uploadVaccinePhoto = async (file: File) => {
+    setVaccineUploading(true);
+    try {
+      const dataUrl = await toJpegDataUrl(file);
+      setVaccinePhoto(dataUrl);
+    } catch {
+      /* แปลงรูปไม่สำเร็จ — ให้ลูกค้าลองแนบใหม่ */
+    } finally {
+      setVaccineUploading(false);
     }
   };
 
@@ -265,6 +291,61 @@ function ConsentContent() {
                 )}
               </div>
 
+              <div className="mt-5">
+                <label className="text-xs font-bold text-petflow-chocolate">
+                  💉 ภาพสมุดวัคซีน <span className="font-normal text-brown-faint">(ถ้ามี)</span>
+                </label>
+                <p className="mb-1.5 text-[11px] text-brown-faint">
+                  แนบไว้เป็นหลักฐานประวัติวัคซีนของน้อง — ไม่บังคับ แต่แนะนำให้แนบถ้ามีสมุดอยู่ใกล้ตัว
+                </p>
+                <label className="flex cursor-pointer items-center gap-3 rounded-petflow-sm border border-dashed border-petflow-line bg-paper px-3 py-3">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => e.target.files?.[0] && uploadVaccinePhoto(e.target.files[0])}
+                  />
+                  {vaccinePhoto ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={vaccinePhoto}
+                      alt="สมุดวัคซีน"
+                      className="h-14 w-14 shrink-0 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <span className="text-xl">📷</span>
+                  )}
+                  <span className="text-xs font-bold text-brown-soft">
+                    {vaccineUploading
+                      ? "กำลังแนบรูป…"
+                      : vaccinePhoto
+                        ? "แตะเพื่อเปลี่ยนรูป"
+                        : "แตะเพื่อแนบภาพสมุดวัคซีน"}
+                  </span>
+                </label>
+              </div>
+
+              <label className="mt-4 flex items-start gap-2 rounded-petflow-sm border border-honey-deep/40 bg-honey/10 px-3 py-2.5 text-xs text-brown">
+                <input
+                  type="checkbox"
+                  checked={fleaTickTreated}
+                  onChange={(e) => {
+                    setFleaTickTreated(e.target.checked);
+                    if (e.target.checked) setFleaError(false);
+                  }}
+                  className="mt-0.5 h-4 w-4"
+                />
+                <span>
+                  🪲 ข้าพเจ้ายืนยันว่าได้หยดยากันเห็บหมัดให้น้องแล้ว ภายในระยะเวลาที่กำหนด
+                  ก่อนเข้าพักครั้งนี้
+                </span>
+              </label>
+              {fleaError && (
+                <p className="mt-1 text-[11px] font-bold text-wait">
+                  กรุณาติ๊กยืนยันเรื่องหยดยาเห็บหมัดก่อนกดยอมรับข้อตกลง
+                </p>
+              )}
+
               <label className="mt-4 flex items-start gap-2 text-xs text-brown">
                 <input
                   type="checkbox"
@@ -273,8 +354,9 @@ function ConsentContent() {
                   className="mt-0.5 h-4 w-4"
                 />
                 <span>
-                  ข้าพเจ้าได้อ่านและยอมรับข้อตกลงข้างต้น
-                  และให้ข้อมูลน้องแมวตามความเป็นจริง
+                  ข้าพเจ้าขอรับรองว่าข้อมูลทั้งหมดที่กรอกและแนบมาข้างต้น
+                  (รวมถึงประวัติวัคซีนและการหยดยาเห็บหมัด) เป็นความจริงทุกประการ
+                  และร้านสามารถใช้ข้อมูลนี้เป็นหลักฐานได้หากเกิดปัญหาที่เกี่ยวข้อง
                 </span>
               </label>
               <button

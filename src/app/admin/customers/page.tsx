@@ -413,6 +413,27 @@ function StaysConsentSection({ bookings }: { bookings: EditableBooking[] }) {
                     ✍️ ดูลายเซ็น
                   </a>
                 )}
+                {b.vaccinePhotoUrl && (
+                  <a
+                    href={b.vaccinePhotoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-full bg-latte/30 px-2 py-0.5 text-[10px] font-bold text-petflow-chocolate"
+                  >
+                    💉 ดูสมุดวัคซีน
+                  </a>
+                )}
+                {b.consentAcceptedAt && (
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
+                      b.fleaTickTreated
+                        ? "bg-ok/20 text-ok"
+                        : "bg-wait/20 text-wait"
+                    }`}
+                  >
+                    🪲 {b.fleaTickTreated ? "ยืนยันหยดยาแล้ว" : "ไม่ได้ติ๊กว่าหยดยา"}
+                  </span>
+                )}
               </div>
               {b.careNote && (
                 <p className="mt-1.5 rounded-petflow-sm border border-honey/40 bg-honey/10 px-2 py-1.5 text-[11px] text-brown">

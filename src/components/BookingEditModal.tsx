@@ -20,6 +20,10 @@ export type EditableBooking = Booking & {
   careNote?: string;
   /** ลายเซ็นที่เซ็นไว้ (URL รูป) */
   consentSignature?: string;
+  /** ภาพสมุดวัคซีนที่แนบตอนยอมรับข้อตกลง */
+  vaccinePhotoUrl?: string;
+  /** ลูกค้าติ๊กยืนยันว่าหยดยาเห็บหมัดมาแล้ว — หลักฐานถ้าพบเห็บหมัดตอนเข้าพัก */
+  fleaTickTreated?: boolean;
   /** เวลาที่เจ้าของแจ้งว่าจะมาส่งน้อง */
   arrivalTime?: string;
   /** เวลาที่เจ้าของแจ้งว่าจะมารับน้อง */

@@ -21,11 +21,20 @@ async function postHandler(req: NextRequest) {
   const lineUserId = session.lineUserId;
   const careNote = String(body.careNote || "").trim();
   const signature = String(body.signature || "").trim();
+  const vaccinePhoto = String(body.vaccinePhoto || "").trim();
+  const fleaTickTreated = Boolean(body.fleaTickTreated);
   if (!bookingId) {
     return NextResponse.json({ error: "bookingId required" }, { status: 400 });
   }
 
-  const res = await acceptBookingConsent(bookingId, lineUserId, careNote, signature);
+  const res = await acceptBookingConsent(
+    bookingId,
+    lineUserId,
+    careNote,
+    signature,
+    vaccinePhoto,
+    fleaTickTreated
+  );
   if (!res.ok && res.error === "not_found") {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
@@ -42,6 +51,8 @@ async function postHandler(req: NextRequest) {
           ลูกค้า: b.customerName,
           เข้าพัก: `${b.checkin || b.date || "-"}${b.checkout ? ` → ${b.checkout}` : ""}`,
           ลายเซ็น: signature ? "มี ✍️" : "ไม่ได้เซ็น",
+          หยดยาเห็บหมัด: fleaTickTreated ? "✅ ลูกค้ายืนยันว่าหยดมาแล้ว" : "❌ ยังไม่ได้หยด/ไม่ระบุ",
+          ...(b.vaccinePhotoUrl ? { สมุดวัคซีน: "แนบรูปมาแล้ว 📸" } : {}),
           ...(careNote ? { "การดูแลเพิ่มเติม": careNote } : {}),
         })
       );

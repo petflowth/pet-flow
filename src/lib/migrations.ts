@@ -54,6 +54,7 @@ const SCHEMA_CHECKS: { table: string; column: string; feature: string }[] = [
   { table: "audit_logs", column: "action", feature: "ประวัติการใช้งาน" },
   { table: "broadcast_images", column: "content_type", feature: "รูปโปร (ทางสำรอง)" },
   { table: "birthday_greetings", column: "status", feature: "คิววันเกิดรอตรวจ" },
+  { table: "bookings", column: "flea_tick_treated", feature: "หลักฐานหยดยาเห็บหมัด" },
 ];
 
 export type SchemaCheckRow = {
@@ -175,6 +176,15 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
   {
     name: "bookings.consent_signature",
     sql: "alter table bookings add column if not exists consent_signature text;",
+  },
+  {
+    // หลักฐานตอนยอมรับข้อตกลงก่อนเข้าพัก — รูปสมุดวัคซีน + ยืนยันว่าหยดยาเห็บหมัดมาแล้ว
+    // ไว้ใช้อ้างอิงถ้าพบเห็บหมัดตอนน้องเข้าพักอยู่ที่ร้าน
+    name: "bookings.vaccine_flea_consent",
+    sql: `
+      alter table bookings add column if not exists vaccine_photo_url text;
+      alter table bookings add column if not exists flea_tick_treated boolean not null default false;
+    `,
   },
   {
     name: "cats.fur_length",

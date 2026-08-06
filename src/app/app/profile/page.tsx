@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useLiff } from "@/components/LiffProvider";
 import { useConfig } from "@/components/ConfigProvider";
 import { BREED_OPTIONS, OTHER_BREED } from "@/lib/cat-breeds";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 const REFERRAL_FALLBACK = [
   "Facebook",
@@ -169,7 +170,7 @@ export default function ProfilePage() {
       </h1>
 
       {!ready || loading ? (
-        <p className="mt-6 text-sm text-brown-soft">กำลังโหลด…</p>
+        <LoadingScreen />
       ) : !found ? (
         <div className="mt-6 rounded-petflow bg-paper px-4 py-4 text-center text-sm text-brown-soft">
           ยังไม่มีข้อมูลของคุณในระบบ

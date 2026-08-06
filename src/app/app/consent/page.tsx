@@ -8,6 +8,7 @@ import { useConfig } from "@/components/ConfigProvider";
 import type { Booking } from "@/lib/business";
 
 import { DEFAULT_MESSAGES } from "@/lib/messages";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 type StayBooking = Booking & {
   checkin?: string;
@@ -188,9 +189,7 @@ function ConsentContent() {
       </p>
 
       {!ready || loading ? (
-        <p className="mt-6 rounded-petflow-sm bg-paper px-4 py-3 text-sm text-brown-soft">
-          กำลังโหลด…
-        </p>
+        <LoadingScreen />
       ) : (
         <>
           {booking && (
@@ -302,7 +301,7 @@ function ConsentContent() {
 export default function ConsentPage() {
   return (
     <Suspense
-      fallback={<p className="px-4 py-10 text-center text-sm text-brown-soft">กำลังโหลด…</p>}
+      fallback={<LoadingScreen />}
     >
       <ConsentContent />
     </Suspense>

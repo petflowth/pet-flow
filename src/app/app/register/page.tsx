@@ -31,6 +31,7 @@ const REFERRAL_OPTIONS = [
 ];
 
 import { BREED_OPTIONS, OTHER_BREED } from "@/lib/cat-breeds";
+import { StaffNoteTagPicker } from "@/components/StaffNoteTagPicker";
 
 function emptyCat(): CatInput {
   return {
@@ -401,17 +402,10 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                <input
-                  value={cat.medical}
-                  onChange={(e) => updateCat(idx, { medical: e.target.value })}
-                  placeholder="โรคประจำตัว (ถ้ามี)"
-                  className={subFieldClass}
-                />
-                <input
-                  value={cat.note}
-                  onChange={(e) => updateCat(idx, { note: e.target.value })}
-                  placeholder="🐾 รายละเอียดเพิ่มเติม (ถ้ามี)"
-                  className={`${subFieldClass} text-xs`}
+                <StaffNoteTagPicker
+                  medicalValue={cat.medical}
+                  noteValue={cat.note}
+                  onChange={(medical, note) => updateCat(idx, { medical, note })}
                 />
 
                 {cats.length > 1 && (

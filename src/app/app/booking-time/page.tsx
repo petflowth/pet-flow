@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useLiff } from "@/components/LiffProvider";
 import { formatThaiDateShort } from "@/lib/format-thai-date";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 const SLOTS = Array.from({ length: 11 }, (_, i) => `${String(9 + i).padStart(2, "0")}:00`);
 
@@ -110,7 +111,7 @@ function BookingTimeContent() {
       </h1>
 
       {loading ? (
-        <p className="mt-6 text-sm text-brown-soft">กำลังโหลด…</p>
+        <LoadingScreen />
       ) : !bk ? (
         <p className="mt-6 rounded-petflow-sm bg-paper px-4 py-3 text-sm text-brown-soft">
           ไม่พบข้อมูลการจอง
@@ -190,7 +191,7 @@ function BookingTimeContent() {
 export default function BookingTimePage() {
   return (
     <Suspense
-      fallback={<p className="px-4 py-10 text-center text-sm text-brown-soft">กำลังโหลด…</p>}
+      fallback={<LoadingScreen />}
     >
       <BookingTimeContent />
     </Suspense>

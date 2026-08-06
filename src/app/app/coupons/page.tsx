@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useLiff } from "@/components/LiffProvider";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 type Coupon = {
   id: string;
@@ -127,7 +128,7 @@ export default function CouponsPage() {
 
       {/* ── คูปอง ── */}
       {!ready || loading ? (
-        <p className="mt-6 text-sm text-brown-soft">กำลังโหลด…</p>
+        <LoadingScreen />
       ) : (
         <>
           <p className="mt-6 mb-2 text-xs font-bold text-brown-soft">

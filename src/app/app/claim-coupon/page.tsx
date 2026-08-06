@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useLiff } from "@/components/LiffProvider";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 type Offer = { id: string; title: string; amount: number; reason: string; validDays: number; active: boolean };
 
@@ -48,7 +49,7 @@ function ClaimContent() {
     }
   };
 
-  if (loading) return <p className="px-4 py-10 text-center text-sm text-brown-soft">กำลังโหลด…</p>;
+  if (loading) return <LoadingScreen />;
 
   if (!offer)
     return (
@@ -115,7 +116,7 @@ function ClaimContent() {
 
 export default function ClaimCouponPage() {
   return (
-    <Suspense fallback={<p className="px-4 py-10 text-center text-sm text-brown-soft">กำลังโหลด…</p>}>
+    <Suspense fallback={<LoadingScreen />}>
       <ClaimContent />
     </Suspense>
   );

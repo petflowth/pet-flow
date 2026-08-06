@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useConfig } from "@/components/ConfigProvider";
 import Link from "next/link";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 type Invoice = {
   id: string;
@@ -42,7 +43,7 @@ export default function PayPage() {
   if (!invoice) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-petflow-gradient p-6">
-        <p className="text-sm text-brown-soft">กำลังโหลดบิล…</p>
+        <LoadingScreen message="กำลังโหลดข้อมูลบิล..." />
       </div>
     );
   }

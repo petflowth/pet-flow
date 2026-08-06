@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useLiff } from "@/components/LiffProvider";
 import { useConfig } from "@/components/ConfigProvider";
 import { resolveGroomForm, type GroomField } from "@/lib/groom-form";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 type Answers = Record<string, string | string[]>;
 
@@ -222,7 +223,7 @@ function GroomInfoContent() {
       </h1>
 
       {loading ? (
-        <p className="mt-6 text-sm text-brown-soft">กำลังโหลด…</p>
+        <LoadingScreen />
       ) : forms.length === 0 ? (
         <p className="mt-6 rounded-petflow-sm bg-paper px-4 py-3 text-sm text-brown-soft">
           ไม่พบข้อมูลการนัด
@@ -369,7 +370,7 @@ function GroomInfoContent() {
 export default function GroomInfoPage() {
   return (
     <Suspense
-      fallback={<p className="px-4 py-10 text-center text-sm text-brown-soft">กำลังโหลด…</p>}
+      fallback={<LoadingScreen />}
     >
       <GroomInfoContent />
     </Suspense>

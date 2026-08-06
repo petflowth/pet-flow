@@ -2,15 +2,12 @@
 
 import { Suspense } from "react";
 import { LinkLineContent } from "./LinkLineContent";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 export default function LinkLinePage() {
   return (
     <Suspense
-      fallback={
-        <p className="px-4 py-10 text-center text-sm text-brown-soft">
-          กำลังโหลด…
-        </p>
-      }
+      fallback={<LoadingScreen />}
     >
       <LinkLineContent />
     </Suspense>

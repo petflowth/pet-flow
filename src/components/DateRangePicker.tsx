@@ -40,14 +40,14 @@ export function DateRangePicker({
             type="date"
             value={custom.from}
             onChange={(e) => onCustomChange({ ...custom, from: e.target.value })}
-            className="rounded-catcha-sm border border-catcha-line bg-paper px-2.5 py-1.5 text-xs"
+            className="rounded-petflow-sm border border-petflow-line bg-paper px-2.5 py-1.5 text-xs"
           />
           <span className="text-xs text-brown-faint">ถึง</span>
           <input
             type="date"
             value={custom.to}
             onChange={(e) => onCustomChange({ ...custom, to: e.target.value })}
-            className="rounded-catcha-sm border border-catcha-line bg-paper px-2.5 py-1.5 text-xs"
+            className="rounded-petflow-sm border border-petflow-line bg-paper px-2.5 py-1.5 text-xs"
           />
         </div>
       )}

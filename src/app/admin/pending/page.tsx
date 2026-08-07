@@ -103,7 +103,7 @@ export default function PendingConfirmPage() {
     return (
       <li
         key={group.map((x) => x.id).join(",")}
-        className="rounded-catcha-sm border border-catcha-line bg-card p-3"
+        className="rounded-petflow-sm border border-petflow-line bg-card p-3"
       >
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -139,7 +139,7 @@ export default function PendingConfirmPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-lg font-extrabold text-catcha-chocolate">⏳ นัดรอยืนยัน</h1>
+        <h1 className="text-lg font-extrabold text-petflow-chocolate">⏳ นัดรอยืนยัน</h1>
         <Link
           href="/admin/schedule"
           className="rounded-full bg-paper px-3 py-1.5 text-[11px] font-bold text-brown-soft"
@@ -149,7 +149,7 @@ export default function PendingConfirmPage() {
       </div>
 
       {groups.length === 0 ? (
-        <div className="rounded-catcha border border-dashed border-catcha-line py-10 text-center">
+        <div className="rounded-petflow border border-dashed border-petflow-line py-10 text-center">
           <p className="text-sm font-bold text-ok">🎉 ยืนยันครบทุกนัดแล้ว</p>
           <p className="mt-1 text-xs text-brown-soft">
             นัดที่ผ่านมาแล้วหรือออกบิลแล้ว ไม่ต้องตามยืนยันย้อนหลัง
@@ -176,7 +176,7 @@ export default function PendingConfirmPage() {
 
           {upcoming.length > 0 && (
             <section>
-              <p className="mb-1.5 text-xs font-extrabold text-catcha-chocolate">
+              <p className="mb-1.5 text-xs font-extrabold text-petflow-chocolate">
                 📅 นัดที่กำลังจะถึง ({upcoming.length})
               </p>
               <ul className="space-y-2">{upcoming.map(renderGroup)}</ul>

@@ -141,7 +141,7 @@ export function CatMediaGallery({
             <img
               src={viewing.dataUrl}
               alt={viewing.caption || ""}
-              className="mx-auto max-h-[75vh] w-auto rounded-catcha-sm object-contain"
+              className="mx-auto max-h-[75vh] w-auto rounded-petflow-sm object-contain"
             />
             {viewing.caption && (
               <p className="mt-2 text-xs font-bold text-white">{viewing.caption}</p>

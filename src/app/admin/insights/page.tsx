@@ -276,13 +276,13 @@ export default function InsightsPage() {
         {stats.coursesSold.length ? (
           <>
             <div className="mb-2 grid grid-cols-2 gap-2 text-center">
-              <div className="rounded-catcha-sm bg-paper p-2">
+              <div className="rounded-petflow-sm bg-paper p-2">
                 <p className="text-sm font-extrabold text-latte-deep">
                   {stats.courseRevenue.toLocaleString()} ฿
                 </p>
                 <p className="text-[10px] text-brown-soft">รายได้จากคอร์ส</p>
               </div>
-              <div className="rounded-catcha-sm bg-paper p-2">
+              <div className="rounded-petflow-sm bg-paper p-2">
                 <p className="text-sm font-extrabold text-wait">{stats.courseUnitsLeft}</p>
                 <p className="text-[10px] text-brown-soft">สิทธิ์ค้างที่ต้องให้บริการ</p>
               </div>
@@ -312,13 +312,13 @@ export default function InsightsPage() {
         {stats.promoRows.length ? (
           <>
             <div className="mb-2 grid grid-cols-2 gap-2 text-center">
-              <div className="rounded-catcha-sm bg-paper p-2">
+              <div className="rounded-petflow-sm bg-paper p-2">
                 <p className="text-sm font-extrabold text-wait">
                   {stats.promoCost.toLocaleString()} ฿
                 </p>
                 <p className="text-[10px] text-brown-soft">ส่วนลดจากโปร</p>
               </div>
-              <div className="rounded-catcha-sm bg-paper p-2">
+              <div className="rounded-petflow-sm bg-paper p-2">
                 <p className="text-sm font-extrabold text-brown">
                   {stats.discountTotal.toLocaleString()} ฿
                 </p>

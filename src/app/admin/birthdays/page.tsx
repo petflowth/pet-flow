@@ -106,7 +106,7 @@ export default function BirthdaysPage() {
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-catcha border border-dashed border-petflow-line py-10 text-center">
+        <div className="rounded-petflow border border-dashed border-petflow-line py-10 text-center">
           <p className="text-sm font-bold text-brown-soft">ไม่มีวันเกิดรอตรวจตอนนี้</p>
           <p className="mt-1 text-xs text-brown-faint">
             ระบบจะคัดกรองให้เองทุกวันตอนเที่ยง แล้วขึ้นให้ตรวจที่นี่

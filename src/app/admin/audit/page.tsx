@@ -56,14 +56,14 @@ export default function AuditPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-lg font-extrabold text-catcha-chocolate">🔍 ประวัติการใช้งาน</h1>
+        <h1 className="text-lg font-extrabold text-petflow-chocolate">🔍 ประวัติการใช้งาน</h1>
         <p className="mt-1 text-xs text-brown-soft">
           บันทึกเฉพาะการกระทำที่กระทบเงินและสิทธิ์ลูกค้า — ไว้ไล่ย้อนตอนยอดไม่ตรง
         </p>
       </div>
 
       {logs.length === 0 ? (
-        <div className="rounded-catcha border border-dashed border-catcha-line py-10 text-center">
+        <div className="rounded-petflow border border-dashed border-petflow-line py-10 text-center">
           <p className="text-sm font-bold text-brown-soft">ยังไม่มีบันทึก</p>
           <p className="mt-1 text-xs text-brown-faint">
             ถ้าเพิ่งอัปเดต ให้กด &quot;🔄 อัปเดตฐานข้อมูล&quot; ที่ ตั้งค่า → ขั้นสูง
@@ -102,10 +102,10 @@ export default function AuditPage() {
             {shown.map((l) => (
               <li
                 key={l.id}
-                className="rounded-catcha-sm border border-catcha-line bg-card px-3 py-2.5 text-xs"
+                className="rounded-petflow-sm border border-petflow-line bg-card px-3 py-2.5 text-xs"
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="font-extrabold text-catcha-chocolate">
+                  <span className="font-extrabold text-petflow-chocolate">
                     {ACTION_LABEL[l.action] || l.action}
                   </span>
                   <span className="text-[10px] text-brown-faint">{when(l.createdAt)}</span>

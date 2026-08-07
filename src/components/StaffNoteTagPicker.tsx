@@ -130,7 +130,7 @@ export function StaffNoteTagPicker({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="พิมพ์เพื่อค้นหา"
-                  className="w-full rounded-petflow-sm border border-petflow-line bg-paper py-2.5 pl-9 pr-3 text-sm"
+                  className="w-full rounded-petflow-sm border border-petflow-line bg-card py-2.5 pl-9 pr-3 text-sm"
                 />
               </div>
             </div>
@@ -147,12 +147,21 @@ export function StaffNoteTagPicker({
                         <button
                           type="button"
                           onClick={() => toggle(t.id)}
-                          className={`flex w-full items-center justify-between gap-2 px-1 py-3 text-left text-sm ${
+                          className={`flex w-full items-center gap-3 px-1 py-3 text-left text-sm ${
                             active ? "font-bold text-petflow-chocolate" : "text-brown"
                           }`}
                         >
+                          <span
+                            aria-hidden
+                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 text-xs text-white ${
+                              active
+                                ? "border-honey-deep bg-honey-deep"
+                                : "border-petflow-line bg-card"
+                            }`}
+                          >
+                            {active && "✓"}
+                          </span>
                           <span>{t.label}</span>
-                          {active && <span className="shrink-0 text-honey-deep">✓</span>}
                         </button>
                       </li>
                     );
@@ -168,7 +177,7 @@ export function StaffNoteTagPicker({
                   value={custom}
                   onChange={(e) => setCustom(e.target.value)}
                   placeholder="เช่น แพ้ยาสลบ"
-                  className="w-full rounded-lg border border-petflow-line bg-paper px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-petflow-line bg-card px-3 py-2 text-sm"
                 />
               </div>
             </div>

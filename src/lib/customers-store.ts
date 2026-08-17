@@ -1235,13 +1235,33 @@ export async function updateCat(
   return c;
 }
 
-/** หาแมวของลูกค้าจาก LINE + ชื่อน้อง (ถ้าไม่เจอชื่อตรง ใช้ตัวแรก) */
+/**
+ * เทียบชื่อน้องแบบไม่แคร์ช่องว่าง/อักขระล่องหน — ชื่อไทยที่พิมพ์คนละครั้ง
+ * อาจมี zero-width หรือสระเรียงคนละแบบ ทำให้ === ไม่ตรงทั้งที่ตาเห็นเหมือนกัน
+ * (เหตุเดียวกับที่ทำให้ติ๊กชื่อออกไม่ได้ในหน้าออกบิล — ดู catKey ใน admin/billing/page.tsx)
+ */
+const ZERO_WIDTH_RE = new RegExp(
+  "[" + String.fromCharCode(0x200b, 0x200c, 0x200d, 0xfeff) + "\\s]",
+  "g"
+);
+function catKey(name: string): string {
+  return name.normalize("NFC").replace(ZERO_WIDTH_RE, "").toLowerCase();
+}
+
+/**
+ * หาแมวจาก lineUserId + ชื่อ — ถ้าระบุ catName มาต้องหาตัวที่ตรงจริง (เทียบแบบ normalize แล้ว)
+ * ไม่ fallback ไปแมวตัวแรกเงียบๆ เพราะเดาผิดตัวอันตรายกว่าไม่เจอเลย (ประวัติ/โน้ตเตือนของแมวคนละตัวกัน)
+ */
 async function resolveCatByLine(lineUserId: string, catName?: string) {
   const c = await findCustomerByLine(lineUserId);
   if (!c || c.cats.length === 0) return null;
-  const cat =
-    (catName && c.cats.find((x) => x.name === catName)) || c.cats[0];
-  return { customerId: c.id, cat };
+  if (catName) {
+    const key = catKey(catName);
+    const cat = c.cats.find((x) => catKey(x.name) === key);
+    if (!cat) return null;
+    return { customerId: c.id, cat };
+  }
+  return { customerId: c.id, cat: c.cats[0] };
 }
 
 /** อ่านประวัติน้องก่อนอาบน้ำ ที่เก็บไว้ที่แมว (คืน undefined ถ้ายังไม่เคยกรอก) */
@@ -1257,9 +1277,6 @@ export async function getCatGroomInfo(lineUserId: string, catName?: string) {
 export async function getCatStaffNotes(lineUserId: string, catName?: string) {
   const r = await resolveCatByLine(lineUserId, catName);
   if (!r) return undefined;
-  // ต้องตรงตัวเท่านั้น — resolveCatByLine จะ fallback เป็นแมวตัวแรกถ้าชื่อไม่ตรง
-  // ซึ่งกับโน้ตเตือน ("กัด") การเดาผิดตัวอันตรายกว่าไม่เตือนเลย
-  if (catName && r.cat.name !== catName) return undefined;
   return {
     staffNote: r.cat.staffNote?.trim() || undefined,
     privateNote: r.cat.staffPrivateNote?.trim() || undefined,

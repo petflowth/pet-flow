@@ -100,6 +100,10 @@ export default function RegisterPage() {
       setError("เลือกเพศน้องแมวทุกตัวด้วยนะคะ 🐱");
       return;
     }
+    if (!referral) {
+      setError("เลือกช่องทางที่รู้จักเราด้วยนะคะ");
+      return;
+    }
 
     setSaving(true);
     setError("");
@@ -434,8 +438,7 @@ export default function RegisterPage() {
         {/* ── รู้จักเราจากทางไหน ── */}
         <div>
           <span className="mb-2 block text-xs font-bold text-brown">
-            รู้จักเราจากทางไหน?{" "}
-            <span className="font-normal text-brown-faint">(ไม่บังคับ)</span>
+            รู้จักเราจากทางไหน? <span className="text-red-600">*</span>
           </span>
           <div className="flex flex-wrap gap-2">
             {referrals.map((opt) => (

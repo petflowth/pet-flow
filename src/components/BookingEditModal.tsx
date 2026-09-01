@@ -67,12 +67,15 @@ function EditField({
 
 export function BookingEditModal({
   booking,
+  siblings = [],
   rooms,
   groomSlots,
   onClose,
   onSaved,
 }: {
   booking: EditableBooking;
+  /** นัดอื่นในบ้านเดียวกัน นัดเดียวกัน (ไม่รวมตัวที่กำลังแก้) — ไว้เสนอเลื่อนวันให้ทั้งหมดทีเดียว */
+  siblings?: { id: string; catName: string }[];
   rooms: { id: string; name: string; size: string; price: number }[];
   groomSlots: string[];
   onClose: () => void;
@@ -82,6 +85,8 @@ export function BookingEditModal({
     booking.service || (booking.roomType || booking.checkin ? "room" : "groom")
   );
   const [saving, setSaving] = useState(false);
+  // ค่าเริ่มต้นติ๊กไว้เลย — ปกติเจ้าของเลื่อนนัด ก็อยากเลื่อนให้ครบทุกตัวในบ้านอยู่แล้ว
+  const [applyToSiblings, setApplyToSiblings] = useState(true);
   const [groomProgram, setGroomProgram] = useState(booking.groomProgram || "");
   // ปิดข้อความอัตโนมัติเฉพาะนัดนี้ (คนละเรื่องกับปิดทั้งร้านในหน้าตั้งค่า)
   const [autoOff, setAutoOff] = useState<string[]>(booking.autoOff || []);
@@ -136,13 +141,41 @@ export function BookingEditModal({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: booking.id, ...payload }),
     });
-    setSaving(false);
-    if (res.ok) {
+
+    if (!res.ok) {
+      setSaving(false);
+      alert("บันทึกไม่สำเร็จ");
+      return;
+    }
+
+    // เลื่อนวัน/เวลาให้น้องตัวอื่นในนัดเดียวกันด้วย — เฉพาะวันเวลา ไม่แตะชื่อ/โน้ต/โปรแกรมของตัวอื่น
+    // เพราะแต่ละตัวมีข้อมูลของตัวเอง เปลี่ยนแค่ "นัดวันไหน" ให้ตรงกันทั้งบ้าน
+    if (applyToSiblings && siblings.length > 0) {
+      const datePatch =
+        service === "groom"
+          ? { action: "update", date: payload.date, time: payload.time }
+          : { action: "update", checkin: payload.checkin, checkout: payload.checkout, date: payload.checkin };
+      const results = await Promise.all(
+        siblings.map((s) =>
+          fetch("/api/bookings", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: s.id, ...datePatch }),
+          }).then((r) => r.ok)
+        )
+      );
+      setSaving(false);
+      if (!results.every(Boolean)) {
+        alert("เลื่อนวันให้บางตัวไม่สำเร็จ กรุณาตรวจสอบ");
+      }
       onSaved();
       onClose();
-    } else {
-      alert("บันทึกไม่สำเร็จ");
+      return;
     }
+
+    setSaving(false);
+    onSaved();
+    onClose();
   };
 
   return (
@@ -280,6 +313,23 @@ export function BookingEditModal({
                 </div>
               </div>
             </>
+          )}
+          {siblings.length > 0 && (
+            <label className="flex items-start gap-2 rounded-petflow-sm border border-honey-deep/40 bg-honey/15 p-3 text-[11px] font-bold text-petflow-chocolate">
+              <input
+                type="checkbox"
+                checked={applyToSiblings}
+                onChange={(e) => setApplyToSiblings(e.target.checked)}
+                className="mt-0.5 h-3.5 w-3.5 accent-latte-deep"
+              />
+              <span>
+                🔁 เลื่อนวัน{service === "groom" ? "/เวลา" : "เข้า-ออก"}ให้น้องตัวอื่นในนัดเดียวกันด้วย
+                <span className="block font-normal text-brown-faint">
+                  {siblings.map((s) => s.catName).join(", ")} ({siblings.length} ตัว) — เปลี่ยนแค่วันที่/เวลา
+                  ชื่อและโน้ตของแต่ละตัวไม่ถูกแตะ
+                </span>
+              </span>
+            </label>
           )}
           <EditField label="โน้ต" name="notes" defaultValue={booking.notes || ""} textarea />
 

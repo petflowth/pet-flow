@@ -197,7 +197,11 @@ export function BookingCalendar() {
   const [bookings, setBookings] = useState<CalendarDay[]>([]);
   const [selectedDate, setSelectedDate] = useState("");
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState<CalendarDay | null>(null);
+  const [editing, setEditing] = useState<{ b: CalendarDay; group: CalendarDay[] } | null>(null);
+  // เปิดแก้ไขนัด — ถ้าส่ง group มาด้วย (บ้านเดียวกัน นัดเดียวกัน หลายตัว) จะเสนอ
+  // "เลื่อนวันให้ทุกตัว" ในโมดัลด้วย ไม่ต้องไล่แก้ทีละตัว
+  const openEdit = (b: CalendarDay, group?: CalendarDay[]) =>
+    setEditing({ b, group: group && group.length > 1 ? group : [b] });
   const [zoomSignature, setZoomSignature] = useState<string | null>(null);
   // นัดที่บิลจ่ายจบแล้ว (รายงานขึ้นมาจาก BillButton) — ติดป้าย "จบเคส" ให้เห็นชัดทั้งการ์ด
   const [paidCases, setPaidCases] = useState<Record<string, boolean>>({});
@@ -498,7 +502,10 @@ export function BookingCalendar() {
       )}
       {editing && (
         <BookingEditModal
-          booking={editing}
+          booking={editing.b}
+          siblings={editing.group
+            .filter((x) => x.id !== editing.b.id)
+            .map((x) => ({ id: x.id, catName: x.catName }))}
           rooms={rooms}
           groomSlots={groomSlots}
           onClose={() => setEditing(null)}
@@ -623,7 +630,7 @@ export function BookingCalendar() {
                 <p className="mb-1 text-[10px] font-bold text-brown-faint">🏠 ทั้งวัน / เข้าพัก</p>
                 <div className="space-y-1">
                   {allDayGroups.map((g) => (
-                    <MiniEntry key={g[0].id} group={g} onClick={() => setEditing(g[0])} />
+                    <MiniEntry key={g[0].id} group={g} onClick={() => openEdit(g[0], g)} />
                   ))}
                 </div>
               </div>
@@ -641,7 +648,7 @@ export function BookingCalendar() {
                         <div className="h-4 rounded bg-paper/40" />
                       ) : (
                         slot.map((g) => (
-                          <MiniEntry key={g[0].id} group={g} onClick={() => setEditing(g[0])} />
+                          <MiniEntry key={g[0].id} group={g} onClick={() => openEdit(g[0], g)} />
                         ))
                       )}
                     </div>
@@ -768,7 +775,7 @@ export function BookingCalendar() {
                         <button
                           key={u.unit}
                           type="button"
-                          onClick={() => host && setEditing(host as CalendarDay)}
+                          onClick={() => host && openEdit(host as CalendarDay, u.staying as CalendarDay[])}
                           disabled={!host}
                           className={`min-h-[62px] rounded-xl px-2 py-1.5 text-left transition ${
                             u.turnover
@@ -1133,7 +1140,7 @@ export function BookingCalendar() {
                       <button
                         key={x.id}
                         type="button"
-                        onClick={() => setEditing(x)}
+                        onClick={() => openEdit(x, group)}
                         className="rounded-full bg-honey/25 px-2.5 py-1 text-[10px] font-bold text-petflow-chocolate"
                       >
                         ✏️ แก้ไข {x.catName}
@@ -1142,7 +1149,7 @@ export function BookingCalendar() {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => setEditing(b)}
+                      onClick={() => openEdit(b, group)}
                       className="rounded-full bg-honey/25 px-2.5 py-1 text-[10px] font-bold text-petflow-chocolate"
                     >
                       ✏️ แก้ไข

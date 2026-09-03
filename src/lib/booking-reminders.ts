@@ -80,6 +80,19 @@ export function buildGroomInfoBody(
   return `${intro}\n\n${GROOM_PHOTO_REQUEST}`;
 }
 
+/**
+ * เนื้อความการ์ด "แก้ไข/เพิ่มเติมประวัติ" — สำหรับตัวที่เคยกรอกประวัติไว้แล้ว
+ * คนละโทนกับตอนขอครั้งแรก (buildGroomInfoBody) เพื่อไม่ให้ดูเหมือนร้านลืม/ถามซ้ำ
+ * ลิงก์เดียวกัน หน้ากรอกจะดึงคำตอบเดิมมาเติมให้อยู่แล้ว แก้ตรงไหนก็ได้
+ */
+export function buildGroomInfoEditBody(
+  b: Pick<StoredBooking, "catName">,
+  cfg: SiteConfig
+): string {
+  return `${cfg.business.name} เคยได้รับประวัติของ${politeCat(b.catName)}ไว้แล้วค่ะ 🧡 ` +
+    `ถ้ามีอะไรเปลี่ยนแปลงหรืออยากเพิ่มเติม กดแก้ไขได้เลยนะคะ`;
+}
+
 /** เนื้อความการ์ดเลือกเวลารับน้อง (เช็คเอาท์) */
 export function buildCheckoutBodyText(
   b: Pick<StoredBooking, "catName" | "checkout">,

@@ -21,6 +21,7 @@ import {
   buildPrestayFlexData,
   buildCheckinBodyText,
   buildGroomInfoBody,
+  buildGroomInfoEditBody,
   getBookingTimeUrl,
   getGroomInfoUrl,
   getConsentUrl,
@@ -146,6 +147,28 @@ async function runForTenant() {
             })
           );
           groomBriefs++;
+        }
+        // เคยกรอกประวัติแล้ว — ไม่ขอซ้ำ แต่ก็ไม่เงียบไปเฉยๆ (ลูกค้าจะรู้สึกว่าร้านไม่เก็บข้อมูลเลย
+        // ถามซ้ำทุกครั้ง) ส่งเป็นการ์ด "แก้ไข/เพิ่มเติมประวัติ" แทน คนละโทนกับตอนขอครั้งแรก
+        if (alreadyHave.length > 0) {
+          const names = alreadyHave.map((x) => x.b.catName).join(", ");
+          const url = await getGroomInfoUrl(alreadyHave.map((x) => x.b.id));
+          dayMessages.push(
+            buildGroomInfoFlex({
+              catName: names,
+              dateText: primary.date ? `📅 นัดอาบน้ำ: ${primary.date}${primary.time ? ` ${primary.time}` : ""}` : undefined,
+              body: buildGroomInfoEditBody(
+                { catName: alreadyHave.length > 1 ? `น้องๆ ${alreadyHave.length} ตัว` : names },
+                cfg
+              ),
+              url: url || undefined,
+              label:
+                alreadyHave.length > 1
+                  ? `✏️ แก้ไข/เพิ่มเติมประวัติ (${alreadyHave.length} ตัว)`
+                  : "✏️ แก้ไข/เพิ่มเติมประวัติ",
+            }, cfg.cards?.groomInfo)
+          );
+          groomInfoCards++;
         }
         // ยังไม่เคยกรอกประวัติ แต่ร้านเคยจดโน้ตไว้ (เช่น "กัด") — ช่างต้องรู้อยู่ดี
         // ไม่งั้นเคสอันตรายที่สุดคือเคสที่ไม่มีประวัติ กลับเป็นเคสที่ไม่มีใครเตือน

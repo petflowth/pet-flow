@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "@/components/Toast";
+import { formatThaiDate } from "@/lib/format-thai-date";
 
 type Row = {
   id: string;
@@ -11,6 +12,8 @@ type Row = {
   catName?: string;
   forDate: string;
   text: string;
+  /** จะแจกคูปองกี่บาท — 0 = ไม่แจก (เคยได้ปีนี้แล้ว หรือปิดฟีเจอร์คูปองไว้) */
+  couponAmount: number;
 };
 
 export default function BirthdaysPage() {
@@ -155,7 +158,21 @@ export default function BirthdaysPage() {
                         ข้ามวันนี้
                       </button>
                     </div>
-                    <p className="mt-1 whitespace-pre-line rounded bg-paper px-2 py-1.5 text-[11px] text-brown">
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-bold">
+                      <span className="rounded-full bg-latte/25 px-2 py-0.5 text-latte-deep">
+                        🎂 {formatThaiDate(r.forDate) || r.forDate}
+                      </span>
+                      {r.couponAmount > 0 ? (
+                        <span className="rounded-full bg-ok/15 px-2 py-0.5 text-ok">
+                          🎁 แจกคูปอง {r.couponAmount} บาท
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-paper px-2 py-0.5 text-brown-faint">
+                          ไม่แจกคูปอง (เคยได้ปีนี้แล้ว/ปิดไว้)
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1.5 whitespace-pre-line rounded bg-paper px-2 py-1.5 text-[11px] text-brown">
                       {r.text}
                     </p>
                   </div>

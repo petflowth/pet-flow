@@ -15,6 +15,32 @@ import { logAudit } from "@/lib/audit-log";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * เช็คว่าลูกค้าคนนี้จะได้คูปองวันเกิดไหม (ครั้งเดียวต่อปี) — ใช้ร่วมกันทั้งตอนพรีวิว
+ * (GET) และตอนส่งจริง (POST) กันข้อความที่ตรวจต่างจากที่ส่งจริง
+ */
+async function resolveBirthdayCoupon(
+  customerId: string,
+  cfg: Awaited<ReturnType<typeof getSiteConfig>>,
+  year: string
+) {
+  const auto = cfg.automation;
+  const amount = Math.round(auto?.birthdayCouponAmount ?? 100);
+  if (auto?.birthdayCouponEnabled === false || amount <= 0) {
+    return { willIssue: false, amount, line: "" };
+  }
+  const mine = await listCustomerCoupons(customerId);
+  const already = mine.some(
+    (cp) => /วันเกิด/.test(cp.reason) && cp.createdAt.slice(0, 4) === year
+  );
+  if (already) return { willIssue: false, amount, line: "" };
+  return {
+    willIssue: true,
+    amount,
+    line: `\n\n🎁 ร้านมีของขวัญวันเกิดให้ — คูปองส่วนลด ${amount} บาท เก็บไว้ในกระเป๋าคูปองแล้วนะคะ (ใช้ได้ 30 วัน) 🎟️`,
+  };
+}
+
 /** รายการวันเกิดรอตรวจ พร้อมข้อความตัวอย่าง — ตรวจแล้วค่อยกดส่งจริงที่หน้านี้ */
 export async function GET(req: NextRequest) {
   const session = await getSessionFrom(req);
@@ -23,10 +49,19 @@ export async function GET(req: NextRequest) {
   return withTenant(session.tenantId, async () => {
     const cfg = await getSiteConfig();
     const rows = await listPendingBirthdays();
-    const preview = rows.map((r) => ({
-      ...r,
-      text: buildBirthdayText(r, cfg),
-    }));
+    const year = new Date().toISOString().slice(0, 4);
+    // พรีวิวให้ตรงกับสิ่งที่จะส่งจริงเป๊ะ — รวมบรรทัดคูปอง (หรือบอกว่าไม่มี เพราะเคยได้ปีนี้แล้ว)
+    // ไม่งั้นพนักงานตรวจแต่คำอวยพร ไม่รู้ว่าจะแจกของขวัญจริงไหม/เท่าไหร่ก่อนกดส่ง
+    const preview = await Promise.all(
+      rows.map(async (r) => {
+        const coupon = await resolveBirthdayCoupon(r.customerId, cfg, year);
+        return {
+          ...r,
+          text: buildBirthdayText(r, cfg) + coupon.line,
+          couponAmount: coupon.willIssue ? coupon.amount : 0,
+        };
+      })
+    );
     return NextResponse.json({ rows: preview });
   });
 }
@@ -57,7 +92,6 @@ async function handlePost(
     if (ids.length === 0) return NextResponse.json({ error: "ids required" }, { status: 400 });
 
     const cfg = await getSiteConfig();
-    const auto = cfg.automation;
     const year = new Date().toISOString().slice(0, 4);
     let sent = 0;
     let coupons = 0;
@@ -75,26 +109,18 @@ async function handlePost(
         }
 
         // แจกคูปองวันเกิด (ครั้งเดียวต่อปี) — แจกตอนกดส่งจริงเท่านั้น ไม่ใช่ตอนคัดเข้าคิว
-        let couponLine = "";
-        const amt = Math.round(auto?.birthdayCouponAmount ?? 100);
-        if (auto?.birthdayCouponEnabled !== false && amt > 0) {
-          const mine = await listCustomerCoupons(row.customerId);
-          const already = mine.some(
-            (cp) => /วันเกิด/.test(cp.reason) && cp.createdAt.slice(0, 4) === year
-          );
-          if (!already) {
-            await issueCoupon({
-              customerId: row.customerId,
-              amount: amt,
-              reason: `🎂 ของขวัญวันเกิด ${year}`,
-              expiresInDays: 30,
-            });
-            coupons++;
-            couponLine = `\n\n🎁 ร้านมีของขวัญวันเกิดให้ — คูปองส่วนลด ${amt} บาท เก็บไว้ในกระเป๋าคูปองแล้วนะคะ (ใช้ได้ 30 วัน) 🎟️`;
-          }
+        const coupon = await resolveBirthdayCoupon(row.customerId, cfg, year);
+        if (coupon.willIssue) {
+          await issueCoupon({
+            customerId: row.customerId,
+            amount: coupon.amount,
+            reason: `🎂 ของขวัญวันเกิด ${year}`,
+            expiresInDays: 30,
+          });
+          coupons++;
         }
 
-        const text = buildBirthdayText(row, cfg) + couponLine;
+        const text = buildBirthdayText(row, cfg) + coupon.line;
         await pushLineMessage(customer.lineUserId, [{ type: "text", text }]);
         await markBirthdayStatus(id, "sent");
         sent++;

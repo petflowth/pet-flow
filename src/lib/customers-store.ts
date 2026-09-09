@@ -280,15 +280,17 @@ async function fetchAllCustomers(
   const sb = getSupabase();
   let all: CustomerRecord[];
   if (sb) {
+    // เรียงตาม "สมัครล่าสุด" ไม่ใช่ "แก้ไขล่าสุด" — เดิมใช้ updated_at ทำให้ลูกค้าเก่าที่ถูกแก้ไข
+    // (เติมแต้ม/แก้ข้อมูล/มีนัดใหม่) ลอยขึ้นแซงลูกค้าที่เพิ่งสมัครจริงๆ จนหาลูกค้าใหม่ไม่เจอ
     const { data } = await sb
       .from("customers")
       .select("*, cats(*)")
       .eq("tenant_id", requireTenantId())
-      .order("updated_at", { ascending: false });
+      .order("created_at", { ascending: false });
     all = ((data as CustomerRow[] | null) || []).map(mapCustomer);
   } else {
     all = [...memCustomers.values()].sort((a, b) =>
-      b.updatedAt.localeCompare(a.updatedAt)
+      b.createdAt.localeCompare(a.createdAt)
     );
   }
   return includeDeleted ? all : all.filter((c) => !c.deletedAt);

@@ -17,7 +17,7 @@ import {
 } from "@/lib/bookings-store";
 import { AUTO_MESSAGE_TOPICS } from "@/lib/auto-messages";
 import { bookingMatchesCustomer } from "@/lib/booking-customer-match";
-import { groomProgram } from "@/lib/grooming-prices";
+import { groomProgram, resolveGroomPrograms } from "@/lib/grooming-prices";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { withResolvedTenant, withTenant } from "@/lib/tenant-context";
 import { requireCustomerSession } from "@/lib/customer-session";
@@ -936,10 +936,11 @@ async function handlePatch(req: NextRequest, admin: boolean) {
     // (คุยทางโทรศัพท์/แชทตรง) ก็กรอกแทนให้ลูกค้าได้เลย ไม่ต้องรอลูกค้ากดเลือก
     if (body.arrivalTime != null) patch.arrivalTime = String(body.arrivalTime) || undefined;
     if (body.pickupTime != null) patch.pickupTime = String(body.pickupTime) || undefined;
-    // โปรแกรมอาบน้ำ — รับได้เฉพาะ id ที่มีจริง (ค่าว่าง = ล้างโปรแกรมออก)
+    // โปรแกรมอาบน้ำ — รับได้เฉพาะ id ที่มีจริง (รวมโปรแกรมที่ร้านเพิ่มเอง, ค่าว่าง = ล้างโปรแกรมออก)
     if (body.groomProgram != null) {
       const pid = String(body.groomProgram);
-      patch.groomProgram = pid && groomProgram(pid) ? pid : "";
+      const programs = resolveGroomPrograms((await getSiteConfig()).groomPricePrograms);
+      patch.groomProgram = pid && groomProgram(pid, programs) ? pid : "";
     }
     // หัวข้อข้อความอัตโนมัติที่นัดนี้ไม่ต้องส่ง
     if (Array.isArray(body.autoOff)) {

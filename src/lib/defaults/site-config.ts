@@ -15,6 +15,7 @@ import {
 import { DEFAULT_MESSAGES } from "../messages";
 import { SERVICE_PRESETS } from "../service-presets";
 import { BREED_OPTIONS } from "../cat-breeds";
+import { GROOM_PROGRAMS } from "../grooming-prices";
 import type { SiteConfig } from "../config-types";
 
 export function getDefaultSiteConfig(): SiteConfig {
@@ -72,6 +73,8 @@ export function getDefaultSiteConfig(): SiteConfig {
       },
       roomInventory: { ...ROOM_INVENTORY },
       rooms: ROOMS,
+      groomPricePrograms: GROOM_PROGRAMS,
+      boardingRules: [],
       groomSlots: [...GROOM_SLOTS],
       groomSlotDefaultCapacity: 1,
       closedWeekdays: [],

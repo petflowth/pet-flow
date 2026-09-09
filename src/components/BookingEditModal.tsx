@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Booking } from "@/lib/business";
 import { relevantAutoMessageTopics } from "@/lib/auto-messages";
-import { GROOM_PROGRAMS } from "@/lib/grooming-prices";
+import { GROOM_PROGRAMS, type GroomProgram } from "@/lib/grooming-prices";
 
 export type EditableBooking = Booking & {
   lineUserId?: string;
@@ -70,6 +70,7 @@ export function BookingEditModal({
   siblings = [],
   rooms,
   groomSlots,
+  groomPrograms = GROOM_PROGRAMS,
   onClose,
   onSaved,
 }: {
@@ -78,6 +79,7 @@ export function BookingEditModal({
   siblings?: { id: string; catName: string }[];
   rooms: { id: string; name: string; size: string; price: number }[];
   groomSlots: string[];
+  groomPrograms?: GroomProgram[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -230,7 +232,7 @@ export function BookingEditModal({
                   className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
                 >
                   <option value="">ยังไม่เลือก — ถามหน้างาน</option>
-                  {GROOM_PROGRAMS.map((p) => (
+                  {groomPrograms.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
                     </option>

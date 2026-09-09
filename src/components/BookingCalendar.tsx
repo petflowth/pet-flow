@@ -12,6 +12,7 @@ import { groupBookings } from "@/lib/booking-group";
 import { buildRoomBoard, roomCapacity } from "@/lib/room-board";
 import { BOOKING_STATUS_LABELS, type BookingStatus } from "@/lib/business";
 import { effectiveBookingStatus } from "@/lib/booking-status";
+import { GROOM_PROGRAMS, resolveGroomPrograms, type GroomProgram } from "@/lib/grooming-prices";
 
 type CalendarDay = EditableBooking & {
   customerId?: string;
@@ -217,6 +218,7 @@ export function BookingCalendar() {
     }[]
   >([]);
   const [groomSlots, setGroomSlots] = useState<string[]>(["09:30", "12:30", "15:30"]);
+  const [groomPrograms, setGroomPrograms] = useState<GroomProgram[]>(GROOM_PROGRAMS);
   const [closedDates, setClosedDates] = useState<{ date: string; note?: string }[]>([]);
   const [closedWeekdays, setClosedWeekdays] = useState<number[]>([]);
   const [togglingClosed, setTogglingClosed] = useState(false);
@@ -260,6 +262,7 @@ export function BookingCalendar() {
     const d = await fetch("/api/config").then((r) => r.json());
     if (d.config?.rooms) setRooms(d.config.rooms);
     if (d.config?.groomSlots) setGroomSlots(d.config.groomSlots);
+    setGroomPrograms(resolveGroomPrograms(d.config?.groomPricePrograms));
     setClosedDates(d.config?.closedDates || []);
     setClosedWeekdays(d.config?.closedWeekdays || []);
   }, []);
@@ -508,6 +511,7 @@ export function BookingCalendar() {
             .map((x) => ({ id: x.id, catName: x.catName }))}
           rooms={rooms}
           groomSlots={groomSlots}
+          groomPrograms={groomPrograms}
           onClose={() => setEditing(null)}
           onSaved={load}
         />

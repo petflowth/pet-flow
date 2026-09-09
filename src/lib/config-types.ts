@@ -1,5 +1,14 @@
 import type { RoomType } from "./business";
 import type { GroomFormConfig } from "./groom-form";
+import type { GroomProgram } from "./grooming-prices";
+
+/** บล็อกเนื้อหาหน้ากฎระเบียบการฝาก — ใส่ได้ทั้งรูปและ/หรือข้อความ เรียงตามลำดับที่ตั้งไว้ */
+export type BoardingRuleBlock = {
+  id: string;
+  /** URL รูป หรือ data: URL ที่อัปโหลดไว้ — ไม่ใส่ก็ได้ถ้าบล็อกนี้มีแต่ข้อความ */
+  image?: string;
+  text?: string;
+};
 
 export type LocalizedLines = { th: string[]; en: string[] };
 
@@ -219,6 +228,13 @@ export type SiteConfig = {
     catflix: number;
   };
   rooms: RoomType[];
+  /**
+   * ตารางราคาโปรแกรมอาบน้ำ — ไม่ตั้ง/ว่าง = ใช้ค่าเริ่มต้นของระบบ (GROOM_PROGRAMS)
+   * ร้านเพิ่ม/ลบ/แก้โปรแกรมเองได้ในหลังบ้าน แทนที่การฝังในโค้ด
+   */
+  groomPricePrograms?: GroomProgram[];
+  /** เนื้อหาหน้ากฎระเบียบการฝาก (ฝั่งลูกค้า) — ไม่ตั้ง = ยังไม่มีหน้านี้ */
+  boardingRules?: BoardingRuleBlock[];
   groomSlots: string[];
   /** จำนวนคิวที่รับพร้อมกันต่อสล็อต (key = เวลาใน groomSlots) — ไม่ตั้งไว้ = ใช้ groomSlotDefaultCapacity */
   groomSlotCapacity?: Record<string, number>;

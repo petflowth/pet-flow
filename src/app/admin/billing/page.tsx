@@ -12,7 +12,9 @@ import {
   groomPrice,
   groomProgram,
   groomSizeLabel,
+  resolveGroomPrograms,
   type GroomSize,
+  type GroomProgram,
 } from "@/lib/grooming-prices";
 import { priceSignature, findLastPrice } from "@/lib/special-price";
 
@@ -100,8 +102,8 @@ type Item = {
 };
 
 /** programId มาจากนัด (booking.groomProgram) ถ้ามี — ให้เลือกโปรแกรมที่ลูกค้าเลือกไว้ตอนจองอัตโนมัติ */
-function newGrooming(programId?: string): Item {
-  const prog = (programId && GROOM_PROGRAMS.find((p) => p.id === programId)) || GROOM_PROGRAMS[0];
+function newGrooming(programId?: string, programs: GroomProgram[] = GROOM_PROGRAMS): Item {
+  const prog = (programId && programs.find((p) => p.id === programId)) || programs[0];
   return {
     kind: "grooming",
     program: prog.id,
@@ -149,7 +151,10 @@ function joinCatNames(names: string[]): string | undefined {
   return names.length ? names.join(CAT_SEP) : undefined;
 }
 
-function computeLine(it: Item): {
+function computeLine(
+  it: Item,
+  programs: GroomProgram[] = GROOM_PROGRAMS
+): {
   label: string;
   amount: number;
   catName?: string;
@@ -163,8 +168,8 @@ function computeLine(it: Item): {
   const qty = Math.max(1, Math.round(it.qty || 1));
 
   if (it.kind === "grooming") {
-    const prog = groomProgram(it.program);
-    const unit = it.priceOverride ?? groomPrice(it.program, it.breed, it.size);
+    const prog = groomProgram(it.program, programs);
+    const unit = it.priceOverride ?? groomPrice(it.program, it.breed, it.size, programs);
     const base = `${prog?.name || "อาบน้ำ"} · ${it.breed} · ${groomSizeLabel(it.size)}`;
     return {
       label: withCat(qty > 1 ? `${base} × ${qty}` : base),
@@ -207,8 +212,8 @@ function computeLine(it: Item): {
 }
 
 /** ราคากลางของร้านสำหรับรายการนี้ — ไว้เทียบว่าราคาที่คิดอยู่ "พิเศษ" จริงไหม */
-function standardUnitPrice(it: Item): number {
-  if (it.kind === "grooming") return groomPrice(it.program, it.breed, it.size);
+function standardUnitPrice(it: Item, programs: GroomProgram[] = GROOM_PROGRAMS): number {
+  if (it.kind === "grooming") return groomPrice(it.program, it.breed, it.size, programs);
   if (it.kind === "room") return it.roomPrice || 0;
   if (it.kind === "freebie") return 0;
   return it.amount || 0;
@@ -347,6 +352,8 @@ export default function BillingPage() {
     | "amount-desc"
     | "due-desc"
   >("issued-desc");
+  // ตารางราคาโปรแกรมอาบน้ำ — ค่าเริ่มต้นของระบบ จนกว่า config จะโหลดเสร็จ (มีโปรแกรมที่ร้านเพิ่มเองด้วย)
+  const [groomPrograms, setGroomPrograms] = useState<GroomProgram[]>(GROOM_PROGRAMS);
   const [items, setItems] = useState<Item[]>([newGrooming()]);
   // ขายเร็ว ไม่ระบุลูกค้า — ใช้ลูกค้าโครง "ลูกค้าหน้าร้าน" แทน (สำหรับขายสินค้าล้วนๆ ไม่มีนัด)
   const [quickSale, setQuickSale] = useState(false);
@@ -397,6 +404,7 @@ export default function BillingPage() {
         amount: r.price,
       }))
     );
+    setGroomPrograms(resolveGroomPrograms(config?.groomPricePrograms));
     if (config?.payment) setPay(config.payment);
     if (config?.business?.name) setShopName(config.business.name);
     if (config?.billing) setBillMsg(config.billing);
@@ -496,7 +504,7 @@ export default function BillingPage() {
       return group.filter((b) => !billedCats.has(b.catName));
     })
     .filter((group) => group.length > 0);
-  const lines = items.map(computeLine);
+  const lines = items.map((it) => computeLine(it, groomPrograms));
   const subtotal = lines.reduce((s, l) => s + l.amount, 0);
   const selectedPromo = promos.find((p) => p.id === promoId);
   const promoDiscount = selectedPromo
@@ -744,7 +752,7 @@ export default function BillingPage() {
             rooms.find((r) => g.room && r.id === g.room) ||
             rooms.find((r) => g.room && r.label.includes(g.room));
           return {
-            ...newGrooming(),
+            ...newGrooming(undefined, groomPrograms),
             kind: "room" as const,
             roomLabel:
               matched?.label || rooms[0]?.label || (g.room ? `ห้อง ${g.room}` : "ห้องพัก"),
@@ -757,7 +765,7 @@ export default function BillingPage() {
     } else {
       setItems(
         group.map((g) => ({
-          ...newGrooming(g.groomProgram),
+          ...newGrooming(g.groomProgram, groomPrograms),
           catName: many ? g.catName : undefined,
         }))
       );
@@ -777,7 +785,7 @@ export default function BillingPage() {
   const setUnitPrice = (idx: number, n: number) => {
     const it = items[idx];
     if (!it) return;
-    const std = standardUnitPrice(it);
+    const std = standardUnitPrice(it, groomPrograms);
     if (it.kind === "service" || it.kind === "custom" || it.kind === "package") {
       // สามอย่างนี้ราคาอยู่ในช่อง amount อยู่แล้ว แก้ตรงนั้นตรงไปตรงมากว่า
       updateItem(idx, { amount: n, priceOverride: undefined });
@@ -794,7 +802,7 @@ export default function BillingPage() {
     // ต้องล้าง productId เสมอ ไม่งั้นเปลี่ยนจากสินค้าไปเป็นรายการอื่นแล้วจะยังไปตัดสต็อกสินค้าเดิมตอนจ่ายเงิน
     let patch: Partial<Item> = { kind, productId: undefined };
     if (kind === "grooming") {
-      const prog = GROOM_PROGRAMS[0];
+      const prog = groomPrograms[0];
       patch = { kind, program: prog.id, breed: prog.breeds[0].breed, size: "m" };
     } else if (kind === "room") {
       patch = {
@@ -814,7 +822,7 @@ export default function BillingPage() {
   };
 
   const changeProgram = (idx: number, program: string) => {
-    const prog = groomProgram(program);
+    const prog = groomProgram(program, groomPrograms);
     updateItem(idx, { program, breed: prog?.breeds[0].breed || "" });
   };
 
@@ -832,7 +840,7 @@ export default function BillingPage() {
       }
       return [
         ...prev,
-        { ...newGrooming(), kind: "product", productId: p.id, label: p.name, amount: p.price, qty: 1 },
+        { ...newGrooming(undefined, groomPrograms), kind: "product", productId: p.id, label: p.name, amount: p.price, qty: 1 },
       ];
     });
     toast(`เพิ่ม ${p.name} แล้ว — แตะสินค้าอื่นต่อได้เลย`, "success");
@@ -841,7 +849,7 @@ export default function BillingPage() {
   const resetForm = () => {
     // ยังอยู่โหมดขายเร็วต่อ (ขายของหน้าร้านหลายเจ้าติดกัน) — เริ่มบิลถัดไปด้วยตะกร้าว่าง
     // ไม่งั้นแถวอาบน้ำเริ่มต้น 450฿ จะโผล่มาอีกทุกครั้งทั้งที่ไม่มีใครตั้งใจขาย
-    setItems(quickSale ? [] : [newGrooming()]);
+    setItems(quickSale ? [] : [newGrooming(undefined, groomPrograms)]);
     setDiscount("");
     setDiscountMode("baht");
     setBillDeposit("");
@@ -958,7 +966,7 @@ export default function BillingPage() {
       (inv.items || []).map((it) => {
         const qty = Math.max(1, Math.round(it.qty || 1));
         return {
-          ...newGrooming(),
+          ...newGrooming(undefined, groomPrograms),
           kind: it.amount > 0 ? ("custom" as const) : ("freebie" as const),
           // ถอดคำนำหน้าชื่อน้อง/ตัวคูณออก แล้วเก็บกลับเป็นฟิลด์ — กันชื่อน้องซ้อนกันตอนบันทึกใหม่
           label: it.label
@@ -1226,7 +1234,7 @@ export default function BillingPage() {
                 onClick={() => {
                   setQuickSale(false);
                   // กลับไปโหมดปกติ (มีลูกค้า/นัด) — คืนแถวอาบน้ำเริ่มต้นให้เหมือนเดิม
-                  setItems([newGrooming()]);
+                  setItems([newGrooming(undefined, groomPrograms)]);
                 }}
                 className="shrink-0 text-xs font-bold text-wait"
               >
@@ -1294,9 +1302,9 @@ export default function BillingPage() {
           <p className="mb-1 text-xs font-bold text-brown-soft">รายการ</p>
           <div className="space-y-2">
             {items.map((item, i) => {
-              const line = computeLine(item);
-              const prog = groomProgram(item.program);
-              const stdUnit = standardUnitPrice(item);
+              const line = computeLine(item, groomPrograms);
+              const prog = groomProgram(item.program, groomPrograms);
+              const stdUnit = standardUnitPrice(item, groomPrograms);
               const isSpecial =
                 item.priceOverride !== undefined && item.priceOverride !== stdUnit;
               const sig = priceSignature(line.label);
@@ -1398,7 +1406,7 @@ export default function BillingPage() {
                         onChange={(e) => changeProgram(i, e.target.value)}
                         className={sub}
                       >
-                        {GROOM_PROGRAMS.map((p) => (
+                        {groomPrograms.map((p) => (
                           <option key={p.id} value={p.id}>
                             {p.name}
                           </option>
@@ -1637,7 +1645,7 @@ export default function BillingPage() {
           <div className="mt-2 flex gap-2">
             <button
               type="button"
-              onClick={() => setItems((prev) => [...prev, newGrooming()])}
+              onClick={() => setItems((prev) => [...prev, newGrooming(undefined, groomPrograms)])}
               className="flex flex-1 items-center justify-center gap-2 rounded-petflow-sm border-2 border-dashed border-latte/60 bg-latte/10 py-2.5 text-sm font-extrabold text-latte-deep transition active:scale-[.98]"
             >
               <span className="text-lg">➕</span> เพิ่มรายการ

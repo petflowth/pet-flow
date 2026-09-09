@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { RoomType } from "@/lib/business";
 import type { CustomerRecord } from "@/lib/customers-store";
-import { GROOM_PROGRAMS } from "@/lib/grooming-prices";
+import { GROOM_PROGRAMS, resolveGroomPrograms, type GroomProgram } from "@/lib/grooming-prices";
 import { CustomerSendButtons } from "@/components/CustomerSendButtons";
 import { toast } from "@/components/Toast";
 import {
@@ -233,6 +233,7 @@ export default function NewBookingPage() {
   >([]);
   const [rooms, setRooms] = useState<RoomType[]>([]);
   const [groomSlots, setGroomSlots] = useState<string[]>(["09:30", "12:30", "15:30"]);
+  const [groomPrograms, setGroomPrograms] = useState<GroomProgram[]>(GROOM_PROGRAMS);
   const [freebies_, setFreebies_] = useState<string[]>(FREEBIE_OPTIONS);
   const [customerId, setCustomerId] = useState("");
   const [customerName, setCustomerName] = useState("");
@@ -265,6 +266,7 @@ export default function NewBookingPage() {
         if (d.config?.rooms) setRooms(d.config.rooms);
         if (d.config?.groomSlots) setGroomSlots(d.config.groomSlots);
         if (d.config?.options?.freebies?.length) setFreebies_(d.config.options.freebies);
+        setGroomPrograms(resolveGroomPrograms(d.config?.groomPricePrograms));
       });
   }, []);
 
@@ -623,7 +625,7 @@ export default function NewBookingPage() {
                 className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm"
               >
                 <option value="">ยังไม่เลือก — ถามหน้างาน</option>
-                {GROOM_PROGRAMS.map((p) => (
+                {groomPrograms.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>

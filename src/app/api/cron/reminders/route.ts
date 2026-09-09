@@ -264,6 +264,18 @@ async function runForTenant() {
             errors.push(`deposit ${b.id}: ${String(e)}`);
           }
         }
+        // แจ้งร้านด้วย — ลูกค้าอาจไม่สนใจการ์ดที่ส่งไป กันร้านลืมตามเก็บยอดคงเหลือตอนวันเข้าพักจริง
+        const remaining = inv.total - (inv.deposit || 0);
+        if (remaining > 0) {
+          await sendTelegram(
+            formatBookingTelegram("💰 เตือนเก็บยอดคงเหลือ (เข้าพักอีก 7 วัน)", {
+              ลูกค้า: b.customerName,
+              น้องแมว: String(b.catName),
+              เข้าพัก: b.checkin || b.date || "",
+              ยอดคงเหลือ: `${remaining.toLocaleString()} บาท`,
+            })
+          );
+        }
       }
     }
 

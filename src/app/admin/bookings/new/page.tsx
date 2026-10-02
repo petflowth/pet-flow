@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { RoomType } from "@/lib/business";
@@ -12,6 +12,7 @@ import {
   typeAvailability,
   compositionOf,
   roomCapacity,
+  freeUnitsForRange,
   type BoardBooking,
 } from "@/lib/room-board";
 
@@ -33,8 +34,17 @@ function CustomerPicker({
   const [results, setResults] = useState<CustomerListItem[]>([]);
   const [recent, setRecent] = useState<CustomerListItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [openCustomerId, setOpenCustomerId] = useState<string | null>(null);
+  // เก็บทั้งก้อนลูกค้าที่เปิดอยู่ ไม่ใช่แค่ id — ผลค้นหาโหลดช้า/รีเฟรชแล้วทับลิสต์ได้
+  // ถ้าเปิดจาก id อย่างเดียว แผงติ๊กแมวจะหายไปกลางทางจนเหมือน "กดแล้วไม่ติด"
+  const [openCustomer_, setOpenCustomer_] = useState<CustomerListItem | null>(null);
+  const openCustomerId = openCustomer_?.id ?? null;
+  const setOpenCustomerId = (id: string | null) => {
+    if (id === null) setOpenCustomer_(null);
+  };
   const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const recentRef = useRef<CustomerListItem[]>([]);
+  // แมวบางตัวข้อมูลเก่าไม่มี id — ใช้ชื่อแทน ไม่งั้นทุกตัวใช้ key เดียวกัน ติ๊กตัวหนึ่งกลายเป็นติ๊กหมด/ไม่ติด
+  const catKey = (cat: { id?: string; name: string }) => cat.id || `name:${cat.name}`;
 
   // โหลดลูกค้าสมัครล่าสุดไว้ล่วงหน้า — โชว์เป็นลิสต์ให้เลือกได้ทันทีโดยไม่ต้องพิมพ์ค้นหา
   useEffect(() => {
@@ -46,6 +56,7 @@ function CustomerPicker({
         );
         const top = sorted.slice(0, 20);
         setRecent(top);
+        recentRef.current = top;
         setResults((prev) => (prev.length === 0 ? top : prev));
       })
       .catch(() => {});
@@ -55,7 +66,7 @@ function CustomerPicker({
     async (query: string) => {
       const trimmed = query.trim();
       if (!trimmed) {
-        setResults(recent);
+        setResults(recentRef.current);
         return;
       }
       setLoading(true);
@@ -64,7 +75,7 @@ function CustomerPicker({
       setResults(data.customers || []);
       setLoading(false);
     },
-    [recent]
+    []
   );
 
   useEffect(() => {
@@ -81,15 +92,15 @@ function CustomerPicker({
         lineUserId: c.lineUserId,
       });
       setQ("");
-      setResults(recent);
+      setResults(recentRef.current);
       return;
     }
-    setOpenCustomerId(c.id);
+    setOpenCustomer_(c);
     setChecked({});
   };
 
   const confirmPick = (c: CustomerListItem) => {
-    const names = c.cats.filter((cat) => checked[cat.id]).map((cat) => cat.name);
+    const names = c.cats.filter((cat) => checked[catKey(cat)]).map((cat) => cat.name);
     onSelect({
       customerId: c.id,
       customerName: c.name,
@@ -97,7 +108,7 @@ function CustomerPicker({
       lineUserId: c.lineUserId,
     });
     setQ("");
-    setResults(recent);
+    setResults(recentRef.current);
     setOpenCustomerId(null);
     setChecked({});
   };
@@ -130,7 +141,10 @@ function CustomerPicker({
 
       {results.length > 0 && (
         <ul className="mt-2 max-h-64 space-y-1 overflow-y-auto">
-          {results.map((c) => (
+          {(openCustomer_ && !results.some((r) => r.id === openCustomer_.id)
+            ? [openCustomer_, ...results]
+            : results
+          ).map((c) => (
             <li key={c.id}>
               {openCustomerId === c.id ? (
                 <div className="rounded-petflow-sm border border-honey/50 bg-card p-2.5">
@@ -143,14 +157,14 @@ function CustomerPicker({
                   <div className="space-y-1">
                     {c.cats.map((cat) => (
                       <label
-                        key={cat.id}
+                        key={catKey(cat)}
                         className="flex items-center gap-2 rounded-petflow-sm bg-paper px-2.5 py-1.5 text-xs"
                       >
                         <input
                           type="checkbox"
-                          checked={!!checked[cat.id]}
+                          checked={!!checked[catKey(cat)]}
                           onChange={(e) =>
-                            setChecked((prev) => ({ ...prev, [cat.id]: e.target.checked }))
+                            setChecked((prev) => ({ ...prev, [catKey(cat)]: e.target.checked }))
                           }
                         />
                         <span className="font-bold text-brown">🐱 {cat.name}</span>
@@ -162,7 +176,7 @@ function CustomerPicker({
                       type="button"
                       onClick={() =>
                         setChecked(
-                          Object.fromEntries(c.cats.map((cat) => [cat.id, true]))
+                          Object.fromEntries(c.cats.map((cat) => [catKey(cat), true]))
                         )
                       }
                       className="rounded-full bg-honey/30 px-3 py-1 text-[10px] font-bold text-petflow-chocolate"
@@ -282,6 +296,8 @@ export default function NewBookingPage() {
   }, []);
 
   const [roomId, setRoomId] = useState("");
+  // ห้องจริงที่ปักหมุด (เลขห้อง) — เฉพาะห้องเดี่ยว ไม่ใช่ห้องเชื่อม (ห้องเชื่อมจัดให้อัตโนมัติเหมือนเดิม)
+  const [roomUnit, setRoomUnit] = useState<number | null>(null);
   const boardRooms = rooms.map((r) => ({
     id: r.id,
     name: r.name,
@@ -320,6 +336,25 @@ export default function NewBookingPage() {
     else if (!roomId && rooms[0]) setRoomId(rooms[0].id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [availability, service, rooms]);
+
+  /** เลขห้องจริงของประเภทที่เลือกที่ว่างตลอดช่วง — เฉพาะห้องเดี่ยว (ห้องเชื่อมไม่มีเลขห้อง) */
+  const freeUnits = useMemo(() => {
+    if (service !== "room" || !roomId || !appointmentDate || rooms.length === 0) return [];
+    if (compositionOf(roomId, boardRooms)) return [];
+    return freeUnitsForRange(
+      boardRooms,
+      existing,
+      roomId,
+      appointmentDate,
+      checkoutDate || appointmentDate
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [service, roomId, appointmentDate, checkoutDate, rooms, existing]);
+
+  // เปลี่ยนห้อง/วัน แล้วเลขที่เคยเลือกไว้ไม่ว่างแล้ว → เคลียร์ทิ้ง (ให้ระบบเดาเองแทน)
+  useEffect(() => {
+    if (roomUnit != null && !freeUnits.includes(roomUnit)) setRoomUnit(null);
+  }, [freeUnits, roomUnit]);
 
   const addCatFromInput = () => {
     const name = catInput.trim();
@@ -369,6 +404,10 @@ export default function NewBookingPage() {
       date: service === "groom" ? String(fd.get("date") || "") : undefined,
       time: service === "groom" ? String(fd.get("time") || "") : undefined,
       room: service === "room" ? String(fd.get("room") || "") : undefined,
+      roomUnit:
+        service === "room" && fd.get("roomUnit")
+          ? Number(fd.get("roomUnit")) || undefined
+          : undefined,
       checkin: service === "room" ? String(fd.get("checkin") || "") : undefined,
       checkout: service === "room" ? String(fd.get("checkout") || "") : undefined,
       groomProgram: service === "groom" ? groomProgram || undefined : undefined,
@@ -415,6 +454,7 @@ export default function NewBookingPage() {
       setCatInput("");
       setLineUserId("");
       setFreebies([]);
+      setRoomUnit(null);
       setGroomProgram("");
       form.reset();
       setTimeout(() => setSaved(false), 2500);
@@ -695,6 +735,39 @@ export default function NewBookingPage() {
                 <p className="mt-2 rounded-petflow-sm bg-red-50 px-3 py-2 text-[10px] font-bold text-red-700">
                   🔴 ช่วงวันนี้ห้องเต็มทุกแบบ — ต้องเลื่อนวันหรือเช็คห้องที่จะเช็คเอาท์ก่อน
                 </p>
+              )}
+
+              {/* เลือกเลขห้องจริงตรงๆ — เฉพาะห้องเดี่ยว ห้องเชื่อมจัด 2 ห้องติดกันให้อัตโนมัติเหมือนเดิม */}
+              {roomId && !compositionOf(roomId, boardRooms) && (
+                <div className="mt-3 rounded-petflow-sm border border-petflow-line bg-paper/50 p-3">
+                  <input type="hidden" name="roomUnit" value={roomUnit ?? ""} />
+                  <p className="text-xs font-bold text-brown-soft">
+                    🗺️ เลือกห้องจริง (ไม่บังคับ)
+                  </p>
+                  <p className="mb-2 text-[10px] text-brown-faint">
+                    ไม่เลือก = ให้ระบบจัดห้องให้อัตโนมัติตอนถึงวันจริง
+                  </p>
+                  {freeUnits.length === 0 ? (
+                    <p className="text-[10px] text-brown-faint">ไม่มีห้องว่างให้เลือกช่วงนี้</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {freeUnits.map((u) => (
+                        <button
+                          key={u}
+                          type="button"
+                          onClick={() => setRoomUnit(roomUnit === u ? null : u)}
+                          className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
+                            roomUnit === u
+                              ? "bg-honey-deep text-white"
+                              : "bg-card text-brown-soft hover:bg-honey/20"
+                          }`}
+                        >
+                          {roomUnit === u ? "✓ " : ""}ห้อง {u}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
             <Field

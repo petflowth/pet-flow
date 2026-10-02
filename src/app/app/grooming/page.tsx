@@ -5,6 +5,7 @@ import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 import { useConfig } from "@/components/ConfigProvider";
 import { BookingOnlyNotice, LineBookingCta, PageHeader } from "@/components/PageHeader";
+import { ContentBlocks } from "@/components/ContentBlocks";
 
 export default function GroomingPage() {
   const { locale } = useLocale();
@@ -41,6 +42,8 @@ export default function GroomingPage() {
           </div>
         ))}
       </div>
+
+      <ContentBlocks blocks={config.groomingPageBlocks} />
 
       <Link
         href="/app/book?service=groom"

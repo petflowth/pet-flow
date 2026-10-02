@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { useLocale } from "@/components/LocaleProvider";
 import { useConfig } from "@/components/ConfigProvider";
 import { PageHeader } from "@/components/PageHeader";
+import { ContentBlocks } from "@/components/ContentBlocks";
 
 export default function BoardingRulesPage() {
   const { locale } = useLocale();
@@ -22,30 +22,7 @@ export default function BoardingRulesPage() {
           {locale === "th" ? "ยังไม่มีข้อมูล" : "No content yet"}
         </p>
       ) : (
-        <div className="space-y-4">
-          {blocks.map((b) => (
-            <div
-              key={b.id}
-              className="rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm"
-            >
-              {b.image && (
-                <Image
-                  src={b.image}
-                  alt=""
-                  width={600}
-                  height={400}
-                  className="mb-3 h-auto w-full rounded-petflow-sm object-cover"
-                  unoptimized
-                />
-              )}
-              {b.text && (
-                <p className="whitespace-pre-line text-sm leading-relaxed text-brown">
-                  {b.text}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
+        <ContentBlocks blocks={blocks} />
       )}
     </div>
   );

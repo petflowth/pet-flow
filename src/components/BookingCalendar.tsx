@@ -302,7 +302,7 @@ export function BookingCalendar() {
 
   const [viewMonth, setViewMonth] = useState(() => today.slice(0, 7));
   /** มุมมองตาราง — เดือนดูภาพรวม, สัปดาห์วางแผน, วันทำงานหน้าร้าน, ห้องดูที่ว่าง */
-  const [view, setView] = useState<"month" | "week" | "day" | "rooms">("week");
+  const [view, setView] = useState<"month" | "week" | "day" | "rooms">("month");
 
   const liveBookings = bookings.filter((b) => b.status !== "cancelled");
   const dayBookings = liveBookings.filter((b) => bookingOnDate(b, activeDate));
@@ -386,6 +386,45 @@ export function BookingCalendar() {
       }
     }
     await run();
+  };
+
+  /** เพิ่มแมวอีกตัวเข้านัดเดียวกัน (บ้านเดียวกัน วัน/เวลา/ห้องเดียวกัน) โดยไม่ต้องไปกรอกจองใหม่ทั้งฟอร์ม */
+  const addCatToGroup = async (group: CalendarDay[]) => {
+    const b = group[0];
+    const input = prompt(
+      `เพิ่มน้องแมวเข้านัดของ ${b.customerName}
+(ใส่ชื่อ — หลายตัวคั่นด้วย , )`
+    );
+    const names = (input || "")
+      .split(",")
+      .map((n) => n.trim())
+      .filter((n) => n && !group.some((g) => g.catName === n));
+    if (names.length === 0) return;
+    const results = await Promise.all(
+      names.map((catName) =>
+        fetch("/api/bookings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customerId: b.customerId,
+            customerName: b.customerName,
+            lineUserId: b.lineUserId,
+            catName,
+            service: b.service,
+            date: b.service === "groom" ? b.date : undefined,
+            time: b.time,
+            groomProgram: b.groomProgram,
+            room: b.room,
+            roomUnit: b.roomUnit,
+            checkin: b.checkin,
+            checkout: b.checkout,
+          }),
+        }).then((r) => r.ok)
+      )
+    );
+    if (results.every(Boolean)) toast(`เพิ่ม ${names.join(", ")} เข้านัดแล้ว ✔️`, "success");
+    else toast("เพิ่มบางตัวไม่สำเร็จ", "error");
+    load();
   };
 
   const cancelGroup = async (group: CalendarDay[]) => {
@@ -512,6 +551,7 @@ export function BookingCalendar() {
           rooms={rooms}
           groomSlots={groomSlots}
           groomPrograms={groomPrograms}
+          roomBookings={liveBookings}
           onClose={() => setEditing(null)}
           onSaved={load}
         />
@@ -1023,7 +1063,10 @@ export function BookingCalendar() {
                       </span>
                     </p>
                     <p className="text-xs text-brown-soft break-words">
-                      {b.service === "room" ? "🏠 ห้องพัก" : "🛁 อาบน้ำ"} · {bookingWhen(b)}
+                      {b.service === "room"
+                        ? `🏠 ${rooms.find((r) => r.id === b.room)?.name || b.room || "ห้องพัก"}`
+                        : "🛁 อาบน้ำ"}{" "}
+                      · {bookingWhen(b)}
                     </p>
                     <CatTags group={group} />
                     {b.service === "room" &&
@@ -1053,6 +1096,36 @@ export function BookingCalendar() {
                           ⏳ ยังไม่กดยอมรับข้อตกลง
                         </p>
                       ))}
+                    {b.service === "room" && b.consentAcceptedAt && (
+                      <div className="mt-1 space-y-1">
+                        {group.map((x) => (
+                          <div key={x.id} className="flex items-center gap-2 text-[11px]">
+                            <span className="font-bold text-brown-soft">🐱 {x.catName}</span>
+                            {x.vaccinePhotoUrl ? (
+                              <a
+                                href={x.vaccinePhotoUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 font-bold text-ok underline"
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={x.vaccinePhotoUrl}
+                                  alt="สมุดวัคซีน"
+                                  className="h-8 w-8 rounded border border-petflow-line object-cover"
+                                />
+                                💉 ดูสมุดวัคซีน
+                              </a>
+                            ) : (
+                              <span className="text-brown-faint">ยังไม่ได้แนบสมุดวัคซีน</span>
+                            )}
+                            {x.fleaTickTreated && (
+                              <span className="font-bold text-ok">✅ หยดยาเห็บหมัดแล้ว</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {(b.arrivalTime || b.pickupTime) && (
                       <p className="mt-1 text-[11px] font-bold text-latte-deep">
                         {b.arrivalTime && `🚗 ลูกค้าแจ้งเวลาส่งน้อง: ${b.arrivalTime}`}
@@ -1159,6 +1232,13 @@ export function BookingCalendar() {
                       ✏️ แก้ไข
                     </button>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => addCatToGroup(group)}
+                    className="rounded-full bg-sage/25 px-2.5 py-1 text-[10px] font-bold text-ok"
+                  >
+                    ➕ เพิ่มแมวในนัดนี้
+                  </button>
                   {/* บ้านที่มาหลายตัว — ยกเลิกทีละตัวได้ เผื่อน้องตัวใดตัวหนึ่งมาไม่ได้ */}
                   {group.length > 1 &&
                     group.map((x) => (

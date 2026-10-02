@@ -361,6 +361,37 @@ export function typeAvailability(
   return { free, total, tightestDate };
 }
 
+/**
+ * เลขห้องจริง (unit) ของประเภทนี้ที่ว่างตลอดทั้งช่วงที่ขอ — ไว้ให้พนักงานเลือกห้องตรงๆ
+ * ตอนจอง (เฉพาะห้องเดี่ยว ไม่ใช่ห้องเชื่อม เพราะห้องเชื่อมไม่มีเลขห้องของตัวเอง)
+ */
+export function freeUnitsForRange(
+  rooms: BoardRoomType[],
+  bookings: BoardBooking[],
+  typeId: string,
+  checkin: string,
+  checkout: string,
+  ignoreBookingId?: string
+): number[] {
+  const type = rooms.find((r) => r.id === typeId);
+  if (!type || compositionOf(typeId, rooms)) return [];
+  const pool = ignoreBookingId ? bookings.filter((b) => b.id !== ignoreBookingId) : bookings;
+  const nights = nightsBetween(checkin, checkout);
+  if (nights.length === 0) return Array.from({ length: type.count || 0 }, (_, i) => i + 1);
+
+  let free: number[] | null = null;
+  for (const d of nights) {
+    const board = buildRoomBoard(rooms, pool, d);
+    const freeToday = new Set(
+      board.units
+        .filter((u) => u.typeId === typeId && u.staying.length === 0 && !u.partOf)
+        .map((u) => u.unit)
+    );
+    free = free ? free.filter((u) => freeToday.has(u)) : [...freeToday];
+  }
+  return (free || []).sort((a, b) => a - b);
+}
+
 /** คืนที่ต้องใช้ห้องจริง — วันเช็คเอาท์ไม่นับ (พัก 27→29 = ใช้ห้องคืน 27 กับ 28) */
 export function nightsBetween(checkin: string, checkout: string): string[] {
   if (!checkin) return [];

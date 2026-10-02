@@ -41,7 +41,47 @@ type Summary = {
 };
 
 type CustomerListItem = CustomerRecord & { upcomingAppointments?: number; points?: number };
-type SortKey = "name" | "tier" | "points" | "credit" | "upcoming" | "birthday" | "recent";
+type SortKey =
+  | "name"
+  | "tier"
+  | "points"
+  | "credit"
+  | "upcoming"
+  | "birthday"
+  | "recent"
+  | "updated"
+  | "cats"
+  | "catName"
+  | "phone"
+  | "line"
+  | "birthdaySoon";
+
+const SORT_OPTIONS: { key: SortKey; label: string; defaultDir: "asc" | "desc" }[] = [
+  { key: "recent", label: "🆕 สมัครล่าสุด", defaultDir: "desc" },
+  { key: "updated", label: "🕒 เคลื่อนไหวล่าสุด (แก้ไข/มาใช้บริการ)", defaultDir: "desc" },
+  { key: "name", label: "🔤 ชื่อลูกค้า ก–ฮ", defaultDir: "asc" },
+  { key: "catName", label: "🐱 ชื่อแมว ก–ฮ", defaultDir: "asc" },
+  { key: "cats", label: "🐾 จำนวนแมว", defaultDir: "desc" },
+  { key: "upcoming", label: "📅 จำนวนนัดที่จะมาถึง", defaultDir: "desc" },
+  { key: "points", label: "⭐ แต้มสะสม", defaultDir: "desc" },
+  { key: "credit", label: "💎 เครดิต Member", defaultDir: "desc" },
+  { key: "tier", label: "🏅 กลุ่มลูกค้า", defaultDir: "asc" },
+  { key: "birthdaySoon", label: "🎂 วันเกิดใกล้ถึง (เจ้าของ/แมว)", defaultDir: "asc" },
+  { key: "birthday", label: "🎂 ปีเกิดเจ้าของ", defaultDir: "asc" },
+  { key: "line", label: "💬 ผูก LINE แล้ว/ยังไม่ผูก", defaultDir: "desc" },
+  { key: "phone", label: "📱 เบอร์โทร", defaultDir: "asc" },
+];
+
+/** กี่วันนับจากวันนี้ถึงวันเกิดครั้งถัดไป (ดูแค่เดือน-วัน) — ไม่มีวันเกิดคืน 9999 */
+function daysToNextBirthday(birthday?: string): number {
+  const m = (birthday || "").match(/^\d{4}-(\d{2})-(\d{2})/);
+  if (!m) return 9999;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let next = new Date(now.getFullYear(), Number(m[1]) - 1, Number(m[2]));
+  if (next < today) next = new Date(now.getFullYear() + 1, Number(m[1]) - 1, Number(m[2]));
+  return Math.round((next.getTime() - today.getTime()) / 86400000);
+}
 
 function bookingWhen(b: EditableBooking) {
   if (b.service === "room" || b.checkin) {
@@ -2109,6 +2149,22 @@ export default function CustomersPage() {
         cmp = (a.birthday || "").localeCompare(b.birthday || "");
       else if (sortKey === "recent")
         cmp = (a.createdAt || "").localeCompare(b.createdAt || "");
+      else if (sortKey === "updated")
+        cmp = (a.updatedAt || "").localeCompare(b.updatedAt || "");
+      else if (sortKey === "cats") cmp = a.cats.length - b.cats.length;
+      else if (sortKey === "catName")
+        cmp = (a.cats[0]?.name || "￿").localeCompare(b.cats[0]?.name || "￿", "th");
+      else if (sortKey === "phone") cmp = (a.phone || "￿").localeCompare(b.phone || "￿");
+      else if (sortKey === "line") cmp = Number(Boolean(a.lineUserId)) - Number(Boolean(b.lineUserId));
+      else if (sortKey === "birthdaySoon") {
+        const soon = (c: CustomerListItem) =>
+          Math.min(
+            daysToNextBirthday(c.birthday),
+            ...c.cats.map((x) => daysToNextBirthday(x.birthday))
+          );
+        cmp = soon(a) - soon(b);
+      }
+      if (cmp === 0) cmp = a.name.localeCompare(b.name, "th");
       return sortDir === "asc" ? cmp : -cmp;
     });
 
@@ -2557,6 +2613,29 @@ export default function CustomersPage() {
           <option value="linked">✅ ผูก LINE แล้ว</option>
           <option value="unlinked">⏳ ยังไม่ผูก LINE</option>
         </select>
+        <select
+          value={sortKey}
+          onChange={(e) => {
+            const opt = SORT_OPTIONS.find((o) => o.key === e.target.value);
+            setSortKey(e.target.value as SortKey);
+            if (opt) setSortDir(opt.defaultDir);
+          }}
+          className="rounded-petflow-sm border border-petflow-line bg-card px-3 py-2 text-xs font-bold text-brown"
+        >
+          {SORT_OPTIONS.map((o) => (
+            <option key={o.key} value={o.key}>
+              เรียง: {o.label}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+          className="rounded-petflow-sm bg-card px-3 py-2 text-xs font-bold text-brown-soft border border-petflow-line"
+          title="สลับทิศทางการเรียง"
+        >
+          {sortDir === "asc" ? "↑ น้อย→มาก / ก→ฮ" : "↓ มาก→น้อย / ฮ→ก"}
+        </button>
         {(tierFilter !== "all" || lineFilter !== "all" || q) && (
           <button
             type="button"
@@ -2598,9 +2677,9 @@ export default function CustomersPage() {
               <thead>
                 <tr className="border-b border-petflow-line bg-paper/60 text-[10px] font-extrabold uppercase tracking-wide text-brown-soft">
                   <SortableTh label="ลูกค้า" sortKey="name" active={sortKey} dir={sortDir} onSort={toggleSort} />
-                  <th className="px-3 py-2.5">แมว</th>
-                  <th className="px-3 py-2.5">LINE</th>
-                  <th className="px-3 py-2.5">เบอร์โทร</th>
+                  <SortableTh label="แมว" sortKey="catName" active={sortKey} dir={sortDir} onSort={toggleSort} />
+                  <SortableTh label="LINE" sortKey="line" active={sortKey} dir={sortDir} onSort={toggleSort} />
+                  <SortableTh label="เบอร์โทร" sortKey="phone" active={sortKey} dir={sortDir} onSort={toggleSort} />
                   <SortableTh label="วันเกิด" sortKey="birthday" active={sortKey} dir={sortDir} onSort={toggleSort} />
                   <SortableTh label="กลุ่ม" sortKey="tier" active={sortKey} dir={sortDir} onSort={toggleSort} />
                   <SortableTh label="แต้ม" sortKey="points" active={sortKey} dir={sortDir} onSort={toggleSort} align="right" />

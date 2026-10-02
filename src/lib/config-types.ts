@@ -235,6 +235,10 @@ export type SiteConfig = {
   groomPricePrograms?: GroomProgram[];
   /** เนื้อหาหน้ากฎระเบียบการฝาก (ฝั่งลูกค้า) — ไม่ตั้ง = ยังไม่มีหน้านี้ */
   boardingRules?: BoardingRuleBlock[];
+  /** เนื้อหาเสริมท้ายหน้าห้องพัก (หน้าห้องพักในแอปลูกค้า) */
+  roomsPageBlocks?: BoardingRuleBlock[];
+  /** เนื้อหาเสริมท้ายหน้าอาบน้ำ (หน้าอาบน้ำในแอปลูกค้า) */
+  groomingPageBlocks?: BoardingRuleBlock[];
   groomSlots: string[];
   /** จำนวนคิวที่รับพร้อมกันต่อสล็อต (key = เวลาใน groomSlots) — ไม่ตั้งไว้ = ใช้ groomSlotDefaultCapacity */
   groomSlotCapacity?: Record<string, number>;

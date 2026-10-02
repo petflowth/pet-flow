@@ -267,8 +267,15 @@ export default function RegisterPage() {
 
         {/* ── น้องแมว ── */}
         <div>
-          <div className="mb-2">
+          <div className="mb-2 flex items-center justify-between gap-2">
             <span className="text-xs font-bold text-brown">น้องแมว</span>
+            <button
+              type="button"
+              onClick={addCat}
+              className="flex items-center gap-1 rounded-full bg-latte-deep px-3 py-1.5 text-xs font-extrabold text-white shadow-petflow-sm active:scale-[.97]"
+            >
+              <span className="text-sm">＋</span> เพิ่มน้องแมว
+            </button>
           </div>
           <ul className="space-y-3">
             {cats.map((cat, idx) => (
@@ -428,7 +435,7 @@ export default function RegisterPage() {
           <button
             type="button"
             onClick={addCat}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-petflow-sm border-2 border-dashed border-latte/60 bg-latte/10 py-3 text-sm font-extrabold text-latte-deep transition active:scale-[.98]"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-petflow-sm bg-latte-deep py-3.5 text-sm font-extrabold text-white shadow-petflow-sm transition active:scale-[.98]"
           >
             <span className="text-lg">🐱</span> เพิ่มน้องแมวอีกตัว
             <span className="text-lg">🐾</span>

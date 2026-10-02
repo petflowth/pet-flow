@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Booking } from "@/lib/business";
 import { relevantAutoMessageTopics } from "@/lib/auto-messages";
 import { GROOM_PROGRAMS, type GroomProgram } from "@/lib/grooming-prices";
+import { freeUnitsForRange, roomCapacity, compositionOf, type BoardBooking } from "@/lib/room-board";
 
 export type EditableBooking = Booking & {
   lineUserId?: string;
@@ -14,6 +15,8 @@ export type EditableBooking = Booking & {
   autoOff?: string[];
   /** โปรแกรมอาบน้ำที่เลือกไว้ (id ของ GROOM_PROGRAMS) */
   groomProgram?: string;
+  /** ห้องจริงที่ปักหมุดไว้ (เลข 1..จำนวนห้องของ room ประเภทนี้) */
+  roomUnit?: number;
   /** ลูกค้ากดยอมรับข้อตกลงก่อนเข้าพักเมื่อไหร่ */
   consentAcceptedAt?: string;
   /** โน้ตดูแลเพิ่มเติมที่ลูกค้าพิมพ์มาตอนเซ็นยอมรับ */
@@ -37,6 +40,7 @@ function EditField({
   defaultValue,
   required,
   textarea,
+  onChange,
 }: {
   label: string;
   name: string;
@@ -44,6 +48,7 @@ function EditField({
   defaultValue?: string;
   required?: boolean;
   textarea?: boolean;
+  onChange?: (v: string) => void;
 }) {
   const cls =
     "mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm";
@@ -51,7 +56,13 @@ function EditField({
     <label className="block text-xs font-bold text-brown-soft">
       {label}
       {textarea ? (
-        <textarea name={name} defaultValue={defaultValue} className={cls} rows={2} />
+        <textarea
+          name={name}
+          defaultValue={defaultValue}
+          className={cls}
+          rows={2}
+          onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+        />
       ) : (
         <input
           name={name}
@@ -59,6 +70,7 @@ function EditField({
           defaultValue={defaultValue}
           required={required}
           className={cls}
+          onChange={onChange ? (e) => onChange(e.target.value) : undefined}
         />
       )}
     </label>
@@ -71,15 +83,26 @@ export function BookingEditModal({
   rooms,
   groomSlots,
   groomPrograms = GROOM_PROGRAMS,
+  roomBookings = [],
   onClose,
   onSaved,
 }: {
   booking: EditableBooking;
   /** นัดอื่นในบ้านเดียวกัน นัดเดียวกัน (ไม่รวมตัวที่กำลังแก้) — ไว้เสนอเลื่อนวันให้ทั้งหมดทีเดียว */
   siblings?: { id: string; catName: string }[];
-  rooms: { id: string; name: string; size: string; price: number }[];
+  rooms: {
+    id: string;
+    name: string;
+    size: string;
+    price: number;
+    count?: number;
+    maxCats?: number;
+    composedOf?: { typeId: string; units: number }[];
+  }[];
   groomSlots: string[];
   groomPrograms?: GroomProgram[];
+  /** นัดห้องพักทั้งหมดที่ยังไม่ยกเลิก — ไว้คำนวณว่าห้องไหนว่างจริงตอนเลือกเลขห้อง */
+  roomBookings?: BoardBooking[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -87,6 +110,38 @@ export function BookingEditModal({
     booking.service || (booking.roomType || booking.checkin ? "room" : "groom")
   );
   const [saving, setSaving] = useState(false);
+  const [roomSel, setRoomSel] = useState(booking.room || booking.roomType || "");
+  const [checkinSel, setCheckinSel] = useState(booking.checkin || booking.date || "");
+  const [checkoutSel, setCheckoutSel] = useState(booking.checkout || "");
+  const [roomUnit, setRoomUnit] = useState<number | null>(booking.roomUnit ?? null);
+
+  const boardRooms = useMemo(
+    () =>
+      rooms.map((r) => ({
+        id: r.id,
+        name: r.name,
+        count: r.count || 0,
+        maxCats: roomCapacity(r),
+        composedOf: r.composedOf,
+      })),
+    [rooms]
+  );
+  const freeUnits = useMemo(() => {
+    if (!roomSel || !checkinSel || compositionOf(roomSel, boardRooms)) return [];
+    return freeUnitsForRange(
+      boardRooms,
+      roomBookings,
+      roomSel,
+      checkinSel,
+      checkoutSel || checkinSel,
+      booking.id
+    );
+  }, [boardRooms, roomBookings, roomSel, checkinSel, checkoutSel, booking.id]);
+
+  // เปลี่ยนห้อง/วัน แล้วเลขที่เคยเลือกไว้ไม่ว่างแล้ว → เคลียร์ทิ้ง (ให้ระบบเดาเองแทน)
+  useEffect(() => {
+    if (roomUnit != null && !freeUnits.includes(roomUnit)) setRoomUnit(null);
+  }, [freeUnits, roomUnit]);
   // ค่าเริ่มต้นติ๊กไว้เลย — ปกติเจ้าของเลื่อนนัด ก็อยากเลื่อนให้ครบทุกตัวในบ้านอยู่แล้ว
   const [applyToSiblings, setApplyToSiblings] = useState(true);
   const [groomProgram, setGroomProgram] = useState(booking.groomProgram || "");
@@ -129,6 +184,8 @@ export function BookingEditModal({
             catName: String(fd.get("cat") || ""),
             service: "room" as const,
             room: String(fd.get("room") || "") || undefined,
+            // ส่ง 0 เสมอเวลาไม่ได้ปักหมุด (ไม่ใช่ปล่อยว่าง) กันเคสอยากถอนหมุดที่เคยตั้งไว้ไม่ได้ผล
+            roomUnit: fd.get("roomUnit") ? Number(fd.get("roomUnit")) || 0 : 0,
             checkin: String(fd.get("checkin") || ""),
             checkout: String(fd.get("checkout") || ""),
             date: String(fd.get("checkin") || ""),
@@ -253,6 +310,7 @@ export function BookingEditModal({
                 <select
                   name="room"
                   defaultValue={booking.room || booking.roomType || ""}
+                  onChange={(e) => setRoomSel(e.target.value)}
                   className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
                 >
                   {rooms.map((r) => (
@@ -262,11 +320,41 @@ export function BookingEditModal({
                   ))}
                 </select>
               </label>
+              {roomSel && !compositionOf(roomSel, boardRooms) && (
+                <div className="rounded-petflow-sm border border-petflow-line bg-paper/50 p-3">
+                  <input type="hidden" name="roomUnit" value={roomUnit ?? ""} />
+                  <p className="text-xs font-bold text-brown-soft">🗺️ เลือกห้องจริง (ไม่บังคับ)</p>
+                  <p className="mb-2 text-[10px] text-brown-faint">
+                    ไม่เลือก = ให้ระบบจัดห้องให้อัตโนมัติ
+                  </p>
+                  {freeUnits.length === 0 ? (
+                    <p className="text-[10px] text-brown-faint">ไม่มีห้องว่างให้เลือกช่วงนี้</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {freeUnits.map((u) => (
+                        <button
+                          key={u}
+                          type="button"
+                          onClick={() => setRoomUnit(roomUnit === u ? null : u)}
+                          className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
+                            roomUnit === u
+                              ? "bg-honey-deep text-white"
+                              : "bg-card text-brown-soft hover:bg-honey/20"
+                          }`}
+                        >
+                          {roomUnit === u ? "✓ " : ""}ห้อง {u}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <EditField
                 label="เช็คอิน"
                 name="checkin"
                 type="date"
                 defaultValue={booking.checkin || booking.date}
+                onChange={setCheckinSel}
                 required
               />
               <EditField
@@ -274,6 +362,7 @@ export function BookingEditModal({
                 name="checkout"
                 type="date"
                 defaultValue={booking.checkout || ""}
+                onChange={setCheckoutSel}
                 required
               />
               <div className="space-y-1">

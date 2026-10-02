@@ -99,6 +99,9 @@ type Item = {
   /** ราคาต่อหน่วยที่ตกลงกับลูกค้าคนนี้ — ทับราคากลางของร้านเฉพาะบิลนี้
    *  undefined = ใช้ราคาปกติ, 0 = ตั้งใจให้ฟรี (จึงเช็ค undefined ไม่ใช่ falsy) */
   priceOverride?: number;
+  /** ส่วนลดเฉพาะรายการนี้ (หักจากยอดรวมของรายการ ก่อนส่วนลดท้ายบิล) — บาท หรือ % */
+  discount?: number;
+  discountMode?: "baht" | "percent";
 };
 
 /** programId มาจากนัด (booking.groomProgram) ถ้ามี — ให้เลือกโปรแกรมที่ลูกค้าเลือกไว้ตอนจองอัตโนมัติ */
@@ -152,6 +155,26 @@ function joinCatNames(names: string[]): string | undefined {
 }
 
 function computeLine(
+  it: Item,
+  programs: GroomProgram[] = GROOM_PROGRAMS
+): ReturnType<typeof computeLineBase> {
+  const base = computeLineBase(it, programs);
+  const d = Math.max(0, it.discount || 0);
+  if (it.kind === "freebie" || d <= 0 || base.amount <= 0) return base;
+  const off =
+    it.discountMode === "percent"
+      ? Math.round((base.amount * Math.min(100, d)) / 100)
+      : Math.min(base.amount, d);
+  if (off <= 0) return base;
+  const tag = it.discountMode === "percent" ? `ลด ${Math.min(100, d)}%` : `ลด ${off.toLocaleString()}฿`;
+  return {
+    ...base,
+    label: `${base.label} (${tag})`,
+    amount: base.amount - off,
+  };
+}
+
+function computeLineBase(
   it: Item,
   programs: GroomProgram[] = GROOM_PROGRAMS
 ): {
@@ -351,7 +374,10 @@ export default function BillingPage() {
     | "issued-asc"
     | "amount-desc"
     | "due-desc"
+    | "name-asc"
   >("issued-desc");
+  // กรองบิลรายเดือน — เปิดมาครั้งแรกเห็นเดือนปัจจุบันเลย ("" = ทุกเดือน)
+  const [billMonth, setBillMonth] = useState(() => new Date().toISOString().slice(0, 7));
   // ตารางราคาโปรแกรมอาบน้ำ — ค่าเริ่มต้นของระบบ จนกว่า config จะโหลดเสร็จ (มีโปรแกรมที่ร้านเพิ่มเองด้วย)
   const [groomPrograms, setGroomPrograms] = useState<GroomProgram[]>(GROOM_PROGRAMS);
   const [items, setItems] = useState<Item[]>([newGrooming()]);
@@ -1595,6 +1621,33 @@ export default function BillingPage() {
                     )}
                   </div>
 
+                  {item.kind !== "freebie" && (
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-brown-soft">
+                      <span>🏷️ ลดเฉพาะรายการนี้</span>
+                      <NumField
+                        value={item.discount || 0}
+                        min={0}
+                        onCommit={(n) => updateItem(i, { discount: n || undefined })}
+                        className="w-16 rounded-lg border border-petflow-line bg-paper px-2 py-1 text-right text-xs font-bold"
+                      />
+                      <select
+                        value={item.discountMode || "baht"}
+                        onChange={(e) =>
+                          updateItem(i, { discountMode: e.target.value as "baht" | "percent" })
+                        }
+                        className="rounded-lg border border-petflow-line bg-paper px-1.5 py-1 text-xs"
+                      >
+                        <option value="baht">บาท</option>
+                        <option value="percent">%</option>
+                      </select>
+                      {(item.discount || 0) > 0 && (
+                        <span className="text-ok">
+                          = {line.amount.toLocaleString()} ฿
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {isSpecial && (
                     <div className="flex items-center justify-between gap-2 rounded-lg bg-honey/15 px-2 py-1">
                       <span className="text-[10px] font-bold text-brown">
@@ -2054,6 +2107,7 @@ export default function BillingPage() {
           <option value="date-asc">📅 วันนัดเก่าก่อน</option>
           <option value="amount-desc">💰 ยอดมากสุด</option>
           <option value="due-desc">⏳ ค้างชำระมากสุด</option>
+          <option value="name-asc">🔤 ชื่อลูกค้า ก–ฮ</option>
         </select>
       </div>
       {(() => {
@@ -2072,7 +2126,17 @@ export default function BillingPage() {
         };
         const dueOf = (inv: Invoice) => inv.total - (inv.deposit || 0);
         const q = billSearch.trim().toLowerCase();
+        // เดือนอ้างอิง: เรียงตามวันออกบิล → เดือนที่ออกบิล, นอกนั้น → เดือนของวันนัด
+        const monthOf = (inv: Invoice) =>
+          (billSort === "issued-desc" || billSort === "issued-asc"
+            ? (inv.createdAt || "").slice(0, 10)
+            : serviceDate(inv)
+          ).slice(0, 7);
+        const monthSet = new Set(invoices.map(monthOf).filter(Boolean));
+        monthSet.add(new Date().toISOString().slice(0, 7));
+        const monthOptions = [...monthSet].sort().reverse();
         let list = invoices
+          .filter((inv) => !billMonth || monthOf(inv) === billMonth)
           .filter((inv) => billFilter === "all" || inv.status === billFilter)
           .filter(
             (inv) =>
@@ -2084,6 +2148,8 @@ export default function BillingPage() {
         list = [...list].sort((a, b) => {
           if (billSort === "amount-desc") return b.total - a.total;
           if (billSort === "due-desc") return dueOf(b) - dueOf(a);
+          if (billSort === "name-asc")
+            return (a.customerName || "").localeCompare(b.customerName || "", "th");
           if (billSort === "issued-asc" || billSort === "issued-desc") {
             const ia = a.createdAt || "";
             const ib = b.createdAt || "";
@@ -2291,6 +2357,33 @@ export default function BillingPage() {
           );
         };
 
+        const monthBar = (
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-petflow-sm bg-paper/60 px-3 py-2">
+            <span className="text-[11px] font-extrabold text-petflow-chocolate">🗓️ เดือน</span>
+            <select
+              value={billMonth}
+              onChange={(e) => setBillMonth(e.target.value)}
+              className="rounded-petflow-sm border border-petflow-line bg-card px-2 py-1 text-xs font-bold text-brown-soft"
+            >
+              <option value="">ทุกเดือน</option>
+              {monthOptions.map((m) => (
+                <option key={m} value={m}>
+                  {formatThaiDateShort(`${m}-01`).replace(/^1 /, "")}
+                </option>
+              ))}
+            </select>
+            <span className="text-[11px] font-bold text-brown-soft">
+              {list.length} บิล · รวม {list.reduce((n, i) => n + i.total, 0).toLocaleString()} ฿
+              {list.some((i) => i.status === "pending")
+                ? ` · ค้าง ${list
+                    .filter((i) => i.status === "pending")
+                    .reduce((n, i) => n + dueOf(i), 0)
+                    .toLocaleString()} ฿`
+                : ""}
+            </span>
+          </div>
+        );
+
         if (
           billSort === "date-desc" ||
           billSort === "date-asc" ||
@@ -2312,10 +2405,15 @@ export default function BillingPage() {
           }
           if (groups.length === 0) {
             return (
-              <p className="py-6 text-center text-xs text-brown-soft">ไม่พบบิล</p>
+              <>
+                {monthBar}
+                <p className="py-6 text-center text-xs text-brown-soft">ไม่พบบิล</p>
+              </>
             );
           }
           return (
+            <>
+            {monthBar}
             <div className="space-y-4">
               {groups.map((g) => {
                 const dayTotal = g.bills.reduce((s, i) => s + i.total, 0);
@@ -2340,15 +2438,24 @@ export default function BillingPage() {
                 );
               })}
             </div>
+            </>
           );
         }
 
         if (list.length === 0) {
           return (
-            <p className="py-6 text-center text-xs text-brown-soft">ไม่พบบิล</p>
+            <>
+              {monthBar}
+              <p className="py-6 text-center text-xs text-brown-soft">ไม่พบบิล</p>
+            </>
           );
         }
-        return <div className="space-y-3">{list.map(renderBill)}</div>;
+        return (
+          <>
+            {monthBar}
+            <div className="space-y-3">{list.map(renderBill)}</div>
+          </>
+        );
       })()}
     </div>
   );

@@ -6,6 +6,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { useConfig } from "@/components/ConfigProvider";
 import { BookingOnlyNotice, PageHeader } from "@/components/PageHeader";
 import { RoomCard } from "@/components/RoomCard";
+import { ContentBlocks } from "@/components/ContentBlocks";
 
 export default function RoomsPage() {
   const { locale } = useLocale();
@@ -27,6 +28,7 @@ export default function RoomsPage() {
           <RoomCard key={room.id} room={room} locale={locale} />
         ))}
       </div>
+      <ContentBlocks blocks={config.roomsPageBlocks} />
     </div>
   );
 }

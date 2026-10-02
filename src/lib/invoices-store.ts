@@ -693,7 +693,23 @@ async function markInvoicePaidInner(
 
   inv.status = "paid";
   inv.paymentMethod = paymentMethod;
-  inv.paidAt = new Date().toISOString();
+  // บิลที่ดึงมาจากนัด → ลงวันที่ตามวันที่มีคิวจอง ไม่ใช่วันที่กดรับเงิน (ลูกค้าจ่าย/หักเครดิต
+  // Member ย้อนหลังได้ แต่รายรับ/ประวัติบริการต้องอยู่ในเดือนที่ใช้บริการจริง)
+  // เก็บเวลาจริงของการกดไว้ท้ายวันที่ จะได้เรียงลำดับในวันเดียวกันได้ถูก
+  const nowIso = new Date().toISOString();
+  inv.paidAt = nowIso;
+  if (inv.bookingId) {
+    try {
+      const { getBooking } = await import("./bookings-store");
+      const bk = await getBooking(inv.bookingId);
+      const queueDate = (bk?.date || bk?.checkin || "").slice(0, 10);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(queueDate)) {
+        inv.paidAt = `${queueDate}T${nowIso.slice(11)}`;
+      }
+    } catch {
+      /* หานัดไม่เจอ — ใช้เวลาที่กดตามเดิม */
+    }
+  }
   // จ่ายด้วยเครดิต Member ไม่ให้แต้ม — ลูกค้าได้ของแถม/ส่วนลดตอนซื้อเครดิตไปแล้ว
   // ให้แต้มอีกจะเป็นการได้ประโยชน์ซ้ำสองรอบจากเงินก้อนเดียว (ปิดได้ในตั้งค่า)
   const bizCfg = (await getSiteConfig()).business;

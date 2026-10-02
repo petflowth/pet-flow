@@ -36,6 +36,8 @@ export type StoredBooking = Booking & {
   selfBooked?: boolean;
   /** โปรแกรมอาบน้ำที่เลือกไว้ตอนจอง (id ใน GROOM_PROGRAMS เช่น "bath-dry") — เฉพาะ service=groom */
   groomProgram?: string;
+  /** ห้องจริงที่ปักหมุดไว้ (เลข 1..จำนวนห้องของ room ประเภทนี้) — ไม่ระบุ = ให้ผังห้องเดารายวัน */
+  roomUnit?: number;
 };
 
 export { AUTO_MESSAGE_TOPICS, autoMuted } from "./auto-messages";
@@ -67,6 +69,7 @@ type BookingRow = {
   auto_off?: string[] | null;
   self_booked?: boolean | null;
   groom_program?: string | null;
+  room_unit?: number | null;
 };
 
 const mem: StoredBooking[] = seedEnabled()
@@ -113,6 +116,7 @@ function rowToStored(r: BookingRow): StoredBooking {
     autoOff: r.auto_off || undefined,
     selfBooked: r.self_booked || undefined,
     groomProgram: r.groom_program || undefined,
+    roomUnit: r.room_unit ?? undefined,
   };
 }
 
@@ -327,6 +331,7 @@ export async function addBooking(
     const extra: Record<string, unknown> = {};
     if (booking.selfBooked) extra.self_booked = true;
     if (booking.groomProgram) extra.groom_program = booking.groomProgram;
+    if (booking.roomUnit != null) extra.room_unit = booking.roomUnit;
     if (Object.keys(extra).length) {
       await sb
         .from("bookings")
@@ -361,8 +366,10 @@ export async function updateBooking(
       | "lineUserId"
       | "autoOff"
       | "groomProgram"
+      | "roomUnit"
       | "arrivalTime"
       | "pickupTime"
+      | "roomUnit"
     >
   >
 ) {
@@ -414,6 +421,18 @@ export async function updateBooking(
           .eq("tenant_id", requireTenantId());
       } catch {
         /* ยังไม่มีคอลัมน์ — ข้ามไป ฟีเจอร์จะทำงานเมื่ออัปเดตฐานข้อมูลแล้ว */
+      }
+    }
+    // ห้องจริงที่ปักหมุด — 0 = ถอนหมุด เก็บเป็น null ในฐานข้อมูล
+    if (patch.roomUnit !== undefined) {
+      try {
+        await sb
+          .from("bookings")
+          .update({ room_unit: merged.roomUnit || null })
+          .eq("id", id)
+          .eq("tenant_id", requireTenantId());
+      } catch {
+        /* ยังไม่มีคอลัมน์ room_unit */
       }
     }
     return getBooking(id);

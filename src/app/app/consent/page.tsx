@@ -298,6 +298,10 @@ function ConsentContent() {
                 <p className="mb-1.5 text-[11px] text-brown-faint">
                   แนบไว้เป็นหลักฐานประวัติวัคซีนของน้อง — ไม่บังคับ แต่แนะนำให้แนบถ้ามีสมุดอยู่ใกล้ตัว
                 </p>
+                <p className="mb-1.5 rounded-petflow-sm bg-honey/20 px-2.5 py-1.5 text-[11px] font-bold text-petflow-chocolate">
+                  ⚠️ หากไม่ได้แนบสมุดวัคซีน ถือว่าเจ้าของรับทราบและยอมรับข้อตกลงทั้งหมด
+                  รวมถึงความเสี่ยงจากการที่ทางร้านไม่ได้ตรวจสอบประวัติวัคซีนของน้อง
+                </p>
                 <label className="flex cursor-pointer items-center gap-3 rounded-petflow-sm border border-dashed border-petflow-line bg-paper px-3 py-3">
                   <input
                     type="file"

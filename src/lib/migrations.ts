@@ -55,6 +55,7 @@ const SCHEMA_CHECKS: { table: string; column: string; feature: string }[] = [
   { table: "broadcast_images", column: "content_type", feature: "รูปโปร (ทางสำรอง)" },
   { table: "birthday_greetings", column: "status", feature: "คิววันเกิดรอตรวจ" },
   { table: "bookings", column: "flea_tick_treated", feature: "หลักฐานหยดยาเห็บหมัด" },
+  { table: "bookings", column: "room_unit", feature: "ระบุห้องจริงตอนจอง" },
 ];
 
 export type SchemaCheckRow = {
@@ -417,6 +418,11 @@ where staff_note like '%🎁%';`,
   {
     name: "chat_watch.first_unanswered_at",
     sql: "alter table chat_watch add column if not exists first_unanswered_at timestamptz;",
+  },
+  {
+    // ห้องจริงที่ปักหมุดไว้ตอนจอง (เลข 1..จำนวนห้องของประเภทนั้น)
+    name: "bookings.room_unit",
+    sql: "alter table bookings add column if not exists room_unit integer;",
   },
   {
     // เติมความจุห้อง + สูตรห้องเชื่อม ให้ร้านที่ตั้งค่าห้องไว้ก่อนจะมีสองฟิลด์นี้

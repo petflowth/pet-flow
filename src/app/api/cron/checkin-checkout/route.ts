@@ -24,7 +24,7 @@ function addDays(dateStr: string, n: number) {
 }
 
 /**
- * Cron ถามเวลาส่ง/รับน้อง — รันหลายรอบต่อวัน (08:00 / 12:00 / 18:00 ไทย ตาม vercel.json)
+ * Cron ถามเวลาส่ง/รับน้อง — รันหลายรอบต่อวัน (08:00 / 12:00 / 18:00 / 19:30 ไทย ตาม vercel.json)
  * แต่ละครั้งเช็คแค่ตัวเองว่าใช่รอบที่ร้านตั้งไว้ไหม (checkinReminderTime / checkoutReminderTime
  * ในตั้งค่า > อัตโนมัติ) เพราะร้านตั้งได้ว่าจะให้ถามตอนเช้า เที่ยง หรือหัวค่ำ ไม่ใช่ตายตัวเหมือนเดิม
  * ที่ผูกกับรอบเที่ยงของ cron/reminders ตัวเดียว — รันแทนทุกร้านที่ยังใช้งานอยู่ (multi-tenant)
@@ -55,7 +55,7 @@ async function runForTenant(slot: string) {
   let checkoutReminders = 0;
 
   const doCheckin = auto?.checkinReminderEnabled !== false && (auto?.checkinReminderTime || "12:00") === slot;
-  const doCheckout = auto?.checkoutReminderEnabled !== false && (auto?.checkoutReminderTime || "18:00") === slot;
+  const doCheckout = auto?.checkoutReminderEnabled !== false && (auto?.checkoutReminderTime || "19:30") === slot;
   if (!doCheckin && !doCheckout) {
     return { ok: true, skipped: true, checkinReminders, checkoutReminders };
   }

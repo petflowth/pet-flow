@@ -123,6 +123,28 @@ export const GROOM_FORM_DEFAULTS: GroomField[] = [
     ],
   },
   {
+    key: "shaveButt",
+    type: "single",
+    label: "ให้ไถขนก้นไหมคะ",
+    required: true,
+    enabled: true,
+    options: [
+      { key: "yes", label: "✅ ไถให้" },
+      { key: "no", label: "❌ ไม่ไถ" },
+    ],
+  },
+  {
+    key: "shavePaws",
+    type: "single",
+    label: "ให้ไถขนอุ้งเท้าไหมคะ",
+    required: true,
+    enabled: true,
+    options: [
+      { key: "yes", label: "✅ ไถให้" },
+      { key: "no", label: "❌ ไม่ไถ" },
+    ],
+  },
+  {
     key: "allergy",
     type: "text",
     label: "แพ้อะไรไหมคะ (แชมพู/ยา) — ถ้าไม่มีเว้นว่างได้",

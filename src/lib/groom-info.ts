@@ -57,6 +57,10 @@ export type GroomHealthInfo = {
   weight?: string;
   /** วิธีเป่าขนที่เคยใช้ — เลือกได้หลายวิธี (ข้อมูลเก่าอาจเป็น string เดี่ยว) */
   dryMethod?: string[] | string;
+  /** ให้ไถขนก้นไหม — yes | no */
+  shaveButt?: string;
+  /** ให้ไถขนอุ้งเท้าไหม — yes | no */
+  shavePaws?: string;
   submittedAt?: string;
 };
 
@@ -121,6 +125,8 @@ export function groomInfoSummary(
       asList(g.dryMethod)
         .map((d) => GROOM_DRY_METHOD_LABELS[d] || d)
         .join(", ") || "-",
+    ไถขนก้น: g.shaveButt === "yes" ? "ไถให้" : g.shaveButt === "no" ? "ไม่ไถ" : "-",
+    ไถขนอุ้งเท้า: g.shavePaws === "yes" ? "ไถให้" : g.shavePaws === "no" ? "ไม่ไถ" : "-",
     แพ้: g.allergy || "-",
     เพิ่มเติม: g.note || "-",
   };

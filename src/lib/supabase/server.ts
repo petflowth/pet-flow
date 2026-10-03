@@ -20,10 +20,23 @@ export function normalizeSupabaseUrl(raw?: string): string | null {
   }
 
   try {
-    return new URL(url).toString().replace(/\/$/, "");
+    const parsed = new URL(url);
+    // ref ของโปรเจกต์ Supabase จริงเป็นตัวพิมพ์เล็ก/ตัวเลข 20 ตัวเสมอ — ค่าอย่าง "aBcDe" คือตัวอย่าง
+    // ที่ติดมาจากเทมเพลต ถ้าปล่อยผ่าน ทุก query จะล้มเงียบๆ จนดูเหมือน "ข้อมูลหายหมด"
+    const ref = parsed.hostname.split(".")[0];
+    if (parsed.hostname.endsWith(".supabase.co") && !/^[a-z0-9]{20}$/.test(ref)) return null;
+    return parsed.toString().replace(/\/$/, "");
   } catch {
     return null;
   }
+}
+
+/** URL ที่ตั้งไว้ดูเป็นค่าตัวอย่าง/ไม่ใช่โปรเจกต์จริงไหม */
+export function isPlaceholderSupabaseUrl(raw?: string): boolean {
+  const trimmed = (raw || "").trim().replace(/^["']|["']$/g, "");
+  if (!trimmed) return false;
+  const m = trimmed.match(/^(?:https?:\/\/)?([^./]+)\.supabase\.co/i);
+  return !!m && !/^[a-z0-9]{20}$/.test(m[1]);
 }
 
 export function getSupabaseUrl() {

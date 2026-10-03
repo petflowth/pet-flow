@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
 import { join } from "path";
-import { getSupabase, getSupabaseUrl, isSupabaseConfigured } from "./server";
+import { getSupabase, getSupabaseUrl, isSupabaseConfigured, isPlaceholderSupabaseUrl } from "./server";
 
 export type SetupStatus = {
   supabaseUrl: boolean;
@@ -49,8 +49,9 @@ export async function checkSetupStatus(): Promise<SetupStatus> {
       connected: false,
       tablesReady: false,
       missingTables: REQUIRED_TABLES,
-      message:
-        "NEXT_PUBLIC_SUPABASE_URL ไม่ถูกต้อง — ใส่เป็น https://nqperjfuuntbzskbrqql.supabase.co (ไม่มีเครื่องหมายคำพูด)",
+      message: isPlaceholderSupabaseUrl(rawUrl)
+        ? `NEXT_PUBLIC_SUPABASE_URL ยังเป็นค่าตัวอย่าง (${rawUrl}) ไม่ใช่โปรเจกต์จริง — ใส่ URL จาก Supabase → Settings → API แล้ว Redeploy · ข้อมูลไม่ได้หาย แค่แอปชี้ผิดที่`
+        : "NEXT_PUBLIC_SUPABASE_URL ไม่ถูกต้อง — ใส่เป็น https://<project-ref>.supabase.co (ไม่มีเครื่องหมายคำพูด)",
     };
   }
 

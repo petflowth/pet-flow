@@ -202,7 +202,9 @@ export async function getRoomAvailability(
   const config = await getSiteConfig();
   // ใช้จำนวนห้องจริงของร้านนี้ (ตั้งได้ในหลังบ้าน) ไม่ใช่ค่าเริ่มต้นของ CatCha —
   // ไม่งั้นร้านที่มีจำนวนห้องต่างจากค่าเริ่มต้นจะเช็คความว่างผิด เสี่ยง overbook หรือปิดขายทั้งที่ห้องว่าง
-  const capacity = config.roomInventory?.[invKey] ?? 0;
+  // "จำนวนห้องจริง" ที่ร้านแก้ในตั้งค่าห้องพักมาก่อน (roomInventory ไม่ได้อัปเดตตามตอนแก้ห้อง)
+  const ownCount = config.rooms.find((r) => r.id === roomTypeId)?.count;
+  const capacity = typeof ownCount === "number" ? ownCount : (config.roomInventory?.[invKey] ?? 0);
   // แมวที่เข้าพักอยู่แล้วไม่กระทบวันปิด — แค่ปิดรับเช็คอิน/เช็คเอาท์ใหม่ในวันนั้น
   // (พนักงานยังดูแลน้องตามปกติ แค่ไม่มีใครอยู่หน้าร้านรับ-ส่งของใหม่)
   const closed = isShopClosedOn(config, checkin) || isShopClosedOn(config, checkout);

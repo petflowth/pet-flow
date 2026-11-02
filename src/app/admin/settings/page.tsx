@@ -28,6 +28,8 @@ import { GROOM_EXTRA_CARDS, groomUsesCard, type IntakeRules } from "@/lib/intake
 import { REFERRAL_DEFAULT, referralReward } from "@/lib/referral";
 import { breedOptionsFor, petKindOf, petWords, usesLitter, withDefaultBreeds, type PetKind } from "@/lib/pet-kind";
 import { NumInput } from "@/components/NumInput";
+import { RoomSeasonsEditor } from "@/components/RoomSeasonsEditor";
+import { normalizeRoomSeasons } from "@/lib/room-seasons";
 
 type Tab =
   | "features"
@@ -1233,6 +1235,8 @@ function RoomsTab({
 }) {
   const [rooms, setRooms] = useState(config.rooms);
   useEffect(() => setRooms(config.rooms), [config.rooms]);
+  const [seasons, setSeasons] = useState(() => normalizeRoomSeasons(config.roomSeasons));
+  useEffect(() => setSeasons(normalizeRoomSeasons(config.roomSeasons)), [config.roomSeasons]);
 
   const updateRoom = (idx: number, patch: Partial<RoomType>) => {
     const next = [...rooms];
@@ -1273,6 +1277,7 @@ function RoomsTab({
 
   return (
     <div className="space-y-4">
+      <RoomSeasonsEditor value={seasons} onChange={setSeasons} petWord={`น้อง${petWords(config).th}`} />
       {rooms.map((room, idx) => (
         <div key={room.id} className="rounded-petflow border border-petflow-line bg-card p-4">
           <div className="mb-2 flex items-center justify-between gap-2">
@@ -1489,7 +1494,16 @@ function RoomsTab({
       <button
         type="button"
         disabled={saving}
-        onClick={() => onSave({ rooms })}
+        onClick={() =>
+          onSave({
+            rooms,
+            roomSeasons: {
+              ...seasons,
+              // ช่วงที่ยังไม่ได้เลือกวันไม่ต้องเก็บ
+              periods: seasons.periods.filter((p) => p.from && p.to),
+            },
+          })
+        }
         className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-petflow-chocolate text-sm font-extrabold text-card shadow-petflow-sm disabled:opacity-50"
       >
         <Icon name="check" size={18} strokeWidth={2.2} />

@@ -24,6 +24,8 @@ async function handleGet(req: NextRequest) {
       photoDataUrl: c.photoDataUrl || null,
       breed: c.breed || null,
       species: c.species || null,
+      // ร้านที่คิดค่าห้องตามน้ำหนัก — ใช้ประมาณราคาในหน้าจองห้อง
+      weightKg: c.weightKg ?? null,
     })),
   });
 }

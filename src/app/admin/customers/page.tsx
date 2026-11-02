@@ -49,7 +49,7 @@ import { tidyServiceText } from "@/lib/stay-line";
 import { Avatar, EmptyState, MoreMenu, SearchField, Segmented, SectionLabel } from "@/components/ui";
 import { NumInput } from "@/components/NumInput";
 import { roomSummary } from "@/lib/room-segments";
-import { emergencyOf, emergencyWho } from "@/lib/emergency-contact";
+import { emergencyOf } from "@/lib/emergency-contact";
 
 type Summary = {
   customer: CustomerRecord;
@@ -2029,6 +2029,14 @@ function CustomerSummaryCard({
       </div>
 
       <ul className="mb-3 space-y-1 text-[11px] text-brown-soft">
+        {customer.nickname && (
+          <li className="flex items-center gap-2">
+            <Icon name="user" size={14} className="text-brown-faint" />
+            <span>
+              ชื่อเล่น <b className="text-brown">{customer.nickname}</b>
+            </span>
+          </li>
+        )}
         {customer.phone && (
           <li className="flex items-center gap-2">
             <Icon name="phone" size={14} className="text-brown-faint" />
@@ -2049,7 +2057,7 @@ function CustomerSummaryCard({
                 <a href={`tel:${em.phone.replace(/[^\d+]/g, "")}`} className="font-bold text-brown underline">
                   {em.phone}
                 </a>
-                {emergencyWho(em) && ` (${emergencyWho(em)})`}
+                {em.relation && ` (${em.relation})`}
               </span>
             </li>
           );

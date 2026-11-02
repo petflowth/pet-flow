@@ -120,6 +120,7 @@ export function AddCustomerModal({
 
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
+  const [nickname, setNickname] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [birthday, setBirthday] = useState("");
@@ -142,6 +143,7 @@ export function AddCustomerModal({
   const close = () => {
     setOpen(false);
     setName("");
+    setNickname("");
     setPhone("");
     setEmail("");
     setBirthday("");
@@ -169,8 +171,8 @@ export function AddCustomerModal({
     const problem =
       taxInvoiceProblem(billing) || (isCompany ? companyContactProblem(company, sameContact) : "");
     if (problem) return setError(problem);
-    // ไม่บังคับ — แต่ถ้ากรอกมาแล้วต้องครบ (เบอร์ + ความเกี่ยวข้อง)
-    const emergencyMiss = emergencyProblem(emergency, false);
+    // บังคับเหมือนหน้าสมัคร — ลูกค้าที่ร้านเพิ่มให้ ผูก LINE แล้วไม่ผ่านหน้าสมัคร จะไม่ถูกถามอีก
+    const emergencyMiss = emergencyProblem(emergency, true);
     if (emergencyMiss) return setError(emergencyMiss.replace("กับคุณ", "กับลูกค้า"));
     // นิติบุคคล + ผู้ติดต่อใช้ข้อมูลเดียวกัน → ชื่อ/เบอร์/ที่อยู่ลูกค้า = ของบริษัท
     const contact = useCompanyContact
@@ -185,6 +187,7 @@ export function AddCustomerModal({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         customerName: contact.name,
+        nickname: (!useCompanyContact && nickname.trim()) || undefined,
         phone: contact.phone || undefined,
         email: email.trim() || undefined,
         birthday: (!isCompany && birthday) || undefined,
@@ -283,6 +286,15 @@ export function AddCustomerModal({
                     />
                   </label>
                   <label className={labelCls}>
+                    ชื่อเล่น (ถ้ามี)
+                    <input
+                      value={nickname}
+                      onChange={(e) => setNickname(e.target.value)}
+                      placeholder="เช่น มาย"
+                      className={fieldCls}
+                    />
+                  </label>
+                  <label className={labelCls}>
                     {isCompany ? "เบอร์ผู้ติดต่อ" : "เบอร์โทร"}
                     <input
                       value={phone}
@@ -331,9 +343,9 @@ export function AddCustomerModal({
                 <EmergencyContactInput
                   value={emergency}
                   onChange={setEmergency}
-                  label="เบอร์ติดต่อฉุกเฉิน"
+                  label="เบอร์ติดต่อฉุกเฉิน *"
                   relationLabel="เกี่ยวข้องเป็นอะไรกับลูกค้า"
-                  required={false}
+                  required
                   inputClass={fieldCls}
                 />
               </div>

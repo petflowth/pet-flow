@@ -74,6 +74,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [found, setFound] = useState(false);
   const [name, setName] = useState("");
+  const [nickname, setNickname] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [birthday, setBirthday] = useState("");
@@ -83,6 +84,7 @@ export default function ProfilePage() {
   const [postalCode, setPostalCode] = useState("");
   // เบอร์ติดต่อฉุกเฉิน — กรอกไว้ตอนสมัคร แก้ได้ที่นี่ (ร้านปิดช่องนี้ = ไม่แสดง)
   const emergencyField = resolveRegisterForm(config.registerForm).emergency;
+  const nicknameField = resolveRegisterForm(config.registerForm).ownerNickname;
   const [emergency, setEmergency] = useState<EmergencyForm>(() => emptyEmergencyForm());
   const [consent, setConsent] = useState(true);
   const [taxInvoice, setTaxInvoice] = useState<TaxInvoiceForm>(() => taxInvoiceToForm(null));
@@ -107,6 +109,7 @@ export default function ProfilePage() {
         setFound(true);
         const c = d.customer;
         setName(c.name || "");
+        setNickname(c.nickname || "");
         setPhone(c.phone || "");
         setEmail(c.email || "");
         setBirthday(c.birthday || "");
@@ -247,6 +250,7 @@ export default function ProfilePage() {
         body: JSON.stringify({
           lineUserId: profile.lineUserId,
           name: name.trim(),
+          ...(nicknameField.enabled ? { nickname: nickname.trim() } : {}),
           phone: phone.trim(),
           email: email.trim(),
           birthday,
@@ -344,6 +348,12 @@ export default function ProfilePage() {
               ชื่อผู้ปกครอง
               <input value={name} onChange={(e) => setName(e.target.value)} className={`${field} mt-1 font-bold text-brown`} />
             </label>
+            {nicknameField.enabled && (
+              <label className="block text-xs font-bold text-brown-soft">
+                {nicknameField.label}
+                <input value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="เช่น มาย" className={`${field} mt-1`} />
+              </label>
+            )}
             <label className="block text-xs font-bold text-brown-soft">
               เบอร์โทร
               <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" placeholder="08x-xxx-xxxx" className={`${field} mt-1`} />

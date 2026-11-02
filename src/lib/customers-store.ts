@@ -112,6 +112,8 @@ export type CustomerRecord = {
   consentCareNote?: string;
   /** เบอร์ติดต่อฉุกเฉิน — ถามครั้งเดียวตอนสมัครสมาชิก (ลูกค้าเก่าอาจอยู่ในคำตอบฟอร์มของน้อง ดู emergencyOf) */
   emergencyContact?: EmergencyContact;
+  /** ชื่อเล่นผู้ปกครอง (ไม่บังคับ) — แยกจากชื่อ (name) */
+  nickname?: string;
   /** รหัสชวนเพื่อนของลูกค้าคนนี้ (แชร์ให้เพื่อนสมัคร) */
   referralCode?: string;
   /** ถูกชวนมาโดยลูกค้ารหัสนี้ (กันออกคูปองซ้ำ) */
@@ -225,6 +227,7 @@ type CustomerRow = {
   consent_flea_tick?: boolean | null;
   consent_care_note?: string | null;
   emergency_contact?: unknown;
+  nickname?: string | null;
   referral_code?: string | null;
   referred_by?: string | null;
   is_member: boolean;
@@ -327,6 +330,7 @@ function mapCustomer(row: CustomerRow): CustomerRecord {
     consentFleaTick: row.consent_flea_tick ?? undefined,
     consentCareNote: row.consent_care_note ?? undefined,
     emergencyContact: parseEmergencyContact(row.emergency_contact),
+    nickname: row.nickname ?? undefined,
     referralCode: row.referral_code ?? undefined,
     referredBy: row.referred_by ?? undefined,
     isMember: row.is_member,
@@ -1267,6 +1271,7 @@ export async function updateCustomer(
       | "memberSince"
       | "tier"
       | "lastFollowUpAt"
+      | "nickname"
     >
   > & { taxInvoice?: CustomerTaxInvoice | null; emergencyContact?: EmergencyContact | null }
 ) {
@@ -1344,6 +1349,17 @@ export async function updateCustomer(
           .eq("tenant_id", requireTenantId());
       const { error } = await write();
       if (error && (await ensureMigration("customers.emergency_contact"))) await write();
+    }
+    if (patch.nickname !== undefined) {
+      // คอลัมน์ใหม่ — แยกเขียน ยังไม่ได้รัน migration ก็รันให้เองแล้วเขียนอีกรอบ
+      const write = () =>
+        sb
+          .from("customers")
+          .update({ nickname: c.nickname || null })
+          .eq("id", id)
+          .eq("tenant_id", requireTenantId());
+      const { error } = await write();
+      if (error && (await ensureMigration("customers.nickname"))) await write();
     }
   } else {
     memCustomers.set(id, c);
@@ -1960,6 +1976,18 @@ export async function mergeCustomers(sourceId: string, targetId: string) {
           () => {}
         );
     }
+    if (!target.nickname && source.nickname) {
+      // ชื่อเล่น — คอลัมน์ใหม่ เขียนแยกเผื่อยังไม่ได้ migrate
+      await sb
+        .from("customers")
+        .update({ nickname: source.nickname })
+        .eq("id", targetId)
+        .eq("tenant_id", tenantId)
+        .then(
+          () => {},
+          () => {}
+        );
+    }
   } else {
     // mem — ย้ายเท่าที่เก็บใน map นี้ได้ (dev)
     const t = memCustomers.get(targetId);
@@ -1977,6 +2005,7 @@ export async function mergeCustomers(sourceId: string, targetId: string) {
       t.postalCode = t.postalCode || s.postalCode;
       t.taxInvoice = t.taxInvoice || s.taxInvoice;
       t.emergencyContact = t.emergencyContact || s.emergencyContact;
+      t.nickname = t.nickname || s.nickname;
       t.referralSource = t.referralSource || s.referralSource;
       t.lineDisplayName = t.lineDisplayName || s.lineDisplayName;
       if (!t.lineUserId && s.lineUserId) t.lineUserId = s.lineUserId;
@@ -2816,6 +2845,7 @@ export async function registerCustomerFromLine(data: {
   postalCode?: string;
   taxInvoice?: CustomerTaxInvoice;
   emergencyContact?: EmergencyContact;
+  nickname?: string;
   marketingConsent?: boolean;
   cats: {
     name: string;
@@ -2916,6 +2946,7 @@ export async function registerCustomerFromLine(data: {
     ...(data.taxInvoice ? { taxInvoice: data.taxInvoice } : {}),
     // ไม่กรอก (ร้านปิดช่องนี้) = ไม่แตะค่าเดิม
     ...(data.emergencyContact ? { emergencyContact: data.emergencyContact } : {}),
+    ...(data.nickname?.trim() ? { nickname: data.nickname.trim() } : {}),
   });
 
   for (const cat of cats) {

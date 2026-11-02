@@ -35,6 +35,7 @@ export function EditCustomerSheet({
 }) {
   const [form, setForm] = useState({
     name: customer.name || "",
+    nickname: customer.nickname || "",
     phone: customer.phone || "",
     email: customer.email || "",
     birthday: customer.birthday || "",
@@ -63,7 +64,7 @@ export function EditCustomerSheet({
       setError(taxProblem);
       return;
     }
-    const emergencyMiss = emergencyProblem(emergency, false);
+    const emergencyMiss = emergencyProblem(emergency, true);
     if (emergencyMiss) {
       setError(emergencyMiss.replace("กับคุณ", "กับลูกค้า"));
       return;
@@ -73,6 +74,7 @@ export function EditCustomerSheet({
     // ช่องที่ลบจนว่าง = ล้างค่า (ส่ง "" ไป ระบบเก็บเป็น null)
     const patch = {
       name,
+      nickname: form.nickname.trim(),
       phone: form.phone.trim(),
       email: form.email.trim(),
       birthday: form.birthday,
@@ -140,6 +142,15 @@ export function EditCustomerSheet({
               className={`${inputCls} font-bold text-brown`}
             />
           </label>
+          <label className="block text-xs font-bold text-brown-soft">
+            ชื่อเล่น
+            <input
+              value={form.nickname}
+              onChange={(e) => set("nickname")(e.target.value)}
+              placeholder="เช่น มาย"
+              className={inputCls}
+            />
+          </label>
           <div className="grid grid-cols-2 gap-2">
             <label className="block text-xs font-bold text-brown-soft">
               เบอร์โทร
@@ -175,9 +186,9 @@ export function EditCustomerSheet({
             <EmergencyContactInput
               value={emergency}
               onChange={setEmergency}
-              label="เบอร์ติดต่อฉุกเฉิน"
+              label="เบอร์ติดต่อฉุกเฉิน *"
               relationLabel="เกี่ยวข้องเป็นอะไรกับลูกค้า"
-              required={false}
+              required
               inputClass={inputCls}
             />
           </div>

@@ -113,6 +113,7 @@ export default function RegisterPage() {
     ? config.options.referralOptions
     : REFERRAL_OPTIONS;
   const [name, setName] = useState("");
+  const [nickname, setNickname] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [birthday, setBirthday] = useState("");
@@ -129,6 +130,8 @@ export default function RegisterPage() {
   }));
   const [sameContact, setSameContact] = useState(true);
   const useCompanyContact = isCompany && sameContact;
+  // ชื่อเล่นผู้ปกครอง — ช่องแยกจากชื่อ (ร้านปิด/บังคับได้ในการ์ด › ฟอร์มสมัครสมาชิก) · สมัครในนามบริษัทแบบใช้ข้อมูลบริษัทไม่ถาม
+  const askNickname = rf.ownerNickname.enabled && !useCompanyContact;
   const [cats, setCats] = useState<CatInput[]>([emptyCat()]);
   /** ประวัติที่ร้านให้ถามตอนสมัคร — ตามชนิดของน้องแต่ละตัว (ร้านแมวไม่มีฟอร์มนี้ = ไม่ถาม) */
   const historyFor = (c: CatInput) => registerHistoryFields(c.species || petKindOf(config), config);
@@ -214,6 +217,10 @@ export default function RegisterPage() {
       }
       return "";
     };
+    if (askNickname && rf.ownerNickname.required && !nickname.trim()) {
+      setError("กรอกชื่อเล่นด้วยนะคะ");
+      return;
+    }
     const emergencyMiss = rf.emergency.enabled ? emergencyProblem(emergency, rf.emergency.required) : "";
     if (emergencyMiss) {
       setError(emergencyMiss);
@@ -282,6 +289,7 @@ export default function RegisterPage() {
           postalCode: postalCode || undefined,
           taxInvoice: billing || undefined,
           emergencyContact: rf.emergency.enabled ? emergencyFromForm(emergency) : undefined,
+          nickname: (askNickname && nickname.trim()) || undefined,
           marketingConsent: consent,
           cats: cats
             .filter((c) => c.name.trim())
@@ -405,7 +413,7 @@ export default function RegisterPage() {
             <label className="block">
               <span className="mb-1 block text-xs font-bold text-brown">
                 {customLabel("ownerName") || (isCompany ? "ชื่อผู้ติดต่อ" : historyStyle ? "ชื่อจริง-นามสกุล" : "ชื่อผู้ปกครอง")}{" "}
-                {!historyStyle && (
+                {!historyStyle && !askNickname && (
                   <span className="font-normal text-brown-faint">
                     (ชื่อเล่นหรือชื่อจริงก็ได้นะคะ)
                   </span>
@@ -419,6 +427,23 @@ export default function RegisterPage() {
                 className={fieldClass}
               />
             </label>
+
+            {askNickname && (
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-brown">
+                  {rf.ownerNickname.label}
+                  {!rf.ownerNickname.required && (
+                    <span className="font-normal text-brown-faint"> (ไม่บังคับ)</span>
+                  )}
+                </span>
+                <input
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="เช่น มาย"
+                  className={fieldClass}
+                />
+              </label>
+            )}
 
             <label className="block">
               <span className="mb-1 block text-xs font-bold text-brown">

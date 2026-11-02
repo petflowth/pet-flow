@@ -736,6 +736,11 @@ where staff_note like '%🎁%';`,
     name: "customers.emergency_contact",
     sql: "alter table customers add column if not exists emergency_contact jsonb;",
   },
+  {
+    // ชื่อเล่นผู้ปกครอง (แยกจากชื่อจริง) · เพิ่มคอลัมน์อย่างเดียว
+    name: "customers.nickname",
+    sql: "alter table customers add column if not exists nickname text;",
+  },
 ];
 
 export type MigrateResult = {

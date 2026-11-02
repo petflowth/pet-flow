@@ -49,6 +49,7 @@ import { tidyServiceText } from "@/lib/stay-line";
 import { Avatar, EmptyState, MoreMenu, SearchField, Segmented, SectionLabel } from "@/components/ui";
 import { NumInput } from "@/components/NumInput";
 import { roomSummary } from "@/lib/room-segments";
+import { emergencyOf } from "@/lib/emergency-contact";
 
 type Summary = {
   customer: CustomerRecord;
@@ -2036,6 +2037,23 @@ function CustomerSummaryCard({
             </a>
           </li>
         )}
+        {(() => {
+          // เบอร์ติดต่อฉุกเฉิน — ลูกค้ากรอกตอนสมัคร (ลูกค้าเก่าดึงจากฟอร์มทำประวัติของน้อง)
+          const em = emergencyOf(customer);
+          if (!em) return null;
+          return (
+            <li className="flex items-center gap-2">
+              <Icon name="phone" size={14} className="text-wait" />
+              <span className="min-w-0 flex-1">
+                <b>ฉุกเฉิน:</b>{" "}
+                <a href={`tel:${em.phone.replace(/[^\d+]/g, "")}`} className="font-bold text-brown underline">
+                  {em.phone}
+                </a>
+                {em.relation && ` (${em.relation})`}
+              </span>
+            </li>
+          );
+        })()}
         {customer.email && (
           <li className="flex items-center gap-2">
             <Icon name="send" size={14} className="text-brown-faint" />

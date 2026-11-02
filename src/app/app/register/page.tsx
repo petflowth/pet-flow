@@ -63,6 +63,13 @@ import { StaffNoteTagPicker } from "@/components/StaffNoteTagPicker";
 import { customerFetch } from "@/lib/customer-fetch";
 import { resolveRegisterForm } from "@/lib/register-form";
 import { NumInput } from "@/components/NumInput";
+import {
+  EmergencyContactInput,
+  emergencyFromForm,
+  emergencyProblem,
+  emptyEmergencyForm,
+  type EmergencyForm,
+} from "@/components/EmergencyContactInput";
 
 function emptyCat(): CatInput {
   return {
@@ -125,8 +132,10 @@ export default function RegisterPage() {
   const [cats, setCats] = useState<CatInput[]>([emptyCat()]);
   /** ประวัติที่ร้านให้ถามตอนสมัคร — ตามชนิดของน้องแต่ละตัว (ร้านแมวไม่มีฟอร์มนี้ = ไม่ถาม) */
   const historyFor = (c: CatInput) => registerHistoryFields(c.species || petKindOf(config), config);
-  const ownerHistory = cats.map(historyFor).find((h) => h && h.owner.length > 0)?.owner || [];
-  const [ownerAnswers, setOwnerAnswers] = useState<IntakeAnswers>({});
+  /** ร้านใช้ฟอร์มประวัติตอนสมัคร (เช่น Back Home) — ป้ายชื่อจริง/เบอร์หลัก ไม่ขออีเมล ตามลิสต์ของร้าน */
+  const historyStyle = cats.some((c) => historyFor(c) !== null);
+  /** เบอร์ติดต่อฉุกเฉิน — ถามที่หน้านี้ที่เดียว (ร้านปิด/เลิกบังคับได้ในหลังบ้าน › การ์ด › ฟอร์มสมัครสมาชิก) */
+  const [emergency, setEmergency] = useState<EmergencyForm>(() => emptyEmergencyForm());
   const [attempted, setAttempted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -205,9 +214,9 @@ export default function RegisterPage() {
       }
       return "";
     };
-    const ownerMiss = ownerHistory.find((f) => f.required && intakeAnswerEmpty(ownerAnswers[f.key]));
-    if (ownerMiss) {
-      setError(`กรอก "${ownerMiss.label.split(" — ")[0]}" ด้วยนะคะ`);
+    const emergencyMiss = rf.emergency.enabled ? emergencyProblem(emergency, rf.emergency.required) : "";
+    if (emergencyMiss) {
+      setError(emergencyMiss);
       return;
     }
     for (let i = 0; i < cats.length; i++) {
@@ -217,7 +226,7 @@ export default function RegisterPage() {
         return;
       }
     }
-    if (rf.email.required && !ownerHistory.length && !email.trim()) {
+    if (rf.email.required && !historyStyle && !email.trim()) {
       setError("กรอกอีเมลด้วยนะคะ");
       return;
     }
@@ -266,12 +275,13 @@ export default function RegisterPage() {
           name: contact.name,
           phone: contact.phone,
           address: contact.address,
-          email: ownerHistory.length ? undefined : email,
+          email: historyStyle ? undefined : email,
           birthday: isCompany ? undefined : birthday,
           referralSource: referral,
           referralCode: (referralOn && hasReferralCode && referralCode.trim()) || undefined,
           postalCode: postalCode || undefined,
           taxInvoice: billing || undefined,
+          emergencyContact: rf.emergency.enabled ? emergencyFromForm(emergency) : undefined,
           marketingConsent: consent,
           cats: cats
             .filter((c) => c.name.trim())
@@ -294,7 +304,7 @@ export default function RegisterPage() {
               vaccinated: c.vaccinated ? c.vaccinated === "yes" : undefined,
               color: c.color || undefined,
               staffNote: c.note || undefined,
-              history: historyFor(c) ? { ...ownerAnswers, ...c.history } : undefined,
+              history: historyFor(c) ? c.history : undefined,
             })),
         }),
       });
@@ -394,8 +404,8 @@ export default function RegisterPage() {
           <>
             <label className="block">
               <span className="mb-1 block text-xs font-bold text-brown">
-                {customLabel("ownerName") || (isCompany ? "ชื่อผู้ติดต่อ" : ownerHistory.length ? "ชื่อจริง-นามสกุล" : "ชื่อผู้ปกครอง")}{" "}
-                {!ownerHistory.length && (
+                {customLabel("ownerName") || (isCompany ? "ชื่อผู้ติดต่อ" : historyStyle ? "ชื่อจริง-นามสกุล" : "ชื่อผู้ปกครอง")}{" "}
+                {!historyStyle && (
                   <span className="font-normal text-brown-faint">
                     (ชื่อเล่นหรือชื่อจริงก็ได้นะคะ)
                   </span>
@@ -405,14 +415,14 @@ export default function RegisterPage() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder={ownerHistory.length ? "เช่น สมใจ ใจดี" : "เช่น คุณมาย"}
+                placeholder={historyStyle ? "เช่น สมใจ ใจดี" : "เช่น คุณมาย"}
                 className={fieldClass}
               />
             </label>
 
             <label className="block">
               <span className="mb-1 block text-xs font-bold text-brown">
-                {customLabel("phone") || (isCompany ? "เบอร์ผู้ติดต่อ" : ownerHistory.length ? "เบอร์หลัก" : "เบอร์โทร")}
+                {customLabel("phone") || (isCompany ? "เบอร์ผู้ติดต่อ" : historyStyle ? "เบอร์หลัก" : "เบอร์โทร")}
               </span>
               <input
                 required
@@ -426,22 +436,21 @@ export default function RegisterPage() {
           </>
         )}
 
-        {ownerHistory.length > 0 && (
-          <div className="space-y-3">
-            <IntakeFieldsInput
-              fields={ownerHistory}
-              answers={ownerAnswers}
-              onChange={(k, v) => setOwnerAnswers((a) => ({ ...a, [k]: v }))}
-              showMissing={attempted}
-              inputClass={fieldClass}
-            />
-          </div>
+        {rf.emergency.enabled && (
+          <EmergencyContactInput
+            value={emergency}
+            onChange={setEmergency}
+            label={rf.emergency.label}
+            required={rf.emergency.required}
+            showMissing={attempted}
+            inputClass={fieldClass}
+          />
         )}
 
         {/* ร้านที่ถามประวัติตอนสมัคร (เช่น Back Home) ไม่ขออีเมล — ลิสต์ของร้านไม่มี */}
         {/* จอมือถือ: อีเมล/วันเกิดคนละแถว — วางคู่กันแล้วช่องวัน/เดือน/ปีแคบจนอ่านไม่ออก */}
-        <div className={isCompany || ownerHistory.length || !rf.email.enabled || !rf.ownerBirthday.enabled ? "" : "grid gap-3 sm:grid-cols-2"}>
-          {!ownerHistory.length && rf.email.enabled && (
+        <div className={isCompany || historyStyle || !rf.email.enabled || !rf.ownerBirthday.enabled ? "" : "grid gap-3 sm:grid-cols-2"}>
+          {!historyStyle && rf.email.enabled && (
             <label className="block">
               <span className="mb-1 block text-xs font-bold text-brown">{rf.email.label}{optTag(rf.email.required)}</span>
               <input

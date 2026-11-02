@@ -9,6 +9,7 @@ import {
 } from "@/lib/customers-store";
 import { sendTelegramLater, formatBookingTelegram } from "@/lib/telegram";
 import { parseTaxInvoiceBody, type CustomerTaxInvoice } from "@/lib/tax-invoice";
+import { emergencyOf, parseEmergencyContact, type EmergencyContact } from "@/lib/emergency-contact";
 import { withResolvedTenant } from "@/lib/tenant-context";
 import { requireCustomerSession, noCustomerSessionResponse } from "@/lib/customer-session";
 import { stayInfoDone } from "@/lib/intake-rules";
@@ -40,6 +41,8 @@ async function handleGet(req: NextRequest) {
       idCardUrl: c.idCardUrl || "",
       consentAcceptedAt: c.consentAcceptedAt || "",
       taxInvoice: c.taxInvoice ?? null,
+      // ลูกค้าเก่าที่เคยตอบไว้ในฟอร์มทำประวัติของน้อง — ดึงมาเติมให้ แก้แล้วบันทึกจะย้ายมาเก็บที่ตัวลูกค้า
+      emergencyContact: emergencyOf(c) ?? null,
       marketingConsent: c.marketingConsent !== false,
       cats: c.cats.map((x) => ({
         id: x.id,
@@ -91,7 +94,10 @@ async function handlePost(req: NextRequest) {
     postalCode?: string;
     marketingConsent?: boolean;
     taxInvoice?: CustomerTaxInvoice | null;
+    emergencyContact?: EmergencyContact | null;
   } = {};
+  // หน้าเก่าที่ยังไม่มีช่องนี้จะไม่ส่งมา — คงค่าเดิมไว้ · ส่งมาแต่ลบเบอร์ออก = ล้าง
+  if (body.emergencyContact !== undefined) patch.emergencyContact = parseEmergencyContact(body.emergencyContact) ?? null;
   // หน้าเก่าที่ยังไม่มีช่องนี้จะไม่ส่ง taxInvoice มา — คงค่าเดิมไว้
   const taxInvoice = parseTaxInvoiceBody(body.taxInvoice);
   if (taxInvoice.error) return NextResponse.json({ error: taxInvoice.error }, { status: 400 });

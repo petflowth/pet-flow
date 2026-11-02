@@ -16,6 +16,7 @@ import { parseGroomInfo, groomInfoSummary } from "@/lib/groom-info";
 import { getSiteConfig } from "@/lib/config-store";
 import { isFeatureOn } from "@/lib/features";
 import { intakeFields, ownerHistoryKeys, sanitizeIntakeInfo } from "@/lib/intake-rules";
+import { LEGACY_EMERGENCY_KEYS } from "@/lib/emergency-contact";
 import { requireCustomerSession, noCustomerSessionResponse } from "@/lib/customer-session";
 import { petKindOf, speciesOf } from "@/lib/pet-kind";
 import { BATH_SHARED_WITH_STAY } from "@/lib/stay-form";
@@ -171,9 +172,11 @@ async function postHandler(req: NextRequest) {
   let res: { ok: boolean; error?: string };
   if (t.kind === "stay") {
     // ฟอร์มก่อนเข้าพักเก็บที่ตัวน้องในบัญชีลูกค้า — ต้องมีน้องตัวนี้ในบัญชีจริง
-    // หมวดเจ้าของ (เบอร์ฉุกเฉิน) ไม่ได้ถามในฟอร์มนี้ — คงคำตอบจากหน้าสมัครไว้ ไม่ให้หาย
+    // หมวดเจ้าของ + เบอร์ฉุกเฉินเก่า ไม่ได้ถามในฟอร์มนี้ — คงคำตอบเดิมไว้ ไม่ให้หาย
     const prev = parseGroomInfo(t.cat?.stayInfo) as Record<string, unknown> | null;
-    const keep = Object.fromEntries(ownerHistoryKeys(kind, cfg).filter((k) => prev?.[k]).map((k) => [k, prev![k]]));
+    const keep = Object.fromEntries(
+      [...ownerHistoryKeys(kind, cfg), ...LEGACY_EMERGENCY_KEYS].filter((k) => prev?.[k]).map((k) => [k, prev![k]])
+    );
     res = t.me && t.cat ? await setCatStayInfo(t.me.id, t.cat.id, JSON.stringify({ ...keep, ...payload })) : { ok: false, error: "not_found" };
   } else {
     res = await setCatGroomInfo(session.lineUserId, t.cat?.name ?? t.catName, JSON.stringify(payload));

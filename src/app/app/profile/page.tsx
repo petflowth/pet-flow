@@ -25,6 +25,13 @@ import {
 } from "@/lib/tax-invoice";
 import { customerFetch } from "@/lib/customer-fetch";
 import { NumInput } from "@/components/NumInput";
+import { resolveRegisterForm } from "@/lib/register-form";
+import {
+  EmergencyContactInput,
+  emergencyFromForm,
+  emptyEmergencyForm,
+  type EmergencyForm,
+} from "@/components/EmergencyContactInput";
 
 const REFERRAL_FALLBACK = [
   "Facebook",
@@ -74,6 +81,9 @@ export default function ProfilePage() {
   const [address, setAddress] = useState("");
   const [addressMapUrl, setAddressMapUrl] = useState("");
   const [postalCode, setPostalCode] = useState("");
+  // เบอร์ติดต่อฉุกเฉิน — กรอกไว้ตอนสมัคร แก้ได้ที่นี่ (ร้านปิดช่องนี้ = ไม่แสดง)
+  const emergencyField = resolveRegisterForm(config.registerForm).emergency;
+  const [emergency, setEmergency] = useState<EmergencyForm>(() => emptyEmergencyForm());
   const [consent, setConsent] = useState(true);
   const [taxInvoice, setTaxInvoice] = useState<TaxInvoiceForm>(() => taxInvoiceToForm(null));
   const [saveError, setSaveError] = useState("");
@@ -104,6 +114,7 @@ export default function ProfilePage() {
         setAddress(c.address || "");
         setAddressMapUrl(c.addressMapUrl || "");
         setPostalCode(c.postalCode || "");
+        setEmergency(emptyEmergencyForm(c.emergencyContact));
         setConsent(c.marketingConsent !== false);
         setTaxInvoice(taxInvoiceToForm(c.taxInvoice));
         setCats(
@@ -220,6 +231,10 @@ export default function ProfilePage() {
       setSaveError("เลือกว่าน้องแต่ละตัวเป็นหมาหรือแมวด้วยนะคะ");
       return;
     }
+    if (emergency.phone.trim() && emergency.phone.replace(/\D/g, "").length < 9) {
+      setSaveError("เบอร์ติดต่อฉุกเฉินยังไม่ครบ ลองเช็คอีกทีนะคะ");
+      return;
+    }
     const taxProblem = taxInvoiceProblem(formToTaxInvoice(taxInvoice));
     setSaveError(taxProblem);
     if (taxProblem) return;
@@ -240,6 +255,7 @@ export default function ProfilePage() {
           addressMapUrl,
           postalCode,
           taxInvoice: formToTaxInvoice(taxInvoice),
+          ...(emergencyField.enabled ? { emergencyContact: emergencyFromForm(emergency) ?? null } : {}),
           marketingConsent: consent,
           cats: cats.map((c) => ({
             id: c.id,
@@ -332,6 +348,15 @@ export default function ProfilePage() {
               เบอร์โทร
               <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" placeholder="08x-xxx-xxxx" className={`${field} mt-1`} />
             </label>
+            {emergencyField.enabled && (
+              <EmergencyContactInput
+                value={emergency}
+                onChange={setEmergency}
+                label={emergencyField.label}
+                required={false}
+                inputClass={field}
+              />
+            )}
             <div className="grid grid-cols-2 gap-3">
               <label className="block text-xs font-bold text-brown-soft">
                 อีเมล

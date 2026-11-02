@@ -13,6 +13,7 @@ import { uploadPrivateDataUrl } from "./supabase/storage";
 import { getSiteConfig } from "./config-store";
 import { requireTenantId } from "./tenant-context";
 import { ensureMigration } from "./migrations";
+import { parseEmergencyContact, type EmergencyContact } from "./emergency-contact";
 import { normalizeSpecies, type PetSpecies } from "./pet-kind";
 import { taxInvoiceFromRow, type CustomerTaxInvoice } from "./tax-invoice";
 import { MAX_VACCINE_PHOTOS, joinVaccinePhotos, splitVaccinePhotos } from "./vaccine-photos";
@@ -109,6 +110,8 @@ export type CustomerRecord = {
   consentFleaTick?: boolean;
   /** "แจ้งการดูแลเพิ่มเติม" ที่ลูกค้ากรอกตอนยอมรับข้อตกลงล่าสุด */
   consentCareNote?: string;
+  /** เบอร์ติดต่อฉุกเฉิน — ถามครั้งเดียวตอนสมัครสมาชิก (ลูกค้าเก่าอาจอยู่ในคำตอบฟอร์มของน้อง ดู emergencyOf) */
+  emergencyContact?: EmergencyContact;
   /** รหัสชวนเพื่อนของลูกค้าคนนี้ (แชร์ให้เพื่อนสมัคร) */
   referralCode?: string;
   /** ถูกชวนมาโดยลูกค้ารหัสนี้ (กันออกคูปองซ้ำ) */
@@ -221,6 +224,7 @@ type CustomerRow = {
   consent_signature?: string | null;
   consent_flea_tick?: boolean | null;
   consent_care_note?: string | null;
+  emergency_contact?: unknown;
   referral_code?: string | null;
   referred_by?: string | null;
   is_member: boolean;
@@ -322,6 +326,7 @@ function mapCustomer(row: CustomerRow): CustomerRecord {
     consentSignature: row.consent_signature ?? undefined,
     consentFleaTick: row.consent_flea_tick ?? undefined,
     consentCareNote: row.consent_care_note ?? undefined,
+    emergencyContact: parseEmergencyContact(row.emergency_contact),
     referralCode: row.referral_code ?? undefined,
     referredBy: row.referred_by ?? undefined,
     isMember: row.is_member,
@@ -1263,13 +1268,14 @@ export async function updateCustomer(
       | "tier"
       | "lastFollowUpAt"
     >
-  > & { taxInvoice?: CustomerTaxInvoice | null }
+  > & { taxInvoice?: CustomerTaxInvoice | null; emergencyContact?: EmergencyContact | null }
 ) {
   const c = await getCustomer(id);
   if (!c) return null;
 
   Object.assign(c, patch);
   if (patch.taxInvoice === null) c.taxInvoice = undefined;
+  if (patch.emergencyContact === null) c.emergencyContact = undefined;
   if (patch.isMember && !c.memberSince) {
     c.memberSince = new Date().toISOString().slice(0, 10);
   }
@@ -1327,6 +1333,17 @@ export async function updateCustomer(
           .eq("tenant_id", requireTenantId());
       const { error } = await write();
       if (error && (await ensureMigration("customers.tax_invoice"))) await write();
+    }
+    if (patch.emergencyContact !== undefined) {
+      // คอลัมน์ใหม่ — แยกเขียน ยังไม่ได้รัน migration ก็รันให้เองแล้วเขียนอีกรอบ
+      const write = () =>
+        sb
+          .from("customers")
+          .update({ emergency_contact: c.emergencyContact ?? null })
+          .eq("id", id)
+          .eq("tenant_id", requireTenantId());
+      const { error } = await write();
+      if (error && (await ensureMigration("customers.emergency_contact"))) await write();
     }
   } else {
     memCustomers.set(id, c);
@@ -1963,6 +1980,18 @@ export async function mergeCustomers(sourceId: string, targetId: string) {
           () => {}
         );
     }
+    if (!target.emergencyContact && source.emergencyContact) {
+      // เบอร์ฉุกเฉิน — คอลัมน์ใหม่ เขียนแยกเผื่อยังไม่ได้ migrate
+      await sb
+        .from("customers")
+        .update({ emergency_contact: source.emergencyContact })
+        .eq("id", targetId)
+        .eq("tenant_id", tenantId)
+        .then(
+          () => {},
+          () => {}
+        );
+    }
   } else {
     // mem — ย้ายเท่าที่เก็บใน map นี้ได้ (dev)
     const t = memCustomers.get(targetId);
@@ -1979,6 +2008,7 @@ export async function mergeCustomers(sourceId: string, targetId: string) {
       t.addressMapUrl = t.addressMapUrl || s.addressMapUrl;
       t.postalCode = t.postalCode || s.postalCode;
       t.taxInvoice = t.taxInvoice || s.taxInvoice;
+      t.emergencyContact = t.emergencyContact || s.emergencyContact;
       t.referralSource = t.referralSource || s.referralSource;
       t.lineDisplayName = t.lineDisplayName || s.lineDisplayName;
       if (!t.lineUserId && s.lineUserId) t.lineUserId = s.lineUserId;
@@ -2817,6 +2847,7 @@ export async function registerCustomerFromLine(data: {
   addressMapUrl?: string;
   postalCode?: string;
   taxInvoice?: CustomerTaxInvoice;
+  emergencyContact?: EmergencyContact;
   marketingConsent?: boolean;
   cats: {
     name: string;
@@ -2915,6 +2946,8 @@ export async function registerCustomerFromLine(data: {
     marketingConsent: data.marketingConsent ?? true,
     // ไม่ติ๊กตอนสมัคร = ไม่แตะค่าเดิม (เผื่อร้านกรอกไว้ให้ก่อนแล้ว)
     ...(data.taxInvoice ? { taxInvoice: data.taxInvoice } : {}),
+    // ไม่กรอก (ร้านปิดช่องนี้) = ไม่แตะค่าเดิม
+    ...(data.emergencyContact ? { emergencyContact: data.emergencyContact } : {}),
   });
 
   for (const cat of cats) {

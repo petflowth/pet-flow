@@ -2,7 +2,7 @@
 
 import { savedPopup } from "@/components/Toast";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLiff } from "@/components/LiffProvider";
 import { useConfig } from "@/components/ConfigProvider";
 import { catCurrentAgeLabel } from "@/lib/cat-age";
@@ -118,7 +118,6 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [birthday, setBirthday] = useState("");
   const [referral, setReferral] = useState("");
-  const [postalCode, setPostalCode] = useState("");
   const [consent, setConsent] = useState(true);
   const [taxInvoice, setTaxInvoice] = useState<TaxInvoiceForm>(() => emptyTaxInvoiceForm("person"));
   // สมัครในนามนิติบุคคล — ข้อมูลบริษัท + ผู้ติดต่อใช้ข้อมูลเดียวกับบริษัทไหม
@@ -142,6 +141,11 @@ export default function RegisterPage() {
   const [attempted, setAttempted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  // ข้อความเตือนอยู่ติดปุ่มบันทึก — เลื่อนให้เห็นทุกครั้งที่มีข้อความใหม่ (ไม่ให้ดูเหมือนกดแล้วไม่เกิดอะไร)
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [error]);
   const [referralCode, setReferralCode] = useState("");
   // ติ๊ก "มีโค้ดเพื่อนแนะนำ" แล้วค่อยโชว์ช่องกรอก — มาจากลิงก์ชวนจะติ๊ก + เติมโค้ดให้เอง
   const [hasReferralCode, setHasReferralCode] = useState(false);
@@ -217,6 +221,16 @@ export default function RegisterPage() {
       }
       return "";
     };
+    // ฟอร์มปิดการตรวจของเบราว์เซอร์ (noValidate) — ทุกช่องต้องตรวจที่นี่ ให้ขึ้นข้อความเสมอ
+    // (เดิมช่องที่ติด required ว่างอยู่ = เบราว์เซอร์ใน LINE บล็อกปุ่มบันทึกเงียบ ๆ ลูกค้าไม่รู้ว่าขาดอะไร)
+    if (!useCompanyContact && !name.trim()) {
+      setError("กรอกชื่อ-นามสกุลด้วยนะคะ");
+      return;
+    }
+    if (!useCompanyContact && phone.replace(/\D/g, "").length < 9) {
+      setError("กรอกเบอร์โทรให้ครบด้วยนะคะ");
+      return;
+    }
     if (askNickname && rf.ownerNickname.required && !nickname.trim()) {
       setError("กรอกชื่อเล่นด้วยนะคะ");
       return;
@@ -237,12 +251,12 @@ export default function RegisterPage() {
       setError("กรอกอีเมลด้วยนะคะ");
       return;
     }
-    if (rf.ownerBirthday.required && !isCompany && !birthday) {
-      setError("เลือกวันเกิดผู้ปกครองด้วยนะคะ");
+    if (!historyStyle && email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError("อีเมลไม่ถูกต้อง — เช็คตัวสะกดอีกครั้งนะคะ");
       return;
     }
-    if (rf.postalCode.required ? !/^\d{5}$/.test(postalCode) : postalCode && !/^\d{5}$/.test(postalCode)) {
-      setError("กรอกรหัสไปรษณีย์ 5 หลักด้วยนะคะ");
+    if (rf.ownerBirthday.required && !isCompany && !birthday) {
+      setError("เลือกวันเกิดผู้ปกครองด้วยนะคะ");
       return;
     }
     if (rf.referral.enabled && rf.referral.required && !referral) {
@@ -286,7 +300,6 @@ export default function RegisterPage() {
           birthday: isCompany ? undefined : birthday,
           referralSource: referral,
           referralCode: (referralOn && hasReferralCode && referralCode.trim()) || undefined,
-          postalCode: postalCode || undefined,
           taxInvoice: billing || undefined,
           emergencyContact: rf.emergency.enabled ? emergencyFromForm(emergency) : undefined,
           nickname: (askNickname && nickname.trim()) || undefined,
@@ -392,7 +405,7 @@ export default function RegisterPage() {
         </div>
       )}
 
-      <form onSubmit={submit} className="space-y-6">
+      <form onSubmit={submit} noValidate className="space-y-6">
         {/* ── ข้อมูลผู้ปกครอง ── */}
         <section>
         <SectionLabel>Owner · ข้อมูลผู้ปกครอง</SectionLabel>
@@ -503,24 +516,6 @@ export default function RegisterPage() {
           )}
         </div>
 
-        {rf.postalCode.enabled && (
-        <label className="block">
-          <span className="mb-1 block text-xs font-bold text-brown">
-            {rf.postalCode.label}{optTag(rf.postalCode.required)}
-          </span>
-          <input
-            required={rf.postalCode.required}
-            pattern="[0-9]{5}"
-            value={postalCode}
-            onChange={(e) =>
-              setPostalCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 5))
-            }
-            inputMode="numeric"
-            placeholder="เช่น 10540"
-            className={fieldClass}
-          />
-        </label>
-        )}
 
         {!isCompany && (
           <div className="border-t border-petflow-line pt-3 empty:hidden">
@@ -1028,7 +1023,7 @@ export default function RegisterPage() {
         </label>
 
         {error && (
-          <p className="rounded-petflow-sm bg-red-50 px-3 py-2 text-xs font-bold text-red-700">
+          <p ref={errorRef} className="rounded-petflow-sm bg-red-50 px-3 py-2 text-xs font-bold text-red-700">
             {error}
           </p>
         )}

@@ -217,7 +217,7 @@ export function RoomSeasonsEditor({
                   </div>
                 )}
                 <label className="mt-2 flex items-center gap-1.5 text-[11px] text-brown-soft">
-                  {petWord}หลายตัวอยู่ห้องเดียวกัน ตัวที่เพิ่ม
+                  บ้านเดียวกันพักห้องเดียวกัน ตัวที่ 2 ขึ้นไป
                   <NumInput
                     value={rule.extraPetPrice ?? 0}
                     min={0}

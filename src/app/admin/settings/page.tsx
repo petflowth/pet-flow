@@ -1251,7 +1251,7 @@ function backHomeRoomPreset(current: RoomType[]): { rooms: RoomType[]; seasons: 
     composedOf: undefined,
     extra: { th: "ตัวที่ 2 +550", en: "2nd pet +550" },
     note: {
-      th: "High 1,250฿/คืน · Low คิดตามน้ำหนัก 750–1,050฿ · หลายตัวห้องเดียวกัน เริ่มต้น 450฿/ตัว (Low) · 550฿/ตัว (High)",
+      th: "High 1,250฿/คืน · Low คิดตามน้ำหนัก 750–1,050฿ · ตัวที่ 2 ขึ้นไป (พักห้องเดียวกัน) เริ่มต้น 450฿/ตัว (Low) · 550฿/ตัว (High)",
       en: "High 1,250฿/night · Low by weight 750–1,050฿ · extra dog in same room from 450฿ (Low) / 550฿ (High)",
     },
   };

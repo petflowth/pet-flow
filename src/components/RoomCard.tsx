@@ -6,6 +6,8 @@ import type { Locale } from "@/lib/business";
 import { RoomPoster } from "@/components/RoomPoster";
 import { t } from "@/lib/i18n";
 import { Icon } from "@/components/Icon";
+import { useConfig } from "@/components/ConfigProvider";
+import { roomPriceLine } from "@/components/RoomPriceDetails";
 
 export function RoomCard({
   room,
@@ -15,6 +17,7 @@ export function RoomCard({
   locale: Locale;
 }) {
   const m = t(locale).rooms;
+  const { config } = useConfig();
 
   return (
     <Link
@@ -28,8 +31,11 @@ export function RoomCard({
             {room.name}
           </p>
           <p className="text-[11px] text-brown-soft">
-            {room.price} {m.perNight} · {m.tapToView}
+            {roomPriceLine(room, config.roomSeasons, m.perNight)} · {m.tapToView}
           </p>
+          {room.note?.th && locale === "th" && (
+            <p className="mt-0.5 text-[11px] leading-snug text-brown-faint">{room.note.th}</p>
+          )}
         </div>
         <Icon name="chevron" size={18} className="text-brown-faint" />
       </div>

@@ -3,11 +3,10 @@
 import { EMERGENCY_RELATIONS, type EmergencyContact } from "@/lib/emergency-contact";
 
 /** ค่าที่กำลังกรอก — relation เป็นข้อความ (ตัวเลือกที่กด หรือพิมพ์เอง) */
-export type EmergencyForm = { phone: string; name: string; relation: string };
+export type EmergencyForm = { phone: string; relation: string };
 
 export const emptyEmergencyForm = (e?: EmergencyContact | null): EmergencyForm => ({
   phone: e?.phone || "",
-  name: e?.name || "",
   relation: e?.relation || "",
 });
 
@@ -16,14 +15,13 @@ export function emergencyFromForm(f: EmergencyForm): EmergencyContact | undefine
   const phone = f.phone.trim();
   if (!phone) return undefined;
   const relation = f.relation.trim();
-  const name = f.name.trim();
-  return { phone, ...(name ? { name } : {}), ...(relation ? { relation } : {}) };
+  return relation ? { phone, relation } : { phone };
 }
 
 /** ยังกรอกไม่ครบ (ร้านตั้งบังคับ) — คืนข้อความเตือน */
 export function emergencyProblem(f: EmergencyForm, required: boolean): string {
   const digits = f.phone.replace(/\D/g, "");
-  if (!required && !f.phone.trim() && !f.relation.trim() && !f.name.trim()) return "";
+  if (!required && !f.phone.trim() && !f.relation.trim()) return "";
   if (digits.length < 9) return "กรอกเบอร์ติดต่อฉุกเฉินด้วยนะคะ";
   if (!f.relation.trim()) return "เลือกว่าผู้ติดต่อฉุกเฉินเกี่ยวข้องเป็นอะไรกับคุณด้วยนะคะ";
   return "";
@@ -69,17 +67,6 @@ export function EmergencyContactInput({
           value={value.phone}
           onChange={(e) => onChange({ ...value, phone: e.target.value })}
           placeholder="เช่น 081-234-5678"
-          className={inputClass}
-        />
-      </label>
-      <label className="block">
-        <span className="mb-1 block text-xs font-bold text-brown">
-          ชื่อเล่นผู้ติดต่อ<span className="font-normal text-brown-faint"> (ไม่บังคับ)</span>
-        </span>
-        <input
-          value={value.name}
-          onChange={(e) => onChange({ ...value, name: e.target.value })}
-          placeholder="เช่น ต้อม"
           className={inputClass}
         />
       </label>

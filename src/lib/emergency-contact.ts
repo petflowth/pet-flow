@@ -7,8 +7,6 @@
 export type EmergencyContact = {
   /** เบอร์โทร */
   phone: string;
-  /** ชื่อเล่นผู้ติดต่อ (ไม่บังคับ) */
-  name?: string;
   /** เกี่ยวข้องเป็นอะไรกับลูกค้า เช่น "แม่" "เพื่อน" (ข้อความ ไม่ใช่ key) */
   relation?: string;
 };
@@ -36,21 +34,13 @@ export function parseEmergencyContact(v: unknown): EmergencyContact | undefined 
   const phone = clip(o.phone, 40);
   if (!phone) return undefined;
   const relation = clip(o.relation, 60);
-  const name = clip(o.name, 60);
-  return { phone, ...(name ? { name } : {}), ...(relation ? { relation } : {}) };
+  return relation ? { phone, relation } : { phone };
 }
 
-/** คำอธิบายตัวผู้ติดต่อ เช่น "แม่ · ชื่อเล่น ต้อม" */
-export function emergencyWho(e?: EmergencyContact): string {
-  if (!e) return "";
-  return [e.relation, e.name && `ชื่อเล่น ${e.name}`].filter(Boolean).join(" · ");
-}
-
-/** ข้อความแสดงผล เช่น "081-234-5678 (แม่ · ชื่อเล่น ต้อม)" */
+/** ข้อความแสดงผล เช่น "081-234-5678 (แม่)" */
 export function emergencyText(e?: EmergencyContact): string {
   if (!e) return "";
-  const who = emergencyWho(e);
-  return who ? `${e.phone} (${who})` : e.phone;
+  return e.relation ? `${e.phone} (${e.relation})` : e.phone;
 }
 
 /** ความเกี่ยวข้องจากคำตอบฟอร์มทำประวัติเดิม (key ตัวเลือก หรือข้อความพิมพ์เอง) */

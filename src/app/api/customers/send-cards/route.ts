@@ -6,7 +6,7 @@ import { getCustomer } from "@/lib/customers-store";
 import { getSiteConfig } from "@/lib/config-store";
 import { cardOn } from "@/lib/features";
 import { getLineCredentials } from "@/lib/line-config";
-import { DEFAULT_MESSAGES } from "@/lib/messages";
+import { DEFAULT_MESSAGES, consentTextFor } from "@/lib/messages";
 import {
   pushLineMessage,
   buildConsentFlex,
@@ -25,7 +25,7 @@ import {
 } from "@/lib/liff-urls";
 
 /** การ์ดที่ส่งจากหน้าข้อมูลลูกค้าได้ (ยังไม่ต้องมีนัด) */
-const CUSTOMER_CARD_PARTS = ["groomInfo", "stayInfo", "vaccine", "idcard", "consent", "prestay"] as const;
+const CUSTOMER_CARD_PARTS = ["groomInfo", "stayInfo", "vaccine", "idcard", "consent", "groomConsent", "prestay"] as const;
 type Part = (typeof CUSTOMER_CARD_PARTS)[number];
 
 /**
@@ -184,6 +184,16 @@ async function handlePost(req: NextRequest) {
           cfg.cards?.consent
         ),
       });
+    } else if (part === "groomConsent") {
+      // กฎอาบน้ำ/นวด — การ์ดแยกของตัวเอง (ไม่รวมในการ์ดไล่ทีละหน้า ซึ่งใช้กฎเข้าพัก)
+      const url = buildCustomerConsentUrl(liffId, "groom");
+      const { title, terms } = consentTextFor(cfg.messages, "groom");
+      messages.push(
+        buildConsentFlex(
+          { businessName: cfg.business.name, title, catName: catNames, petEmoji: petWords(cfg).emoji, terms, url },
+          cfg.cards?.consent
+        )
+      );
     } else if (part === "prestay") {
       messages.push(
         buildPrestayFlex(

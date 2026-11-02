@@ -70,6 +70,6 @@ export function buildIdCardUrl(liffId: string) {
 }
 
 /** หน้าข้อตกลงแบบไม่ผูกนัด — ยอมรับแล้วเก็บไว้ที่ลูกค้า */
-export function buildCustomerConsentUrl(liffId: string) {
-  return buildLiffUrl(liffId, { path: "consent", mode: "customer" });
+export function buildCustomerConsentUrl(liffId: string, kind?: "groom") {
+  return buildLiffUrl(liffId, kind ? { path: "consent", mode: "customer", kind } : { path: "consent", mode: "customer" });
 }

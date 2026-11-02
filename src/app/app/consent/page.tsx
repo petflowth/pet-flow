@@ -171,8 +171,10 @@ function ConsentContent() {
   const [stayBath, setStayBath] = useState<{ date: string; time?: string } | null>(null);
 
   // นัดอาบน้ำใช้ข้อตกลงอาบน้ำ (แยกจากกฎเข้าพัก) — ไม่มีบัตรประชาชน/ยาเห็บหมัดก่อนเข้าพัก
-  const isGroom = booking?.service === "groom";
-  const { title: consentTitle, terms } = consentTextFor(config.messages, booking?.service);
+  // ลิงก์ "กฎอาบน้ำ/นวด" จากหน้าข้อมูลลูกค้า (ยังไม่มีนัด) — ใช้ข้อตกลงอาบน้ำ
+  const groomLink = customerMode && params.get("kind") === "groom";
+  const isGroom = booking?.service === "groom" || groomLink;
+  const { title: consentTitle, terms } = consentTextFor(config.messages, groomLink ? "groom" : booking?.service);
   const groomText = consentTextFor(config.messages, "groom");
   // ร้านที่ไม่ขอข้อตกลงอาบน้ำ (ตั้งค่า › ขอข้อมูลตามบริการ) ก็ไม่ต้องโชว์ตรงนี้
   const showBathTerms = !isGroom && !!stayBath && groomUsesCard(config, "consent");

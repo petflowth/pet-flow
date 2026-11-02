@@ -12,8 +12,9 @@ export async function confirmHouseholdFrom(bookingId: string): Promise<number> {
   const all = await listBookings();
   // กดมาจากอาบน้ำก่อนกลับ → ยืนยันรอบเข้าพักของมันด้วย
   const anchor = stayForGroom(b, all) || b;
-  const key = bookingGroupKey(anchor);
-  const house = all.filter((x) => x.status !== "cancelled" && bookingGroupKey(x) === key);
+  // อาบน้ำทั้งบ้านวันเดียวกัน = นัดเดียว (คนละรอบเวลาก็ยืนยันพร้อมกัน — กุญแจเดียวกับการ์ดยืนยันใน LINE)
+  const key = bookingGroupKey(anchor, { groomByDay: true });
+  const house = all.filter((x) => x.status !== "cancelled" && bookingGroupKey(x, { groomByDay: true }) === key);
   const stayIds = new Set(house.map((x) => x.id));
   const baths = all.filter((g) => {
     const stay = stayForGroom(g, all);

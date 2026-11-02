@@ -16,6 +16,7 @@ import { idCardPurpose, watermarkIdCard } from "@/lib/id-card-watermark";
 import { IntakeFlowBar } from "@/components/IntakeFlowBar";
 import { flowProgress } from "@/lib/intake-flow";
 import { customerFetch } from "@/lib/customer-fetch";
+import { formatThaiDateShort, roomWithWord } from "@/lib/format-thai-date";
 
 type StayBooking = Booking & { checkin?: string; room?: string; vaccinePhotoUrl?: string };
 
@@ -179,9 +180,9 @@ function StayLine({ b }: { b: StayBooking }) {
   const roomLabel = b.room ? config.rooms.find((r) => r.id === b.room)?.name || b.room : "";
   return (
     <p className="text-xs text-brown-soft">
-      {b.service === "room" ? "เข้าพัก" : "นัด"}: {b.checkin || b.date}
-      {b.checkout ? ` → ${b.checkout}` : ""}
-      {roomLabel ? ` · ห้อง ${roomLabel}` : ""}
+      {b.service === "room" ? "เข้าพัก" : "นัด"}: {formatThaiDateShort(b.checkin || b.date)}
+      {b.checkout ? ` → ${formatThaiDateShort(b.checkout)}` : ""}
+      {roomLabel ? ` · ${roomWithWord(roomLabel)}` : ""}
     </p>
   );
 }
@@ -207,25 +208,31 @@ function VaccineSection({ target }: { target: VaccineTarget }) {
           /* แปลงรูปไหนไม่สำเร็จก็ข้ามรูปนั้นไป */
         }
       }
-      setPhotos((prev) => [...prev, ...urls].slice(0, MAX_VACCINE_PHOTOS));
+      const next = [...photos, ...urls].slice(0, MAX_VACCINE_PHOTOS);
+      setPhotos(next);
       setDone(false);
+      // เลือกรูปแล้วส่งให้ร้านทันที — เดิมต้องกด "ส่ง X รูปให้ร้าน" อีกที ลูกค้าหลายคนกด "ถัดไป" เลย
+      // แล้วรูปหายเงียบๆ (ร้านไม่ได้รับ แต่ลูกค้าคิดว่าแนบแล้ว) · ส่งไม่ผ่านค่อยโชว์ปุ่มลองส่งอีกครั้ง
+      if (urls.length) await send(next);
     } finally {
       setConverting(false);
     }
   };
 
-  const send = async () => {
-    if (!photos.length) return;
+  const send = async (list: string[] = photos) => {
+    if (!list.length) return;
     setSaving(true);
     try {
       const res = await fetch(booking ? "/api/bookings/vaccine" : "/api/customers/cat-vaccine", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(booking ? { bookingId: booking.id, photos } : { catId: target.catId, photos }),
+        body: JSON.stringify(
+          booking ? { bookingId: booking.id, photos: list } : { catId: target.catId, photos: list }
+        ),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(String(res.status));
-      setSentCount(data.count ?? sentCount + photos.length);
+      setSentCount((prev) => data.count ?? prev + list.length);
       setPhotos([]);
       setDone(true);
       savedPopup("ส่งรูปสมุดวัคซีนสำเร็จ", ["ร้านได้รับรูปแล้วค่ะ"]);
@@ -294,19 +301,24 @@ function VaccineSection({ target }: { target: VaccineTarget }) {
               ? "กำลังแนบรูป…"
               : photos.length
                 ? `เพิ่มรูปอีก (สูงสุด ${MAX_VACCINE_PHOTOS} รูป)`
-                : "แตะเพื่อถ่าย/เลือกรูปสมุดวัคซีน (เลือกได้หลายรูป)"}
+                : sentCount > 0
+                  ? "แนบเพิ่ม (เลือกแล้วส่งให้ร้านทันที)"
+                  : "แตะเพื่อถ่าย/เลือกรูปสมุดวัคซีน (เลือกแล้วส่งให้ร้านทันที)"}
           </span>
         </label>
       )}
 
-      <button
-        type="button"
-        disabled={!photos.length || saving || converting}
-        onClick={send}
-        className={`mt-3 ${BTN_PRIMARY}`}
-      >
-        {saving ? "กำลังส่ง…" : photos.length ? `ส่ง ${photos.length} รูปให้ร้าน` : "เลือกรูปก่อนนะคะ"}
-      </button>
+      {saving ? (
+        <p className="mt-3 text-center text-xs font-bold text-brown-soft">กำลังส่งรูปให้ร้าน…</p>
+      ) : (
+        photos.length > 0 &&
+        !converting && (
+          // เหลือรูปค้าง = ส่งรอบก่อนไม่ผ่าน
+          <button type="button" onClick={() => send()} className={`mt-3 ${BTN_PRIMARY}`}>
+            ส่งไม่สำเร็จ — แตะเพื่อลองส่ง {photos.length} รูปอีกครั้ง
+          </button>
+        )
+      )}
     </section>
   );
 }

@@ -75,14 +75,16 @@ async function postHandler(req: NextRequest) {
     // (สมุดวัคซีนเป็นของแต่ละตัว — ไม่คัดลอกข้ามตัว ใช้รูปที่แนบให้ตัวนั้นเอง)
     let bathCount = 0;
     if (b) {
-      const key = bookingGroupKey(b);
+      // อาบน้ำ: ทั้งบ้านในวันเดียวกันนับเป็นนัดเดียว แม้น้องแต่ละตัวได้คนละรอบเวลา (ช่องเต็มเลยแยกรอบ)
+      // ไม่งั้นลูกค้ากดยอมรับแล้ว ตัวที่อยู่อีกรอบยังขึ้น "ยังไม่กด" ให้เซ็นซ้ำ
+      const key = bookingGroupKey(b, { groomByDay: true });
       const mine = await listBookingsByCustomerName(b.customerName);
       const siblings = mine.filter(
         (x) =>
           x.id !== b.id &&
           !x.consentAcceptedAt &&
           x.status !== "cancelled" &&
-          bookingGroupKey(x) === key
+          bookingGroupKey(x, { groomByDay: true }) === key
       );
       // ข้อตกลง + สมุดวัคซีนที่แนบมา ยกขึ้นตัวน้อง/ลูกค้าด้วย — หน้าข้อมูลลูกค้าจะได้ขึ้น "ได้รับแล้ว"
       await copyBookingDocsToCustomer(b, { newPhotos: res.vaccineAdded });

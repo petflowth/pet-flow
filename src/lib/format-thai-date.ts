@@ -42,3 +42,10 @@ export function formatBookingWhen(booking: {
   const date = formatThaiDate(booking.date || "");
   return booking.time ? `${date} · เวลา ${booking.time}` : date;
 }
+
+/** ชื่อห้องพร้อมคำว่า "ห้อง" — ชื่อที่ขึ้นต้นด้วย "ห้อง" อยู่แล้ว (ห้องหมากลาง) ไม่เติมซ้ำเป็น "ห้อง ห้องหมากลาง" */
+export function roomWithWord(name: string): string {
+  const n = (name || "").trim();
+  if (!n) return "";
+  return /^ห้อง/.test(n) ? n : `ห้อง ${n}`;
+}

@@ -12,14 +12,20 @@ export default function RoomsPage() {
   const { locale } = useLocale();
   const { config } = useConfig();
   const m = t(locale).rooms;
-  const inv = config.roomInventory;
+  // จำนวนห้องจริงของร้าน (รวม count ของแต่ละแบบ ไม่นับห้องรวมที่ประกอบจากห้องเดี่ยว)
+  // เดิมเขียนตายตัว "ทั้งหมด 13 ห้อง · 6S + 6M + 1 Netflix" ของร้านแมวตัวอย่าง — ทุกร้านเห็นเลขเดียวกันหมด
+  const total = config.rooms.reduce(
+    (sum, r) => sum + (!r.composedOf?.length && Number(r.count) > 0 ? Number(r.count) : 0),
+    0
+  );
+  const subtitle = total > 0 ? (locale === "th" ? `ทั้งหมด ${total} ห้อง` : `${total} rooms total`) : undefined;
 
   return (
     <div className="px-4 pb-6 pt-5">
       <PageHeader
         eyebrow="Rooms"
         title={m.title}
-        subtitle={`${m.total} · ${inv.miniMeow}S + ${inv.midCozy}M + ${inv.catflix} Netflix`}
+        subtitle={subtitle}
         back="/app/services"
         backLabel={locale === "th" ? "บริการทั้งหมด" : "All services"}
       />

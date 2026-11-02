@@ -3651,9 +3651,13 @@ export default function CustomersPage() {
                     const si = parseGroomInfo(cat.stayInfo);
                     if (!si) return null;
                     const fromRegister = !stayInfoDone(cat.stayInfo);
-                    const s = groomInfoSummary(si, summaryFields("stay", speciesOf(cat, config) ?? petKindOf(config), config, si));
+                    const sf = summaryFields("stay", speciesOf(cat, config) ?? petKindOf(config), config, si);
+                    const s = groomInfoSummary(si, sf);
                     const entries = Object.entries(s);
+                    // ข้อบังคับตอบของฟอร์มก่อนเข้าพัก (ตามที่ร้านตั้ง) — ทำเครื่องหมาย * ร้านจะได้รู้ว่าลูกค้าเว้นข้อนี้ไม่ได้
+                    const requiredLabels = new Set((sf ?? []).filter((f) => f.required).map((f) => f.label));
                     const missing = entries.filter(([, v]) => v === "-").length;
+                    const missingRequired = entries.filter(([k, v]) => v === "-" && requiredLabels.has(k)).length;
                     return (
                       <div
                         className={`rounded-petflow-sm border px-3 py-2.5 ${
@@ -3680,16 +3684,27 @@ export default function CustomersPage() {
                         <dl className="mt-1.5 space-y-1 text-[11px] text-brown">
                           {entries.map(([k, v]) => (
                             <div key={k} className="flex gap-2">
-                              <dt className="w-24 shrink-0 font-bold text-brown-soft">{k}</dt>
-                              <dd className={`min-w-0 flex-1 break-words ${v === "-" ? "italic text-brown-faint" : ""}`}>
-                                {v === "-" ? "ยังไม่ได้ตอบ" : v}
+                              <dt className="w-24 shrink-0 font-bold text-brown-soft">
+                                {k}
+                                {requiredLabels.has(k) && <span className="text-wait"> *</span>}
+                              </dt>
+                              <dd
+                                className={`min-w-0 flex-1 break-words ${
+                                  v === "-" ? (requiredLabels.has(k) ? "italic text-wait" : "italic text-brown-faint") : ""
+                                }`}
+                              >
+                                {v === "-" ? (requiredLabels.has(k) ? "ยังไม่ได้ตอบ (บังคับตอบ)" : "ยังไม่ได้ตอบ") : v}
                               </dd>
                             </div>
                           ))}
                         </dl>
                         {missing > 0 && (
                           <p className="mt-1.5 text-[10px] text-brown-faint">
-                            ยังไม่ได้ตอบ {missing} ข้อ (ข้อที่ไม่บังคับ ลูกค้าเว้นได้) — ส่งการ์ดข้อมูลก่อนเข้าพักให้ลูกค้ากรอกเพิ่มได้
+                            {missingRequired > 0
+                              ? `ยังไม่ได้ตอบ ${missing} ข้อ — ข้อที่มี * บังคับตอบ ${missingRequired} ข้อ ลูกค้าจะส่งฟอร์มก่อนเข้าพักไม่ได้จนกว่าจะตอบครบ${
+                                  fromRegister ? " (ตอนนี้ยังเป็นคำตอบจากหน้าสมัคร ลูกค้ายังไม่ได้กรอกฟอร์มก่อนเข้าพัก)" : ""
+                                } — ส่งการ์ดข้อมูลก่อนเข้าพักให้ลูกค้ากรอกได้`
+                              : `ยังไม่ได้ตอบ ${missing} ข้อ (ข้อที่ไม่บังคับ ลูกค้าเว้นได้) — ส่งการ์ดข้อมูลก่อนเข้าพักให้ลูกค้ากรอกเพิ่มได้`}
                           </p>
                         )}
                       </div>

@@ -28,7 +28,8 @@ export function emergencyProblem(f: EmergencyForm, required: boolean): string {
 }
 
 /**
- * ช่องเบอร์ติดต่อฉุกเฉิน + ความเกี่ยวข้อง (กดเลือก / พิมพ์เอง) — หน้าสมัครสมาชิก และหน้าแก้ข้อมูลของฉัน
+ * ช่องเบอร์ติดต่อฉุกเฉิน + ความเกี่ยวข้อง (กดเลือก / พิมพ์เอง) — หน้าสมัครสมาชิก หน้าแก้ข้อมูลของฉัน
+ * และหลังบ้าน (เพิ่มลูกค้าเอง / แก้ไขข้อมูลลูกค้า) — ลูกค้าที่ร้านเพิ่มให้ไม่ผ่านหน้าสมัคร จึงต้องกรอกที่หลังบ้าน
  */
 export function EmergencyContactInput({
   value,
@@ -37,6 +38,7 @@ export function EmergencyContactInput({
   required,
   showMissing,
   inputClass,
+  relationLabel = "เกี่ยวข้องเป็นอะไรกับคุณคะ",
 }: {
   value: EmergencyForm;
   onChange: (v: EmergencyForm) => void;
@@ -45,6 +47,8 @@ export function EmergencyContactInput({
   /** กดบันทึกแล้ว — ข้อที่ยังว่างขึ้นสีเตือน */
   showMissing?: boolean;
   inputClass: string;
+  /** หัวข้อช่องความเกี่ยวข้อง — หลังบ้านใช้ "เกี่ยวข้องเป็นอะไรกับลูกค้า" */
+  relationLabel?: string;
 }) {
   const preset = EMERGENCY_RELATIONS.find((r) => r.label === value.relation.trim());
   const typed = preset ? "" : value.relation;
@@ -68,7 +72,7 @@ export function EmergencyContactInput({
       </label>
       <div>
         <p className={`mb-1 text-xs font-bold ${relationMissing ? "text-wait" : "text-brown"}`}>
-          เกี่ยวข้องเป็นอะไรกับคุณคะ
+          {relationLabel}
         </p>
         <div className="flex flex-wrap gap-2">
           {EMERGENCY_RELATIONS.map((r) => {

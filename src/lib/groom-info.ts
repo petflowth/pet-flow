@@ -43,6 +43,19 @@ const LEGACY_LABELS: Record<string, string> = {
   heart: "โรคหัวใจ",
 };
 
+/**
+ * ข้อที่เคยเป็นปุ่มเลือก แล้วเปลี่ยนเป็นช่องพิมพ์ — คำตอบเก่ายังเป็นคีย์ (เช่น "1m") แปลงเป็นข้อความให้อ่านได้
+ * fleaLast: เดิมเป็นปุ่ม 1m/3m/older/unknown เปลี่ยนเป็นพิมพ์เอง (PR #229, 2026-11-02)
+ */
+const LEGACY_TEXT_LABELS: Record<string, Record<string, string>> = {
+  fleaLast: {
+    "1m": "ภายใน 1 เดือน",
+    "3m": "1–3 เดือน",
+    older: "นานกว่า 3 เดือน",
+    unknown: "จำไม่ได้",
+  },
+};
+
 export type GroomHealthInfo = {
   bathedBefore?: string;
   temperament?: string[];
@@ -103,7 +116,7 @@ export function groomInfoSummary(
         out[f.label] = [...asList(raw).map(label), ...(typed ? [typed] : [])].join(", ") || "-";
       } else {
         const s = String(raw ?? "").trim();
-        out[f.label] = s === "unknown" ? "ไม่ทราบ" : s || "-";
+        out[f.label] = LEGACY_TEXT_LABELS[f.key]?.[s] || (s === "unknown" ? "ไม่ทราบ" : s || "-");
       }
     }
     return out;

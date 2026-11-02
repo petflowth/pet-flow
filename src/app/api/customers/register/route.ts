@@ -22,7 +22,8 @@ import { setCatStayInfo } from "@/lib/customers-store";
 import { REGISTER_HISTORY_SOURCE, registerHistoryFields, sanitizeIntakeInfo, stayInfoDone } from "@/lib/intake-rules";
 import { petKindOf } from "@/lib/pet-kind";
 import { runAfterResponse } from "@/lib/after-response";
-import { parseEmergencyContact } from "@/lib/emergency-contact";
+import { emergencyOf, emergencyText, parseEmergencyContact } from "@/lib/emergency-contact";
+import { groomInfoSummary } from "@/lib/groom-info";
 
 /** คูปองชวนเพื่อน — ออกให้ทั้งคู่ทันทีที่สมัครด้วยโค้ด (เจ้าของร้านเลือกแบบนี้ 2026-10-23)
  * มูลค่า/อายุคูปองตั้งได้ในตั้งค่า › เปิด/ปิดฟีเจอร์ (ดู referralReward) */
@@ -117,6 +118,8 @@ async function handlePost(req: NextRequest) {
   const rawCats: Record<string, unknown>[] = Array.isArray(body.cats) ? body.cats : [];
   const usedCats = new Set<string>();
   const historySaves: Promise<unknown>[] = [];
+  /** คำตอบประวัติที่ลูกค้ากรอกตอนสมัคร (ต่อชื่อน้อง) — ส่งเข้าเทเลแกรมด้วย */
+  const historyTelegram: Record<string, string> = {};
   for (const raw of rawCats) {
     const history = raw?.history;
     const catName = cleanPetName(String(raw?.name || ""));
@@ -132,7 +135,15 @@ async function handlePost(req: NextRequest) {
     } catch {
       prev = {};
     }
-    const answers = sanitizeIntakeInfo([...h.owner, ...h.pet], history);
+    // ข้อที่เว้นว่างไว้ไม่ทับคำตอบเดิม (เช่น ลูกค้ากรอกฟอร์มก่อนเข้าพักไปแล้ว แล้วกลับมาแก้ข้อมูลที่หน้าสมัคร)
+    const answers = Object.fromEntries(
+      Object.entries(sanitizeIntakeInfo([...h.owner, ...h.pet], history)).filter(
+        ([k, v]) => (k === "submittedAt" ? !stayInfoDone(match.stayInfo) : !(Array.isArray(v) ? v.length === 0 : v === "") || !(k in prev))
+      )
+    );
+    for (const [q, a] of Object.entries(groomInfoSummary(answers, [...h.owner, ...h.pet]))) {
+      if (a !== "-") historyTelegram[`${match.name} · ${q}`] = a;
+    }
     // ยังไม่เคยกรอกฟอร์มก่อนเข้าพัก = ติดป้ายไว้ ระบบจะยังส่งฟอร์มไปถามหมวดการดูแล (คำตอบนี้เติมให้แล้ว)
     const source = stayInfoDone(match.stayInfo) ? {} : { source: REGISTER_HISTORY_SOURCE };
     // น้องแต่ละตัวเขียนแถวของตัวเอง — บันทึกพร้อมกันได้ ไม่ต้องรอทีละตัว
@@ -161,6 +172,9 @@ async function handlePost(req: NextRequest) {
         เบอร์: customer.phone || "-",
         น้อง: catNames,
         ช่องทาง: referralSource || "-",
+        ...(emergencyOf(customer) ? { เบอร์ฉุกเฉิน: emergencyText(emergencyOf(customer)) } : {}),
+        ...petDetailsTelegram(customer.cats),
+        ...historyTelegram,
       })
     );
   } catch (e) {
@@ -224,4 +238,24 @@ async function handlePost(req: NextRequest) {
       tier: customer.tier,
     },
   });
+}
+
+/** ข้อมูลน้องที่ถามตอนสมัคร (น้ำหนัก ทำหมัน วัคซีน ชัก แพ้ โรคประจำตัว) — ส่งเข้าเทเลแกรมแจ้งสมัครใหม่ ข้อที่ไม่ได้กรอกไม่ใส่ */
+function petDetailsTelegram(
+  cats: { name: string; weightKg?: number; neutered?: boolean; vaccinated?: boolean; seizureHistory?: string; allergy?: string; medical?: string }[]
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const c of cats) {
+    if (!c.name) continue;
+    const parts = [
+      c.weightKg ? `น้ำหนัก ${c.weightKg} กก.` : "",
+      c.neutered === true ? "ทำหมันแล้ว" : c.neutered === false ? "ยังไม่ทำหมัน" : "",
+      c.vaccinated === true ? "วัคซีนครบ" : c.vaccinated === false ? "วัคซีนยังไม่ครบ" : "",
+      c.seizureHistory?.trim() ? `ประวัติชัก: ${c.seizureHistory.trim()}` : "",
+      c.allergy?.trim() ? `แพ้: ${c.allergy.trim()}` : "",
+      c.medical?.trim() ? `โรคประจำตัว: ${c.medical.trim()}` : "",
+    ].filter(Boolean);
+    if (parts.length) out[`${c.name} · ข้อมูลน้อง`] = parts.join(" · ");
+  }
+  return out;
 }

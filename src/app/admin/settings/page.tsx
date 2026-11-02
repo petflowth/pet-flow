@@ -29,7 +29,7 @@ import { REFERRAL_DEFAULT, referralReward } from "@/lib/referral";
 import { breedOptionsFor, petKindOf, petWords, usesLitter, withDefaultBreeds, type PetKind } from "@/lib/pet-kind";
 import { NumInput } from "@/components/NumInput";
 import { RoomSeasonsEditor } from "@/components/RoomSeasonsEditor";
-import { normalizeRoomSeasons } from "@/lib/room-seasons";
+import { normalizeRoomSeasons, type RoomSeasonConfig } from "@/lib/room-seasons";
 
 type Tab =
   | "features"
@@ -1224,6 +1224,76 @@ function extraCatText(includedCats: number, price: number) {
   return { th: `ตัวที่ ${n} +${price}`, en: `${n}${suf} pet +${price}` };
 }
 
+/**
+ * ค่าห้องของร้าน Back Home (รับฝากหมา) — ปุ่มเติมให้ในแท็บห้องพัก ร้านตรวจแล้วกดบันทึกเอง
+ * ใช้ id ของห้องเดิม 2 ห้องแรก (ถ้ามี) นัดเก่าที่ผูกห้องเดิมจะได้ไม่หลุด
+ */
+function backHomeRoomPreset(current: RoomType[]): { rooms: RoomType[]; seasons: RoomSeasonConfig } {
+  const blank = { th: "", en: "" };
+  const base = {
+    cats: blank,
+    extra: blank,
+    image: "",
+    amenities: { th: [], en: [] },
+  };
+  const vip: RoomType = {
+    ...(current[0] || {}),
+    ...base,
+    image: current[0]?.image || "",
+    id: current[0]?.id || "vip",
+    name: "VIP",
+    size: "M",
+    price: 1250,
+    count: 11,
+    maxCats: 3,
+    includedCats: 1,
+    extraCatPrice: 550,
+    composedOf: undefined,
+    extra: { th: "ตัวที่ 2 +550", en: "2nd pet +550" },
+    note: {
+      th: "High 1,250฿/คืน · Low คิดตามน้ำหนัก 750–1,050฿ · หลายตัวห้องเดียวกัน เริ่มต้น 450฿/ตัว (Low) · 550฿/ตัว (High)",
+      en: "High 1,250฿/night · Low by weight 750–1,050฿ · extra dog in same room from 450฿ (Low) / 550฿ (High)",
+    },
+  };
+  const deluxe: RoomType = {
+    ...(current[1] || {}),
+    ...base,
+    image: current[1]?.image || "",
+    id: current[1]?.id || "deluxe",
+    name: "Deluxe",
+    size: "S",
+    price: 950,
+    count: 3,
+    maxCats: 1,
+    includedCats: 1,
+    extraCatPrice: 0,
+    composedOf: undefined,
+    note: {
+      th: "High 950฿/คืน · Low คิดตามน้ำหนัก 750–1,050฿ · สำหรับน้อง 1 ตัว",
+      en: "High 950฿/night · Low by weight 750–1,050฿ · 1 dog",
+    },
+  };
+  return {
+    rooms: [vip, deluxe],
+    seasons: {
+      enabled: true,
+      defaultSeason: "low",
+      periods: [],
+      low: {
+        mode: "weight",
+        weightTiers: [
+          { fromKg: 0, price: 750 },
+          { fromKg: 10, price: 850 },
+          { fromKg: 20, price: 950 },
+          { fromKg: 30, price: 1050 },
+        ],
+        extraPetPrice: 450,
+      },
+      high: { mode: "room", extraPetPrice: 550 },
+    },
+  };
+}
+
 function RoomsTab({
   config,
   saving,
@@ -1277,6 +1347,20 @@ function RoomsTab({
 
   return (
     <div className="space-y-4">
+      {/back\s*home/i.test(config.business?.name || "") && (
+        <button
+          type="button"
+          onClick={() => {
+            if (!confirm("กรอกห้อง VIP 11 ห้อง + Deluxe 3 ห้อง และราคา Low/High season ของ Back Home ให้เลยไหม? (ห้องเดิมในหน้านี้จะถูกแทนที่ · ยังไม่บันทึกจนกว่าจะกดบันทึก)")) return;
+            const p = backHomeRoomPreset(rooms);
+            setRooms(p.rooms);
+            setSeasons(p.seasons);
+          }}
+          className="flex h-11 w-full items-center justify-center gap-1.5 rounded-full bg-latte-deep text-xs font-extrabold text-white"
+        >
+          ✨ กรอกห้อง + ราคาแบบ Back Home ให้อัตโนมัติ
+        </button>
+      )}
       <RoomSeasonsEditor value={seasons} onChange={setSeasons} petWord={`น้อง${petWords(config).th}`} />
       {rooms.map((room, idx) => (
         <div key={room.id} className="rounded-petflow border border-petflow-line bg-card p-4">

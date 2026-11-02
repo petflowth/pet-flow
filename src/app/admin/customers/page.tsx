@@ -49,7 +49,7 @@ import { tidyServiceText } from "@/lib/stay-line";
 import { Avatar, EmptyState, MoreMenu, SearchField, Segmented, SectionLabel } from "@/components/ui";
 import { NumInput } from "@/components/NumInput";
 import { roomSummary } from "@/lib/room-segments";
-import { emergencyOf } from "@/lib/emergency-contact";
+import { emergencyOf, emergencyWho } from "@/lib/emergency-contact";
 
 type Summary = {
   customer: CustomerRecord;
@@ -2049,7 +2049,7 @@ function CustomerSummaryCard({
                 <a href={`tel:${em.phone.replace(/[^\d+]/g, "")}`} className="font-bold text-brown underline">
                   {em.phone}
                 </a>
-                {em.relation && ` (${em.relation})`}
+                {emergencyWho(em) && ` (${emergencyWho(em)})`}
               </span>
             </li>
           );

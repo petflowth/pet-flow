@@ -1391,6 +1391,31 @@ export function normalizeWeightKg(v: unknown): number | undefined {
 }
 
 /** เขียนชนิดน้อง (หมา/แมว) — คอลัมน์ใหม่ ถ้ายังไม่มีให้อัปเดตฐานข้อมูลแล้วลองอีกครั้ง · พังก็ไม่ทำให้ช่องอื่นเซฟไม่ติด */
+/**
+ * เขียนคอลัมน์ที่เพิ่มมาทีหลังของน้อง (ทำหมัน/วัคซีน/ประวัติชัก-แพ้/น้ำหนัก)
+ * ถ้ายังไม่มีคอลัมน์ในฐานข้อมูล ลองอัปเดตฐานข้อมูลให้เองแล้วเขียนใหม่ —
+ * ก่อนหน้านี้กลืน error เงียบ ๆ ทำให้กดแล้วบันทึกไม่ติดทั้งที่ขึ้นว่าสำเร็จ
+ */
+async function writeCatExtra(catId: string, fields: Record<string, unknown>, migration: string) {
+  const sb = getSupabase();
+  if (!sb) return true;
+  const write = () => sb.from("cats").update(fields).eq("id", catId).eq("tenant_id", requireTenantId());
+  try {
+    const { error } = await write();
+    if (!error) return true;
+    if (await ensureMigration(migration)) {
+      const res = await write();
+      if (!res.error) return true;
+      console.error(`[cats] write ${migration} failed after migrate:`, res.error.message);
+    } else {
+      console.error(`[cats] write ${migration} failed:`, error.message);
+    }
+  } catch (e) {
+    console.error(`[cats] write ${migration} threw:`, e);
+  }
+  return false;
+}
+
 async function writeCatSpecies(catId: string, species: PetSpecies) {
   const sb = getSupabase();
   if (!sb) return;
@@ -1488,8 +1513,10 @@ export async function updateCat(
       })
       .eq("id", catId)
       .eq("tenant_id", requireTenantId());
+    // ช่องที่เขียนไม่ติด → แจ้งกลับให้หน้าจอบอก "บันทึกไม่สำเร็จ" แทนที่จะขึ้นว่าสำเร็จแล้วข้อมูลหาย
+    let extraFailed = false;
     try {
-      await sb
+      const { error: detailErr } = await sb
         .from("cats")
         .update({
           gender: cat.gender || null,
@@ -1504,6 +1531,10 @@ export async function updateCat(
         })
         .eq("id", catId)
         .eq("tenant_id", requireTenantId());
+      if (detailErr) {
+        console.error("[cats] write details failed:", detailErr.message);
+        extraFailed = true;
+      }
     } catch {
       /* ยังไม่ได้ migrate คอลัมน์เพิ่ม — ข้าม (ชื่อ/โน้ตยังบันทึกได้) */
     }
@@ -1513,52 +1544,21 @@ export async function updateCat(
     }
     if (weightChanged) {
       // คอลัมน์ใหม่ — แยกเขียนเผื่อยังไม่ได้รัน migration จะได้ไม่ทำให้ช่องอื่นเซฟไม่ติด
-      await sb
-        .from("cats")
-        .update({ weight_kg: cat.weightKg ?? null })
-        .eq("id", catId)
-        .eq("tenant_id", requireTenantId())
-        .then(
-          () => {},
-          () => {}
-        );
+      if (!(await writeCatExtra(catId, { weight_kg: cat.weightKg ?? null }, "cats.weight_kg"))) extraFailed = true;
     }
     if (vaccinatedChanged) {
       // คอลัมน์ใหม่ (cats.vaccinated) — แยกเขียนเผื่อยังไม่ได้รัน migration
-      await sb
-        .from("cats")
-        .update({ vaccinated: cat.vaccinated ?? null })
-        .eq("id", catId)
-        .eq("tenant_id", requireTenantId())
-        .then(
-          () => {},
-          () => {}
-        );
+      if (!(await writeCatExtra(catId, { vaccinated: cat.vaccinated ?? null }, "cats.vaccinated"))) extraFailed = true;
     }
     if (neuteredChanged) {
       // คอลัมน์ใหม่ (cats.neutered) — แยกเขียนเผื่อยังไม่ได้รัน migration
-      await sb
-        .from("cats")
-        .update({ neutered: cat.neutered ?? null })
-        .eq("id", catId)
-        .eq("tenant_id", requireTenantId())
-        .then(
-          () => {},
-          () => {}
-        );
+      if (!(await writeCatExtra(catId, { neutered: cat.neutered ?? null }, "cats.neutered"))) extraFailed = true;
     }
     if (historyChanged) {
       // คอลัมน์ใหม่ (cats.seizure_history / cats.allergy) — แยกเขียนเผื่อยังไม่ได้รัน migration
-      await sb
-        .from("cats")
-        .update({ seizure_history: cat.seizureHistory ?? null, allergy: cat.allergy ?? null })
-        .eq("id", catId)
-        .eq("tenant_id", requireTenantId())
-        .then(
-          () => {},
-          () => {}
-        );
+      if (!(await writeCatExtra(catId, { seizure_history: cat.seizureHistory ?? null, allergy: cat.allergy ?? null }, "cats.seizure_allergy"))) extraFailed = true;
     }
+    if (extraFailed) return { ...c, saveFailed: true as const };
   } else {
     memCustomers.set(customerId, c);
   }
@@ -1751,48 +1751,16 @@ export async function addCat(
     }
     if (cat.species) await writeCatSpecies(catId, cat.species);
     if (cat.vaccinated != null) {
-      await sb
-        .from("cats")
-        .update({ vaccinated: cat.vaccinated })
-        .eq("id", catId)
-        .eq("tenant_id", requireTenantId())
-        .then(
-          () => {},
-          () => {}
-        );
+      await writeCatExtra(catId, { vaccinated: cat.vaccinated }, "cats.vaccinated");
     }
     if (cat.neutered != null) {
-      await sb
-        .from("cats")
-        .update({ neutered: cat.neutered })
-        .eq("id", catId)
-        .eq("tenant_id", requireTenantId())
-        .then(
-          () => {},
-          () => {}
-        );
+      await writeCatExtra(catId, { neutered: cat.neutered }, "cats.neutered");
     }
     if (cat.seizureHistory || cat.allergy) {
-      await sb
-        .from("cats")
-        .update({ seizure_history: cat.seizureHistory ?? null, allergy: cat.allergy ?? null })
-        .eq("id", catId)
-        .eq("tenant_id", requireTenantId())
-        .then(
-          () => {},
-          () => {}
-        );
+      await writeCatExtra(catId, { seizure_history: cat.seizureHistory ?? null, allergy: cat.allergy ?? null }, "cats.seizure_allergy");
     }
     if (cat.weightKg != null) {
-      await sb
-        .from("cats")
-        .update({ weight_kg: cat.weightKg })
-        .eq("id", catId)
-        .eq("tenant_id", requireTenantId())
-        .then(
-          () => {},
-          () => {}
-        );
+      await writeCatExtra(catId, { weight_kg: cat.weightKg }, "cats.weight_kg");
     }
   } else {
     memCustomers.set(customerId, c);

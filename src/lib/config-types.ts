@@ -200,6 +200,8 @@ export type SiteConfig = {
   features?: Partial<Record<string, boolean>>;
   /** ชวนเพื่อนรับคูปอง — มูลค่าคูปองต่อคน/อายุคูปอง (ไม่ตั้ง = 100 บาท · 60 วัน) ดู src/lib/referral.ts */
   referral?: { amount?: number; expiresInDays?: number };
+  /** ค่าระบบที่ร้านปรับเองได้ (ตั้งค่า › ค่าระบบ) — ไม่ตั้ง = ใช้ค่าเริ่มต้น ดู src/lib/shop-rules.ts */
+  rules?: ShopRules;
   crm: CrmConfig;
   messages: MessagesConfig;
   automation: AutomationConfig;
@@ -375,4 +377,22 @@ export type BillCategory = {
   id: string;
   name: string;
   items: { label: string; amount: number }[];
+};
+
+/** ค่าระบบที่ร้านปรับเองได้ — ทุกช่อง optional ไม่ตั้ง = ค่าเริ่มต้นใน src/lib/shop-rules.ts */
+export type ShopRules = {
+  /** Day Care คิดกี่ % ของราคาห้องต่อคืน (ค่าเริ่มต้น 50) */
+  dayCarePercent?: number;
+  /** คิวอาบน้ำ 1 คิวใช้เวลากี่นาที — เวลาสิ้นสุดในปฏิทิน (ค่าเริ่มต้น 90) */
+  groomDurationMin?: number;
+  /** เตือน "คิวชน" เมื่อเวลานัดห่างกันไม่ถึงกี่นาที (ค่าเริ่มต้น 60) */
+  groomClashWindowMin?: number;
+  /** เลือกไซส์อาบน้ำจากน้ำหนัก: ไม่เกิน smallMaxKg = ไซส์เล็ก · ต่ำกว่า mediumMaxKg = ไซส์กลาง · นอกนั้นใหญ่ */
+  groomSizeKg?: { smallMaxKg?: number; mediumMaxKg?: number };
+  /** เหตุผลปิดห้อง (ผังห้อง) */
+  roomClosureReasons?: string[];
+  /** แท็ก "เรื่องที่ช่างต้องรู้" — สุขภาพ/โรคประจำตัว และ นิสัย/พฤติกรรม */
+  staffNoteTags?: { medical?: string[]; behavior?: string[] };
+  /** ห้องที่แถมทรายฟรีเฉพาะเมื่อพักถึงจำนวนคืนขั้นต่ำ (id ห้อง) — ห้องอื่นแถมทุกคืน */
+  litterMinNightsRooms?: string[];
 };

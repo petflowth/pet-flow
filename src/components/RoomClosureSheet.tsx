@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import type { RoomClosure } from "@/lib/room-board";
+import { useConfig } from "@/components/ConfigProvider";
+import { roomClosureReasons } from "@/lib/shop-rules";
 
-const REASONS = ["ซ่อมบำรุง", "ใช้งานไม่ได้", "ทำความสะอาดใหญ่", "สำรองไว้"];
 
 /**
  * ปิด/เปิดห้องรายห้อง — เลือกเหตุผล วันเริ่ม และวันสุดท้ายที่ปิด (ไม่ใส่ = ปิดจนกว่าจะกดเปิด)
@@ -28,6 +29,8 @@ export function RoomClosureSheet({
   onSave: (c: { from: string; to?: string; reason: string }) => Promise<void> | void;
   onReopen?: () => Promise<void> | void;
 }) {
+  const { config } = useConfig();
+  const REASONS = roomClosureReasons(config);
   const [reason, setReason] = useState(current?.reason || REASONS[0]);
   const [from, setFrom] = useState(current?.from || date);
   const [to, setTo] = useState(current?.to || "");

@@ -23,7 +23,8 @@ export function groomClashes(
   bookings: ClashBooking[],
   date: string,
   time: string,
-  excludeIds: string[] = []
+  excludeIds: string[] = [],
+  windowMin: number = CLASH_WINDOW_MIN
 ): ClashBooking[] {
   const at = toMin(time);
   if (!date || at == null) return [];
@@ -38,7 +39,7 @@ export function groomClashes(
     )
     .filter((b) => {
       const t = toMin(b.time);
-      return t != null && Math.abs(t - at) < CLASH_WINDOW_MIN;
+      return t != null && Math.abs(t - at) < windowMin;
     })
     .sort((a, b) => (toMin(a.time) || 0) - (toMin(b.time) || 0));
 }

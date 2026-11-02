@@ -96,10 +96,13 @@ export function lastGroomForPet(
 }
 
 /** ไซส์จากน้ำหนัก — ตรงกับเกณฑ์ใน GROOM_SIZES (≤2 / 2–6 / 6+ กก.) */
-function sizeFromWeight(kg?: number): GroomSize | undefined {
+function sizeFromWeight(
+  kg?: number,
+  cut: { smallMaxKg: number; mediumMaxKg: number } = { smallMaxKg: 2, mediumMaxKg: 6 }
+): GroomSize | undefined {
   if (!kg || kg <= 0) return undefined;
-  if (kg <= 2) return "kitten";
-  if (kg < 6) return "m";
+  if (kg <= cut.smallMaxKg) return "kitten";
+  if (kg < cut.mediumMaxKg) return "m";
   return "l";
 }
 
@@ -135,6 +138,8 @@ export function groomPrefillForPet(opts: {
   customerId?: string;
   programs: GroomProgram[];
   sizeLabels?: Partial<Record<GroomSize, string>>;
+  /** เกณฑ์น้ำหนักแบ่งไซส์ของร้าน (ตั้งค่า › ค่าระบบ) */
+  sizeKg?: { smallMaxKg: number; mediumMaxKg: number };
   currentProgram: string;
   keepProgram?: boolean;
 }): GroomPrefill | null {
@@ -152,14 +157,14 @@ export function groomPrefillForPet(opts: {
     const size =
       last.size ||
       resolveGroomSizes(opts.sizeLabels).find((s) => s.label === last.sizeLabel)?.id ||
-      sizeFromWeight(opts.pet.weightKg);
+      sizeFromWeight(opts.pet.weightKg, opts.sizeKg);
     if (breed || size) {
       return { program: progId, breed, size, source: "last", last };
     }
   }
   const prog = programs.find((p) => p.id === opts.currentProgram);
   const breed = prog ? breedRowForPet(prog, opts.pet) : undefined;
-  const size = sizeFromWeight(opts.pet.weightKg);
+  const size = sizeFromWeight(opts.pet.weightKg, opts.sizeKg);
   if (!breed && !size) return null;
   return { breed, size, source: "card" };
 }

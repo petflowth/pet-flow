@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
-import { clashLine, CLASH_WINDOW_MIN, type ClashBooking } from "@/lib/groom-clash";
+import { clashLine, type ClashBooking } from "@/lib/groom-clash";
+import { useConfig } from "@/components/ConfigProvider";
+import { clashWindowMin } from "@/lib/shop-rules";
 
 /** คิวอาบน้ำที่ชนกับวัน/เวลาที่เลือก — ดึงจากเซิร์ฟเวอร์ทุกครั้งที่วัน/เวลาเปลี่ยน */
 export function useGroomClashes(date: string, time: string, exclude: string[] = []) {
@@ -38,12 +40,13 @@ export function confirmClashes(clashes: ClashBooking[]) {
 }
 
 export function GroomClashNote({ clashes }: { clashes: ClashBooking[] }) {
+  const { config } = useConfig();
   if (clashes.length === 0) return null;
   return (
     <div role="alert" className="mt-2 flex gap-2 rounded-petflow-sm bg-honey/20 px-3 py-2.5 text-[11px] font-bold text-petflow-chocolate">
       <Icon name="alert" size={15} className="mt-px shrink-0" />
       <div>
-        <p>คิวชน — ช่วงเวลานี้ (±{CLASH_WINDOW_MIN} นาที) มีนัดอยู่แล้ว</p>
+        <p>คิวชน — ช่วงเวลานี้ (±{clashWindowMin(config)} นาที) มีนัดอยู่แล้ว</p>
         <ul className="mt-0.5 font-normal">
           {clashes.map((c) => (
             <li key={c.id}>{clashLine(c)}</li>

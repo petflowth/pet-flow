@@ -5,6 +5,7 @@
 import type { calendar_v3 } from "googleapis";
 import { getGoogleCredentials, isGoogleConfigured } from "./google-config";
 import { getSiteConfig } from "./config-store";
+import { groomDurationMin } from "./shop-rules";
 import type { StoredBooking } from "./bookings-store";
 import { hasTransport, transportLabel, type BookingTransport } from "./transport";
 
@@ -21,7 +22,6 @@ async function shopLocation(): Promise<string> {
 }
 
 const TIMEZONE = "Asia/Bangkok";
-const GROOM_DURATION_MIN = 90;
 
 function pad(n: number) {
   return String(n).padStart(2, "0");
@@ -222,7 +222,7 @@ async function buildGoogleEventResource(
   }
 
   const startDt = toBangkokDateTime(booking.start, booking.time || "09:30");
-  const endDt = addMinutesToDateTime(startDt, GROOM_DURATION_MIN);
+  const endDt = addMinutesToDateTime(startDt, groomDurationMin(await getSiteConfig()));
 
   return {
     summary,

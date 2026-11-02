@@ -10,6 +10,7 @@ import type { RoomType } from "@/lib/business";
 import {
   GROOM_SIZES,
   bathPrograms,
+  resolveGroomSizes,
   isMassageProgram,
   resolveGroomPrograms,
   resolveMassagePrograms,
@@ -30,6 +31,15 @@ import { breedOptionsFor, petKindOf, petWords, usesLitter, withDefaultBreeds, ty
 import { NumInput } from "@/components/NumInput";
 import { RoomSeasonsEditor } from "@/components/RoomSeasonsEditor";
 import { normalizeRoomSeasons, type RoomSeasonConfig } from "@/lib/room-seasons";
+import {
+  clashWindowMin,
+  dayCarePercent,
+  groomDurationMin,
+  groomSizeKg,
+  litterMinNightsRooms,
+  roomClosureReasons,
+  staffNoteTags,
+} from "@/lib/shop-rules";
 
 type Tab =
   | "features"
@@ -48,6 +58,7 @@ type Tab =
   | "grooming"
   | "points"
   | "crm"
+  | "rules"
   | "advanced";
 
 /** หน้าตั้งค่าแบบแอป: เปิดมาเป็นรายการหมวด แตะเข้าไปทีละหมวด (แทนแท็บ 14 อันที่ต้องเลื่อนข้าง) */
@@ -64,6 +75,11 @@ const TAB_GROUPS: { title: string; items: { id: Tab; icon: string; hint?: string
       { id: "lists", icon: "doc", hint: "ประเภทร้าน · สายพันธุ์ · ของแถม" },
       { id: "points", icon: "star", hint: "อัตราแต้มสะสม" },
       { id: "crm", icon: "users" },
+      {
+        id: "rules",
+        icon: "settings",
+        hint: "Day Care กี่ % · เวลาต่อคิวอาบน้ำ · เกณฑ์ไซส์ · แท็กเรื่องที่ช่างต้องรู้ · เหตุผลปิดห้อง",
+      },
     ],
   },
   {
@@ -110,6 +126,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "grooming", label: "อาบน้ำ" },
   { id: "points", label: "แต้ม" },
   { id: "crm", label: "ลูกค้า" },
+  { id: "rules", label: "ค่าระบบ" },
   { id: "advanced", label: "สำรองข้อมูล" },
 ];
 
@@ -334,6 +351,9 @@ export default function SettingsPage() {
       )}
       {tab === "crm" && (
         <CrmTab config={config} saving={saving} onSave={save} />
+      )}
+      {tab === "rules" && (
+        <RulesTab config={config} saving={saving} onSave={save} />
       )}
       {tab === "advanced" && (
         <BackupTab />
@@ -2757,14 +2777,24 @@ function TextAreaField({
   rows?: number;
   placeholder?: string;
 }) {
+  // ช่อง "1 บรรทัด = 1 อย่าง" ตัดบรรทัดว่างทิ้งทุกครั้งที่พิมพ์ — เก็บข้อความที่กำลังพิมพ์ไว้เอง
+  // ไม่งั้นกด Enter ท้ายรายการแล้วบรรทัดใหม่หายทันที (เพิ่มรายการต่อท้ายไม่ได้)
+  const [draft, setDraft] = useState(value);
+  const tidy = (v: string) => v.split("\n").map((x) => x.trim()).filter(Boolean).join("\n");
+  useEffect(() => {
+    setDraft((d) => (d === value || tidy(d) === tidy(value) ? d : value));
+  }, [value]);
   return (
     <label className="block text-xs font-bold text-brown-soft">
       {label}
       <textarea
-        value={value}
+        value={draft}
         rows={rows}
         placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          onChange(e.target.value);
+        }}
         className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm leading-relaxed"
       />
       {hint && (
@@ -3692,5 +3722,165 @@ function SaveBtn({ saving }: { saving: boolean }) {
       <Icon name="check" size={18} strokeWidth={2.2} />
       {saving ? "กำลังบันทึก…" : "บันทึก"}
     </button>
+  );
+}
+
+/**
+ * ค่าระบบที่เคยฝังอยู่ในโค้ด — ให้ร้านปรับเอง (config.rules) ไม่ตั้ง = ค่าเริ่มต้นใน src/lib/shop-rules.ts
+ */
+function RulesTab({
+  config,
+  saving,
+  onSave,
+}: {
+  config: SiteConfig;
+  saving: boolean;
+  onSave: (p: Partial<SiteConfig>) => void;
+}) {
+  const init = () => {
+    const tags = staffNoteTags(config);
+    const kg = groomSizeKg(config);
+    return {
+      dayCarePercent: dayCarePercent(config),
+      groomDurationMin: groomDurationMin(config),
+      groomClashWindowMin: clashWindowMin(config),
+      smallMaxKg: kg.smallMaxKg,
+      mediumMaxKg: kg.mediumMaxKg,
+      roomClosureReasons: roomClosureReasons(config),
+      medical: tags.filter((t) => t.category === "medical").map((t) => t.label),
+      behavior: tags.filter((t) => t.category === "behavior").map((t) => t.label),
+      litterRooms: litterMinNightsRooms(config),
+    };
+  };
+  const [f, setF] = useState(init);
+  useEffect(() => {
+    setF(init());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.rules, config.rooms]);
+  const set = (patch: Partial<ReturnType<typeof init>>) => setF((x) => ({ ...x, ...patch }));
+  const lines = (v: string) => v.split("\n").map((s) => s.trim()).filter(Boolean);
+  const sizes = resolveGroomSizes(config.groomSizeLabels);
+  const sizeName = (id: string) => sizes.find((s) => s.id === id)?.label || id;
+
+  return (
+    <form
+      className="space-y-3 rounded-petflow bg-card p-4 shadow-petflow-sm"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSave({
+          rules: {
+            dayCarePercent: f.dayCarePercent,
+            groomDurationMin: f.groomDurationMin,
+            groomClashWindowMin: f.groomClashWindowMin,
+            groomSizeKg: { smallMaxKg: f.smallMaxKg, mediumMaxKg: Math.max(f.mediumMaxKg, f.smallMaxKg) },
+            roomClosureReasons: f.roomClosureReasons,
+            staffNoteTags: { medical: f.medical, behavior: f.behavior },
+            litterMinNightsRooms: f.litterRooms,
+          },
+        });
+      }}
+    >
+      <p className="text-xs font-extrabold text-petflow-chocolate">🏨 ห้องพัก</p>
+      <Field
+        label="Day Care (ฝากรายวัน ไม่ค้างคืน) คิดกี่ % ของราคาห้องต่อคืน"
+        type="number"
+        value={String(f.dayCarePercent)}
+        onChange={(v) => set({ dayCarePercent: Math.min(500, Math.max(0, Number(v) || 0)) })}
+      />
+      <p className="-mt-2 text-[10px] text-brown-faint">
+        เช่น 50 = ครึ่งราคาห้อง · ใช้ในหน้าจองและหน้าคิดเงิน
+      </p>
+      <TextAreaField
+        label="เหตุผลปิดห้อง (ผังห้อง) — 1 บรรทัด = 1 เหตุผล"
+        value={f.roomClosureReasons.join("\n")}
+        onChange={(v) => set({ roomClosureReasons: lines(v) })}
+        rows={4}
+      />
+      {usesLitter(config) && config.rooms.length > 0 && (
+        <div>
+          <p className="text-xs font-bold text-brown-soft">
+            ห้องที่แถมทรายฟรีเฉพาะเมื่อพักถึงจำนวนคืนขั้นต่ำ (ห้องที่ไม่ติ๊ก แถมทรายทุกคืน)
+          </p>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {config.rooms.map((r) => {
+              const on = f.litterRooms.includes(r.id);
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() =>
+                    set({ litterRooms: on ? f.litterRooms.filter((x) => x !== r.id) : [...f.litterRooms, r.id] })
+                  }
+                  className={`min-h-[36px] rounded-full border px-3 text-xs font-bold ${
+                    on ? "border-petflow-chocolate bg-petflow-chocolate text-card" : "border-petflow-line bg-paper text-brown-soft"
+                  }`}
+                >
+                  {r.name}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-1 text-[10px] text-brown-faint">จำนวนคืนขั้นต่ำตั้งที่ อัตโนมัติ › การ์ดเตรียมตัวก่อนเข้าพัก</p>
+        </div>
+      )}
+
+      <hr className="border-petflow-line" />
+      <p className="text-xs font-extrabold text-petflow-chocolate">🛁 อาบน้ำ</p>
+      <div className="grid grid-cols-2 gap-2">
+        <Field
+          label="1 คิวใช้เวลา (นาที)"
+          type="number"
+          value={String(f.groomDurationMin)}
+          onChange={(v) => set({ groomDurationMin: Math.max(5, Number(v) || 0) })}
+        />
+        <Field
+          label="เตือนคิวชนถ้าห่างกันไม่ถึง (นาที)"
+          type="number"
+          value={String(f.groomClashWindowMin)}
+          onChange={(v) => set({ groomClashWindowMin: Math.max(1, Number(v) || 0) })}
+        />
+      </div>
+      <p className="-mt-2 text-[10px] text-brown-faint">
+        เวลาต่อคิวใช้ตั้งเวลาสิ้นสุดในปฏิทิน Google · คิวชนแค่เตือน ไม่ห้ามจอง
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        <Field
+          label={`${sizeName("kitten")} ถ้าหนักไม่เกิน (กก.)`}
+          type="number"
+          value={String(f.smallMaxKg)}
+          onChange={(v) => set({ smallMaxKg: Math.max(0.1, Number(v) || 0) })}
+        />
+        <Field
+          label={`${sizeName("m")} ถ้าหนักน้อยกว่า (กก.)`}
+          type="number"
+          value={String(f.mediumMaxKg)}
+          onChange={(v) => set({ mediumMaxKg: Math.max(0.1, Number(v) || 0) })}
+        />
+      </div>
+      <p className="-mt-2 text-[10px] text-brown-faint">
+        ระบบเลือกไซส์ให้เองจากน้ำหนักน้อง หนักกว่านี้ = {sizeName("l")} · เปลี่ยนชื่อไซส์ได้ที่ ตั้งค่า › อาบน้ำ
+      </p>
+
+      <hr className="border-petflow-line" />
+      <p className="text-xs font-extrabold text-petflow-chocolate">📝 แท็ก &quot;เรื่องที่ช่างต้องรู้&quot;</p>
+      <p className="-mt-2 text-[10px] text-brown-faint">
+        ตัวเลือกที่ลูกค้าและพนักงานแตะเลือกตอนกรอกข้อมูลน้อง (หน้าสมัคร โปรไฟล์ การ์ดลูกค้า)
+      </p>
+      <TextAreaField
+        label="สุขภาพ / โรคประจำตัว — 1 บรรทัด = 1 แท็ก"
+        value={f.medical.join("\n")}
+        onChange={(v) => set({ medical: lines(v) })}
+        rows={8}
+      />
+      <TextAreaField
+        label="นิสัย / พฤติกรรม — 1 บรรทัด = 1 แท็ก"
+        value={f.behavior.join("\n")}
+        onChange={(v) => set({ behavior: lines(v) })}
+        rows={5}
+      />
+
+      <SaveBtn saving={saving} />
+    </form>
   );
 }

@@ -1,4 +1,5 @@
 import { getSupabase, selectAllRows } from "./supabase/server";
+import { healWrite } from "./heal-write";
 import { requireTenantId } from "./tenant-context";
 
 export type FinanceRecord = {
@@ -240,15 +241,7 @@ export async function addFinanceEntry(
     });
     // แนบรูปบิลแยก เพราะร้านที่ยังไม่รัน migration จะ insert ไม่ผ่านทั้งแถว
     if (rec.receiptUrl) {
-      try {
-        await sb
-          .from("finance_records")
-          .update({ receipt_url: rec.receiptUrl })
-          .eq("id", rec.id)
-          .eq("tenant_id", requireTenantId());
-      } catch {
-        /* ยังไม่มีคอลัมน์ receipt_url */
-      }
+      await healWrite("finance_records", ["receipt_url"], () => sb.from("finance_records").update({ receipt_url: rec.receiptUrl }).eq("id", rec.id).eq("tenant_id", requireTenantId()));
     }
     return rec;
   }
@@ -280,15 +273,7 @@ export async function updateFinanceEntry(
         .eq("tenant_id", requireTenantId());
     // รูปบิล — เขียนแยกและกลืน error (คอลัมน์ receipt_url อาจยังไม่มี)
     if (patch.receiptUrl !== undefined) {
-      try {
-        await sb
-          .from("finance_records")
-          .update({ receipt_url: patch.receiptUrl || null })
-          .eq("id", id)
-          .eq("tenant_id", requireTenantId());
-      } catch {
-        /* ยังไม่มีคอลัมน์ receipt_url */
-      }
+      await healWrite("finance_records", ["receipt_url"], () => sb.from("finance_records").update({ receipt_url: patch.receiptUrl || null }).eq("id", id).eq("tenant_id", requireTenantId()));
     }
     return { ok: true as const };
   }

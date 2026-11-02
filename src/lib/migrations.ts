@@ -823,3 +823,23 @@ export async function runMigrations(): Promise<MigrateResult> {
     errors,
   };
 }
+
+/**
+ * รัน migration ทุกตัวที่เพิ่มคอลัมน์เหล่านี้ให้ตารางนี้ (หาจาก SQL ในรายการ MIGRATIONS)
+ * ใช้ตอนเขียนคอลัมน์ที่เพิ่มมาทีหลังแล้วพลาด — ซ่อมฐานข้อมูลเองแล้วค่อยเขียนใหม่
+ * คืน true ถ้าเจอ migration ที่เกี่ยวข้องและรันผ่านทุกตัว
+ */
+export async function ensureColumns(table: string, cols: string[]): Promise<boolean> {
+  const tableRe = new RegExp(`alter\\s+table\\s+(if\\s+exists\\s+)?(public\\.)?${table}\\b`, "i");
+  const hits = MIGRATIONS.filter(
+    (m) =>
+      tableRe.test(m.sql) &&
+      cols.some((c) => new RegExp(`add\\s+column\\s+if\\s+not\\s+exists\\s+${c}\\b`, "i").test(m.sql))
+  );
+  if (hits.length === 0) return false;
+  let ok = true;
+  for (const m of hits) {
+    if (!(await ensureMigration(m.name))) ok = false;
+  }
+  return ok;
+}

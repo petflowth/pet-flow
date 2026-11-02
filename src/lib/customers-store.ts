@@ -1,4 +1,5 @@
 import { bookingMatchesCustomer, datesForBooking, isUpcomingBooking } from "./booking-customer-match";
+import { healWrite } from "./heal-write";
 import type { Booking } from "./business";
 import {
   computeTier,
@@ -748,15 +749,7 @@ export async function upsertCustomerFromLine(data: {
         .eq("id", existing.id)
         .eq("tenant_id", requireTenantId());
       // เก็บ ID ทุกตัวแยก (คอลัมน์ใหม่) — ถ้ายังไม่รัน migration ก็ไม่พัง
-      try {
-        await sb
-          .from("customers")
-          .update({ line_user_ids: existing.lineUserIds })
-          .eq("id", existing.id)
-          .eq("tenant_id", requireTenantId());
-      } catch {
-        /* ยังไม่มีคอลัมน์ line_user_ids */
-      }
+      await healWrite("customers", ["line_user_ids"], () => sb.from("customers").update({ line_user_ids: existing.lineUserIds }).eq("id", existing.id).eq("tenant_id", requireTenantId()));
       }
     } else {
       memCustomers.set(existing.id, existing);
@@ -803,15 +796,7 @@ export async function upsertCustomerFromLine(data: {
       // เผยข้อผิดพลาดจริงแทนที่จะเงียบ (เดิมทำให้ลงทะเบียน "ไม่สำเร็จ" โดยไม่บอกสาเหตุ)
       throw new Error(`สร้างบัญชีลูกค้าไม่สำเร็จ: ${error.message}`);
     }
-    try {
-      await sb
-        .from("customers")
-        .update({ line_user_ids: [lineUserId] })
-        .eq("id", id)
-        .eq("tenant_id", requireTenantId());
-    } catch {
-      /* ยังไม่มีคอลัมน์ line_user_ids */
-    }
+    await healWrite("customers", ["line_user_ids"], () => sb.from("customers").update({ line_user_ids: [lineUserId] }).eq("id", id).eq("tenant_id", requireTenantId()));
   } else {
     memCustomers.set(id, customer);
   }
@@ -976,15 +961,7 @@ export async function unlinkCustomerLine(customerId: string) {
       })
       .eq("id", customerId)
       .eq("tenant_id", tenantId);
-    try {
-      await sb
-        .from("customers")
-        .update({ line_user_ids: [] })
-        .eq("id", customerId)
-        .eq("tenant_id", tenantId);
-    } catch {
-      /* ยังไม่มีคอลัมน์ line_user_ids */
-    }
+    await healWrite("customers", ["line_user_ids"], () => sb.from("customers").update({ line_user_ids: [] }).eq("id", customerId).eq("tenant_id", tenantId));
   } else {
     memCustomers.set(customerId, customer);
   }
@@ -1288,7 +1265,8 @@ export async function updateCustomer(
 
   const sb = getSupabase();
   if (sb) {
-    await sb
+    // เดิมไม่เช็ค error — ถ้าคอลัมน์ไหนยังไม่มี ทั้งแถว (ชื่อ/เบอร์) จะไม่ลงฐานแบบเงียบ ๆ
+    await healWrite("customers", ["email", "birthday", "marketing_consent", "referral_source", "tier", "last_follow_up_at", "member_since"], () => sb
       .from("customers")
       .update({
         name: c.name,
@@ -1307,26 +1285,14 @@ export async function updateCustomer(
         updated_at: c.updatedAt,
       })
       .eq("id", id)
-      .eq("tenant_id", requireTenantId());
+      .eq("tenant_id", requireTenantId()));
     if (
       patch.address !== undefined ||
       patch.addressMapUrl !== undefined ||
       patch.postalCode !== undefined
     ) {
       // คอลัมน์ใหม่ — best-effort เผื่อยังไม่ได้รัน migration
-      await sb
-        .from("customers")
-        .update({
-          address: c.address || null,
-          address_map_url: c.addressMapUrl || null,
-          postal_code: c.postalCode || null,
-        })
-        .eq("id", id)
-        .eq("tenant_id", requireTenantId())
-        .then(
-          () => {},
-          () => {}
-        );
+      await healWrite("customers", ["address", "address_map_url", "postal_code"], () => sb.from("customers").update({ address: c.address || null, address_map_url: c.addressMapUrl || null, postal_code: c.postalCode || null, }).eq("id", id).eq("tenant_id", requireTenantId()));
     }
     if (patch.taxInvoice !== undefined) {
       // คอลัมน์ใหม่ — แยกเขียนเผื่อยังไม่ได้รัน migration จะได้ไม่ทำให้ช่องอื่นเซฟไม่ติด
@@ -1532,25 +1498,27 @@ export async function updateCat(
     // ช่องที่เขียนไม่ติด → แจ้งกลับให้หน้าจอบอก "บันทึกไม่สำเร็จ" แทนที่จะขึ้นว่าสำเร็จแล้วข้อมูลหาย
     let extraFailed = false;
     try {
-      const { error: detailErr } = await sb
-        .from("cats")
-        .update({
-          gender: cat.gender || null,
-          breed: cat.breed || null,
-          age_value: cat.ageValue ?? null,
-          age_unit: cat.ageUnit || null,
-          age_as_of: cat.ageAsOf || null,
-          birthday: cat.birthday || null,
-          medical: cat.medical || null,
-          fur_length: cat.furLength || null,
-          color: cat.color || null,
-        })
-        .eq("id", catId)
-        .eq("tenant_id", requireTenantId());
-      if (detailErr) {
-        console.error("[cats] write details failed:", detailErr.message);
-        extraFailed = true;
-      }
+      const detailOk = await healWrite(
+        "cats",
+        ["gender", "breed", "age_value", "age_unit", "age_as_of", "birthday", "medical", "fur_length", "color"],
+        () =>
+          sb
+            .from("cats")
+            .update({
+              gender: cat.gender || null,
+              breed: cat.breed || null,
+              age_value: cat.ageValue ?? null,
+              age_unit: cat.ageUnit || null,
+              age_as_of: cat.ageAsOf || null,
+              birthday: cat.birthday || null,
+              medical: cat.medical || null,
+              fur_length: cat.furLength || null,
+              color: cat.color || null,
+            })
+            .eq("id", catId)
+            .eq("tenant_id", requireTenantId())
+      );
+      if (!detailOk) extraFailed = true;
     } catch {
       /* ยังไม่ได้ migrate คอลัมน์เพิ่ม — ข้าม (ชื่อ/โน้ตยังบันทึกได้) */
     }
@@ -1755,15 +1723,7 @@ export async function addCat(
     if (error) throw new Error(error.message);
     if (cat.furLength || cat.color) {
       // คอลัมน์ใหม่ — best-effort เผื่อยังไม่ได้รัน migration
-      await sb
-        .from("cats")
-        .update({ fur_length: cat.furLength || null, color: cat.color || null })
-        .eq("id", catId)
-        .eq("tenant_id", requireTenantId())
-        .then(
-          () => {},
-          () => {}
-        );
+      await healWrite("cats", ["fur_length", "color"], () => sb.from("cats").update({ fur_length: cat.furLength || null, color: cat.color || null }).eq("id", catId).eq("tenant_id", requireTenantId()));
     }
     if (cat.species) await writeCatSpecies(catId, cat.species);
     if (cat.vaccinated != null) {
@@ -1934,47 +1894,15 @@ export async function mergeCustomers(sourceId: string, targetId: string) {
       })
       .eq("id", targetId)
       .eq("tenant_id", tenantId);
-    try {
-      await sb
-        .from("customers")
-        .update({ deposit_credit: mergedDeposit })
-        .eq("id", targetId)
-        .eq("tenant_id", tenantId);
-    } catch {
-      /* ยังไม่มีคอลัมน์ deposit_credit */
-    }
-    try {
-      await sb
-        .from("customers")
-        .update({ line_user_ids: [...ids] })
-        .eq("id", targetId)
-        .eq("tenant_id", tenantId);
-    } catch {
-      /* ยังไม่มีคอลัมน์ line_user_ids */
-    }
+    await healWrite("customers", ["deposit_credit"], () => sb.from("customers").update({ deposit_credit: mergedDeposit }).eq("id", targetId).eq("tenant_id", tenantId));
+    await healWrite("customers", ["line_user_ids"], () => sb.from("customers").update({ line_user_ids: [...ids] }).eq("id", targetId).eq("tenant_id", tenantId));
     if (!target.taxInvoice && source.taxInvoice) {
       // ข้อมูลออกบิล — คอลัมน์ใหม่ เขียนแยกเผื่อยังไม่ได้ migrate
-      await sb
-        .from("customers")
-        .update({ tax_invoice: source.taxInvoice })
-        .eq("id", targetId)
-        .eq("tenant_id", tenantId)
-        .then(
-          () => {},
-          () => {}
-        );
+      await healWrite("customers", ["tax_invoice"], () => sb.from("customers").update({ tax_invoice: source.taxInvoice }).eq("id", targetId).eq("tenant_id", tenantId));
     }
     if (!target.emergencyContact && source.emergencyContact) {
       // เบอร์ฉุกเฉิน — คอลัมน์ใหม่ เขียนแยกเผื่อยังไม่ได้ migrate
-      await sb
-        .from("customers")
-        .update({ emergency_contact: source.emergencyContact })
-        .eq("id", targetId)
-        .eq("tenant_id", tenantId)
-        .then(
-          () => {},
-          () => {}
-        );
+      await healWrite("customers", ["emergency_contact"], () => sb.from("customers").update({ emergency_contact: source.emergencyContact }).eq("id", targetId).eq("tenant_id", tenantId));
     }
     if (!target.nickname && source.nickname) {
       // ชื่อเล่น — คอลัมน์ใหม่ เขียนแยกเผื่อยังไม่ได้ migrate

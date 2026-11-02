@@ -1,4 +1,5 @@
 import { getSiteConfig } from "./config-store";
+import { healWrite } from "./heal-write";
 import {
   deductMemberCredit,
   restoreMemberCredit,
@@ -412,11 +413,14 @@ export async function createInvoice(data: {
             .eq("id", invoice.id)
             .eq("tenant_id", requireTenantId());
           if (both.error) {
-            await sb
-              .from("invoices")
-              .update({ package_id: invoice.packageId })
-              .eq("id", invoice.id)
-              .eq("tenant_id", requireTenantId());
+            // ยังไม่มีคอลัมน์ — ซ่อมฐานข้อมูลเองแล้วเขียนใหม่ (เดิมกลืน error ประวัติใช้คอร์สเลยหาย)
+            await healWrite("invoices", ["package_id", "package_units"], () =>
+              sb
+                .from("invoices")
+                .update({ package_id: invoice.packageId, package_units: invoice.packageUnits ?? null })
+                .eq("id", invoice.id)
+                .eq("tenant_id", requireTenantId())
+            );
           }
         } catch {
           /* ยังไม่มีคอลัมน์ — ประวัติการใช้คอร์สจะยังไม่ขึ้นจนกว่าจะอัปเดตฐานข้อมูล */
@@ -478,15 +482,7 @@ export async function receiveInvoiceDeposit(id: string) {
   const receivedAt = new Date().toISOString();
   const sb = getSupabase();
   if (sb) {
-    try {
-      await sb
-        .from("invoices")
-        .update({ deposit_received_at: receivedAt })
-        .eq("id", id)
-        .eq("tenant_id", requireTenantId());
-    } catch {
-      /* ยังไม่ได้รัน migration — ข้าม */
-    }
+    await healWrite("invoices", ["deposit_received_at"], () => sb.from("invoices").update({ deposit_received_at: receivedAt }).eq("id", id).eq("tenant_id", requireTenantId()));
   } else {
     const m = mem.find((x) => x.id === id);
     if (m) m.depositReceivedAt = receivedAt;
@@ -891,14 +887,7 @@ export async function receiveInvoicePayment(
     const sb = getSupabase();
     if (sb) {
       await sb.from("invoices").update({ deposit: inv.deposit }).eq("tenant_id", requireTenantId()).eq("id", id);
-      try {
-        await sb
-          .from("invoices")
-          .update({ deposit_received_at: inv.depositReceivedAt }).eq("tenant_id", requireTenantId())
-          .eq("id", id);
-      } catch {
-        /* ยังไม่ได้รัน migration — ข้าม */
-      }
+      await healWrite("invoices", ["deposit_received_at"], () => sb.from("invoices").update({ deposit_received_at: inv.depositReceivedAt }).eq("tenant_id", requireTenantId()).eq("id", id));
     } else {
       const m = mem.find((x) => x.id === id);
       if (m) {

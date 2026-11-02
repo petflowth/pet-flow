@@ -209,8 +209,14 @@ async function handlePost(req: NextRequest) {
           catName: catNames,
           petEmoji: petWords(cfg).emoji,
           businessName: cfg.business.name,
-          // ขออัปเดต = ปุ่มแยกทีละเรื่อง (ลิงก์ต้องติด update=1 ไปด้วย ซึ่งปุ่มเดียวไล่ทีละหน้าไม่ได้พกไป)
-          flow: updateParts.size ? undefined : { liffId, by: "c" },
+          // ปุ่มเดียวไล่ทีละหน้า — ขั้นที่ร้านกด "ขออัปเดต" ได้ update=1 ไปด้วย
+          flow: {
+            liffId,
+            by: "c",
+            up: [...updateParts].map((p) => (p === "stayInfo" || p === "groomInfo" ? "info" : p)).filter(
+              (p): p is "info" | "vaccine" | "idcard" => p === "info" || p === "vaccine" || p === "idcard"
+            ),
+          },
         },
         cfg.cards?.intake
       )

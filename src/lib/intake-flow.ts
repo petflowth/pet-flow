@@ -8,6 +8,7 @@
  *   by   = b (อ้างนัด) | c (อ้างตัวน้อง — ส่งจากหน้าข้อมูลลูกค้า ยังไม่มีนัด)
  *   kind = stay | groom (ฟอร์มประวัติแบบไหน)
  *   n    = จำนวนขั้นทั้งหมด (ไว้โชว์ "ขั้นที่ x จาก n")
+ *   up   = ขั้นที่ร้านกด "ขออัปเดต" (เช่น "info,vaccine") — หน้านั้นได้ update=1 (ฟอร์มเปิดพร้อมคำตอบเดิม / ขอสมุดหน้าล่าสุด)
  * ไฟล์นี้ใช้ได้ทั้งฝั่งเบราว์เซอร์และเซิร์ฟเวอร์
  */
 
@@ -43,7 +44,7 @@ export function decodeFlow(raw: string | null | undefined): FlowToken[] {
 export function flowStepHref(
   token: FlowToken,
   rest: FlowToken[],
-  opts: { by: FlowBy; kind: string; total: number }
+  opts: { by: FlowBy; kind: string; total: number; up?: string }
 ): string {
   const ids = token.ids.join(",");
   const q = new URLSearchParams();
@@ -66,6 +67,10 @@ export function flowStepHref(
     if (opts.by === "b" && token.ids[0]) q.set("id", token.ids[0]);
     else q.set("mode", "customer");
   }
+  if (opts.up) {
+    if (opts.up.split(",").includes(token.step)) q.set("update", "1");
+    q.set("up", opts.up);
+  }
   q.set("n", String(opts.total));
   q.set("by", opts.by);
   if (opts.kind) q.set("fk", opts.kind);
@@ -78,7 +83,12 @@ export function firstFlowHref(params: URLSearchParams): string | null {
   const tokens = decodeFlow(params.get("flow"));
   if (!tokens.length) return null;
   const by: FlowBy = params.get("by") === "c" ? "c" : "b";
-  return flowStepHref(tokens[0], tokens.slice(1), { by, kind: params.get("kind") || "", total: tokens.length });
+  return flowStepHref(tokens[0], tokens.slice(1), {
+    by,
+    kind: params.get("kind") || "",
+    total: tokens.length,
+    up: params.get("up") || "",
+  });
 }
 
 /** ลิงก์ร้าน (/s/<slug>) ของหน้าปัจจุบัน — ไปขั้นต่อไปต้องอยู่ร้านเดิม */
@@ -101,7 +111,7 @@ export function flowProgress(params: URLSearchParams): {
   const by: FlowBy = params.get("by") === "c" ? "c" : "b";
   const next = rest.length
     ? {
-        href: shopPrefix() + flowStepHref(rest[0], rest.slice(1), { by, kind: params.get("fk") || "", total }),
+        href: shopPrefix() + flowStepHref(rest[0], rest.slice(1), { by, kind: params.get("fk") || "", total, up: params.get("up") || "" }),
         label: FLOW_STEP_LABEL[rest[0].step],
       }
     : null;

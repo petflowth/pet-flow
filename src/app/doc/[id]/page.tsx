@@ -50,8 +50,10 @@ export default function PublicDocPage({ params }: { params: Promise<{ id: string
   return (
     <main className="min-h-screen bg-cream pb-28">
       <header className="mx-auto flex max-w-[800px] items-center gap-3 px-4 pb-3 pt-5 print:hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.jpg" alt="" className="h-10 w-10 rounded-full object-cover" />
+        {data.seller.logoUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={data.seller.logoUrl} alt="" className="h-10 w-10 rounded-full bg-white object-contain" />
+        )}
         <div className="min-w-0">
           <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-brown-soft">{title.en}</p>
           <p className="truncate text-base font-extrabold text-petflow-chocolate">

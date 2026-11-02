@@ -2106,7 +2106,7 @@ export function mergeIntakeCards(
     always?: boolean;
     petEmoji?: string;
     /** มี = ปุ่มเดียวไล่ทีละหน้า (ประวัติ → สมุดวัคซีน → บัตร → กฎ) แทนปุ่มแยกทีละเรื่อง */
-    flow?: { liffId: string; by: FlowBy };
+    flow?: { liffId: string; by: FlowBy; /** ขั้นที่ร้านกด "ขออัปเดต" */ up?: FlowStep[] };
   },
   style?: CardStyleConfig
 ): object[] {
@@ -2129,6 +2129,7 @@ export function mergeIntakeCards(
             flow: encodeFlow(tokens),
             by: ctx.flow.by,
             kind: hasStay ? "stay" : "groom",
+            ...(ctx.flow.up?.length ? { up: ctx.flow.up.join(",") } : {}),
           }),
           steps: steps.map((e) => ({ kind: e.kind as IntakeButtonKind, count: e.count })),
         }

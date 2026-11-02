@@ -4,6 +4,7 @@ import type { GroomFormConfig } from "./groom-form";
 import type { RegisterFormConfig } from "./register-form";
 import type { GroomProgram } from "./grooming-prices";
 import type { RoomClosure } from "./room-board";
+import type { RoomSeasonConfig } from "./room-seasons";
 import type { LinePromo } from "./line-discount";
 
 /** บล็อกเนื้อหาหน้ากฎระเบียบการฝาก — ใส่ได้ทั้งรูปและ/หรือข้อความ เรียงตามลำดับที่ตั้งไว้ */
@@ -281,6 +282,8 @@ export type SiteConfig = {
   rooms: RoomType[];
   /** ปิดห้องรายห้อง (ซ่อม/ใช้งานไม่ได้) — ตั้งจากผังห้องในตารางนัด */
   roomClosures?: RoomClosure[];
+  /** ราคาห้องตาม Low / High season (ร้านกรอกช่วงวันเอง) — ไม่ตั้ง/ปิด = ราคาห้องปกติ */
+  roomSeasons?: RoomSeasonConfig;
   /**
    * ตารางราคาโปรแกรมอาบน้ำ — ไม่ตั้ง/ว่าง = ใช้ค่าเริ่มต้นของระบบ (GROOM_PROGRAMS)
    * ร้านเพิ่ม/ลบ/แก้โปรแกรมเองได้ในหลังบ้าน แทนที่การฝังในโค้ด

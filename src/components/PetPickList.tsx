@@ -12,6 +12,7 @@ export type PetPickItem = {
   /** หมา/แมว ของตัวนี้ — ร้านที่รับทั้งสองแบบใช้เลือกรูปการ์ตูน/คำให้ตรงตัว */
   species?: string | null;
   photoDataUrl?: string | null;
+  weightKg?: number | null;
 };
 
 /** ตัดวงเล็บภาษาอังกฤษออก — "สก็อตติช โฟลด์ (Scottish Fold)" → "สก็อตติช โฟลด์" ให้การ์ดดูสะอาด */

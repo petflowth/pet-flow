@@ -56,6 +56,18 @@ import {
   billRuleLabel,
 } from "@/lib/line-discount";
 import { NumInput } from "@/components/NumInput";
+import {
+  SEASON_LABEL,
+  normalizeRoomSeasons,
+  seasonOn as seasonOnDate,
+  seasonalNightPrice,
+  seasonsActive,
+  splitSeasonTag,
+  splitStayBySeason,
+  withSeasonTag,
+  type RoomSeasonConfig,
+  type Season,
+} from "@/lib/room-seasons";
 
 type Customer = {
   id: string;
@@ -180,6 +192,8 @@ type Item = {
   /** บรรทัดค่าห้องจากบิลเดิมที่เปิดมาแก้ (โหลดเป็น "พิมพ์เอง") — qty = จำนวนคืน
    *  บันทึกกลับเป็นค่าห้อง "× N คืน" ไม่ใช่ "× N" ระบบต่อคืนจะได้นับคืนที่จ่ายไปแล้วถูก */
   roomLine?: { note?: string };
+  /** ห้องพัก: คืนเหล่านี้อยู่ฤดูไหน (ร้านที่เปิดราคาตาม Low/High season) — ขึ้นท้ายชื่อห้องในบิล */
+  season?: Season;
   /** สินค้าหน้าร้าน (kind "product") — ออก/แก้/ลบบิลแล้วตัด/คืนสต็อกให้เอง */
   productId?: string;
   /** คอร์สที่ขาย (kind "package") — จ่ายบิลแล้วระบบเพิ่มคอร์สให้ลูกค้าเอง */
@@ -360,7 +374,9 @@ function computeLineBase(
     const unit = it.priceOverride ?? (it.roomPrice || 0);
     return {
       // Day Care นับเป็น "วัน" ไม่ใช่ "คืน" — ระบบต่อคืน/ตรวจบิล/คอร์สคืนจะไม่นับรวม
-      label: withCat(`${it.roomLabel || "ห้องพัก"} × ${n} ${isDayCareLabel(it.roomLabel) ? "วัน" : "คืน"}`),
+      label: withCat(
+        `${withSeasonTag(it.roomLabel || "ห้องพัก", it.season)} × ${n} ${isDayCareLabel(it.roomLabel) ? "วัน" : "คืน"}`
+      ),
       amount: unit * n,
       catName: cat,
       qty: n,
@@ -630,6 +646,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
   // ตารางราคาโปรแกรมอาบน้ำ — ค่าเริ่มต้นของระบบ จนกว่า config จะโหลดเสร็จ (มีโปรแกรมที่ร้านเพิ่มเองด้วย)
   const [groomPrograms, setGroomPrograms] = useState<GroomProgram[]>(GROOM_PROGRAMS);
   const [groomSizeLabels, setGroomSizeLabels] = useState<Partial<Record<GroomSize, string>>>({});
+  const [seasons, setSeasons] = useState<RoomSeasonConfig | null>(null);
   const [items, setItems] = useState<Item[]>([newGrooming()]);
   // ขายเร็ว ไม่ระบุลูกค้า — ใช้ลูกค้าโครง "ลูกค้าหน้าร้าน" แทน (สำหรับขายสินค้าล้วนๆ ไม่มีนัด)
   const [quickSale, setQuickSale] = useState(false);
@@ -718,6 +735,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
       })
     );
     setGroomSizeLabels(config?.groomSizeLabels || {});
+    setSeasons(normalizeRoomSeasons(config?.roomSeasons));
     if (config?.payment) setPay(config.payment);
     if (config?.business?.name) setShopName(config.business.name);
     if (config?.billing) setBillMsg(config.billing);
@@ -795,6 +813,25 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
   }, [bookings, rooms]);
 
   const selected = customers.find((c) => c.id === customerId);
+  const seasonOn = seasonsActive(seasons);
+  /**
+   * ราคากลางต่อคืนของบรรทัดห้อง — ร้านที่เปิดราคาตามฤดู: คิดตาม Low/High (น้ำหนักน้อง หรือประเภทห้อง)
+   * ไม่เปิด/Day Care/ไม่รู้ฤดู = ราคาห้อง + ค่าตัวที่เกินแบบเดิม
+   */
+  const stdRoomPrice = (
+    r: (typeof rooms)[number],
+    names: string[],
+    season: Season | undefined,
+    cust: Customer | undefined = selected
+  ): number => {
+    const n = Math.max(1, names.length);
+    if (!season || r.dayCare || !seasonsActive(seasons)) return roomNightPrice(r.amount, r.pricing, n);
+    const weights = (names.length ? names : [""]).map(
+      (nm) => (nm ? cust?.cats.find((c) => catKey(c.name) === catKey(nm))?.weightKg : undefined) ??
+        (cust?.cats.length === 1 ? cust.cats[0].weightKg : undefined)
+    );
+    return seasonalNightPrice({ cfg: seasons, season, roomPrice: r.amount, pricing: r.pricing, weights });
+  };
 
   // โหลดคูปอง + คอร์สที่ใช้ได้ของลูกค้าที่เลือก
   useEffect(() => {
@@ -1286,7 +1323,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
         for (let i = 0; i < cats.length; i += cap) lines.push(cats.slice(i, i + cap));
       }
       setItems([
-        ...lines.map((cats): Item => {
+        ...lines.flatMap((cats): Item[] => {
           const g = cats[0];
           // เข้า-ออกวันเดียวกัน = Day Care → ใช้ราคา Day Care ของห้องนั้น
           const day = isDayCareStay(g);
@@ -1297,15 +1334,28 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
             pool.find((r) => g.room && r.label.includes(g.room));
           const price = matched?.amount ?? pool[0]?.amount ?? 0;
           const n = cats.length;
-          return {
+          const names = cats.map((c) => c.catName);
+          const nights = nightsBetween(g.checkin, g.checkout);
+          const line: Item = {
             ...newGrooming(undefined, groomPrograms),
             kind: "room" as const,
             // ต้องตรงกับตัวเลือกห้องในบิล (ไม่ต่อท้ายอะไร) — ตัวไหนอยู่ห้องนี้ดูจากชิปชื่อน้อง
             roomLabel: matched?.label || pool[0]?.label || (g.room ? `ห้อง ${g.room}` : "ห้องพัก"),
             roomPrice: matched ? roomNightPrice(price, matched.pricing, n) : price,
-            nights: nightsBetween(g.checkin, g.checkout),
-            catName: many ? cats.map((c) => c.catName).join(", ") : undefined,
+            nights,
+            catName: many ? names.join(", ") : undefined,
           };
+          // ราคาตามฤดู: แตกเป็นบรรทัดละฤดู (พักคร่อม Low → High = 2 บรรทัด คืนของใครของมัน)
+          const parts = seasonOn && !day && matched && g.checkin && g.checkout
+            ? splitStayBySeason(g.checkin, g.checkout, seasons)
+            : [];
+          if (!parts.length || !matched) return [line];
+          return parts.map((p) => ({
+            ...line,
+            season: p.season,
+            nights: p.nights,
+            roomPrice: stdRoomPrice(matched, names, p.season, cust),
+          }));
         }),
         ...groomLines(group.filter((g) => g.service === "groom")),
       ]);
@@ -1410,10 +1460,13 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
       const prog = groomPrograms[0];
       patch = { kind, program: prog.id, breed: prog.breeds[0].breed, size: "m" };
     } else if (kind === "room") {
+      // ร้านที่คิดราคาตามฤดู — เริ่มที่ฤดูของวันนี้ (กดเปลี่ยนในบรรทัดได้)
+      const season = seasonsActive(seasons) ? seasonOnDate(bangkokToday(), seasons) : undefined;
       patch = {
         kind,
+        season,
         roomLabel: rooms[0]?.label || "",
-        roomPrice: rooms[0]?.amount || 0,
+        roomPrice: rooms[0] ? stdRoomPrice(rooms[0], parseCatNames(items[idx]?.catName), season) : 0,
         nights: 1,
       };
     } else if (kind === "service") {
@@ -1606,6 +1659,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
   const editInvoice = (inv: Invoice) => {
     if (inv.status === "paid") return toast("บิลปิดแล้ว แก้ไขไม่ได้ (ลบได้อย่างเดียว)", "error");
     if (inv.customerId) setCustomerId(inv.customerId);
+    const invCust = customers.find((c) => c.id === inv.customerId);
     // โหลดรายการเป็นแบบ "พิมพ์เอง" (แก้ยอด/ชื่อได้) — เก็บของแถมฟรีด้วย
     setItems(
       (inv.items || []).map((raw) => {
@@ -1621,17 +1675,18 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
         };
         const qty = Math.max(1, Math.round(it.qty || 1));
         if (it.amount > 0 && isRoomLine(it)) {
-          const { base, note } = splitRoomLabel(it.label.replace(/^(?:🐱|🐶|🐾) .+? · /, ""));
+          const { base: tagged, note } = splitRoomLabel(it.label.replace(/^(?:🐱|🐶|🐾) .+? · /, ""));
+          const { base, season } = splitSeasonTag(tagged);
           const unit = it.unitAmount ?? Math.round(it.amount / qty);
           // ห้องที่ยังมีในร้าน → กลับมาเป็น "ห้องพัก" เปลี่ยนห้อง/จำนวนคืนได้ ติ๊กน้องเพิ่มแล้วค่าน้องเกินคิดใหม่
           // (บรรทัดพักต่อที่มีหมายเหตุ หรือห้องที่ลบไปแล้ว ยังเป็น "พิมพ์เอง" แบบเดิม)
           const r = !note ? rooms.find((x) => x.label === base && !x.dayCare) : undefined;
           if (r) {
-            const n = Math.max(1, parseCatNames(it.catName).length);
-            const std = roomNightPrice(r.amount, r.pricing, n);
+            const std = stdRoomPrice(r, parseCatNames(it.catName), season, invCust);
             return {
               ...newGrooming(undefined, groomPrograms),
               kind: "room" as const,
+              season,
               roomLabel: r.label,
               roomPrice: std,
               nights: qty,
@@ -1642,7 +1697,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
           return {
             ...newGrooming(undefined, groomPrograms),
             kind: "custom" as const,
-            label: base,
+            label: tagged,
             roomLine: { note: note || undefined },
             catName: it.catName,
             qty,
@@ -2568,7 +2623,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
                                 if (item.kind === "room") {
                                   const r = rooms.find((x) => x.label === item.roomLabel);
                                   if (r) {
-                                    next.roomPrice = roomNightPrice(r.amount, r.pricing, Math.max(1, names.length));
+                                    next.roomPrice = stdRoomPrice(r, names, item.season);
                                     if (next.priceOverride === next.roomPrice) next.priceOverride = undefined;
                                   }
                                 }
@@ -2654,10 +2709,9 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
                         onChange={(e) => {
                           const r = rooms.find((x) => x.label === e.target.value);
                           // ค่าห้องเป็นรายห้อง — นับน้องที่อยู่บรรทัดนี้ เพื่อบวกค่าแมวตัวที่เกิน
-                          const n = item.catName ? item.catName.split(",").filter((x) => x.trim()).length : 1;
                           updateItem(i, {
                             roomLabel: e.target.value,
-                            roomPrice: r ? roomNightPrice(r.amount, r.pricing, n) : 0,
+                            roomPrice: r ? stdRoomPrice(r, parseCatNames(item.catName), item.season) : 0,
                           });
                         }}
                         className={`${sub} min-w-0 flex-1`}
@@ -2692,6 +2746,34 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
                           {isDayCareLabel(item.roomLabel) ? "วัน" : "คืน"}
                         </span>
                       </div>
+                    </div>
+                  )}
+                  {/* ร้านที่คิดราคาตาม Low/High season — เปลี่ยนฤดูของบรรทัดนี้ได้ ราคาคิดใหม่ให้ */}
+                  {item.kind === "room" && seasonOn && !isDayCareLabel(item.roomLabel) && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {([undefined, "low", "high"] as (Season | undefined)[]).map((s) => {
+                        const on = item.season === s;
+                        return (
+                          <button
+                            key={s || "none"}
+                            type="button"
+                            onClick={() => {
+                              const r = rooms.find((x) => x.label === item.roomLabel);
+                              const roomPrice = r ? stdRoomPrice(r, parseCatNames(item.catName), s) : item.roomPrice;
+                              updateItem(i, {
+                                season: s,
+                                roomPrice,
+                                priceOverride: item.priceOverride === roomPrice ? undefined : item.priceOverride,
+                              });
+                            }}
+                            className={`min-h-[32px] rounded-full px-3 py-1 text-[11px] font-bold ${
+                              on ? "bg-latte-deep text-white" : "bg-paper text-brown-soft"
+                            }`}
+                          >
+                            {s ? SEASON_LABEL[s] : "ราคาห้องปกติ"}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
 

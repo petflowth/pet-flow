@@ -23,6 +23,7 @@ import {
   type InvoiceRecord,
 } from "./invoices-store";
 import { addDaysIso, extensionNote, isRoomLine, roomLineLabel, splitRoomLabel } from "./stay-line";
+import { splitSeasonTag } from "./room-seasons";
 import { normalizeLineDiscount, stripDiscountTag } from "./line-discount";
 import { shiftRoomSegments, staySegments } from "./room-segments";
 import { getSiteConfig } from "./config-store";
@@ -57,6 +58,16 @@ export async function findGroupSiblings(b: StoredBooking): Promise<StoredBooking
   return all.filter(
     (x) => x.id !== b.id && x.status !== "cancelled" && bookingGroupKey(x) === key
   );
+}
+
+/** บิลมีบรรทัดห้องคนละฤดูปนกันไหม */
+function hasMixedSeasons(inv: InvoiceRecord): boolean {
+  const seasons = new Set(
+    (inv.items || [])
+      .filter(isRoomLine)
+      .map((it) => splitSeasonTag(splitRoomLabel(stripDiscountTag(it.label)).base).season || "")
+  );
+  return seasons.size > 1;
 }
 
 /** จำนวนคืนที่บิลนี้คิดไว้ — บิลบ้านหลายตัวมีบรรทัดห้องต่อตัว ใช้บรรทัดที่คืนมากสุด */
@@ -215,6 +226,13 @@ export async function syncStayInvoice(
   const paid = invoices.filter((i) => i.status === "paid");
   const pending = invoices.filter((i) => i.status !== "paid");
   if (segmented) return syncSegmentedInvoice(paid, pending, checkout, extendFrom, segmented);
+  // บิลที่แยกค่าห้องตาม Low/High season (พักคร่อมสองฤดู) — คืนที่เปลี่ยนอยู่ฤดูไหน ระบบเดาไม่ได้
+  if (invoices.some(hasMixedSeasons)) {
+    return {
+      kind: "warn",
+      message: "บิลนี้แยกค่าห้องตาม Low/High season — แก้จำนวนคืนของแต่ละฤดูในบิลเองนะ",
+    };
+  }
 
   // ต่อคืนหลังจ่ายรอบแรกแล้ว → คิดเฉพาะ "วันออกเดิม → วันออกใหม่" ตรงๆ
   // ไม่ย้อนนับจากวันเข้าพักแรกแล้วหักคืนที่จ่าย (นับคืนจากบิลเก่าพลาดได้ เช่นบิลที่เคยเปิดแก้

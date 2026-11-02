@@ -11,6 +11,13 @@ import { SELF_BOOKABLE_ROOM_IDS } from "@/lib/self-bookable-rooms";
 import { bathPrograms, resolveGroomPrograms, resolveMassagePrograms } from "@/lib/grooming-prices";
 import { extraCatChargePerNight } from "@/lib/business";
 import { roomPricing } from "@/lib/room-board";
+import {
+  SEASON_LABEL,
+  normalizeRoomSeasons,
+  seasonalNightPrice,
+  seasonsActive,
+  splitStayBySeason,
+} from "@/lib/room-seasons";
 import { toJpegDataUrl } from "@/lib/image-convert";
 import { PetPickList, type PetPickItem } from "@/components/PetPickList";
 import { PetProgramSelect } from "@/components/GroomProgramPicker";
@@ -139,7 +146,14 @@ function BookPageInner() {
     () =>
       (customer?.cats || []).map((c) => {
         const d = catDetails.find((x) => x.id === c.id);
-        return { id: c.id, name: c.name, breed: d?.breed, species: d?.species, photoDataUrl: d?.photoDataUrl };
+        return {
+          id: c.id,
+          name: c.name,
+          breed: d?.breed,
+          species: d?.species,
+          photoDataUrl: d?.photoDataUrl,
+          weightKg: d?.weightKg,
+        };
       }),
     [customer?.cats, catDetails]
   );
@@ -169,12 +183,32 @@ function BookPageInner() {
   const roomsNeeded = selectedRoom
     ? Math.max(1, Math.ceil(catNames.length / Math.max(1, selectedRoom.maxCats || 1)))
     : 1;
+  const seasons = useMemo(() => normalizeRoomSeasons(config.roomSeasons), [config.roomSeasons]);
   const roomPrice = useMemo(() => {
     if (!selectedRoom || !catNames.length || checkout <= checkin) return null;
     const nights = Math.round(
       (Date.parse(checkout + "T00:00:00Z") - Date.parse(checkin + "T00:00:00Z")) / 86400000
     );
     const extra = extraCatChargePerNight(selectedRoom, catNames.length);
+    // ร้านที่คิดราคาตาม Low/High season — ประมาณราคาตามฤดูของแต่ละคืน (และน้ำหนักน้องถ้าร้านคิดตามน้ำหนัก)
+    const seasonParts = seasonsActive(seasons)
+      ? splitStayBySeason(checkin, checkout, seasons).map((p) => {
+          const pricing = roomPricing(selectedRoom);
+          const cap = Math.max(1, selectedRoom.maxCats || 1);
+          const weights = catNames.map((n) => petItems.find((x) => x.name === n)?.weightKg);
+          let perNight = 0;
+          for (let i = 0; i < weights.length; i += cap) {
+            perNight += seasonalNightPrice({
+              cfg: seasons,
+              season: p.season,
+              roomPrice: selectedRoom.price,
+              pricing,
+              weights: weights.slice(i, i + cap),
+            });
+          }
+          return { season: p.season, nights: p.nights, perNight };
+        })
+      : null;
     return {
       nights,
       rooms: extra.rooms,
@@ -182,9 +216,12 @@ function BookPageInner() {
       extraCats: extra.extraCats,
       extraCatPrice: roomPricing(selectedRoom).extraPrice,
       included: roomPricing(selectedRoom).base,
-      total: (selectedRoom.price * extra.rooms + extra.perNight) * nights,
+      seasonParts,
+      total: seasonParts
+        ? seasonParts.reduce((s, p) => s + p.perNight * p.nights, 0)
+        : (selectedRoom.price * extra.rooms + extra.perNight) * nights,
     };
-  }, [selectedRoom, catNames.length, checkin, checkout]);
+  }, [selectedRoom, catNames, checkin, checkout, seasons, petItems]);
 
   const [submitting, setSubmitting] = useState(false);
   const [submitErr, setSubmitErr] = useState("");
@@ -754,12 +791,20 @@ function BookPageInner() {
                     <p className="font-bold">
                       💰 ประมาณ ฿{roomPrice.total.toLocaleString()} ({roomPrice.nights} คืน)
                     </p>
-                    <p className="text-brown-soft">
-                      ห้อง ฿{roomPrice.roomPerNight.toLocaleString()} × {roomPrice.rooms} ห้อง
-                      {roomPrice.extraCats > 0 &&
-                        ` + น้องตัวที่ ${roomPrice.included + 1} ขึ้นไป ${roomPrice.extraCats} ตัว × ฿${roomPrice.extraCatPrice}`}{" "}
-                      ต่อคืน
-                    </p>
+                    {roomPrice.seasonParts ? (
+                      roomPrice.seasonParts.map((p, i) => (
+                        <p key={i} className="text-brown-soft">
+                          {SEASON_LABEL[p.season]} ฿{p.perNight.toLocaleString()} × {p.nights} คืน
+                        </p>
+                      ))
+                    ) : (
+                      <p className="text-brown-soft">
+                        ห้อง ฿{roomPrice.roomPerNight.toLocaleString()} × {roomPrice.rooms} ห้อง
+                        {roomPrice.extraCats > 0 &&
+                          ` + น้องตัวที่ ${roomPrice.included + 1} ขึ้นไป ${roomPrice.extraCats} ตัว × ฿${roomPrice.extraCatPrice}`}{" "}
+                        ต่อคืน
+                      </p>
+                    )}
                   </div>
                 )}
               </>

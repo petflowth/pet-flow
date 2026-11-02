@@ -30,7 +30,9 @@ type Part = (typeof CUSTOMER_CARD_PARTS)[number];
 
 /**
  * POST /api/customers/send-cards — ส่งการ์ดถามข้อมูลก่อนรับน้องจากหน้าข้อมูลลูกค้า (หลังบ้านเท่านั้น)
- * body: { customerId, parts: Part[], catIds?: string[], preview?: true }
+ * body: { customerId, parts: Part[], catIds?: string[], preview?: true, updateParts?: Part[] }
+ * updateParts = เรื่องที่ลูกค้าเคยส่งแล้ว แต่ร้านกด "ขออัปเดต" เอง (เช่น สมุดวัคซีนเล่มใหม่ ประวัติน้องเปลี่ยน)
+ *   → ส่งขอซ้ำได้ ลิงก์ติด update=1 ให้หน้าลูกค้าบอกว่าเป็นการขออัปเดต · ข้อมูลเดิมยังเก็บไว้
  * ส่งหลายใบรวมใน push เดียว (LINE นับ 1 ข้อความ, สูงสุด 5 ใบ) — preview คืน flex ตัวเดียวกับที่จะส่งจริง
  * เรื่องที่ขอข้อมูล (ประวัติ/สมุดวัคซีน/บัตร/กฎ) ตั้งแต่ 2 เรื่องขึ้นไป รวมเป็นการ์ดใบเดียวหลายปุ่ม
  */
@@ -57,6 +59,9 @@ async function handlePost(req: NextRequest) {
     .slice(0, CUSTOMER_CARD_PARTS.length);
   if (parts.length === 0) return NextResponse.json({ error: "เลือกอย่างน้อย 1 การ์ด" }, { status: 400 });
 
+  const updateParts = new Set<Part>(
+    (Array.isArray(body.updateParts) ? body.updateParts : []).map(String).filter((p: string) => parts.includes(p as Part))
+  );
   const wanted: string[] = Array.isArray(body.catIds) ? body.catIds.map(String) : [];
   const cats = wanted.length ? c.cats.filter((x) => wanted.includes(x.id)) : c.cats;
   const needCats = parts.some((p) => p === "groomInfo" || p === "stayInfo" || p === "vaccine");
@@ -86,14 +91,16 @@ async function handlePost(req: NextRequest) {
     if (part === "groomInfo" || part === "stayInfo") {
       const stay = part === "stayInfo";
       // ตัวที่เคยกรอกฟอร์มนี้แล้ว → ไม่ขอซ้ำเด็ดขาด (ข้อมูลผูกกับตัวน้อง)
-      const ask = cats.filter((x) => !(stay ? x.stayInfo : x.groomHealthInfo));
+      // ยกเว้นร้านกด "ขออัปเดต" เอง — ขอทุกตัวที่เลือก ฟอร์มเปิดพร้อมคำตอบเดิมให้แก้เฉพาะข้อที่เปลี่ยน
+      const again = updateParts.has(part);
+      const ask = again ? cats : cats.filter((x) => !(stay ? x.stayInfo : x.groomHealthInfo));
       for (const x of cats) if (!ask.includes(x)) skipped.push(`${x.name}: เคยกรอกแล้ว ไม่ขอซ้ำ`);
       if (ask.length === 0) continue;
       const askNames = ask.map((x) => x.name).join(", ");
       const askLabel = ask.length > 1 ? `น้องๆ ${ask.length} ตัว` : askNames;
       const style = cfg.cards?.groomInfo;
       const button = style?.texts?.button || "🩺 แจ้งประวัติน้อง";
-      const url = buildCatInfoUrl(liffId, ask.map((x) => x.id), stay ? "stay" : "groom");
+      const url = buildCatInfoUrl(liffId, ask.map((x) => x.id), stay ? "stay" : "groom", again);
       addIntake({
         kind: stay ? "stayInfo" : "info",
         url,
@@ -103,20 +110,26 @@ async function handlePost(req: NextRequest) {
           {
             catName: askNames,
             petEmoji: petWords(cfg).emoji,
-            body: (stay ? buildStayInfoBody : buildGroomInfoBody)({ catName: askLabel }, cfg),
+            body: again
+              ? `รบกวนอัปเดตข้อมูล${askLabel}ให้เป็นปัจจุบันหน่อยนะคะ คำตอบเดิมใส่ไว้ให้แล้ว แก้เฉพาะข้อที่เปลี่ยนแล้วกดส่งได้เลยค่ะ 🙏`
+              : (stay ? buildStayInfoBody : buildGroomInfoBody)({ catName: askLabel }, cfg),
             url,
             label: ask.length > 1 ? `${button} (${ask.length} ตัว)` : button,
           },
           stay
-            ? { ...style, texts: { ...style?.texts, header: "🐾 ข้อมูลน้องก่อนเข้าพัก" } }
-            : style
+            ? { ...style, texts: { ...style?.texts, header: again ? "🐾 ขออัปเดตข้อมูลน้อง" : "🐾 ข้อมูลน้องก่อนเข้าพัก" } }
+            : again
+              ? { ...style, texts: { ...style?.texts, header: "🩺 ขออัปเดตประวัติน้อง" } }
+              : style
         ),
       });
     } else if (part === "vaccine") {
       // สมุดวัคซีนขอใหม่ได้ทุกรอบ (วัคซีนหมดอายุได้) — ร้านกดส่งเองก็ส่งเลย
       const ask = cats;
       if (ask.length === 0) continue;
-      const url = buildCatVaccineUrl(liffId, ask.map((x) => x.id));
+      const again = updateParts.has(part);
+      const url = buildCatVaccineUrl(liffId, ask.map((x) => x.id), again);
+      const docStyle = cfg.cards?.docRequest;
       addIntake({
         kind: "vaccine",
         url,
@@ -124,12 +137,22 @@ async function handlePost(req: NextRequest) {
         count: ask.length,
         card: buildDocRequestFlex(
           { kind: "vaccine", businessName: cfg.business.name, petEmoji: petWords(cfg).emoji, catName: ask.map((x) => x.name).join(", "), url },
-          cfg.cards?.docRequest
+          again
+            ? {
+                ...docStyle,
+                texts: {
+                  ...docStyle?.texts,
+                  vaccineHeader: "💉 ขอสมุดวัคซีนอัปเดต",
+                  vaccineBody:
+                    "รบกวนถ่ายรูปสมุดวัคซีนหน้าล่าสุดของ{pet}ส่งให้ร้านอีกครั้งนะคะ (เช่น หลังฉีดเข็มใหม่) รูปเดิมร้านยังเก็บไว้ค่ะ 🙏",
+                },
+              }
+            : docStyle
         ),
       });
     } else if (part === "idcard") {
       // บัตรประชาชนแนบครั้งเดียวต่อลูกค้า
-      if (c.idCardUrl) {
+      if (c.idCardUrl && !updateParts.has(part)) {
         skipped.push("มีบัตรประชาชนแล้ว ไม่ขอซ้ำ");
         continue;
       }
@@ -186,7 +209,8 @@ async function handlePost(req: NextRequest) {
           catName: catNames,
           petEmoji: petWords(cfg).emoji,
           businessName: cfg.business.name,
-          flow: { liffId, by: "c" },
+          // ขออัปเดต = ปุ่มแยกทีละเรื่อง (ลิงก์ต้องติด update=1 ไปด้วย ซึ่งปุ่มเดียวไล่ทีละหน้าไม่ได้พกไป)
+          flow: updateParts.size ? undefined : { liffId, by: "c" },
         },
         cfg.cards?.intake
       )

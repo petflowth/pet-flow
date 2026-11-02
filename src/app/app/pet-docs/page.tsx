@@ -29,6 +29,8 @@ type VaccineTarget = {
   booking?: StayBooking;
   catId?: string;
   initialCount: number;
+  /** ร้านกด "ขออัปเดต" — ขอรูปหน้าล่าสุด รูปเดิมยังเก็บไว้ */
+  update?: boolean;
 };
 
 /**
@@ -47,6 +49,7 @@ function PetDocsContent() {
       .join(",");
   const idsKey = split(params.get("id"));
   const catsKey = split(params.get("cats"));
+  const updateMode = params.get("update") === "1";
   const { profile, ready } = useLiff();
   const { config } = useConfig();
   const [bookings, setBookings] = useState<StayBooking[]>([]);
@@ -97,7 +100,7 @@ function PetDocsContent() {
       }))
     : cats
         .filter((c) => !catsKey || catsKey.split(",").includes(c.id))
-        .map((c) => ({ key: c.id, catName: c.name, catId: c.id, initialCount: c.vaccineCount }));
+        .map((c) => ({ key: c.id, catName: c.name, catId: c.id, initialCount: c.vaccineCount, update: updateMode }));
 
   // ยังไม่ได้แจ้งประวัติน้อง → ชวนกรอกต่อในหน้าเดียวกันเลย ไม่ต้องรอร้านส่งลิงก์ใหม่
   // นัดอาบน้ำ = ประวัติก่อนอาบน้ำ · นัดเข้าพัก/ลิงก์จากหน้าลูกค้า = ข้อมูลก่อนเข้าพัก
@@ -227,7 +230,9 @@ function VaccineSection({ target }: { target: VaccineTarget }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
-          booking ? { bookingId: booking.id, photos: list } : { catId: target.catId, photos: list }
+          booking
+            ? { bookingId: booking.id, photos: list }
+            : { catId: target.catId, photos: list, update: !!target.update }
         ),
       });
       const data = await res.json().catch(() => ({}));
@@ -255,11 +260,19 @@ function VaccineSection({ target }: { target: VaccineTarget }) {
         </div>
       </div>
 
-      {sentCount > 0 && (
-        <p className="mb-2 flex items-center gap-1.5 rounded-petflow-sm bg-sage/20 px-3 py-2 text-[11px] font-bold text-ok">
-          <Icon name="check" size={14} strokeWidth={2.4} />
-          ร้านได้รับสมุดวัคซีนแล้ว {sentCount} รูป{done ? " — ขอบคุณค่ะ 🧡" : " · แนบเพิ่มได้"}
+      {target.update && !done ? (
+        <p className="mb-2 flex items-start gap-1.5 rounded-petflow-sm bg-honey/20 px-3 py-2 text-[11px] font-bold text-petflow-chocolate">
+          <Icon name="image" size={14} className="mt-0.5 shrink-0" />
+          ร้านขอรูปสมุดวัคซีนหน้าล่าสุด (เช่น หลังฉีดเข็มใหม่)
+          {sentCount > 0 ? ` · รูปเดิม ${sentCount} รูป ร้านยังเก็บไว้` : ""}
         </p>
+      ) : (
+        sentCount > 0 && (
+          <p className="mb-2 flex items-center gap-1.5 rounded-petflow-sm bg-sage/20 px-3 py-2 text-[11px] font-bold text-ok">
+            <Icon name="check" size={14} strokeWidth={2.4} />
+            ร้านได้รับสมุดวัคซีนแล้ว {sentCount} รูป{done ? " — ขอบคุณค่ะ 🧡" : " · แนบเพิ่มได้"}
+          </p>
+        )
       )}
 
       {photos.length > 0 && (
@@ -301,7 +314,9 @@ function VaccineSection({ target }: { target: VaccineTarget }) {
               ? "กำลังแนบรูป…"
               : photos.length
                 ? `เพิ่มรูปอีก (สูงสุด ${MAX_VACCINE_PHOTOS} รูป)`
-                : sentCount > 0
+                : target.update
+                  ? "แตะเพื่อถ่าย/เลือกรูปสมุดวัคซีนหน้าล่าสุด (เลือกแล้วส่งให้ร้านทันที)"
+                  : sentCount > 0
                   ? "แนบเพิ่ม (เลือกแล้วส่งให้ร้านทันที)"
                   : "แตะเพื่อถ่าย/เลือกรูปสมุดวัคซีน (เลือกแล้วส่งให้ร้านทันที)"}
           </span>

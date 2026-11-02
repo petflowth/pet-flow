@@ -40,7 +40,9 @@ export function CustomerIntakeCards({
   const [catIds, setCatIds] = useState<string[]>(customer.cats.map((c) => c.id));
   const [picked, setPicked] = useState<Part[]>([]);
   const [busy, setBusy] = useState("");
-  const [pending, setPending] = useState<{ parts: Part[]; messages: Record<string, unknown>[] } | null>(null);
+  const [pending, setPending] = useState<{ parts: Part[]; updateParts: Part[]; messages: Record<string, unknown>[] } | null>(
+    null
+  );
   const [sending, setSending] = useState(false);
   const noLine = !customer.lineUserId;
   const cats = customer.cats.filter((c) => catIds.includes(c.id));
@@ -83,17 +85,23 @@ export function CustomerIntakeCards({
   // สลับประเภทนัดแล้ว เรื่องที่ติ๊กไว้แต่ถูกซ่อน ไม่ส่งไปด้วย
   const shownPicked = picked.filter((p) => rows.some((r) => r.part === p && r.when));
 
+  // เรื่องที่ลูกค้าส่งมาแล้ว → กดส่งอีก = "ขออัปเดต" (สมุดวัคซีนเล่มใหม่ / ประวัติน้องเปลี่ยน / บัตรใหม่)
+  // กฎ + เตรียมตัวเข้าพัก ส่งซ้ำได้อยู่แล้ว ไม่ใช่การขออัปเดต
+  const UPDATABLE: Part[] = ["stayInfo", "groomInfo", "vaccine", "idcard"];
+  const isUpdate = (p: Part) => UPDATABLE.includes(p) && !!rows.find((r) => r.part === p)?.done;
+
   const requestPreview = async (parts: Part[], key: string) => {
     if (parts.length === 0) return;
+    const updateParts = parts.filter(isUpdate);
     setBusy(key);
     try {
       const res = await fetch("/api/customers/send-cards", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customerId: customer.id, parts, catIds, preview: true }),
+        body: JSON.stringify({ customerId: customer.id, parts, updateParts, catIds, preview: true }),
       });
       const d = await res.json().catch(() => ({}));
-      if (res.ok && Array.isArray(d.preview)) setPending({ parts, messages: d.preview });
+      if (res.ok && Array.isArray(d.preview)) setPending({ parts, updateParts, messages: d.preview });
       else toast(d.error ? `โหลดตัวอย่างไม่สำเร็จ: ${d.error}` : "โหลดตัวอย่างไม่สำเร็จ", "error");
     } finally {
       setBusy("");
@@ -107,11 +115,11 @@ export function CustomerIntakeCards({
       const res = await fetch("/api/customers/send-cards", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customerId: customer.id, parts: pending.parts, catIds }),
+        body: JSON.stringify({ customerId: customer.id, parts: pending.parts, updateParts: pending.updateParts, catIds }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) return toast(d.error ? `ส่งไม่สำเร็จ: ${d.error}` : "ส่งไม่สำเร็จ", "error");
-      toast(`ส่งการ์ด ${pending.parts.length} ใบแล้ว 📨`, "success");
+      toast(pending.updateParts.length ? "ส่งขออัปเดตข้อมูลแล้ว 📨" : `ส่งการ์ด ${pending.parts.length} ใบแล้ว 📨`, "success");
       setPending(null);
       setPicked([]);
     } finally {
@@ -147,7 +155,8 @@ export function CustomerIntakeCards({
         ถามข้อมูลก่อนรับน้อง (ยังไม่ต้องลงนัด)
       </p>
       <p className="mb-2 mt-0.5 text-[10px] text-brown-faint">
-        แต่ละเรื่องกดส่ง LINE ได้เลย · หรือติ๊กหลายเรื่องแล้วส่งรวมเป็น 1 ข้อความ
+        แต่ละเรื่องกดส่ง LINE ได้เลย · หรือติ๊กหลายเรื่องแล้วส่งรวมเป็น 1 ข้อความ · เรื่องที่ได้รับแล้วกด
+        &quot;ขออัปเดต&quot; เพื่อขอใหม่ได้ (เช่น สมุดวัคซีนเล่มใหม่ ข้อมูลเดิมยังเก็บไว้)
       </p>
       {noLine && (
         <p className="mb-2 flex items-center gap-2 rounded-petflow-sm bg-wait/10 px-3 py-2 text-[11px] font-bold text-wait">
@@ -205,8 +214,8 @@ export function CustomerIntakeCards({
                 onClick={() => requestPreview([r.part], r.part)}
                 className="flex min-h-[36px] shrink-0 items-center gap-1 rounded-full bg-[#06C755]/15 px-3 text-[11px] font-extrabold text-[#06883c] disabled:opacity-40"
               >
-                <Icon name="send" size={13} />
-                {busy === r.part ? "…" : "ส่ง LINE"}
+                <Icon name={isUpdate(r.part) ? "edit" : "send"} size={13} />
+                {busy === r.part ? "…" : isUpdate(r.part) ? "ขออัปเดต" : "ส่ง LINE"}
               </button>
             </li>
           ))}

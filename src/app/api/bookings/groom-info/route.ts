@@ -191,11 +191,12 @@ async function postHandler(req: NextRequest) {
   const customerName = t.booking?.customerName || (t.me as CustomerRecord | undefined)?.name || "-";
   sendTelegramLater(
     formatBookingTelegram(
-      groomPayload
+      (body.update === true ? "✏️ อัปเดต · " : "") +
+      (groomPayload
         ? "🏠🛁 ข้อมูลน้องก่อนเข้าพัก + อาบน้ำ (ลูกค้ากรอก)"
         : t.kind === "stay"
           ? "🏠 ข้อมูลน้องก่อนเข้าพัก (ลูกค้ากรอก)"
-          : "🩺 ประวัติน้องก่อนอาบน้ำ (ลูกค้ากรอก)",
+          : "🩺 ประวัติน้องก่อนอาบน้ำ (ลูกค้ากรอก)"),
       {
         น้อง: t.catName,
         ลูกค้า: customerName,

@@ -56,12 +56,13 @@ export function buildPetDocsUrl(liffId: string, bookingIds: string | string[], n
  * ลิงก์ที่ร้านส่งจากหน้าข้อมูลลูกค้า (ยังไม่ต้องมีนัด) — ชี้ที่ตัวน้อง (catIds) แทนนัด
  * kind: ฟอร์มข้อมูลน้องฉบับ "ก่อนอาบน้ำ" หรือ "ก่อนเข้าพัก" (คำถามชุดเดียวกัน ต่างแค่หัวข้อ)
  */
-export function buildCatInfoUrl(liffId: string, catIds: string[], kind: "groom" | "stay") {
-  return buildLiffUrl(liffId, { path: "groom-info", cats: catIds.join(","), kind });
+export function buildCatInfoUrl(liffId: string, catIds: string[], kind: "groom" | "stay", update = false) {
+  return buildLiffUrl(liffId, { path: "groom-info", cats: catIds.join(","), kind, ...(update ? { update: "1" } : {}) });
 }
 
-export function buildCatVaccineUrl(liffId: string, catIds: string[]) {
-  return buildLiffUrl(liffId, { path: "pet-docs", cats: catIds.join(","), need: "vaccine" });
+/** update = ร้านขอสมุดเล่มอัปเดต (ลูกค้าเคยส่งแล้ว) — หน้าลูกค้าบอกว่ารูปเดิมยังอยู่ ขอหน้าล่าสุด */
+export function buildCatVaccineUrl(liffId: string, catIds: string[], update = false) {
+  return buildLiffUrl(liffId, { path: "pet-docs", cats: catIds.join(","), need: "vaccine", ...(update ? { update: "1" } : {}) });
 }
 
 export function buildIdCardUrl(liffId: string) {

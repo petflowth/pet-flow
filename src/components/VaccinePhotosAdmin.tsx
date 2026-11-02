@@ -89,7 +89,8 @@ export function VaccinePhotosAdmin({
 
   return (
     <>
-      {photos.map((url, vi) => (
+      {/* ล่าสุดขึ้นก่อน — ร้านขอสมุดเล่มอัปเดตแล้ว รูปเดิมยังอยู่ต่อท้ายเป็นประวัติ */}
+      {[...photos].reverse().map((url, vi) => (
         <span key={url} className="relative flex min-h-[40px] items-center gap-1.5">
           <a
             href={url}
@@ -99,7 +100,7 @@ export function VaccinePhotosAdmin({
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={url} alt="สมุดวัคซีน" className="h-8 w-8 rounded border border-petflow-line object-cover" />
-            {vi === 0 && `ดูสมุดวัคซีน${photos.length > 1 ? ` (${photos.length} รูป)` : ""}`}
+            {vi === 0 && `ดูสมุดวัคซีน${photos.length > 1 ? ` ล่าสุด (รวม ${photos.length} รูป)` : ""}`}
           </a>
           <button
             type="button"

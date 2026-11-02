@@ -121,6 +121,8 @@ function GroomInfoContent() {
   const [loadError, setLoadError] = useState("");
   // นัดเข้าพัก / ลิงก์ kind=stay → ฟอร์มก่อนเข้าพัก (คนละชุดคำถามกับก่อนอาบน้ำ)
   const kindParam = params.get("kind") || "";
+  // ร้านกด "ขออัปเดต" — เปิดทุกข้อพร้อมคำตอบเดิม ให้แก้เฉพาะข้อที่เปลี่ยน (ไม่ซ่อนข้อที่เคยตอบ)
+  const updateMode = params.get("update") === "1";
   const [isStay, setIsStay] = useState(kindParam === "stay");
 
   useEffect(() => {
@@ -174,7 +176,7 @@ function GroomInfoContent() {
             skip: d.knownMedical ? ["medical"] : [],
             bath,
             answered: answeredKeys(fs, answers),
-            showAnswered: false,
+            showAnswered: updateMode,
           });
         });
         setForms(loaded);
@@ -282,6 +284,7 @@ function GroomInfoContent() {
             body: JSON.stringify({
               ...(catMode ? { catId: f.id } : { bookingId: f.id }),
               kind: isStay ? "stay" : "groom",
+              ...(updateMode ? { update: true } : {}),
               lineUserId: profile?.lineUserId,
               info: {
                 ...own,
@@ -397,6 +400,12 @@ function GroomInfoContent() {
         </div>
       ) : (
         <>
+          {updateMode && (
+            <p className="mb-3 flex items-start gap-1.5 rounded-petflow-sm bg-sage/15 px-3 py-2 text-xs font-bold text-petflow-chocolate">
+              <Icon name="edit" size={14} className="mt-0.5 shrink-0" />
+              ร้านขอให้ช่วยอัปเดตข้อมูลน้องให้เป็นปัจจุบันค่ะ — คำตอบเดิมใส่ไว้ให้แล้ว แก้เฉพาะข้อที่เปลี่ยน แล้วกดส่งได้เลย
+            </p>
+          )}
           {forms.length > 1 && (
             <p className="flex items-center gap-1.5 rounded-petflow-sm bg-honey/20 px-3 py-2 text-xs font-bold text-petflow-chocolate">
               <Icon name="paw" size={14} />

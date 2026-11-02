@@ -3182,10 +3182,36 @@ export default function CustomersPage() {
     return () => clearTimeout(t);
   }, [q, search]);
 
+  // ลูกค้าที่เปิดอยู่ต้องอยู่ในลิงก์ (?id=...) — เมื่อก่อนเก็บไว้ในหน้าจออย่างเดียว
+  // กดรีเฟรชแล้วหลุดกลับหน้ารายชื่อลูกค้าทั้งหมด ตอนนี้รีเฟรช/กดย้อนกลับของเบราว์เซอร์แล้วอยู่ที่เดิม
+  const urlId = searchParams.get("id");
   useEffect(() => {
-    const id = searchParams.get("id");
-    if (id) open(id);
-  }, [searchParams, open]);
+    if (urlId) open(urlId);
+    else setSelected(null);
+  }, [urlId, open]);
+
+  /** เปิดลูกค้าจากหน้านี้ — ใส่ id ในลิงก์ (ตัว effect ด้านบนโหลดข้อมูลให้) */
+  const showCustomer = useCallback(
+    (id: string) => {
+      if (urlId === id) {
+        open(id);
+        return;
+      }
+      const params = new URLSearchParams(window.location.search);
+      params.set("id", id);
+      window.history.pushState(null, "", `${window.location.pathname}?${params}`);
+    },
+    [urlId, open]
+  );
+
+  /** กลับหน้ารายชื่อ — เอา id ออกจากลิงก์ */
+  const backToList = () => {
+    const params = new URLSearchParams(window.location.search);
+    params.delete("id");
+    const qs = params.toString();
+    window.history.pushState(null, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+    setSelected(null);
+  };
 
   // เปิดลูกค้าคนใหม่ (หรือกดกลับไปหน้ารายชื่อ) → เริ่มที่บนสุดเสมอ ไม่ค้างตำแหน่งเลื่อนเดิม
   // (โหลดข้อมูลคนเดิมซ้ำหลังบันทึกไม่นับ — id ไม่เปลี่ยน จอเลยไม่เด้ง)
@@ -3302,7 +3328,7 @@ export default function CustomersPage() {
       <div>
         <button
           type="button"
-          onClick={() => setSelected(null)}
+          onClick={backToList}
           className="mb-3 flex min-h-[40px] items-center gap-1.5 rounded-full bg-card px-3.5 py-2 text-xs font-bold text-brown shadow-petflow-sm"
         >
           <Icon name="back" size={16} />
@@ -3772,7 +3798,7 @@ export default function CustomersPage() {
       <AddCustomerModal
         onAdded={(id) => {
           search(q);
-          open(id);
+          showCustomer(id);
         }}
       />
 
@@ -3888,7 +3914,7 @@ export default function CustomersPage() {
                 {visibleList.map((c) => (
                   <tr
                     key={c.id}
-                    onClick={() => open(c.id)}
+                    onClick={() => showCustomer(c.id)}
                     className="cursor-pointer border-b border-petflow-line last:border-0 transition hover:bg-paper/50"
                   >
                     <td className="px-3 py-2.5 font-bold text-brown">
@@ -3975,7 +4001,7 @@ export default function CustomersPage() {
                 <li key={c.id}>
                   <button
                     type="button"
-                    onClick={() => open(c.id)}
+                    onClick={() => showCustomer(c.id)}
                     className="flex min-h-[60px] w-full items-center gap-3 px-3 py-2.5 text-left transition active:bg-paper/60"
                   >
                     {photo ? (

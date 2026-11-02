@@ -1350,12 +1350,29 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
             ? splitStayBySeason(g.checkin, g.checkout, seasons)
             : [];
           if (!parts.length || !matched) return [line];
-          return parts.map((p) => ({
-            ...line,
-            season: p.season,
-            nights: p.nights,
-            roomPrice: stdRoomPrice(matched, names, p.season, cust),
-          }));
+          if (names.length <= 1) {
+            return parts.map((p) => ({
+              ...line,
+              season: p.season,
+              nights: p.nights,
+              roomPrice: stdRoomPrice(matched, names, p.season, cust),
+            }));
+          }
+          // หลายตัวอยู่ห้องเดียวกัน: แยกค่าห้องเป็นรายตัว ร้านใส่ราคาของแต่ละตัวในบิลได้
+          // (ตัวแรกราคาเต็ม ตัวต่อไปเริ่มที่ราคาตัวเพิ่มของฤดูนั้น — ไม่ได้ตั้งไว้ = ตามน้ำหนักของตัวนั้น)
+          return parts.flatMap((p) => {
+            const first = stdRoomPrice(matched, [names[0]], p.season, cust);
+            return names.map((name, idx) => ({
+              ...line,
+              season: p.season,
+              nights: p.nights,
+              catName: name,
+              roomPrice:
+                idx === 0
+                  ? first
+                  : Math.max(0, stdRoomPrice(matched, [names[0], name], p.season, cust) - first),
+            }));
+          });
         }),
         ...groomLines(group.filter((g) => g.service === "groom")),
       ]);

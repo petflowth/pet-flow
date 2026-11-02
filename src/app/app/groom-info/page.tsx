@@ -243,7 +243,20 @@ function GroomInfoContent() {
     if (forms.length === 0) return;
     setAttempted(true);
     if (forms.some((f) => missingKeys(f).length > 0)) {
-      setSaveError("กรุณาตอบให้ครบทุกข้อที่มีเครื่องหมาย * ก่อนส่งข้อมูลนะคะ 🙏");
+      // บอกชื่อข้อที่ยังไม่ได้ตอบ + เลื่อนไปข้อแรก — ข้อที่ขาดมักอยู่ด้านบน ลูกค้ามองไม่เห็นว่าขาดข้อไหน
+      const list = forms.flatMap((f, i) =>
+        missingKeys(f).map((k) => {
+          const label = (f.fields.find((fd) => fd.key === k)?.label || k).replace(/\s*[—(].*$/, "");
+          return { id: `q-${i}-${k}`, text: forms.length > 1 ? `${f.catName}: ${label}` : label };
+        })
+      );
+      setSaveError(
+        `ยังไม่ได้ตอบ ${list.length} ข้อ: ${list.map((x) => x.text).join(" · ")} — ข้อที่ขาดมีตัวหนังสือสีส้มนะคะ 🙏`
+      );
+      setTimeout(() => {
+        const el = list[0] && document.getElementById(list[0].id);
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 50);
       return;
     }
     setSaving(true);
@@ -439,7 +452,7 @@ function GroomInfoContent() {
                   const isMissing = attempted && missing.includes(fd.key);
                   const value = f.answers[fd.key];
                   return (
-                    <div key={fd.key}>
+                    <div key={fd.key} id={`q-${idx}-${fd.key}`} className="scroll-mt-24">
                       {fd.key === f.fields.find((x) => x.key.startsWith(BATH_PREFIX))?.key && (
                         <div className="mt-5 border-t border-petflow-line pt-4">
                           <p className="flex items-center gap-1.5 text-sm font-extrabold text-petflow-chocolate">

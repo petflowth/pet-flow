@@ -325,7 +325,8 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
     if (path === "consent") {
       const bkId = params.get("id");
       if (params.get("mode") === "customer") {
-        router.replace(`${shop}/app/consent?mode=customer`);
+        // kind=groom = ข้อตกลงอาบน้ำ/นวด (ส่งจากหน้าข้อมูลลูกค้า แยกจากกฎเข้าพัก)
+        router.replace(`${shop}/app/consent?mode=customer${params.get("kind") === "groom" ? "&kind=groom" : ""}`);
         return;
       }
       router.replace(bkId ? `${shop}/app/consent?id=${encodeURIComponent(bkId)}` : `${shop}/app/consent`);

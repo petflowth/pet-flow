@@ -6,13 +6,13 @@ import { toast } from "@/components/Toast";
 import { PreviewSendModal } from "@/components/PreviewSendModal";
 import { VaccinePhotosAdmin } from "@/components/VaccinePhotosAdmin";
 import { useConfig } from "@/components/ConfigProvider";
-import { cardOn } from "@/lib/features";
+import { cardOn, isFeatureOn } from "@/lib/features";
 import { INTAKE_LABEL } from "@/lib/intake-cards";
 import { splitVaccinePhotos } from "@/lib/vaccine-photos";
 import { stayInfoDone } from "@/lib/intake-rules";
 import type { CustomerRecord } from "@/lib/customers-store";
 
-type Part = "groomInfo" | "stayInfo" | "prestay" | "consent" | "vaccine" | "idcard";
+type Part = "groomInfo" | "stayInfo" | "prestay" | "consent" | "groomConsent" | "vaccine" | "idcard";
 
 /**
  * หน้าข้อมูลลูกค้า: ส่งการ์ดถามข้อมูลก่อนรับน้อง โดยยังไม่ต้องลงนัด
@@ -36,7 +36,8 @@ export function CustomerIntakeCards({
   // การ์ดที่ร้านปิดในตั้งค่า › เปิด/ปิดฟีเจอร์ ไม่โชว์ให้ส่ง · มาจากฟอร์มจอง = เฉพาะเรื่องที่นัดนี้ใช้
   const HOTEL_PARTS: Part[] = ["stayInfo", "idcard", "prestay"];
   const partOn = (part: Part) =>
-    cardOn(config, part) && (part === "groomInfo" ? groomOn : HOTEL_PARTS.includes(part) ? hotelOn : true);
+    cardOn(config, part) &&
+    (part === "groomInfo" || part === "groomConsent" ? groomOn : HOTEL_PARTS.includes(part) ? hotelOn : true);
   const [catIds, setCatIds] = useState<string[]>(customer.cats.map((c) => c.id));
   const [picked, setPicked] = useState<Part[]>([]);
   const [busy, setBusy] = useState("");
@@ -50,6 +51,7 @@ export function CustomerIntakeCards({
   const infoDone = cats.length > 0 && cats.every((c) => c.groomHealthInfo);
   const stayDone = cats.length > 0 && cats.every((c) => stayInfoDone(c.stayInfo));
   const vaccineDone = cats.length > 0 && cats.every((c) => splitVaccinePhotos(c.vaccinePhotos).length > 0);
+  const groomConsentOn = partOn("groomConsent") && isFeatureOn(config, "grooming");
   const rows: { part: Part; label: string; icon: string; when: boolean; status?: string; done?: boolean }[] = [
     { part: "stayInfo", label: INTAKE_LABEL.stayInfo, icon: "edit", when: partOn("stayInfo"), done: stayDone, status: stayDone ? "กรอกแล้ว" : "ยังไม่กรอก" },
     { part: "groomInfo", label: INTAKE_LABEL.groomInfo, icon: "bath", when: partOn("groomInfo"), done: infoDone, status: infoDone ? "กรอกแล้ว" : "ยังไม่กรอก" },
@@ -71,14 +73,17 @@ export function CustomerIntakeCards({
     },
     {
       part: "consent",
-      label: INTAKE_LABEL.consent,
+      label: groomConsentOn ? "กฎเข้าพัก + กดยินยอม" : INTAKE_LABEL.consent,
       icon: "doc",
-      when: partOn("consent"),
+      // นัดอาบน้ำอย่างเดียว ใช้กฎอาบน้ำแทน
+      when: partOn("consent") && (hotelOn || !groomConsentOn),
       done: !!customer.consentAcceptedAt,
       status: customer.consentAcceptedAt
         ? `ยอมรับล่าสุด ${customer.consentAcceptedAt.slice(0, 10)}`
         : "ยังไม่เคยกดยอมรับ",
     },
+    // กฎอาบน้ำ/นวด แยกจากกฎเข้าพัก (ตั้งค่า › ข้อความ › ก่อนอาบน้ำ / นวด)
+    { part: "groomConsent", label: "กฎอาบน้ำ/นวด + กดยินยอม", icon: "bath", when: groomConsentOn },
     { part: "prestay", label: INTAKE_LABEL.prestay, icon: "bed", when: partOn("prestay") },
   ];
 

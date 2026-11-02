@@ -326,6 +326,7 @@ export const CARD_FEATURE: Record<string, FeatureKey> = {
   vaccine: "vaccine",
   idcard: "idCard",
   consent: "consent",
+  groomConsent: "consent",
   prestay: "prestay",
   checkin: "checkinTime",
   checkout: "checkinTime",

@@ -2503,7 +2503,7 @@ export function BookingCalendar() {
                       {x.fleaTickTreated && (
                         <span className="flex items-center gap-1 font-bold text-ok">
                           <Icon name="check" size={12} strokeWidth={2.4} />
-                          หยดยาเห็บหมัดแล้ว
+                          ป้องกันเห็บหมัดแล้ว
                         </span>
                       )}
                     </div>

@@ -127,7 +127,7 @@ async function postHandler(req: NextRequest) {
           ...(bathCount ? { อาบน้ำก่อนกลับ: "✅ ยอมรับข้อตกลงอาบน้ำด้วยแล้ว" } : {}),
           ...(groom
             ? {}
-            : { หยดยาเห็บหมัด: fleaTickTreated ? "✅ ลูกค้ายืนยันว่าหยดมาแล้ว" : "❌ ยังไม่ได้หยด/ไม่ระบุ" }),
+            : { ป้องกันเห็บหมัด: fleaTickTreated ? "✅ ลูกค้ายืนยันว่าทำมาแล้ว (หยด/ทาน/ฉีด)" : "❌ ยังไม่ได้ทำ/ไม่ระบุ" }),
           ...(b.vaccinePhotoUrl ? { สมุดวัคซีน: `แนบรูปมาแล้ว ${splitVaccinePhotos(b.vaccinePhotoUrl).length} รูป 📸` } : {}),
           ...(careNote ? { "การดูแลเพิ่มเติม": careNote } : {}),
         })

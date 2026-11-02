@@ -8,6 +8,7 @@
 export type RegisterFieldKey =
   | "ownerName"
   | "phone"
+  | "emergency"
   | "email"
   | "ownerBirthday"
   | "postalCode"
@@ -41,6 +42,8 @@ export type RegisterFieldDef = {
 export const REGISTER_FORM_DEFAULTS: RegisterFieldDef[] = [
   { key: "ownerName", group: "owner", label: "ชื่อผู้ปกครอง", required: true, enabled: true, locked: true },
   { key: "phone", group: "owner", label: "เบอร์โทร", required: true, enabled: true, locked: true },
+  // เบอร์ + ความเกี่ยวข้อง (กดเลือก) — ถามที่นี่ที่เดียว ฟอร์มก่อนอาบน้ำ/เข้าพักไม่ถามซ้ำ (เจ้าของระบบ 2026-11-02)
+  { key: "emergency", group: "owner", label: "เบอร์ติดต่อฉุกเฉิน", required: true, enabled: true },
   { key: "email", group: "owner", label: "อีเมล", required: true, enabled: true },
   { key: "ownerBirthday", group: "owner", label: "วันเกิดผู้ปกครอง", required: true, enabled: true },
   { key: "postalCode", group: "owner", label: "รหัสไปรษณีย์", required: true, enabled: true },

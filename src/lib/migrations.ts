@@ -731,6 +731,11 @@ where staff_note like '%🎁%';`,
     name: "promos.bill_rule",
     sql: "alter table promos add column if not exists bill_rule jsonb;",
   },
+  {
+    // เบอร์ติดต่อฉุกเฉิน {phone, relation} — ถามครั้งเดียวตอนสมัครสมาชิก เก็บที่ตัวลูกค้า · เพิ่มคอลัมน์อย่างเดียว
+    name: "customers.emergency_contact",
+    sql: "alter table customers add column if not exists emergency_contact jsonb;",
+  },
 ];
 
 export type MigrateResult = {

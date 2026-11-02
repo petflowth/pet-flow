@@ -126,29 +126,8 @@ const WITH_OTHERS = STAY_FORM_DEFAULTS.find((d) => d.key === "withOthers")!;
  * key ที่ใช้ร่วมกับแมว (food/likes/withOthers/note) คงไว้ให้ข้อมูลเก่าอ่านได้
  */
 const DOG_FORM: GroomField[] = [
-  // ประวัติเจ้าของ — ถามครั้งเดียวตอนสมัครสมาชิก ฟอร์มก่อนอาบน้ำ/เข้าพักไม่ถามซ้ำ (เจ้าของระบบ 2026-10-27)
-  // ชื่อเล่นเจ้าของเอาออก — หน้าสมัครถามชื่อจริงแล้ว
-  // คำตอบเก่าที่พิมพ์ "เบอร์ (ความเกี่ยวข้อง)" รวมในช่องเดียวยังอยู่ที่ key เดิม อ่านได้ตามปกติ
-  { ...text("emergencyContact", "เบอร์ติดต่อฉุกเฉิน", "เช่น 081-234-5678"), canSkip: true },
-  // ความเกี่ยวข้องกดเลือก ไม่ต้องพิมพ์ — ไม่มีในตัวเลือกพิมพ์เองได้ (เจ้าของระบบ 2026-10-29)
-  {
-    key: "emergencyRelation",
-    type: "single",
-    label: "ผู้ติดต่อฉุกเฉินเกี่ยวข้องเป็นอะไรกับคุณคะ",
-    required: false,
-    enabled: true,
-    canSkip: true,
-    allowOther: true,
-    options: [
-      { key: "father", label: "👨 พ่อ" },
-      { key: "mother", label: "👩 แม่" },
-      { key: "spouse", label: "💑 สามี/ภรรยา/แฟน" },
-      { key: "sibling", label: "👫 พี่น้อง" },
-      { key: "child", label: "🧒 ลูก" },
-      { key: "relative", label: "👪 ญาติ" },
-      { key: "friend", label: "🤝 เพื่อน" },
-    ],
-  },
+  // เบอร์ติดต่อฉุกเฉิน (+ ความเกี่ยวข้อง) ย้ายไปถามที่หน้าสมัครสมาชิกที่เดียว เก็บที่ตัวลูกค้า (เจ้าของระบบ 2026-11-02)
+  // คำตอบเก่าใน key emergencyContact/emergencyRelation ยังเก็บไว้และอ่านได้ — ดู lib/emergency-contact.ts
   // ประวัติสุนัข — กดเลือกให้มากที่สุด ลูกค้าพิมพ์น้อยที่สุด · ข้อที่ "ไม่มี" ได้ ไม่บังคับ
   {
     key: "temperament",
@@ -249,8 +228,6 @@ const LITTER_BOTH: Pick<GroomField, "label" | "placeholder"> = {
 
 /** หมวดของคำถามในฟอร์มหมา — เจ้าของ → น้อง → การดูแล (ตามลำดับใน DOG_FORM) */
 const DOG_SECTIONS: Record<string, GroomField["section"]> = {
-  emergencyContact: "owner",
-  emergencyRelation: "owner",
   temperament: "pet",
   cautions: "pet",
   likes: "pet",

@@ -22,6 +22,7 @@ import { setCatStayInfo } from "@/lib/customers-store";
 import { REGISTER_HISTORY_SOURCE, registerHistoryFields, sanitizeIntakeInfo, stayInfoDone } from "@/lib/intake-rules";
 import { petKindOf } from "@/lib/pet-kind";
 import { runAfterResponse } from "@/lib/after-response";
+import { parseEmergencyContact } from "@/lib/emergency-contact";
 
 /** คูปองชวนเพื่อน — ออกให้ทั้งคู่ทันทีที่สมัครด้วยโค้ด (เจ้าของร้านเลือกแบบนี้ 2026-10-23)
  * มูลค่า/อายุคูปองตั้งได้ในตั้งค่า › เปิด/ปิดฟีเจอร์ (ดู referralReward) */
@@ -96,6 +97,7 @@ async function handlePost(req: NextRequest) {
       addressMapUrl: addressMapUrl || undefined,
       postalCode: postalCode || undefined,
       taxInvoice: taxInvoice.value || undefined,
+      emergencyContact: parseEmergencyContact(body.emergencyContact),
       marketingConsent,
       cats,
     });

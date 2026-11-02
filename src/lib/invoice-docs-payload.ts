@@ -3,6 +3,7 @@ import { getCustomer } from "./customers-store";
 import { getSiteConfig } from "./config-store";
 import { getInvoiceDoc, lastBuyerForCustomer, type DocBuyer, type InvoiceDoc } from "./invoice-docs-store";
 import type { CustomerTaxInvoice } from "./tax-invoice";
+import { shopLogoSrc } from "./shop-logo";
 
 /** ข้อมูลออกบิลที่ลูกค้ากรอกไว้ → ผู้ซื้อบนเอกสาร */
 export function taxInvoiceBuyer(t: CustomerTaxInvoice | undefined): DocBuyer | undefined {
@@ -82,6 +83,8 @@ export async function buildDocPayload(invoiceId: string, opts: { forCustomer?: b
       branch: b.taxBranch || "",
       vatRegistered: !!b.vatRegistered,
       vatRate: b.vatRate ?? 7,
+      /** โลโก้ของร้านเอง (ตั้งค่า › ร้าน) — ร้านที่ยังไม่มีโลโก้ = ไม่โชว์ ไม่ใช้โลโก้ PetFlow แทน */
+      logoUrl: shopLogoSrc(config) || "",
     },
     payment: config.payment,
     /** ลูกค้าผูก LINE แล้วหรือยัง — ไว้เปิด/ปิดปุ่มส่งทาง LINE */

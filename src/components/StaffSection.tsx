@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ADMIN_TABS, OWNER_ONLY_TABS } from "@/components/AdminNav";
+import { ADMIN_TABS } from "@/components/AdminNav";
 import { ADMIN_TAB_ICONS, Icon } from "@/components/Icon";
 import { Avatar, EmptyState, MoreMenu, SectionLabel } from "@/components/ui";
 
@@ -14,7 +14,7 @@ export type StaffItem = {
 };
 
 /**
- * จัดการบัญชีพนักงาน — เจ้าของเท่านั้นที่เห็น (API ตอบ 403 ให้พนักงาน)
+ * จัดการบัญชีพนักงาน — เจ้าของ หรือพนักงานที่ได้เมนู "พนักงาน" (คนอื่น API ตอบ 403)
  * ล็อกอินด้วย username + password — username ห้ามซ้ำในร้านเดียวกัน (คนละร้านซ้ำได้)
  *
  * แยกออกมาจากหน้าตั้งค่าเพราะมันเป็นงานคนละเรื่องกับการตั้งค่าระบบ
@@ -134,7 +134,7 @@ export function StaffSection() {
 
   const menuPicker = (selected: string[], onToggle: (href: string) => void) => (
     <div className="grid grid-cols-2 gap-x-2">
-      {ADMIN_TABS.filter((t) => !OWNER_ONLY_TABS.includes(t.href)).map((t) => (
+      {ADMIN_TABS.map((t) => (
         <label key={t.href} className="flex min-h-[40px] items-center gap-2 text-xs text-brown">
           <input
             type="checkbox"
@@ -175,7 +175,7 @@ export function StaffSection() {
                           )}
                         </span>
                         <span className="block truncate text-[11px] text-brown-soft">
-                          @{s.username} · เห็น {s.menus.length} เมนู
+                          @{s.username} · เห็น {ADMIN_TABS.filter((t) => s.menus.includes(t.href)).length}/{ADMIN_TABS.length} เมนู
                         </span>
                       </span>
                       <Icon name="chevron" size={16} className="text-brown-faint transition group-open:rotate-90" />

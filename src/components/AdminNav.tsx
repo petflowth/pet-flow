@@ -35,11 +35,14 @@ export const ADMIN_TABS = [
 const TABS = ADMIN_TABS;
 
 /**
- * เมนูของเจ้าของร้านเท่านั้น — API ของหน้าพวกนี้ตอบ 403 ให้พนักงานอยู่แล้ว
- * จึงไม่ให้ติ๊กให้พนักงาน และไม่โชว์ในเมนูพนักงานแม้เคยติ๊กไว้ก่อนหน้า
- * (ค่าบริการ = ร้านจ่ายค่าระบบ เรื่องของเจ้าของ, พนักงาน = ตั้งบัญชี/สิทธิ์ของคนอื่น)
+ * หน้าย่อยที่ไม่มีในเมนูหลัก แต่กดเข้าจากเมนูอื่น — พนักงานที่ได้เมนูแม่ก็เข้าหน้าย่อยได้ด้วย
+ * (รอยืนยัน กดจากแดชบอร์ด, ประวัติการแก้ไข กดจากตั้งค่า, ใบสำคัญจ่าย กดจากรายรับ-รายจ่าย/ภาษี)
  */
-export const OWNER_ONLY_TABS: string[] = ["/admin/staff", "/admin/subscription"];
+const SUB_PAGES: [string, string[]][] = [
+  ["/admin/pending", ["/admin"]],
+  ["/admin/audit", ["/admin/settings"]],
+  ["/admin/voucher", ["/admin/finance", "/admin/tax"]],
+];
 
 function isTabActive(pathname: string, href: string) {
   if (href === "/admin") return pathname === "/admin";
@@ -55,9 +58,12 @@ export function getAllowedMenus(): string[] | null {
     if (!Array.isArray(menus)) return [];
     // สิทธิ์ "สินค้าหน้าร้าน" เดิม = ขายหน้าร้าน (POS) และขายหน้าร้านย้ายไปเป็นแท็บในหน้าคิดเงินแล้ว
     // พนักงานที่เคยได้สิทธิ์ทั้งสองแบบยังเข้าได้
-    const out = menus.filter((m: unknown) => !OWNER_ONLY_TABS.includes(String(m)));
+    const out = menus.map((m: unknown) => String(m));
     if (out.includes("/admin/products") && !out.includes("/admin/pos")) out.push("/admin/pos");
     if (out.includes("/admin/pos") && !out.includes("/admin/billing")) out.push("/admin/billing");
+    for (const [sub, parents] of SUB_PAGES) {
+      if (!out.includes(sub) && parents.some((p) => out.includes(p))) out.push(sub);
+    }
     return out;
   } catch {
     return [];

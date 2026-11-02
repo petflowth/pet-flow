@@ -21,7 +21,7 @@ export function LinkLineContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const customerId = searchParams.get("customerId") || "";
-  const { profile, ready, refreshCustomer, error: liffError } = useLiff();
+  const { profile, customer, ready, refreshCustomer, error: liffError } = useLiff();
   const [preview, setPreview] = useState<Preview | null>(null);
   const [loading, setLoading] = useState(true);
   const [linking, setLinking] = useState(false);
@@ -83,6 +83,29 @@ export function LinkLineContent() {
         <div className="rounded-petflow border border-petflow-line bg-card shadow-petflow-sm">
           <EmptyState icon="alert" title={error || "ลิงก์ไม่ถูกต้อง"} />
         </div>
+      </div>
+    );
+  }
+
+  // เปิดลิงก์แล้วระบบผูก LINE เข้าบัญชีที่ร้านสร้างไว้ให้ทันที (ตอนเชื่อมต่อ LINE) — ไม่ต้องกดอะไร
+  if (preview?.hasLine && customer?.id === customerId) {
+    return (
+      <div className="px-4 pb-6 pt-10">
+        <div className="rounded-petflow border border-petflow-line bg-card p-6 text-center shadow-petflow">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-sage/25 text-ok">
+            <Icon name="check" size={28} strokeWidth={2.4} />
+          </span>
+          <p className="mt-3 text-base font-extrabold text-ok">ผูก LINE สำเร็จ!</p>
+          <p className="mt-1 text-sm text-brown">{preview.name}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => router.replace("/app")}
+          className={`mt-5 ${BTN_PRIMARY}`}
+        >
+          <Icon name="home" size={16} />
+          ไปหน้าแรก
+        </button>
       </div>
     );
   }

@@ -23,7 +23,7 @@ import { CustomerLinkSection } from "@/components/CustomerLinkSection";
 import { UnlinkedCatNames } from "@/components/UnlinkedCatNames";
 import type { PointsHistoryEntry } from "@/lib/points-store";
 import { parseGroomInfo, groomInfoSummary } from "@/lib/groom-info";
-import { summaryFields } from "@/lib/intake-rules";
+import { stayInfoDone, summaryFields } from "@/lib/intake-rules";
 import { BOOKING_STATUS_LABELS, type Booking } from "@/lib/business";
 import type { CustomerServiceLog } from "@/lib/customer-service-log";
 import { pastPriceList } from "@/lib/special-price";
@@ -3633,27 +3633,53 @@ export default function CustomersPage() {
                       </div>
                     );
                   })()}
-                  {/* ข้อมูลก่อนเข้าพัก (อาหาร/ชอบ-ไม่ชอบ/การดูแล) — โชว์เมื่อลูกค้ากรอกแล้ว */}
+                  {/* ข้อมูลก่อนเข้าพัก — โชว์ทุกข้อของฟอร์ม ข้อที่ยังไม่ตอบขึ้นว่า "ยังไม่ได้ตอบ" ร้านจะได้รู้ว่าขาดอะไร
+                      คำตอบที่มาจากหน้าสมัครอย่างเดียว (ยังไม่ได้กรอกฟอร์มก่อนเข้าพัก) บอกไว้ที่หัวการ์ด */}
                   {(() => {
                     const si = parseGroomInfo(cat.stayInfo);
                     if (!si) return null;
+                    const fromRegister = !stayInfoDone(cat.stayInfo);
                     const s = groomInfoSummary(si, summaryFields("stay", speciesOf(cat, config) ?? petKindOf(config), config, si));
+                    const entries = Object.entries(s);
+                    const missing = entries.filter(([, v]) => v === "-").length;
                     return (
-                      <div className="rounded-petflow-sm border border-sage/40 bg-sage/10 px-3 py-2.5">
-                        <p className="flex items-center gap-1.5 text-[11px] font-extrabold text-ok">
-                          <Icon name="bed" size={14} />
-                          ข้อมูลก่อนเข้าพัก (ลูกค้ากรอกไว้)
-                        </p>
+                      <div
+                        className={`rounded-petflow-sm border px-3 py-2.5 ${
+                          fromRegister ? "border-wait/40 bg-wait/5" : "border-sage/40 bg-sage/10"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className={`flex items-center gap-1.5 text-[11px] font-extrabold ${fromRegister ? "text-wait" : "text-ok"}`}>
+                            <Icon name="bed" size={14} />
+                            {fromRegister
+                              ? "ข้อมูลก่อนเข้าพัก (จากหน้าสมัคร — ลูกค้ายังไม่ได้กรอกฟอร์มก่อนเข้าพัก)"
+                              : "ข้อมูลก่อนเข้าพัก (ลูกค้ากรอกไว้)"}
+                          </p>
+                          {si.submittedAt && (
+                            <p className="shrink-0 text-[9px] text-brown-faint">
+                              {new Date(si.submittedAt).toLocaleString("th-TH", {
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                                calendar: "gregory",
+                              })}
+                            </p>
+                          )}
+                        </div>
                         <dl className="mt-1.5 space-y-1 text-[11px] text-brown">
-                          {Object.entries(s)
-                            .filter(([, v]) => v !== "-")
-                            .map(([k, v]) => (
-                              <div key={k} className="flex gap-2">
-                                <dt className="w-24 shrink-0 font-bold text-brown-soft">{k}</dt>
-                                <dd className="min-w-0 flex-1 break-words">{v}</dd>
-                              </div>
-                            ))}
+                          {entries.map(([k, v]) => (
+                            <div key={k} className="flex gap-2">
+                              <dt className="w-24 shrink-0 font-bold text-brown-soft">{k}</dt>
+                              <dd className={`min-w-0 flex-1 break-words ${v === "-" ? "italic text-brown-faint" : ""}`}>
+                                {v === "-" ? "ยังไม่ได้ตอบ" : v}
+                              </dd>
+                            </div>
+                          ))}
                         </dl>
+                        {missing > 0 && (
+                          <p className="mt-1.5 text-[10px] text-brown-faint">
+                            ยังไม่ได้ตอบ {missing} ข้อ (ข้อที่ไม่บังคับ ลูกค้าเว้นได้) — ส่งการ์ดข้อมูลก่อนเข้าพักให้ลูกค้ากรอกเพิ่มได้
+                          </p>
+                        )}
                       </div>
                     );
                   })()}

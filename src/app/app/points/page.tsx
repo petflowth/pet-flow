@@ -1,7 +1,7 @@
 "use client";
 
 import { useConfig } from "@/components/ConfigProvider";
-import { t } from "@/lib/i18n";
+import { t, pointsRateText } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 import { useLiff } from "@/components/LiffProvider";
 import { PageHeader } from "@/components/PageHeader";
@@ -33,7 +33,7 @@ export default function PointsPage() {
           </span>
         </p>
         <p className="mt-2 text-[11px] text-brown-faint">
-          {m.rate} ({config.business.pointsRate} {locale === "th" ? "บาท" : "THB"})
+          {pointsRateText(config.business.pointsRate, locale)}
         </p>
       </div>
 

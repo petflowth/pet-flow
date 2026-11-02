@@ -252,3 +252,9 @@ export type Messages = (typeof messages)["th"];
 export function t(locale: Locale) {
   return messages[locale];
 }
+
+/** "ทุก 50 บาท = 1 แต้ม" ตามอัตราที่ร้านตั้ง (เดิมข้อความตายตัว "ทุก 100 บาท" แล้วต่อท้ายอัตราจริง เช่น "· 50 บาท") */
+export function pointsRateText(rate: number | undefined, locale: string): string {
+  const r = Number(rate) > 0 ? Number(rate) : 100;
+  return locale === "th" ? `ทุก ${r.toLocaleString()} บาท = 1 แต้ม` : `${r.toLocaleString()} THB = 1 point`;
+}

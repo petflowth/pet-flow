@@ -8,7 +8,7 @@ import {
 } from "@/lib/business";
 import { useConfig } from "@/components/ConfigProvider";
 import { petWords } from "@/lib/pet-kind";
-import { t } from "@/lib/i18n";
+import { pointsRateText, t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
 import { useLiff } from "@/components/LiffProvider";
 import { Logo } from "@/components/Logo";
@@ -24,6 +24,7 @@ import { isFeatureOn, type FeatureKey } from "@/lib/features";
 import { referralReward } from "@/lib/referral";
 import { bookingGroupKey, groupCatNames, stayForGroom } from "@/lib/booking-group";
 import { bangkokToday } from "@/lib/bangkok-date";
+import { formatThaiDateShort } from "@/lib/format-thai-date";
 
 type HomeBooking = Booking & { checkin?: string; checkout?: string };
 
@@ -83,7 +84,8 @@ export default function CustomerHome() {
           pending
             ? {
                 ...pending,
-                time: times.length > 1 ? `${times[0]} – ${times[times.length - 1]}` : pending.time,
+                // คนละรอบเวลา = บอกทุกรอบ (เดิม "12:30 – 15:30" อ่านเหมือนนัดยาว 3 ชั่วโมง)
+                time: times.length > 1 ? times.join(", ") : pending.time,
                 cats: groupCatNames(group),
               }
             : null
@@ -93,6 +95,8 @@ export default function CustomerHome() {
   }, [profile?.lineUserId]);
 
   const points = profile?.points ?? 0;
+  // วันที่แบบไทย "3 พ.ย. 2026" (เดิมโชว์ 2026-11-03)
+  const showDate = (iso?: string) => (iso ? (locale === "th" ? formatThaiDateShort(iso) : iso) : "");
 
   // ยังไม่ได้สมัคร/ข้อมูลไม่ครบ (ไม่มีเบอร์ = ยังไม่เคยกรอกฟอร์มสมัคร) → ชวนให้กรอกให้จบ
   // กัน record ว่างค้างในระบบ และร้านติดต่อกลับได้เสมอ
@@ -220,8 +224,7 @@ export default function CustomerHome() {
             </span>
           </p>
           <p className="mt-1 text-[10px] text-brown-faint">
-            {t(locale).points.rate} · {config.business.pointsRate}{" "}
-            {locale === "th" ? "บาท" : "THB"}
+            {pointsRateText(config.business.pointsRate, locale)}
           </p>
         </section>
       )}
@@ -256,8 +259,8 @@ export default function CustomerHome() {
           </p>
           <p className="text-xs text-brown-soft">
             {nextBooking.service === "room" && nextBooking.checkin
-              ? `${nextBooking.checkin}${nextBooking.checkout ? ` → ${nextBooking.checkout}` : ""}`
-              : nextBooking.date}
+              ? `${showDate(nextBooking.checkin)}${nextBooking.checkout ? ` → ${showDate(nextBooking.checkout)}` : ""}`
+              : showDate(nextBooking.date)}
             {nextBooking.time ? ` · ${nextBooking.time}` : ""}
           </p>
           <Link

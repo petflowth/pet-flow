@@ -25,6 +25,7 @@ import { idCardPurpose, watermarkIdCard } from "@/lib/id-card-watermark";
 import { isFeatureOn } from "@/lib/features";
 import { customerFetch } from "@/lib/customer-fetch";
 import { bookingGroupKey, groupCatNames, stayForGroom } from "@/lib/booking-group";
+import { formatThaiDateShort, roomWithWord } from "@/lib/format-thai-date";
 import { groomUsesCard } from "@/lib/intake-rules";
 
 type StayBooking = Booking & {
@@ -152,6 +153,8 @@ function ConsentContent() {
   const [signError, setSignError] = useState(false);
   /** น้องทุกตัวในนัดเดียวกัน — สมุดวัคซีนแนบแยกทีละตัว (เมื่อก่อนชุดเดียวไปติดตัวแรก) */
   const [groupCats, setGroupCats] = useState<{ id: string; catName: string }[]>([]);
+  // อาบน้ำหลายตัวคนละรอบเวลา (วันเดียวกัน) — โชว์ทุกรอบ ลูกค้าจะรู้ว่ากดครั้งเดียวครอบคลุมทุกตัว
+  const [groomTimes, setGroomTimes] = useState<string[]>([]);
   const [vaccineByCat, setVaccineByCat] = useState<Record<string, string[]>>({});
   const [vaccineUploading, setVaccineUploading] = useState("");
   // น้องทุกตัวในนัดนี้แนบสมุดวัคซีนไว้แล้ว (ขั้นแนบสมุดวัคซีน / พนักงานแนบให้) → ไม่ถามซ้ำ
@@ -194,9 +197,12 @@ function ConsentContent() {
               .sort((a, b) => (a.checkin || a.date).localeCompare(b.checkin || b.date))[0] || null;
         setBooking(stay);
         if (stay) {
-          const key = bookingGroupKey(stay);
-          const group = list.filter((b) => bookingGroupKey(b) === key && b.status !== "cancelled");
+          const key = bookingGroupKey(stay, { groomByDay: true });
+          const group = list.filter(
+            (b) => bookingGroupKey(b, { groomByDay: true }) === key && b.status !== "cancelled"
+          );
           setCatLabel(groupCatNames(group));
+          setGroomTimes(Array.from(new Set(group.map((b) => b.time || "").filter(Boolean))).sort());
           if (stay.service === "room") {
             const bath = list.find((x) => group.some((s) => stayForGroom(x, [s]) === s));
             setStayBath(bath ? { date: bath.date, time: bath.time } : null);
@@ -351,15 +357,19 @@ function ConsentContent() {
                 <p className="text-xs text-brown-soft">
                   {isGroom ? (
                     <>
-                      นัดอาบน้ำ: {booking.date}
-                      {booking.time ? ` ${booking.time} น.` : ""}
+                      นัดอาบน้ำ: {formatThaiDateShort(booking.date)}
+                      {groomTimes.length
+                        ? ` · ${groomTimes.join(", ")} น.`
+                        : booking.time
+                          ? ` · ${booking.time} น.`
+                          : ""}
                     </>
                   ) : (
                     <>
-                      เข้าพัก: {booking.checkin || booking.date}
-                      {booking.checkout ? ` → ${booking.checkout}` : ""}
+                      เข้าพัก: {formatThaiDateShort(booking.checkin || booking.date)}
+                      {booking.checkout ? ` → ${formatThaiDateShort(booking.checkout)}` : ""}
                       {booking.room
-                        ? ` · ห้อง ${config.rooms.find((r) => r.id === booking.room)?.name || booking.room}`
+                        ? ` · ${roomWithWord(config.rooms.find((r) => r.id === booking.room)?.name || booking.room)}`
                         : ""}
                     </>
                   )}

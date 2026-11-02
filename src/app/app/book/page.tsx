@@ -426,7 +426,7 @@ function BookPageInner() {
             </div>
           )}
           <p className="mt-1 text-xs text-brown-soft">
-            รอร้านกดยืนยันอีกนิดนะคะ — เช็คสถานะได้ที่เมนู “การจอง” ด้านล่าง
+            รอร้านกดยืนยันอีกนิดนะคะ — เช็คสถานะได้ที่เมนู “คิวของฉัน” ด้านล่าง
           </p>
           {done.depositAmount > 0 &&
             (done.slipSent ? (

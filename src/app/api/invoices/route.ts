@@ -639,7 +639,8 @@ async function handlePatch(req: NextRequest) {
   }
 
   if (action === "mark_paid") {
-    const result = await markInvoicePaid(id, body.paymentMethod || "transfer");
+    const channel = typeof body.paymentChannel === "string" ? body.paymentChannel.trim().slice(0, 40) : "";
+    const result = await markInvoicePaid(id, body.paymentMethod || "transfer", channel || undefined);
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
@@ -657,7 +658,7 @@ async function handlePatch(req: NextRequest) {
         ลูกค้า: paid.customerName,
         ยอด: paid.total,
         เก็บรอบนี้: result.settleAmount,
-        วิธีจ่าย: body.paymentMethod || "transfer",
+        วิธีจ่าย: channel || body.paymentMethod || "transfer",
       },
     });
     // "รับเงินแล้ว" = แค่ปิดบิล + ลงบัญชี + แต้ม (ภายในร้านเท่านั้น) — ไม่ยิงการ์ดหาลูกค้า

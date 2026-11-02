@@ -910,13 +910,15 @@ export async function receiveInvoicePayment(
 
 export async function markInvoicePaid(
   id: string,
-  paymentMethod: "transfer" | "member_credit" | "cash" | "package" = "transfer"
+  paymentMethod: "transfer" | "member_credit" | "cash" | "package" = "transfer",
+  /** ช่องทางที่ร้านเพิ่มเอง (ตั้งค่า › บัญชี) เช่น บัตรเครดิต — จดไว้ในรายการรายรับ */
+  channel?: string
 ) {
   if (payingNow.has(id)) return { ok: false as const, error: "already_paid" };
   if (await findCancelCreditTopup(id)) return { ok: false as const, error: CONVERTED_MSG };
   payingNow.add(id);
   try {
-    return await markInvoicePaidInner(id, paymentMethod);
+    return await markInvoicePaidInner(id, paymentMethod, channel);
   } finally {
     payingNow.delete(id);
   }
@@ -924,7 +926,8 @@ export async function markInvoicePaid(
 
 async function markInvoicePaidInner(
   id: string,
-  paymentMethod: "transfer" | "member_credit" | "cash" | "package" = "transfer"
+  paymentMethod: "transfer" | "member_credit" | "cash" | "package" = "transfer",
+  channel?: string
 ) {
   const inv = await getInvoice(id);
   if (!inv || inv.status === "paid") return { ok: false as const, error: "invalid" };
@@ -1031,7 +1034,7 @@ async function markInvoicePaidInner(
       category: serviceSummary,
       description: `${inv.catName} · ${inv.customerName} — ${serviceSummary}${
         isRemainder ? " (ยอดคงเหลือ)" : ""
-      }`,
+      }${channel ? ` · จ่ายด้วย ${channel}` : ""}`,
       date: inv.paidAt.slice(0, 10),
       customerId: inv.customerId,
       invoiceId: inv.id,

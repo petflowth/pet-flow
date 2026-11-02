@@ -847,6 +847,16 @@ function PaymentTab({
         value={form.promptpayId || ""}
         onChange={(v) => setForm({ ...form, promptpayId: v.replace(/[^0-9]/g, "") })}
       />
+      <TextAreaField
+        label="ช่องทางรับเงินอื่น (นอกจากเงินสด / โอน / QR) — 1 บรรทัด = 1 ช่องทาง"
+        value={(form.extraMethods || []).join("\n")}
+        onChange={(v) =>
+          setForm({ ...form, extraMethods: v.split("\n").map((s) => s.trim()).filter(Boolean) })
+        }
+        placeholder={"เช่น\nบัตรเครดิต\nShopeePay"}
+        hint="จะมีปุ่มให้เลือกตอนรับเงินในหน้าคิดเงินและขายหน้าร้าน ลงบัญชีเป็นเงินที่ไม่ใช่เงินสด และจดชื่อช่องทางไว้ในรายการรายรับ"
+        rows={3}
+      />
       <div className="rounded-petflow-sm border border-petflow-line bg-paper/50 p-3">
         <label className="flex items-start gap-2">
           <input

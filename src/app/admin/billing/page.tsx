@@ -2021,7 +2021,8 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
 
   const markPaid = async (
     id: string,
-    method: "transfer" | "member_credit" | "cash" | "package"
+    method: "transfer" | "member_credit" | "cash" | "package",
+    channel?: string
   ) => {
     // กันกดรัว — ปุ่มนี้เมื่อก่อนไม่มีตัวล็อก กดสองทีเสี่ยงลงบัญชีซ้ำ
     if (invoiceBusy) return;
@@ -2030,7 +2031,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
       const res = await fetch("/api/invoices", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, action: "mark_paid", paymentMethod: method }),
+        body: JSON.stringify({ id, action: "mark_paid", paymentMethod: method, paymentChannel: channel }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
@@ -2175,6 +2176,17 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
         when: !coveredByCourse,
         run: () => markPaid(inv.id, "cash"),
       },
+      // ช่องทางที่ร้านเพิ่มเอง (ตั้งค่า › บัญชี) — ลงบัญชีแบบไม่ใช่เงินสด จดชื่อช่องทางไว้
+      ...(siteConfig?.payment?.extraMethods || [])
+        .filter((m) => m.trim())
+        .map((m) => ({
+          key: `x:${m}`,
+          icon: "card" as IconName,
+          title: `${got > 0 ? "รับเงินที่เหลือ" : "รับเต็มจำนวน"} · ${m} (ปิดบิล)`,
+          sub: `${due.toLocaleString()} ฿`,
+          when: !coveredByCourse,
+          run: () => markPaid(inv.id, "transfer", m),
+        })),
       {
         key: "member",
         icon: "card",

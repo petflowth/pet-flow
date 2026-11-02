@@ -49,6 +49,7 @@ type Tab =
   | "messages"
   | "automation"
   | "lists"
+  | "billing"
   | "rooms"
   | "groomPrograms"
   | "massagePrograms"
@@ -72,7 +73,8 @@ const TAB_GROUPS: { title: string; items: { id: Tab; icon: string; hint?: string
     items: [
       { id: "shop", icon: "home", hint: "ชื่อร้าน ช่องทางติดต่อ ที่อยู่" },
       { id: "payment", icon: "wallet", hint: "บัญชีรับโอน" },
-      { id: "lists", icon: "doc", hint: "ประเภทร้าน · สายพันธุ์ · ของแถม" },
+      { id: "billing", icon: "receipt", hint: "บริการเสริม · หัวข้อเพิ่มเอง · ของแถม (รายการในบิล)" },
+      { id: "lists", icon: "doc", hint: "ประเภทร้าน · สายพันธุ์ · รู้จักร้านจากไหน" },
       { id: "points", icon: "star", hint: "อัตราแต้มสะสม" },
       { id: "crm", icon: "users" },
       {
@@ -117,6 +119,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "messages", label: "ข้อความ" },
   { id: "automation", label: "อัตโนมัติ" },
   { id: "lists", label: "รายการ" },
+  { id: "billing", label: "คิดเงิน" },
   { id: "rooms", label: "ห้อง" },
   { id: "groomPrograms", label: "โปรแกรมอาบน้ำ" },
   { id: "massagePrograms", label: "ราคานวด" },
@@ -303,6 +306,9 @@ export default function SettingsPage() {
       )}
       {tab === "lists" && (
         <ListsTab config={config} saving={saving} onSave={save} />
+      )}
+      {tab === "billing" && (
+        <ListsTab config={config} saving={saving} onSave={save} mode="billing" />
       )}
       {tab === "rooms" && (
         <RoomsTab config={config} saving={saving} onSave={save} />
@@ -3460,11 +3466,15 @@ function ListsTab({
   config,
   saving,
   onSave,
+  mode = "lists",
 }: {
   config: SiteConfig;
   saving: boolean;
   onSave: (p: Partial<SiteConfig>) => void;
+  /** billing = หมวด "คิดเงิน" (บริการเสริม · หัวข้อเพิ่มเอง · ของแถม) · lists = ประเภทร้าน · สายพันธุ์ · referral */
+  mode?: "lists" | "billing";
 }) {
+  const billing = mode === "billing";
   const initForm = () => ({
     ...OPTIONS_DEFAULT,
     ...config.options,
@@ -3516,6 +3526,8 @@ function ListsTab({
         });
       }}
     >
+      {!billing && (
+        <>
       <p className="text-xs font-extrabold text-petflow-chocolate">ร้านดูแลน้องอะไร</p>
       <div className="flex gap-1 rounded-full bg-paper p-1">
         {(
@@ -3544,9 +3556,17 @@ function ListsTab({
           " · รับทั้งสองแบบ: ตอนสมัคร/เพิ่มน้อง จะมีปุ่มให้เลือกว่าน้องแต่ละตัวเป็นหมาหรือแมว แล้วรายชื่อสายพันธุ์จะโชว์เฉพาะของชนิดนั้น"}
       </p>
 
-      <hr className="border-petflow-line" />
+        </>
+      )}
+
+      {billing && (
+        <>
+      <p className="rounded-petflow-sm bg-paper px-3 py-2 text-[11px] text-brown-soft">
+        รายการที่เลือกได้ตอนกด &quot;เพิ่มรายการ&quot; ในบิล · ราคาอาบน้ำตั้งที่ ตั้งค่า › โปรแกรมอาบน้ำ · ราคาห้องที่ ตั้งค่า › ห้อง ·
+        สินค้าที่ คิดเงิน › ขายหน้าร้าน › สินค้า · คอร์สที่เมนู ขายคอร์สในแอป · ช่องทางรับเงินที่ ตั้งค่า › บัญชี
+      </p>
       <p className="text-xs font-extrabold text-petflow-chocolate">
-        บริการเสริม (หน้าคิดเงิน) — ชื่อ + ราคา
+        บริการเสริม — ชื่อ + ราคา
       </p>
       <div className="space-y-2">
         {presets.map((p, i) => (
@@ -3688,6 +3708,11 @@ function ListsTab({
         }
         rows={4}
       />
+        </>
+      )}
+
+      {!billing && (
+        <>
       <TextAreaField
         label={`สายพันธุ์${petWords({ business: { petKind } }).th} (หน้าลงทะเบียน) — 1 บรรทัด = 1 พันธุ์`}
         value={form.catBreeds.join("\n")}
@@ -3716,6 +3741,9 @@ function ListsTab({
         }
         rows={5}
       />
+
+        </>
+      )}
 
       <SaveBtn saving={saving} />
     </form>

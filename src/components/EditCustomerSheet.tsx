@@ -6,6 +6,14 @@ import { toast } from "@/components/Toast";
 import type { CustomerRecord } from "@/lib/customers-store";
 import { TaxInvoiceFields } from "@/components/TaxInvoiceFields";
 import {
+  EmergencyContactInput,
+  emergencyFromForm,
+  emergencyProblem,
+  emptyEmergencyForm,
+  type EmergencyForm,
+} from "@/components/EmergencyContactInput";
+import { emergencyOf } from "@/lib/emergency-contact";
+import {
   formToTaxInvoice,
   taxInvoiceProblem,
   taxInvoiceToForm,
@@ -36,6 +44,8 @@ export function EditCustomerSheet({
     referralSource: customer.referralSource || "",
   });
   const [taxInvoice, setTaxInvoice] = useState<TaxInvoiceForm>(() => taxInvoiceToForm(customer.taxInvoice));
+  // เบอร์ฉุกเฉิน — ลูกค้าเก่าที่เคยตอบไว้ในฟอร์มของน้องก็ดึงมาให้แก้ได้
+  const [emergency, setEmergency] = useState<EmergencyForm>(() => emptyEmergencyForm(emergencyOf(customer)));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -53,6 +63,11 @@ export function EditCustomerSheet({
       setError(taxProblem);
       return;
     }
+    const emergencyMiss = emergencyProblem(emergency, false);
+    if (emergencyMiss) {
+      setError(emergencyMiss.replace("กับคุณ", "กับลูกค้า"));
+      return;
+    }
     setSaving(true);
     setError("");
     // ช่องที่ลบจนว่าง = ล้างค่า (ส่ง "" ไป ระบบเก็บเป็น null)
@@ -66,6 +81,8 @@ export function EditCustomerSheet({
       postalCode: form.postalCode.trim(),
       referralSource: form.referralSource.trim(),
       taxInvoice: formToTaxInvoice(taxInvoice),
+      // ลบเบอร์จนว่าง = ล้างเบอร์ฉุกเฉิน
+      emergencyContact: emergencyFromForm(emergency) ?? null,
     };
     const res = await fetch("/api/customers", {
       method: "PATCH",
@@ -154,6 +171,16 @@ export function EditCustomerSheet({
               className={inputCls}
             />
           </label>
+          <div className="rounded-petflow-sm border border-petflow-line p-3">
+            <EmergencyContactInput
+              value={emergency}
+              onChange={setEmergency}
+              label="เบอร์ติดต่อฉุกเฉิน"
+              relationLabel="เกี่ยวข้องเป็นอะไรกับลูกค้า"
+              required={false}
+              inputClass={inputCls}
+            />
+          </div>
           <label className="block text-xs font-bold text-brown-soft">
             ที่อยู่ (บริการรับ-ส่ง)
             <textarea

@@ -16,6 +16,13 @@ import {
   type TaxInvoiceForm,
 } from "@/lib/tax-invoice";
 import { NumInput } from "@/components/NumInput";
+import {
+  EmergencyContactInput,
+  emergencyFromForm,
+  emergencyProblem,
+  emptyEmergencyForm,
+  type EmergencyForm,
+} from "@/components/EmergencyContactInput";
 
 const emptyCompany = (): TaxInvoiceForm => ({ ...emptyTaxInvoiceForm("company"), on: true, account: true });
 
@@ -117,6 +124,8 @@ export function AddCustomerModal({
   const [email, setEmail] = useState("");
   const [birthday, setBirthday] = useState("");
   const [referral, setReferral] = useState("");
+  // เบอร์ฉุกเฉิน — ลูกค้าที่ร้านเพิ่มให้ ผูก LINE แล้วไม่ต้องผ่านหน้าสมัคร จึงไม่ถูกถามอีก ต้องกรอกที่นี่
+  const [emergency, setEmergency] = useState<EmergencyForm>(() => emptyEmergencyForm());
   const [address, setAddress] = useState("");
   const [addressMapUrl, setAddressMapUrl] = useState("");
   const [postalCode, setPostalCode] = useState("");
@@ -137,6 +146,7 @@ export function AddCustomerModal({
     setEmail("");
     setBirthday("");
     setReferral("");
+    setEmergency(emptyEmergencyForm());
     setAddress("");
     setAddressMapUrl("");
     setPostalCode("");
@@ -159,6 +169,9 @@ export function AddCustomerModal({
     const problem =
       taxInvoiceProblem(billing) || (isCompany ? companyContactProblem(company, sameContact) : "");
     if (problem) return setError(problem);
+    // ไม่บังคับ — แต่ถ้ากรอกมาแล้วต้องครบ (เบอร์ + ความเกี่ยวข้อง)
+    const emergencyMiss = emergencyProblem(emergency, false);
+    if (emergencyMiss) return setError(emergencyMiss.replace("กับคุณ", "กับลูกค้า"));
     // นิติบุคคล + ผู้ติดต่อใช้ข้อมูลเดียวกัน → ชื่อ/เบอร์/ที่อยู่ลูกค้า = ของบริษัท
     const contact = useCompanyContact
       ? { name: company.name.trim(), phone: company.phone.trim(), address: company.address.trim() }
@@ -176,6 +189,7 @@ export function AddCustomerModal({
         email: email.trim() || undefined,
         birthday: (!isCompany && birthday) || undefined,
         referralSource: referral || undefined,
+        emergencyContact: emergencyFromForm(emergency),
         address: contact.address || undefined,
         taxInvoice: billing || undefined,
         addressMapUrl: addressMapUrl.trim() || undefined,
@@ -313,6 +327,16 @@ export function AddCustomerModal({
                   ))}
                 </select>
               </label>
+              <div className="rounded-petflow-sm border border-petflow-line p-3">
+                <EmergencyContactInput
+                  value={emergency}
+                  onChange={setEmergency}
+                  label="เบอร์ติดต่อฉุกเฉิน"
+                  relationLabel="เกี่ยวข้องเป็นอะไรกับลูกค้า"
+                  required={false}
+                  inputClass={fieldCls}
+                />
+              </div>
 
               {/* ── น้อง (เพิ่มได้หลายตัว) ── */}
               {pets.map((pet, idx) => (

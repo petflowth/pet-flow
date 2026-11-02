@@ -49,6 +49,7 @@ import { pushLineMessage, buildMemberBalanceFlex } from "@/lib/line";
 import { getSiteConfig } from "@/lib/config-store";
 import { isFeatureOn } from "@/lib/features";
 import { customerServiceLog } from "@/lib/customer-service-log";
+import { parseEmergencyContact } from "@/lib/emergency-contact";
 
 async function requireTenant(req: NextRequest) {
   const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
@@ -169,6 +170,9 @@ async function handlePost(req: NextRequest) {
     if (v) extra[k] = v;
   }
   if (taxInvoice.value) extra.taxInvoice = taxInvoice.value;
+  // เบอร์ฉุกเฉิน — ลูกค้าที่ร้านเพิ่มเองไม่ผ่านหน้าสมัคร จึงกรอกจากหลังบ้าน
+  const emergencyContact = parseEmergencyContact(body.emergencyContact);
+  if (emergencyContact) extra.emergencyContact = emergencyContact;
   if (Object.keys(extra).length > 0) {
     customer = (await updateCustomer(customer.id, extra)) ?? customer;
   }
@@ -216,6 +220,9 @@ async function handlePatch(req: NextRequest) {
       const t = parseTaxInvoiceBody(patch.taxInvoice);
       if (t.error) return NextResponse.json({ error: t.error }, { status: 400 });
       patch.taxInvoice = t.value;
+    }
+    if ("emergencyContact" in patch) {
+      patch.emergencyContact = parseEmergencyContact(patch.emergencyContact) ?? null;
     }
     const c = await updateCustomer(id, patch);
     if (!c) return NextResponse.json({ error: "not found" }, { status: 404 });

@@ -3587,8 +3587,20 @@ export default function CustomersPage() {
                   <textarea
                     defaultValue={cat.staffPrivateNote}
                     placeholder="เช่น กัด ข่วน ดุมาก ระวังตอนอาบน้ำ — เฉพาะพนักงาน"
-                    className="w-full rounded-petflow-sm border border-wait/30 bg-card px-3 py-2 text-sm font-normal text-brown"
-                    rows={2}
+                    className="block min-h-[9rem] w-full resize-y overflow-hidden rounded-petflow-sm border border-wait/30 bg-card px-3.5 py-3 text-base font-normal leading-relaxed text-brown"
+                    rows={5}
+                    ref={(el) => {
+                      // ขยายช่องให้สูงพอเห็นโน้ตครบทุกบรรทัด ไม่ต้องเลื่อนอ่าน
+                      if (el) {
+                        el.style.height = "auto";
+                        el.style.height = `${el.scrollHeight + 2}px`;
+                      }
+                    }}
+                    onInput={(e) => {
+                      const el = e.currentTarget;
+                      el.style.height = "auto";
+                      el.style.height = `${el.scrollHeight + 2}px`;
+                    }}
                     onBlur={(e) => saveCatPrivateNote(cat.id, e.target.value)}
                   />
                 </label>

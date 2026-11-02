@@ -2,6 +2,7 @@ import type { RoomType } from "../business";
 import type { SiteConfig } from "../config-types";
 import type { GroomProgram } from "../grooming-prices";
 import { withDefaultBreeds, type PetKind } from "../pet-kind";
+import { DEFAULT_MESSAGES } from "../messages";
 
 /**
  * "แบบร้าน" 3 แบบ — ร้านแมว / ร้านหมา / ร้านหมาและแมว
@@ -245,6 +246,25 @@ function dogWordsDeep(v: unknown): unknown {
 }
 
 /** ร้านหมา: เปลี่ยนค่าร้านแมวที่ค้างอยู่เป็นของร้านหมา (ร้านแมว / หมาและแมว คืนค่าเดิม) */
+// ข้อตกลงก่อนอาบน้ำ/นวดของร้านหมา — ใช้เมื่อร้านยังไม่ได้เขียนเอง (ช่องว่าง หรือยังเป็นข้อความตั้งต้นของระบบ)
+// ร้านแก้ทับได้ที่ ตั้งค่า › ข้อความ › ก่อนอาบน้ำ / นวด (เจ้าของระบบขอให้ Back Home 2026-11-02)
+const DOG_GROOM_CONSENT_TITLE = "ข้อตกลงก่อนใช้บริการอาบน้ำ / นวด";
+function dogGroomConsentTerms(massage: boolean): string[] {
+  return [
+    "สุขภาพและโรคประจำตัว — ผู้ปกครองต้องแจ้งโรคประจำตัว ประวัติแพ้ยาหรือแชมพู โรคผิวหนัง อาการป่วย และข้อควรระวังตามจริง น้องที่ป่วยหรือสงสัยโรคติดต่อ ทางร้านขอสงวนสิทธิ์เลื่อนหรือปฏิเสธการให้บริการ",
+    "เห็บหมัด — หากพบเห็บหมัดระหว่างให้บริการ ทางร้านจะแจ้งผู้ปกครอง และอาจต้องเปลี่ยนเป็นโปรแกรมอาบน้ำกำจัดเห็บหมัด พร้อมทำความสะอาดพื้นที่ โดยมีค่าบริการเพิ่มตามจริง",
+    `ความเครียดและพฤติกรรม — การอาบน้ำ เป่าขน${massage ? " และนวด" : ""} อาจทำให้น้องเครียดหรือตื่นกลัวได้ หากน้องเครียดรุนแรง ก้าวร้าว หายใจผิดปกติ หรือมีความเสี่ยงต่อสุขภาพ ทางร้านขอหยุดให้บริการทันทีเพื่อความปลอดภัยของน้อง`,
+    "ขนพันกันและสภาพผิว — ขนที่พันเป็นก้อนอาจต้องไถออก และอาจเผยให้เห็นรอยแดงหรือแผลเดิมที่ซ่อนอยู่ ทางร้านจะแจ้งผู้ปกครองก่อนทุกครั้งหากต้องทำเพิ่ม",
+    ...(massage
+      ? ["บริการนวด — การนวดเป็นการนวดผ่อนคลาย ไม่ใช่การรักษาทางการแพทย์ น้องที่มีปัญหากระดูก ข้อต่อ หรือเพิ่งผ่าตัด กรุณาแจ้งร้านก่อน ทางร้านอาจงดนวดบางจุดเพื่อความปลอดภัย"]
+      : []),
+    "กรณีฉุกเฉิน — หากเกิดเหตุฉุกเฉิน ทางร้านจะติดต่อผู้ปกครองทันที หากติดต่อไม่ได้และต้องรักษาเร่งด่วน ผู้ปกครองยินยอมให้ร้านนำส่งสัตวแพทย์ โดยค่าใช้จ่ายและความรับผิดชอบพิจารณาตามสาเหตุและข้อเท็จจริง",
+    "การยุติบริการและค่าบริการ — หากทำไม่เสร็จเพราะสุขภาพหรือพฤติกรรมของน้อง ทางร้านจะแจ้งผู้ปกครองพร้อมสรุปสิ่งที่ทำไปแล้ว และคิดค่าบริการตามความเหมาะสม",
+    "การมารับน้อง — เมื่อร้านแจ้งว่าน้องพร้อมกลับบ้านแล้ว รบกวนมารับตามเวลาที่นัดไว้ หากมาช้ากรุณาแจ้งร้านล่วงหน้า",
+    `ขอบเขตความรับผิดชอบ — ผู้ปกครองรับทราบความเสี่ยงตามธรรมชาติของการอาบน้ำ กรูมมิ่ง${massage ? " และนวด" : ""}สัตว์เลี้ยง ทั้งนี้ทางร้านยังรับผิดชอบความเสียหายที่เกิดจากความประมาทของร้านตามกฎหมาย`,
+  ];
+}
+
 export function withDogShopDefaults(config: SiteConfig): SiteConfig {
   if (config.business?.petKind !== "dog") return config;
   const f = FORMAT.dog;
@@ -289,5 +309,18 @@ export function withDogShopDefaults(config: SiteConfig): SiteConfig {
       texts: { ...cards.review?.texts, bodyGroom: cards.review?.texts?.bodyGroom || f.reviewGroom },
     },
   };
+  const msgs = config.messages;
+  const sameAsDefault = (a?: string[]) =>
+    !a?.length || JSON.stringify(a) === JSON.stringify(DEFAULT_MESSAGES.groomConsentTerms);
+  if (sameAsDefault(msgs?.groomConsentTerms)) {
+    out.messages = {
+      ...(msgs || DEFAULT_MESSAGES),
+      groomConsentTitle:
+        !msgs?.groomConsentTitle || msgs.groomConsentTitle === DEFAULT_MESSAGES.groomConsentTitle
+          ? DOG_GROOM_CONSENT_TITLE
+          : msgs.groomConsentTitle,
+      groomConsentTerms: dogGroomConsentTerms(config.features?.massage === true),
+    };
+  }
   return dogWordsDeep(out) as SiteConfig;
 }

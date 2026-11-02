@@ -16,7 +16,7 @@ import { ensureMigration } from "./migrations";
 import { parseEmergencyContact, type EmergencyContact } from "./emergency-contact";
 import { normalizeSpecies, type PetSpecies } from "./pet-kind";
 import { taxInvoiceFromRow, type CustomerTaxInvoice } from "./tax-invoice";
-import { MAX_VACCINE_PHOTOS, joinVaccinePhotos, splitVaccinePhotos } from "./vaccine-photos";
+import { MAX_VACCINE_PHOTOS, MAX_VACCINE_STORED, joinVaccinePhotos, splitVaccinePhotos } from "./vaccine-photos";
 import { stayInfoDone } from "./intake-rules";
 import { cleanPetName } from "./pet-name";
 
@@ -2996,7 +2996,7 @@ export async function addCatVaccinePhotos(customerId: string, catId: string, pho
     added.push(await uploadPrivateDataUrl(`cat-vaccine/${catId}-${Date.now()}-${i}`, v));
   }
   if (added.length === 0) return { ok: false as const, error: "no_photo" as const };
-  const urls = [...splitVaccinePhotos(cat.vaccinePhotos), ...added].slice(-MAX_VACCINE_PHOTOS);
+  const urls = [...splitVaccinePhotos(cat.vaccinePhotos), ...added].slice(-MAX_VACCINE_STORED);
   const res = await setCatVaccinePhotos(customerId, catId, urls);
   return res.ok ? { ok: true as const, urls, added: added.length, cat, customer: c } : res;
 }
@@ -3079,7 +3079,7 @@ export async function copyBookingDocsToCustomer(
     const incoming = opts.newPhotos ?? (have.length ? [] : splitVaccinePhotos(b.vaccinePhotoUrl));
     const add = incoming.filter((u) => u && !have.includes(u));
     if (add.length) {
-      const urls = [...have, ...add].slice(-MAX_VACCINE_PHOTOS);
+      const urls = [...have, ...add].slice(-MAX_VACCINE_STORED);
       if ((await setCatVaccinePhotos(c.id, cat.id, urls)).ok) {
         cat.vaccinePhotos = joinVaccinePhotos(urls);
         changed = true;

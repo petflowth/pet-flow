@@ -367,6 +367,8 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
       // ลิงก์จากนัด (id) หรือจากหน้าข้อมูลลูกค้า (cats = ตัวน้อง ไม่ต้องมีนัด)
       if (params.get("id")) q.set("id", params.get("id")!);
       if (params.get("cats")) q.set("cats", params.get("cats")!);
+      // ร้านกด "ขออัปเดต" — หน้าแนบบอกลูกค้าว่าขอหน้าล่าสุด รูปเดิมยังอยู่
+      if (params.get("update") === "1") q.set("update", "1");
       router.replace(`${shop}/app/pet-docs?${q}`);
       return;
     }
@@ -374,7 +376,8 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
       const cats = params.get("cats");
       if (cats) {
         const kind = params.get("kind") === "stay" ? "stay" : "groom";
-        router.replace(`${shop}/app/groom-info?cats=${encodeURIComponent(cats)}&kind=${kind}`);
+        const upd = params.get("update") === "1" ? "&update=1" : "";
+        router.replace(`${shop}/app/groom-info?cats=${encodeURIComponent(cats)}&kind=${kind}${upd}`);
         return;
       }
       const bkId = params.get("id");

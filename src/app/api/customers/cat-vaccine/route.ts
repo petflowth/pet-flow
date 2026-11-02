@@ -32,7 +32,7 @@ async function postHandler(req: NextRequest) {
     );
   }
   sendTelegramLater(
-    formatBookingTelegram("💉 ลูกค้าแนบสมุดวัคซีนแล้ว", {
+    formatBookingTelegram(body.update === true ? "💉 ลูกค้าส่งสมุดวัคซีนอัปเดตแล้ว" : "💉 ลูกค้าแนบสมุดวัคซีนแล้ว", {
       น้อง: res.cat.name,
       ลูกค้า: me.name,
       สมุดวัคซีน: `แนบเพิ่ม ${res.added} รูป (รวม ${res.urls.length} รูป) 📸`,

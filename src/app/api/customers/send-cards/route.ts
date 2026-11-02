@@ -1,3 +1,4 @@
+import { stayInfoDone } from "@/lib/intake-rules";
 import { NextRequest, NextResponse } from "next/server";
 import { petWords } from "@/lib/pet-kind";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
@@ -91,9 +92,10 @@ async function handlePost(req: NextRequest) {
     if (part === "groomInfo" || part === "stayInfo") {
       const stay = part === "stayInfo";
       // ตัวที่เคยกรอกฟอร์มนี้แล้ว → ไม่ขอซ้ำเด็ดขาด (ข้อมูลผูกกับตัวน้อง)
+      // คำตอบที่มาจากหน้าสมัครอย่างเดียว (stayInfoDone = false) ยังไม่นับ — หมวดการดูแลยังไม่ได้ถาม
       // ยกเว้นร้านกด "ขออัปเดต" เอง — ขอทุกตัวที่เลือก ฟอร์มเปิดพร้อมคำตอบเดิมให้แก้เฉพาะข้อที่เปลี่ยน
       const again = updateParts.has(part);
-      const ask = again ? cats : cats.filter((x) => !(stay ? x.stayInfo : x.groomHealthInfo));
+      const ask = again ? cats : cats.filter((x) => !(stay ? stayInfoDone(x.stayInfo) : x.groomHealthInfo));
       for (const x of cats) if (!ask.includes(x)) skipped.push(`${x.name}: เคยกรอกแล้ว ไม่ขอซ้ำ`);
       if (ask.length === 0) continue;
       const askNames = ask.map((x) => x.name).join(", ");

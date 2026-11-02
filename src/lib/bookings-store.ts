@@ -1,4 +1,5 @@
 import type { Booking, BookingStatus } from "./business";
+import { healWrite } from "./heal-write";
 import { getSupabase, selectAllRows } from "./supabase/server";
 import { uploadPrivateDataUrl } from "./supabase/storage";
 import { seedEnabled } from "./demo-seed";
@@ -700,53 +701,18 @@ export async function updateBooking(
     // คอลัมน์ auto_off เพิ่มมาทีหลัง — เขียนแยกและกลืน error ไว้
     // เครื่องที่ยังไม่ได้รัน migration จะได้ไม่พังทั้งการบันทึกนัด
     if (patch.autoOff !== undefined) {
-      try {
-        await sb
-          .from("bookings")
-          .update({ auto_off: merged.autoOff || [] })
-          .eq("id", id)
-          .eq("tenant_id", requireTenantId());
-      } catch {
-        /* ยังไม่มีคอลัมน์ — ข้ามไป ฟีเจอร์จะทำงานเมื่ออัปเดตฐานข้อมูลแล้ว */
-      }
+      await healWrite("bookings", ["auto_off"], () => sb.from("bookings").update({ auto_off: merged.autoOff || [] }).eq("id", id).eq("tenant_id", requireTenantId()));
     }
     if (patch.groomProgram !== undefined) {
-      try {
-        await sb
-          .from("bookings")
-          .update({ groom_program: merged.groomProgram || null })
-          .eq("id", id)
-          .eq("tenant_id", requireTenantId());
-      } catch {
-        /* ยังไม่มีคอลัมน์ — ข้ามไป ฟีเจอร์จะทำงานเมื่ออัปเดตฐานข้อมูลแล้ว */
-      }
+      await healWrite("bookings", ["groom_program"], () => sb.from("bookings").update({ groom_program: merged.groomProgram || null }).eq("id", id).eq("tenant_id", requireTenantId()));
     }
     // ห้องจริงที่ปักหมุด — 0 = ถอนหมุด เก็บเป็น null ในฐานข้อมูล
     if (patch.roomUnit !== undefined) {
-      try {
-        await sb
-          .from("bookings")
-          .update({ room_unit: merged.roomUnit || null })
-          .eq("id", id)
-          .eq("tenant_id", requireTenantId());
-      } catch {
-        /* ยังไม่มีคอลัมน์ room_unit */
-      }
+      await healWrite("bookings", ["room_unit"], () => sb.from("bookings").update({ room_unit: merged.roomUnit || null }).eq("id", id).eq("tenant_id", requireTenantId()));
     }
     // เวลาส่ง/รับน้อง — คอลัมน์เพิ่มมาทีหลัง เขียนแยก (เดิมไม่ได้เขียนเลย เวลาที่ร้านกรอกแทนลูกค้าเลยหาย)
     if ("arrivalTime" in patch || "pickupTime" in patch) {
-      try {
-        await sb
-          .from("bookings")
-          .update({
-            arrival_time: merged.arrivalTime || null,
-            pickup_time: merged.pickupTime || null,
-          })
-          .eq("id", id)
-          .eq("tenant_id", requireTenantId());
-      } catch {
-        /* ยังไม่มีคอลัมน์ arrival_time / pickup_time */
-      }
+      await healWrite("bookings", ["arrival_time", "pickup_time"], () => sb.from("bookings").update({ arrival_time: merged.arrivalTime || null, pickup_time: merged.pickupTime || null, }).eq("id", id).eq("tenant_id", requireTenantId()));
     }
     // รับ-ส่ง — undefined ใน patch = ไม่ได้ส่งมา, ส่งมาเป็นค่าว่างให้ล้างทิ้ง (ใช้ "transport" in patch)
     if ("transport" in patch) await writeTransport(id, merged.transport || null);

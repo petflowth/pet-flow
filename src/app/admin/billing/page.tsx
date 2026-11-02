@@ -6,6 +6,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PosPanel } from "@/components/PosPanel";
 import type { BillCategory } from "@/lib/config-types";
+import { dayCarePercent, groomSizeKg } from "@/lib/shop-rules";
 import { getAllowedMenus } from "@/components/AdminNav";
 import { useConfig } from "@/components/ConfigProvider";
 import { isFeatureOn } from "@/lib/features";
@@ -738,12 +739,12 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
         pricing: roomPricing(r),
       })
     );
-    // Day Care ของทุกห้อง — ครึ่งราคาห้อง (ค่าน้องตัวที่เกินก็ครึ่งหนึ่งด้วย) ต่อท้ายรายการห้องพัก
+    // Day Care ของทุกห้อง — % ของราคาห้องตามที่ร้านตั้ง (ค่าน้องตัวที่เกินก็คิด % เดียวกัน) ต่อท้ายรายการห้องพัก
     const daily = nightly.map((r: (typeof nightly)[number]) => ({
       id: r.id,
       label: dayCareLabel(r.label),
-      amount: dayCarePrice(r.amount),
-      pricing: { ...r.pricing, extraPrice: dayCarePrice(r.pricing.extraPrice) },
+      amount: dayCarePrice(r.amount, dayCarePercent(config)),
+      pricing: { ...r.pricing, extraPrice: dayCarePrice(r.pricing.extraPrice, dayCarePercent(config)) },
       dayCare: true,
     }));
     setRooms([...nightly, ...daily]);
@@ -1460,6 +1461,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
       customerId: cust.id,
       programs: groomPrograms,
       sizeLabels: groomSizeLabels,
+      sizeKg: groomSizeKg(siteConfig),
       currentProgram: item.program,
       keepProgram,
     });
@@ -2808,7 +2810,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
                               </option>
                             ))}
                         </optgroup>
-                        <optgroup label="Day Care (ครึ่งราคา ไม่ค้างคืน)">
+                        <optgroup label={`Day Care (${dayCarePercent(siteConfig)}% ของราคาห้อง ไม่ค้างคืน)`}>
                           {rooms
                             .filter((r) => r.dayCare)
                             .map((r) => (

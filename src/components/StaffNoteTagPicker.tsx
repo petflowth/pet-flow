@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { SearchField } from "@/components/ui";
-import { STAFF_NOTE_TAGS } from "@/lib/staff-note-tags";
+import { useConfig } from "@/components/ConfigProvider";
+import { staffNoteTags } from "@/lib/shop-rules";
 
 function parseTags(text: string): string[] {
   return text
@@ -29,6 +30,8 @@ export function StaffNoteTagPicker({
   /** หัวข้อบนปุ่ม — ฟอร์มสมัครใช้ "โรคประจำตัว / เรื่องที่ช่างต้องรู้" ให้ลูกค้ารู้ว่าตอบโรคประจำตัวตรงนี้ */
   label?: string;
 }) {
+  const { config } = useConfig();
+  const STAFF_NOTE_TAGS = useMemo(() => staffNoteTags(config), [config]);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [custom, setCustom] = useState("");
@@ -54,7 +57,7 @@ export function StaffNoteTagPicker({
     const q = search.trim().toLowerCase();
     if (!q) return STAFF_NOTE_TAGS;
     return STAFF_NOTE_TAGS.filter((t) => t.label.toLowerCase().includes(q));
-  }, [search]);
+  }, [search, STAFF_NOTE_TAGS]);
 
   const toggle = (id: string) => {
     setSelected((prev) => {

@@ -30,6 +30,7 @@ import { GroomClashNote, confirmClashes, useGroomClashes } from "@/components/Gr
 import { PetProgramSelect } from "@/components/GroomProgramPicker";
 import { UNKNOWN_CAT, isUnknownCat } from "@/lib/unknown-cat";
 import { dayCarePrice } from "@/lib/day-care";
+import { dayCarePercent } from "@/lib/shop-rules";
 import {
   typeAvailability,
   attachClosures,
@@ -1265,7 +1266,7 @@ export default function NewBookingPage() {
               <p className="text-xs font-bold text-brown-soft">ห้อง</p>
               <p className="mb-1.5 text-[10px] text-brown-faint">
                 {dayCare
-                  ? "ฝากรายวัน ไม่ค้างคืน · คิดครึ่งราคาห้อง · ตัวเลขคือห้องที่ว่างวันนั้น"
+                  ? `ฝากรายวัน ไม่ค้างคืน · คิด ${dayCarePercent(siteConfig)}% ของราคาห้อง · ตัวเลขคือห้องที่ว่างวันนั้น`
                   : liveMoves.length
                     ? "ห้องแรก (ก่อนย้าย) · ตัวเลขคือห้องที่ว่างจริงถึงวันย้าย"
                     : appointmentDate
@@ -1305,7 +1306,7 @@ export default function NewBookingPage() {
                           </span>
                         </span>
                         <span className="block text-[10px] text-brown-soft">
-                          {dayCare ? `${dayCarePrice(r.price)} บาท/วัน` : `${r.price} บาท/คืน`}
+                          {dayCare ? `${dayCarePrice(r.price, dayCarePercent(siteConfig))} บาท/วัน` : `${r.price} บาท/คืน`}
                           {full && a
                             ? ` · เต็มวันที่ ${a.tightestDate}`
                             : combo
@@ -1409,7 +1410,7 @@ export default function NewBookingPage() {
                       const f = free2(r.id);
                       return (
                         <option key={r.id} value={r.id} disabled={tracked && f <= 0}>
-                          {r.name} · {dayCare ? `${dayCarePrice(r.price)} บาท/วัน` : `${r.price} บาท/คืน`}{tracked ? (f > 0 ? ` · ว่าง ${f}` : " · เต็ม") : ""}
+                          {r.name} · {dayCare ? `${dayCarePrice(r.price, dayCarePercent(siteConfig))} บาท/วัน` : `${r.price} บาท/คืน`}{tracked ? (f > 0 ? ` · ว่าง ${f}` : " · เต็ม") : ""}
                         </option>
                       );
                     })}

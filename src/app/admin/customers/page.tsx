@@ -2,6 +2,7 @@
 
 import { splitVaccinePhotos } from "@/lib/vaccine-photos";
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import Image from "next/image";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
@@ -424,6 +425,34 @@ function MemberTopupSection({
   /** ค่าเริ่มต้น = ไม่แจ้ง — ยกยอดเก่าเข้าระบบทีละหลายคนไม่ควรไปกวนลูกค้า */
   const [notify, setNotify] = useState(false);
 
+  /**
+   * ปุ่มโปรด่วน = รายการ "เติมเครดิต" ที่ร้านตั้งไว้ในเมนู ขายคอร์สในแอป (ราคา → เครดิตที่ได้)
+   * ร้านที่ยังไม่ได้ตั้ง ใช้ชุดตัวอย่างเดิม
+   */
+  const [quickPromos, setQuickPromos] = useState<{ label: string; paid: number; bonus: number }[]>([
+    ...MEMBER_PROMOS,
+  ]);
+  const [ownPromos, setOwnPromos] = useState(false);
+  useEffect(() => {
+    fetch("/api/package-shop")
+      .then((r) => r.json())
+      .then((d) => {
+        const credits = ((d.offers || []) as { kind?: string; price?: number; creditAmount?: number; active?: boolean }[])
+          .filter((o) => o.kind === "credit" && o.active !== false && (o.price || 0) > 0)
+          .map((o) => {
+            const paid = o.price || 0;
+            const got = Math.max(paid, o.creditAmount ?? paid);
+            return { label: `${paid.toLocaleString()} → ${got.toLocaleString()}`, paid, bonus: got - paid };
+          })
+          .sort((a, b) => b.paid - a.paid);
+        if (credits.length) {
+          setQuickPromos(credits);
+          setOwnPromos(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const paidNum = Math.max(0, Number(paid) || 0);
   const bonusNum = isCancelCredit ? 0 : Math.max(0, Number(bonus) || 0);
   const total = paidNum + bonusNum;
@@ -499,7 +528,7 @@ function MemberTopupSection({
 
       <SectionLabel>Quick promo · โปรด่วน</SectionLabel>
       <div className="mb-3 flex flex-wrap gap-2">
-        {MEMBER_PROMOS.map((p) => {
+        {quickPromos.map((p) => {
           const on = paidNum === p.paid && bonusNum === p.bonus;
           return (
             <button
@@ -517,6 +546,15 @@ function MemberTopupSection({
           );
         })}
       </div>
+      {!ownPromos && (
+        <p className="-mt-2 mb-3 text-[10px] text-brown-faint">
+          ปุ่มด้านบนเป็นตัวอย่าง ตั้งโปรเติมเครดิตของร้านเองได้ที่เมนู{" "}
+          <Link href="/admin/packages" className="font-bold text-latte-deep underline">
+            ขายคอร์สในแอป
+          </Link>{" "}
+          (เพิ่มรายการแบบเติมเครดิต)
+        </p>
+      )}
 
       <div className="mb-3 grid grid-cols-2 gap-2">
         <label className="block text-[11px] font-bold text-brown-soft">

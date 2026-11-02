@@ -13,6 +13,7 @@ import { isFeatureOn } from "./features";
 import { petWords, usesLitter } from "./pet-kind";
 import { stayForGroom } from "./booking-group";
 import { groomProgramName, resolveGroomPrograms } from "./grooming-prices";
+import { litterMinNightsRooms } from "./shop-rules";
 
 /**
  * ตัวสร้างข้อความเตือนลูกค้า — ใช้ร่วมกันทั้ง "cron อัตโนมัติ" และ "ปุ่มกดส่งเอง"
@@ -320,8 +321,6 @@ export function roomName(id: string, cfg: Pick<SiteConfig, "rooms">): string {
   return cfg.rooms?.find((r) => r.id === id)?.name || id;
 }
 
-/** ห้องที่ทรายแมวฟรีมีเงื่อนไขจำนวนคืนขั้นต่ำ — ห้องอื่นๆ แถมทรายให้ตลอดการเข้าพักไม่ว่าจะกี่คืน */
-const ROOMS_WITH_LITTER_MIN_NIGHTS = ["mini-meow", "mid-cozy"];
 
 /** ข้อความเตือน "เตรียมทรายมาเอง" ถ้าเข้าพักไม่ถึงเกณฑ์แถมทรายฟรี (คืน "" ถ้าถึงเกณฑ์ หรือห้องแถมทรายฟรีอยู่แล้ว) */
 export function litterNoteFor(
@@ -329,7 +328,7 @@ export function litterNoteFor(
   cfg: SiteConfig
 ): string {
   if (!usesLitter(cfg)) return "";
-  if (!b.room || !ROOMS_WITH_LITTER_MIN_NIGHTS.includes(b.room)) return "";
+  if (!b.room || !litterMinNightsRooms(cfg).includes(b.room)) return "";
   const min = cfg.automation?.freeLitterMinNights ?? 3;
   const nights =
     b.checkin && b.checkout

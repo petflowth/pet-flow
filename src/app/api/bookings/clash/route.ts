@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { bookingsForDate } from "@/lib/bookings-store";
 import { groomClashes } from "@/lib/groom-clash";
+import { getSiteConfig } from "@/lib/config-store";
+import { clashWindowMin } from "@/lib/shop-rules";
 import { withTenant } from "@/lib/tenant-context";
 
 /** คิวอาบน้ำที่ชนกับวัน/เวลาที่กำลังจะจอง — หลังบ้านเท่านั้น */
@@ -17,11 +19,12 @@ async function handleGet(req: NextRequest) {
   const time = sp.get("time")?.trim() || "";
   const exclude = (sp.get("exclude") || "").split(",").filter(Boolean);
   if (!date || !time) return NextResponse.json({ clashes: [] });
-  const clashes = groomClashes(await bookingsForDate(date), date, time, exclude).map((b) => ({
+  const windowMin = clashWindowMin(await getSiteConfig());
+  const clashes = groomClashes(await bookingsForDate(date), date, time, exclude, windowMin).map((b) => ({
     id: b.id,
     time: b.time,
     catName: b.catName,
     customerName: b.customerName,
   }));
-  return NextResponse.json({ clashes });
+  return NextResponse.json({ clashes, windowMin });
 }

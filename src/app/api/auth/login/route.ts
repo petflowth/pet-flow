@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyStaffLogin } from "@/lib/staff-store";
+import { listStaff, verifyStaffLogin } from "@/lib/staff-store";
 import { withTenantEvenIfClosed } from "@/lib/tenant-context";
 import { TENANT_SLUG_HEADER } from "@/lib/tenant-resolve";
 import {
@@ -21,11 +21,48 @@ export const dynamic = "force-dynamic";
 
 /** ใครล็อกอินอยู่ตอนนี้ — ใช้ให้หน้าหลังบ้านรู้บทบาท/เมนูที่เข้าได้ */
 export async function GET(req: NextRequest) {
-  const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+  let session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
   if (!session) return NextResponse.json({ ok: false }, { status: 401 });
+  const cookieName = req.headers.get(SESSION_COOKIE_NAME_HEADER) || SESSION_COOKIE;
+
+  // พนักงาน — เมนูถูกจำไว้ในคุกกี้ตอนล็อกอิน ถ้าเจ้าของแก้สิทธิ์ทีหลัง ดึงของล่าสุดแล้วออกคุกกี้ใหม่
+  // ให้มีผลทันทีโดยไม่ต้องออกจากระบบ (และถ้าบัญชีถูกลบ/พักใช้งาน ก็ตัดออกจากระบบเลย)
+  let refreshed: string | null = null;
+  if (session.role === "staff") {
+    const s = session;
+    const all = await withTenantEvenIfClosed(s.tenantId, () => listStaff()).catch(() => null);
+    if (all) {
+      // คุกกี้รุ่นก่อนไม่มี staffId — หาจากชื่อแทน ถ้าชื่อนั้นมีคนเดียวในร้าน
+      const byName = all.filter((x) => x.name === s.name);
+      const fresh = s.staffId
+        ? all.find((x) => x.id === s.staffId)
+        : byName.length === 1
+          ? byName[0]
+          : undefined;
+      if (s.staffId && (!fresh || !fresh.active)) {
+        const res = NextResponse.json({ ok: false }, { status: 401 });
+        res.cookies.set(cookieName, "", { ...sessionCookieOptions(), maxAge: 0 });
+        return res;
+      }
+      if (fresh && fresh.active) {
+        const same =
+          s.staffId === fresh.id &&
+          (s.menus || []).length === fresh.menus.length &&
+          fresh.menus.every((m) => (s.menus || []).includes(m));
+        if (!same) {
+          const { exp: _exp, ...rest } = s;
+          void _exp;
+          const next = { ...rest, staffId: fresh.id, name: fresh.name || s.name, menus: fresh.menus };
+          refreshed = await signSession(next).catch(() => null);
+          if (refreshed) session = { ...s, ...next };
+        }
+      }
+    }
+  }
+
   // วันครบกำหนดจ่ายค่าบริการ — หลังบ้านใช้เตือนก่อนถึงวัน และพาไปหน้าค่าบริการเมื่อเลยกำหนด
   const gate = await tenantGateById(session.tenantId).catch(() => null);
-  return NextResponse.json({
+  const res = NextResponse.json({
     ok: true,
     role: session.role,
     name: session.name,
@@ -34,6 +71,8 @@ export async function GET(req: NextRequest) {
     dueDate: gate?.dueDate || null,
     overdue: isOverdue(gate?.dueDate),
   });
+  if (refreshed) res.cookies.set(cookieName, refreshed, sessionCookieOptions());
+  return res;
 }
 
 /**
@@ -65,6 +104,7 @@ export async function POST(req: NextRequest) {
         name: string;
         tenantId: string;
         tenantSlug?: string;
+        staffId?: string;
         menus?: string[];
       }
     | null = null;
@@ -95,6 +135,7 @@ export async function POST(req: NextRequest) {
         role: "staff",
         name: staff.name || "พนักงาน",
         tenantId: staff.tenantId,
+        staffId: staff.id,
         menus: staff.menus || [],
       };
     }

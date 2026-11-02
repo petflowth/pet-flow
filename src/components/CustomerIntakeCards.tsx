@@ -253,7 +253,7 @@ export function CustomerIntakeCards({
           className="mt-2 inline-flex min-h-[36px] items-center gap-1 text-[11px] font-bold text-latte-deep underline"
         >
           ดูลายเซ็นยอมรับข้อตกลงล่าสุด
-          {customer.consentFleaTick ? " · ยืนยันหยดยาเห็บหมัดแล้ว" : ""}
+          {customer.consentFleaTick ? " · ยืนยันป้องกันเห็บหมัดแล้ว" : ""}
         </a>
       )}
     </div>

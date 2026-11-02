@@ -175,23 +175,11 @@ const DOG_FORM: GroomField[] = [
     options: [
       { key: "drop", label: "💧 หยด" },
       { key: "oral", label: "💊 ทานยา" },
+      { key: "injection", label: "💉 ฉีดยา" },
       { key: "none", label: "❓ ไม่ได้ทำ / ไม่แน่ใจ" },
     ],
   },
-  {
-    key: "fleaLast",
-    type: "single",
-    label: "ทำครั้งล่าสุดเมื่อไหร่คะ",
-    required: false,
-    enabled: true,
-    canSkip: true,
-    options: [
-      { key: "1m", label: "🗓️ ภายใน 1 เดือน" },
-      { key: "3m", label: "📅 1–3 เดือน" },
-      { key: "older", label: "⏳ นานกว่า 3 เดือน" },
-      { key: "unknown", label: "❓ จำไม่ได้" },
-    ],
-  },
+  text("fleaLast", "ให้ยาเห็บหมัดครั้งล่าสุดเมื่อไหร่คะ", "เช่น 15 ต.ค. 2569 · ถ้าไม่ได้ทำพิมพ์ว่า ไม่ได้ทำ", true),
   // การดูแล
   text("food", "อาหาร ให้เวลาไหน อย่างไรบ้าง — รบกวนเตรียมอาหารมาเองนะคะ", "เช่น เม็ด Royal Canin เช้า 8 โมง เย็น 6 โมง มื้อละ 1 ถ้วย", true),
   { ...text("medicine", "การทานยา (หากมี)", "เช่น ยาโรคหัวใจ 1/2 เม็ด หลังอาหารเช้า"), canSkip: true },

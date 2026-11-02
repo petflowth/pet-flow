@@ -133,11 +133,11 @@ export function EditCustomerSheet({
         </div>
         <form onSubmit={submit} className="space-y-3">
           <label className="block text-xs font-bold text-brown-soft">
-            ชื่อที่ใช้ในร้าน *
+            ชื่อ-นามสกุล *
             <input
               value={form.name}
               onChange={(e) => set("name")(e.target.value)}
-              placeholder="เช่น คุณแม่น้องมะลิ"
+              placeholder="เช่น สมใจ ใจดี"
               required
               className={`${inputCls} font-bold text-brown`}
             />

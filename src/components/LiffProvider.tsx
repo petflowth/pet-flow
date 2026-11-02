@@ -65,14 +65,30 @@ async function fetchAccount(lineUserId: string, displayName: string, customerId?
  */
 type LiffAuth = { idToken?: string; accessToken?: string } | { devUserId: string };
 
+/**
+ * เปิดจาก "ลิงก์ผูก LINE" ที่ร้านส่ง (path=link&customerId=…) → คืน customerId นั้น
+ * ส่งไปตอน sync ครั้งแรก ไม่งั้นเซิร์ฟเวอร์จะสร้างลูกค้าใหม่ชื่อตาม LINE ซ้ำขึ้นมาก่อนถึงหน้าผูก
+ */
+function linkCustomerIdFromUrl(): string {
+  if (typeof window === "undefined") return "";
+  let params = new URLSearchParams(window.location.search);
+  // ก่อน liff.init เขียน URL ใหม่ พารามิเตอร์ยังห่ออยู่ใน liff.state
+  const state = params.get("liff.state");
+  if (state && !params.get("path")) params = new URLSearchParams(state.replace(/^[^?]*\?/, ""));
+  const onLinkPage = /\/app\/link\/?$/.test(window.location.pathname);
+  if (params.get("path") !== "link" && !onLinkPage) return "";
+  return params.get("customerId")?.trim() || "";
+}
+
 async function syncLineCustomer(auth: LiffAuth, displayName: string) {
   let res: Response;
+  const linkCustomerId = linkCustomerIdFromUrl();
   try {
     res = await fetch("/api/customers/line", {
       method: "POST",
       cache: "no-store",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...auth, displayName }),
+      body: JSON.stringify({ ...auth, displayName, ...(linkCustomerId ? { linkCustomerId } : {}) }),
     });
   } catch {
     setCustomerSessionIssue("network");

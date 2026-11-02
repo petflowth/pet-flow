@@ -686,6 +686,11 @@ function cleanCatPersonalityNote(note?: string): string | undefined {
 export async function upsertCustomerFromLine(data: {
   lineUserId: string;
   displayName: string;
+  /**
+   * ลูกค้าเปิดจาก "ลิงก์ผูก LINE" ที่ร้านส่งจากหน้าข้อมูลลูกค้า (path=link&customerId=…)
+   * → ผูก LINE เข้ากับลูกค้าที่ร้านสร้างไว้ทันที ห้ามสร้างลูกค้าใหม่ชื่อตาม LINE ซ้ำขึ้นมาอีกคน
+   */
+  linkCustomerId?: string;
 }) {
   const lineUserId = data.lineUserId.trim();
   const displayName = data.displayName.trim() || "ลูกค้า LINE";
@@ -693,6 +698,22 @@ export async function upsertCustomerFromLine(data: {
 
   const sb = getSupabase();
   let existing = await findCustomerByLine(lineUserId);
+
+  const linkTarget = data.linkCustomerId?.trim()
+    ? await getCustomer(data.linkCustomerId.trim())
+    : null;
+  if (linkTarget && !linkTarget.lineUserId) {
+    if (!existing) {
+      // LINE นี้ยังไม่มีบัญชี → ใช้ลูกค้าที่ร้านสร้างไว้เลย (ด้านล่างจะเขียน LINE ID ลงให้)
+      existing = linkTarget;
+    } else if (existing.id !== linkTarget.id && isAutoLinePlaceholder(existing)) {
+      // เคยเปิดแอปก่อนแล้วระบบสร้างบัญชีเปล่าชื่อตาม LINE ไว้ (ไม่มีเบอร์ ไม่มีน้อง)
+      // → รวมบัญชีเปล่านั้นเข้าลูกค้าที่ร้านสร้าง (ย้ายแต้ม/คูปอง/LINE ID) แล้วใช้ตัวของร้าน
+      await mergeCustomers(existing.id, linkTarget.id);
+      existing = (await getCustomer(linkTarget.id)) || linkTarget;
+    }
+    // บัญชีเดิมมีข้อมูลจริง (เบอร์/น้อง) → ไม่รวมเอง ให้ลูกค้ากดยืนยันในหน้าผูก LINE
+  }
 
   if (!existing) {
     const all = await fetchAllCustomers();
@@ -803,6 +824,13 @@ export async function upsertCustomerFromLine(data: {
 
   await linkBookingsToLineCustomer(customer);
   return customer;
+}
+
+/** บัญชีที่ระบบสร้างเองตอนเปิดแอปครั้งแรก แล้วยังไม่ได้กรอกอะไรเลย (ชื่อ = ชื่อ LINE, ไม่มีเบอร์, ไม่มีน้อง) */
+function isAutoLinePlaceholder(c: CustomerRecord) {
+  if (c.phone?.trim() || c.cats.length > 0) return false;
+  const n = normName(c.name);
+  return n === normName(c.lineDisplayName || "") || n === normName("ลูกค้า LINE");
 }
 
 /** ผูก LINE กับลูกค้าที่ร้านสร้างไว้แล้ว (ลิงก์เชิญจากหลังบ้าน) */

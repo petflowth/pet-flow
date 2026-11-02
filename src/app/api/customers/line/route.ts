@@ -42,6 +42,7 @@ async function handlePost(req: NextRequest) {
   const accessToken = typeof body.accessToken === "string" ? body.accessToken.trim() : "";
   const devUserId = typeof body.devUserId === "string" ? body.devUserId.trim() : "";
   const displayName = String(body.displayName || "").trim();
+  const linkCustomerId = typeof body.linkCustomerId === "string" ? body.linkCustomerId.trim() : "";
 
   let lineUserId = "";
   let verifiedName = "";
@@ -72,6 +73,7 @@ async function handlePost(req: NextRequest) {
     customer = await upsertCustomerFromLine({
       lineUserId,
       displayName: displayName || verifiedName,
+      linkCustomerId: linkCustomerId || undefined,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);

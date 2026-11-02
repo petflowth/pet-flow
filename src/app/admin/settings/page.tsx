@@ -5,7 +5,7 @@ import { roomPricing } from "@/lib/room-board";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import type { SiteConfig, BoardingRuleBlock } from "@/lib/config-types";
+import type { SiteConfig, BoardingRuleBlock, BillCategory } from "@/lib/config-types";
 import type { RoomType } from "@/lib/business";
 import {
   GROOM_SIZES,
@@ -3312,6 +3312,7 @@ function AutomationTab({
 const OPTIONS_DEFAULT = {
   servicePresets: [] as { label: string; amount: number }[],
   freebies: [] as string[],
+  billCategories: [] as BillCategory[],
   catBreeds: [] as string[],
   referralOptions: [] as string[],
 };
@@ -3325,7 +3326,12 @@ function ListsTab({
   saving: boolean;
   onSave: (p: Partial<SiteConfig>) => void;
 }) {
-  const initForm = () => ({ ...OPTIONS_DEFAULT, ...config.options, catBreeds: breedOptionsFor(config) });
+  const initForm = () => ({
+    ...OPTIONS_DEFAULT,
+    ...config.options,
+    billCategories: config.options?.billCategories || [],
+    catBreeds: breedOptionsFor(config),
+  });
   const [form, setForm] = useState(initForm);
   const [petKind, setPetKind] = useState<PetKind>(petKindOf(config));
   useEffect(() => {
@@ -3344,6 +3350,9 @@ function ListsTab({
     );
   };
 
+  const setCat = (ci: number, fn: (c: BillCategory) => BillCategory) =>
+    setForm((f) => ({ ...f, billCategories: f.billCategories.map((c, k) => (k === ci ? fn(c) : c)) }));
+
   const setPreset = (i: number, patch: Partial<{ label: string; amount: number }>) =>
     setForm((f) => ({
       ...f,
@@ -3360,6 +3369,10 @@ function ListsTab({
           options: {
             ...form,
             servicePresets: form.servicePresets.filter((p) => p.label.trim()),
+            // หัวข้อไม่มีชื่อ = ทิ้ง · รายการไม่มีชื่อ = ทิ้ง (หัวข้อที่ยังไม่มีรายการเก็บไว้ได้)
+            billCategories: form.billCategories
+              .map((c) => ({ ...c, name: c.name.trim(), items: c.items.filter((x) => x.label.trim()) }))
+              .filter((c) => c.name),
           },
         });
       }}
@@ -3439,6 +3452,93 @@ function ListsTab({
           + เพิ่มบริการ
         </button>
       </div>
+
+      <hr className="border-petflow-line" />
+      <div>
+        <p className="text-xs font-extrabold text-petflow-chocolate">หัวข้อเพิ่มเอง (หน้าคิดเงิน)</p>
+        <p className="mt-0.5 text-[10px] text-brown-soft">
+          สร้างหัวข้อใหม่ เช่น &quot;อาหาร&quot; หรือ &quot;ดูแลพิเศษ&quot; แล้วใส่รายการพร้อมราคา หัวข้อจะไปโผล่ในช่องเลือกหมวดตอนกด เพิ่มรายการ ในบิล
+        </p>
+      </div>
+      {form.billCategories.map((c, ci) => (
+        <div key={c.id} className="space-y-2 rounded-petflow-sm border border-petflow-line bg-paper/60 p-3">
+          <div className="flex gap-2">
+            <input
+              value={c.name}
+              onChange={(e) => setCat(ci, (x) => ({ ...x, name: e.target.value }))}
+              placeholder="ชื่อหัวข้อ เช่น อาหาร"
+              className="min-w-0 flex-1 rounded-petflow-sm border border-petflow-line bg-card px-3 py-2 text-sm font-bold"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                if (c.items.length && !confirm(`ลบหัวข้อ "${c.name || "ไม่มีชื่อ"}" และรายการทั้งหมดในหัวข้อนี้?`)) return;
+                setForm((f) => ({ ...f, billCategories: f.billCategories.filter((_, k) => k !== ci) }));
+              }}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-wait"
+              aria-label="ลบหัวข้อ"
+            >
+              <Icon name="trash" size={16} />
+            </button>
+          </div>
+          {c.items.map((it, ii) => (
+            <div key={ii} className="flex gap-2 pl-3">
+              <input
+                value={it.label}
+                onChange={(e) =>
+                  setCat(ci, (x) => ({
+                    ...x,
+                    items: x.items.map((y, k) => (k === ii ? { ...y, label: e.target.value } : y)),
+                  }))
+                }
+                placeholder="ชื่อรายการ"
+                className="min-w-0 flex-1 rounded-petflow-sm border border-petflow-line bg-card px-3 py-2 text-sm"
+              />
+              <NumInput
+                type="number"
+                value={String(it.amount)}
+                onChange={(e) =>
+                  setCat(ci, (x) => ({
+                    ...x,
+                    items: x.items.map((y, k) => (k === ii ? { ...y, amount: Number(e.target.value) || 0 } : y)),
+                  }))
+                }
+                className="w-20 rounded-petflow-sm border border-petflow-line bg-card px-2 py-2 text-right text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => setCat(ci, (x) => ({ ...x, items: x.items.filter((_, k) => k !== ii) }))}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-wait"
+                aria-label="ลบรายการ"
+              >
+                <Icon name="x" size={16} />
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => setCat(ci, (x) => ({ ...x, items: [...x.items, { label: "", amount: 0 }] }))}
+            className="ml-3 w-[calc(100%-0.75rem)] rounded-petflow-sm border border-dashed border-petflow-line py-2 text-xs font-bold text-latte-deep"
+          >
+            + เพิ่มรายการในหัวข้อนี้
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() =>
+          setForm((f) => ({
+            ...f,
+            billCategories: [
+              ...f.billCategories,
+              { id: `cat-${Date.now().toString(36)}`, name: "", items: [{ label: "", amount: 0 }] },
+            ],
+          }))
+        }
+        className="w-full rounded-petflow-sm border border-dashed border-latte/60 bg-latte/10 py-2.5 text-xs font-extrabold text-latte-deep"
+      >
+        + เพิ่มหัวข้อใหม่
+      </button>
 
       <hr className="border-petflow-line" />
       <TextAreaField

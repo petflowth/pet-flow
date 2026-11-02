@@ -15,8 +15,15 @@ const METHOD_LABEL: Record<PosMethod, string> = { cash: "เงินสด", pr
 type CartLine = { key: string; productId?: string; name: string; price: number; qty: number; max?: number };
 
 /** ขายหน้าร้าน (POS) — อยู่เป็นแท็บหนึ่งในหน้าคิดเงิน (/admin/billing?view=pos) */
-export function PosPanel({ header }: { header?: React.ReactNode }) {
-  const [view, setView] = useState<"sell" | "products" | "close">("sell");
+export function PosPanel({
+  header,
+  initialView = "sell",
+}: {
+  header?: React.ReactNode;
+  /** เปิดมาที่แท็บไหน — ลิงก์ "แก้รายการ" จากบิลบริการส่ง ?pos=products มาเปิดแท็บสินค้าเลย */
+  initialView?: "sell" | "products" | "close";
+}) {
+  const [view, setView] = useState<"sell" | "products" | "close">(initialView);
   const [products, setProducts] = useState<PosProduct[]>([]);
   const [loaded, setLoaded] = useState(false);
 

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PosPanel } from "@/components/PosPanel";
+import type { BillCategory } from "@/lib/config-types";
+import { getAllowedMenus } from "@/components/AdminNav";
 import { useConfig } from "@/components/ConfigProvider";
 import { isFeatureOn } from "@/lib/features";
 import type { PosProduct } from "@/lib/pos-store";
@@ -181,6 +183,8 @@ type Item = {
   roomLine?: { note?: string };
   /** สินค้าหน้าร้าน (kind "product") — ออก/แก้/ลบบิลแล้วตัด/คืนสต็อกให้เอง */
   productId?: string;
+  /** หัวข้อที่ร้านเพิ่มเอง (options.billCategories) — kind เป็น "service" แต่เลือกรายการจากหัวข้อนี้ */
+  cat?: string;
   /** คอร์สที่ขาย (kind "package") — จ่ายบิลแล้วระบบเพิ่มคอร์สให้ลูกค้าเอง */
   offerId?: string;
   /** คอร์สที่เพิ่มให้ลูกค้าไปแล้วจากบรรทัดนี้ — กันเพิ่มซ้ำ */
@@ -460,6 +464,19 @@ const KIND_OPTIONS: { id: ItemKind; label: string }[] = [
   { id: "custom", label: "พิมพ์เอง" },
 ];
 
+/**
+ * ลิงก์ "แก้รายการ" ข้างช่องเลือกหมวด — พาไปหน้าที่ร้านตั้งชื่อ/ราคาของหมวดนั้น
+ * (menu = เมนูที่พนักงานต้องมีสิทธิ์ ถึงจะเห็นลิงก์) · พิมพ์เอง ไม่มีลิสต์ให้ตั้ง
+ */
+const KIND_SETTINGS_LINK: Partial<Record<ItemKind, { href: string; menu: string }>> = {
+  grooming: { href: "/admin/settings?tab=groomPrograms", menu: "/admin/settings" },
+  room: { href: "/admin/settings?tab=rooms", menu: "/admin/settings" },
+  service: { href: "/admin/settings?tab=lists", menu: "/admin/settings" },
+  freebie: { href: "/admin/settings?tab=lists", menu: "/admin/settings" },
+  product: { href: "/admin/billing?view=pos&pos=products", menu: "/admin/billing" },
+  package: { href: "/admin/packages", menu: "/admin/packages" },
+};
+
 const FREEBIE_PRESETS = [
   "กล้องวงจรปิด (CCTV)",
   "รับ-ส่ง",
@@ -543,6 +560,17 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
       .catch(() => {});
   }, []);
   const [freebiePresets, setFreebiePresets] = useState<string[]>(FREEBIE_PRESETS);
+  /** หัวข้อที่ร้านสร้างเอง (ตั้งค่า › รายการ) — ต่อท้ายช่องเลือกหมวด */
+  const [billCategories, setBillCategories] = useState<BillCategory[]>([]);
+  /** เมนูที่พนักงานคนนี้เข้าได้ (null = เจ้าของ เห็นทุกเมนู) — ซ่อนลิงก์ "แก้รายการ" ที่กดเข้าไม่ได้ */
+  const [allowedMenus, setAllowedMenus] = useState<string[] | null>([]);
+  useEffect(() => setAllowedMenus(getAllowedMenus()), []);
+  const kindLink = (kind: ItemKind, cat?: string) => {
+    const l = cat ? KIND_SETTINGS_LINK.service : KIND_SETTINGS_LINK[kind];
+    if (!l) return null;
+    if (allowedMenus && !allowedMenus.includes(l.menu)) return null;
+    return l.href;
+  };
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [bookingId, setBookingId] = useState<string | undefined>(undefined);
   /** น้องที่มาจริงในนัดที่ดึงมาออกบิล — ใช้ตั้งชื่อน้องบนบิล (ไม่ใช่ตัวแรกของบ้าน) */
@@ -722,6 +750,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
     if (config?.billing) setBillMsg(config.billing);
     if (config?.options?.servicePresets?.length) setServicePresets(config.options.servicePresets);
     if (config?.options?.freebies?.length) setFreebiePresets(config.options.freebies);
+    setBillCategories((config?.options?.billCategories || []).filter((c: BillCategory) => c?.name));
     // ดึงจากนัดเฉพาะที่ยังไม่จบ — เสร็จสิ้น/ยกเลิก/ไม่มา ไม่ควรโผล่ให้ออกบิลซ้ำอีก
     // (บิลที่ออกไปแล้วตัดออกด้วย paidForGroup ด้านล่าง)
     const ACTIVE_STATUSES = new Set(["pending", "confirmed", "ready"]);
@@ -1427,7 +1456,22 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
       patch = { kind, label: "", amount: 0 };
     }
     // เปลี่ยนประเภทแล้ว ไม่ใช่บรรทัดค่าห้องจากบิลเดิมอีกต่อไป
-    updateItem(idx, { ...patch, roomLine: undefined });
+    updateItem(idx, { ...patch, roomLine: undefined, cat: undefined });
+  };
+
+  /** เลือกหัวข้อที่ร้านเพิ่มเอง — ลงบิลเป็นบริการ เริ่มที่รายการแรกของหัวข้อ */
+  const changeCategory = (idx: number, catId: string) => {
+    const c = billCategories.find((x) => x.id === catId);
+    const first = c?.items[0];
+    updateItem(idx, {
+      kind: "service",
+      cat: catId,
+      productId: undefined,
+      roomLine: undefined,
+      label: first?.label || "",
+      amount: first?.amount || 0,
+      priceOverride: undefined,
+    });
   };
 
   const changeProgram = (idx: number, program: string) => {
@@ -2504,8 +2548,12 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
                 >
                   <div className="flex items-center gap-2">
                     <select
-                      value={item.kind}
-                      onChange={(e) => changeKind(i, e.target.value as ItemKind)}
+                      value={item.cat && billCategories.some((c) => c.id === item.cat) ? `cat:${item.cat}` : item.kind}
+                      onChange={(e) =>
+                        e.target.value.startsWith("cat:")
+                          ? changeCategory(i, e.target.value.slice(4))
+                          : changeKind(i, e.target.value as ItemKind)
+                      }
                       className="min-h-[40px] min-w-0 flex-1 rounded-lg border border-petflow-line bg-card px-3 py-2 text-sm font-bold"
                     >
                       {/* รายการสินค้าจากกริดเท่านั้นที่มี kind นี้ — ไม่ให้เลือกเองจาก dropdown
@@ -2516,12 +2564,30 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
                           🛒 สินค้า
                         </option>
                       )}
-                      {KIND_OPTIONS.map((k) => (
+                      {KIND_OPTIONS.filter((k) => k.id !== "custom").map((k) => (
                         <option key={k.id} value={k.id}>
                           {k.label}
                         </option>
                       ))}
+                      {billCategories.map((c) => (
+                        <option key={c.id} value={`cat:${c.id}`}>
+                          {c.name}
+                        </option>
+                      ))}
+                      <option value="custom">พิมพ์เอง</option>
                     </select>
+                    {kindLink(item.kind, item.cat) && (
+                      <Link
+                        href={kindLink(item.kind, item.cat)!}
+                        target="_blank"
+                        rel="noopener"
+                        title="เพิ่ม/แก้ชื่อและราคาของหมวดนี้ (เปิดแท็บใหม่ บิลนี้ไม่หาย)"
+                        className="flex min-h-[40px] shrink-0 items-center gap-1 rounded-lg border border-petflow-line bg-paper px-2.5 text-xs font-bold text-brown-soft active:bg-card"
+                      >
+                        <Icon name="edit" size={14} />
+                        แก้รายการ
+                      </Link>
+                    )}
                     {items.length > 1 && (
                       <button
                         type="button"
@@ -2688,7 +2754,35 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
                     </div>
                   )}
 
-                  {item.kind === "service" && (
+                  {item.kind === "service" && item.cat && (() => {
+                    const c = billCategories.find((x) => x.id === item.cat);
+                    const list = c?.items || [];
+                    return list.length === 0 ? (
+                      <p className="rounded-lg bg-paper px-3 py-2 text-[11px] text-brown-soft">
+                        หัวข้อนี้ยังไม่มีรายการ เพิ่มได้ที่ ตั้งค่า › รายการ
+                      </p>
+                    ) : (
+                      <select
+                        value={item.label}
+                        onChange={(e) => {
+                          const p = list.find((x) => x.label === e.target.value);
+                          updateItem(i, { label: e.target.value, amount: p ? p.amount : item.amount, priceOverride: undefined });
+                        }}
+                        className={sub}
+                      >
+                        {!list.some((x) => x.label === item.label) && (
+                          <option value={item.label}>{item.label || "เลือกรายการ"}</option>
+                        )}
+                        {list.map((p) => (
+                          <option key={p.label} value={p.label}>
+                            {p.label} · {p.amount.toLocaleString()} ฿
+                          </option>
+                        ))}
+                      </select>
+                    );
+                  })()}
+
+                  {item.kind === "service" && !item.cat && (
                     <select
                       value={item.label}
                       onChange={(e) => {
@@ -3949,6 +4043,7 @@ function BillingTabs() {
   if (tab === "pos") {
     return (
       <PosPanel
+        initialView={params.get("pos") === "products" ? "products" : "sell"}
         header={
           <>
             <div className="mb-4">

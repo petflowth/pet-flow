@@ -324,6 +324,11 @@ export type SiteConfig = {
     servicePresets: { label: string; amount: number }[];
     /** ของแถม (ฟรี) — ชื่ออย่างเดียว */
     freebies: string[];
+    /**
+     * หัวข้อที่ร้านเพิ่มเองในช่องเลือกหมวดของหน้าคิดเงิน (เช่น "อาหาร", "ฝากดูแลพิเศษ")
+     * แต่ละหัวข้อมีรายการ + ราคาของตัวเอง — ลงบิลเป็นรายการประเภทบริการ
+     */
+    billCategories?: BillCategory[];
     /** สายพันธุ์แมว (หน้าลงทะเบียน + ตัวกรอง broadcast) */
     catBreeds: string[];
     /** รู้จักร้านจากไหน (referral) — หน้าลงทะเบียน */
@@ -360,4 +365,11 @@ export type SiteConfig = {
     /** โลโก้ร้าน — data URL หรือ URL รูป, ไม่ตั้ง = ใช้โลโก้ PetFlow เริ่มต้น */
     logoUrl?: string;
   };
+};
+
+/** หัวข้อรายการที่ร้านสร้างเองในหน้าคิดเงิน (ตั้งที่ ตั้งค่า › รายการ) */
+export type BillCategory = {
+  id: string;
+  name: string;
+  items: { label: string; amount: number }[];
 };

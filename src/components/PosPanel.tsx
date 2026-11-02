@@ -39,7 +39,7 @@ export function PosPanel({
     fetch("/api/config")
       .then((r) => r.json())
       .then((c) => {
-        const name = c?.business?.name;
+        const name = (c?.config || c)?.business?.name;
         slipShopName = typeof name === "string" ? name : name?.th || "";
       })
       .catch(() => {});
@@ -264,6 +264,15 @@ function Checkout({
   onDone: () => void;
 }) {
   const [method, setMethod] = useState<PosMethod>("cash");
+  /** ช่องทางที่ร้านเพิ่มเอง (ตั้งค่า › บัญชี) — ลงเป็น "โอน" แล้วจดชื่อช่องทางในหมายเหตุบิล */
+  const [channel, setChannel] = useState("");
+  const [extraMethods, setExtraMethods] = useState<string[]>([]);
+  useEffect(() => {
+    fetch("/api/config")
+      .then((r) => r.json())
+      .then((c) => setExtraMethods(((c?.config?.payment?.extraMethods || []) as string[]).filter((m) => m.trim())))
+      .catch(() => {});
+  }, []);
   const [discount, setDiscount] = useState("");
   const [received, setReceived] = useState("");
   const [customerName, setCustomerName] = useState("");
@@ -305,6 +314,7 @@ function Checkout({
         method,
         cashReceived: method === "cash" ? got || total : undefined,
         customerName: customerName.trim() || undefined,
+        note: method === "transfer" && channel ? `จ่ายด้วย ${channel}` : undefined,
       }),
     });
     const d = await res.json().catch(() => ({}));
@@ -373,14 +383,33 @@ function Checkout({
 
       <Segmented
         value={method}
-        onChange={setMethod}
+        onChange={(m) => {
+          setMethod(m);
+          setChannel("");
+        }}
         className="mt-3"
         options={[
           { id: "cash", label: "เงินสด", icon: "money" },
           { id: "promptpay", label: "QR", icon: "qr" },
-          { id: "transfer", label: "โอน", icon: "card" },
+          { id: "transfer", label: extraMethods.length ? "โอน / อื่นๆ" : "โอน", icon: "card" },
         ]}
       />
+      {method === "transfer" && extraMethods.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {["", ...extraMethods].map((m) => (
+            <button
+              key={m || "transfer"}
+              type="button"
+              onClick={() => setChannel(m)}
+              className={`min-h-[36px] rounded-full border px-3 text-xs font-bold ${
+                channel === m ? "border-petflow-chocolate bg-petflow-chocolate text-card" : "border-petflow-line bg-paper text-brown-soft"
+              }`}
+            >
+              {m || "โอนเข้าบัญชี"}
+            </button>
+          ))}
+        </div>
+      )}
 
       {method === "cash" && (
         <div className="mt-3 space-y-2">
@@ -573,6 +602,7 @@ function ProductsView({ products, onChanged }: { products: PosProduct[]; onChang
       {editing && (
         <ProductSheet
           product={editing === "new" ? null : editing}
+          categories={[...new Set(products.map((p) => (p.category || "").trim()).filter(Boolean))]}
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
@@ -584,7 +614,18 @@ function ProductsView({ products, onChanged }: { products: PosProduct[]; onChang
   );
 }
 
-function ProductSheet({ product, onClose, onSaved }: { product: PosProduct | null; onClose: () => void; onSaved: () => void }) {
+function ProductSheet({
+  product,
+  onClose,
+  onSaved,
+  categories = [],
+}: {
+  product: PosProduct | null;
+  onClose: () => void;
+  onSaved: () => void;
+  /** หมวดที่ร้านใช้กับสินค้าอื่นอยู่แล้ว — โชว์เป็นตัวเลือกก่อน */
+  categories?: string[];
+}) {
   const [f, setF] = useState({
     name: product?.name || "",
     imageUrl: product?.imageUrl || "",
@@ -699,7 +740,7 @@ function ProductSheet({ product, onClose, onSaved }: { product: PosProduct | nul
           <input value={f.sku} onChange={(e) => setF({ ...f, sku: e.target.value })} placeholder="บาร์โค้ด (ถ้ามี)" className={FIELD} />
         </div>
         <datalist id="pos-cats">
-          {["อาหาร", "ขนม", "ทราย", "ของเล่น", "อุปกรณ์", "บริการเสริม"].map((c) => (
+          {[...new Set([...categories, "อาหาร", "ขนม", "ของเล่น", "อุปกรณ์"])].map((c) => (
             <option key={c} value={c} />
           ))}
         </datalist>

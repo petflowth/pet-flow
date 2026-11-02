@@ -303,12 +303,43 @@ export default function PromosAdminPage() {
     }
   };
 
+  /** เทมเพลตที่ร้านบันทึกเอง (config.options.broadcastTemplates) — โชว์ก่อนตัวอย่างของระบบ */
+  const [ownTemplates, setOwnTemplates] = useState<
+    { label: string; title: string; body: string; suggestedActions?: string[] }[]
+  >([]);
+  useEffect(() => setOwnTemplates(config.options?.broadcastTemplates || []), [config.options?.broadcastTemplates]);
+  const allTemplates = [
+    ...ownTemplates.map((t) => ({ ...t, own: true })),
+    ...BROADCAST_TEMPLATES.map((t) => ({ ...t, own: false })),
+  ];
+  const saveOwnTemplates = async (next: typeof ownTemplates) => {
+    const res = await fetch("/api/config", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ patch: { options: { broadcastTemplates: next } } }),
+    });
+    if (res.ok) setOwnTemplates(next);
+    return res.ok;
+  };
+  const saveAsTemplate = async () => {
+    if (!broadcastTitle.trim() && !broadcastBody.trim()) return alert("พิมพ์หัวข้อหรือข้อความก่อน แล้วค่อยบันทึกเป็นเทมเพลต");
+    const label = prompt("ตั้งชื่อเทมเพลตนี้", broadcastTitle.trim().slice(0, 30));
+    if (!label?.trim()) return;
+    const tpl = { label: label.trim(), title: broadcastTitle, body: broadcastBody, suggestedActions: broadcastActions };
+    const next = [tpl, ...ownTemplates.filter((t) => t.label !== tpl.label)];
+    if (await saveOwnTemplates(next)) savedPopup("บันทึกเทมเพลตแล้ว");
+  };
+  const deleteOwnTemplate = async (label: string) => {
+    if (!confirm(`ลบเทมเพลต "${label}"?`)) return;
+    await saveOwnTemplates(ownTemplates.filter((t) => t.label !== label));
+  };
+
   const applyBroadcastTemplate = (idx: number) => {
-    const tpl = BROADCAST_TEMPLATES[idx];
+    const tpl = allTemplates[idx];
     if (!tpl) return;
     setBroadcastTitle(tpl.title);
     setBroadcastBody(tpl.body);
-    setBroadcastActions(tpl.suggestedActions);
+    setBroadcastActions((tpl.suggestedActions || []) as BroadcastActionId[]);
   };
 
   const onBroadcastImage = (file: File) => {
@@ -783,12 +814,33 @@ export default function PromosAdminPage() {
                 aria-label="ใช้ตัวอย่างข้อความ"
               >
                 <option value="">ใช้ตัวอย่างข้อความ…</option>
-                {BROADCAST_TEMPLATES.map((tpl, i) => (
-                  <option key={tpl.label} value={i}>
-                    {tpl.label}
+                {allTemplates.map((tpl, i) => (
+                  <option key={`${tpl.own ? "own" : "sys"}:${tpl.label}`} value={i}>
+                    {tpl.own ? `⭐ ${tpl.label}` : tpl.label}
                   </option>
                 ))}
               </select>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={saveAsTemplate}
+                  className="min-h-[36px] rounded-full border border-dashed border-latte/60 bg-latte/10 px-3 text-xs font-bold text-latte-deep"
+                >
+                  + บันทึกข้อความนี้เป็นเทมเพลตของร้าน
+                </button>
+                {ownTemplates.map((t) => (
+                  <button
+                    key={t.label}
+                    type="button"
+                    onClick={() => deleteOwnTemplate(t.label)}
+                    className="inline-flex min-h-[36px] items-center gap-1 rounded-full bg-paper px-3 text-xs font-bold text-brown-soft"
+                    aria-label={`ลบเทมเพลต ${t.label}`}
+                  >
+                    ⭐ {t.label}
+                    <Icon name="x" size={12} />
+                  </button>
+                ))}
+              </div>
               <input
                 value={broadcastTitle}
                 onChange={(e) => setBroadcastTitle(e.target.value)}

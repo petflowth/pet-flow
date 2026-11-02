@@ -41,8 +41,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (session.role !== "owner") {
-    return NextResponse.json({ error: "เฉพาะเจ้าของร้านเท่านั้น" }, { status: 403 });
+  if (session.role !== "owner" && !(session.menus || []).includes("/admin/subscription")) {
+    return NextResponse.json({ error: "เฉพาะเจ้าของร้าน หรือพนักงานที่ได้สิทธิ์เมนูค่าบริการ" }, { status: 403 });
   }
   const body = await req.json().catch(() => ({}));
   const plan: Plan = body.plan === "year" ? "year" : "month";

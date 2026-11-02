@@ -5,10 +5,15 @@ import { withTenant } from "@/lib/tenant-context";
 
 export const dynamic = "force-dynamic";
 
-/** จัดการบัญชีพนักงานได้เฉพาะ "เจ้าของร้าน" เท่านั้น พนักงานตั้งสิทธิ์ให้ตัวเองไม่ได้ */
+/**
+ * จัดการบัญชีพนักงานได้: เจ้าของร้าน หรือพนักงานที่เจ้าของติ๊กเมนู "พนักงาน" ให้
+ * (สิทธิ์นี้ = ตั้งบัญชี/สิทธิ์ของคนอื่นได้ทั้งหมด เจ้าของต้องตั้งใจให้เท่านั้น)
+ */
 async function requireOwnerSession(req: NextRequest) {
   const session = await getSessionFrom(req);
-  return session?.role === "owner" ? session : null;
+  if (session?.role === "owner") return session;
+  if (session?.role === "staff" && (session.menus || []).includes("/admin/staff")) return session;
+  return null;
 }
 
 /** รายชื่อพนักงาน — เฉพาะเจ้าของ */

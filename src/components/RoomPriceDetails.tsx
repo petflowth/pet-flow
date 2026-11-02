@@ -54,7 +54,7 @@ function SeasonBlock({ title, rule, room }: { title: string; rule: SeasonRule; r
       ))}
       {extra > 0 && (
         <div className="mt-1 flex justify-between text-xs text-brown-soft">
-          <span>ตัวที่ 2 ขึ้นไป (พักห้องเดียวกัน)</span>
+          <span>บ้านเดียวกันพักห้องเดียวกัน</span>
           <span className="font-bold">เริ่มต้น {baht(extra)}/ตัว</span>
         </div>
       )}
@@ -91,7 +91,7 @@ export function RoomSeasonPrices({
         ))}
         {rule.extraPetPrice ? (
           <div className="mt-1 flex justify-between text-xs text-brown-soft">
-            <span>ตัวที่ 2 ขึ้นไป (พักห้องเดียวกัน)</span>
+            <span>บ้านเดียวกันพักห้องเดียวกัน</span>
             <span className="font-bold">เริ่มต้น {baht(rule.extraPetPrice)}/ตัว</span>
           </div>
         ) : null}

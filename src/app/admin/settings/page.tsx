@@ -1251,8 +1251,8 @@ function backHomeRoomPreset(current: RoomType[]): { rooms: RoomType[]; seasons: 
     composedOf: undefined,
     extra: { th: "ตัวที่ 2 +550", en: "2nd pet +550" },
     note: {
-      th: "High 1,250฿/คืน · Low คิดตามน้ำหนัก 750–1,050฿ · ตัวที่ 2 ขึ้นไป (พักห้องเดียวกัน) เริ่มต้น 450฿/ตัว (Low) · 550฿/ตัว (High)",
-      en: "High 1,250฿/night · Low by weight 750–1,050฿ · extra dog in same room from 450฿ (Low) / 550฿ (High)",
+      th: "High 1,250฿/คืน · Low คิดตามน้ำหนัก 750–1,050฿ · บ้านเดียวกันพักห้องเดียวกัน เริ่มต้น 450฿/ตัว (Low) · 550฿/ตัว (High)",
+      en: "High 1,250฿/night · Low by weight 750–1,050฿ · same-household dogs sharing a room from 450฿ (Low) / 550฿ (High)",
     },
   };
   const deluxe: RoomType = {
@@ -1354,7 +1354,8 @@ function RoomsTab({
             if (!confirm("กรอกห้อง VIP 11 ห้อง + Deluxe 3 ห้อง และราคา Low/High season ของ Back Home ให้เลยไหม? (ห้องเดิมในหน้านี้จะถูกแทนที่ · ยังไม่บันทึกจนกว่าจะกดบันทึก)")) return;
             const p = backHomeRoomPreset(rooms);
             setRooms(p.rooms);
-            setSeasons(p.seasons);
+            // ช่วงวัน High/Low ที่ร้านกรอกไว้แล้วไม่ล้าง
+            setSeasons({ ...p.seasons, periods: seasons.periods });
           }}
           className="flex h-11 w-full items-center justify-center gap-1.5 rounded-full bg-latte-deep text-xs font-extrabold text-white"
         >

@@ -165,6 +165,7 @@ async function handlePost(req: NextRequest) {
     "address",
     "addressMapUrl",
     "postalCode",
+    "nickname",
   ] as const) {
     const v = typeof body[k] === "string" ? body[k].trim() : "";
     if (v) extra[k] = v;

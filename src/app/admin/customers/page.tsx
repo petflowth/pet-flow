@@ -2029,6 +2029,14 @@ function CustomerSummaryCard({
       </div>
 
       <ul className="mb-3 space-y-1 text-[11px] text-brown-soft">
+        {customer.nickname && (
+          <li className="flex items-center gap-2">
+            <Icon name="user" size={14} className="text-brown-faint" />
+            <span>
+              ชื่อเล่น <b className="text-brown">{customer.nickname}</b>
+            </span>
+          </li>
+        )}
         {customer.phone && (
           <li className="flex items-center gap-2">
             <Icon name="phone" size={14} className="text-brown-faint" />

@@ -43,6 +43,7 @@ async function handleGet(req: NextRequest) {
       taxInvoice: c.taxInvoice ?? null,
       // ลูกค้าเก่าที่เคยตอบไว้ในฟอร์มทำประวัติของน้อง — ดึงมาเติมให้ แก้แล้วบันทึกจะย้ายมาเก็บที่ตัวลูกค้า
       emergencyContact: emergencyOf(c) ?? null,
+      nickname: c.nickname || "",
       marketingConsent: c.marketingConsent !== false,
       cats: c.cats.map((x) => ({
         id: x.id,
@@ -95,7 +96,10 @@ async function handlePost(req: NextRequest) {
     marketingConsent?: boolean;
     taxInvoice?: CustomerTaxInvoice | null;
     emergencyContact?: EmergencyContact | null;
+    nickname?: string;
   } = {};
+  // ชื่อเล่น — ส่งว่าง = ล้าง (เก็บเป็น null) · หน้าเก่าที่ไม่ส่งมา = คงค่าเดิม
+  if (typeof body.nickname === "string") patch.nickname = body.nickname.trim().slice(0, 60);
   // หน้าเก่าที่ยังไม่มีช่องนี้จะไม่ส่งมา — คงค่าเดิมไว้ · ส่งมาแต่ลบเบอร์ออก = ล้าง
   if (body.emergencyContact !== undefined) patch.emergencyContact = parseEmergencyContact(body.emergencyContact) ?? null;
   // หน้าเก่าที่ยังไม่มีช่องนี้จะไม่ส่ง taxInvoice มา — คงค่าเดิมไว้

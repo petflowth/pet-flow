@@ -98,6 +98,7 @@ async function handlePost(req: NextRequest) {
       postalCode: postalCode || undefined,
       taxInvoice: taxInvoice.value || undefined,
       emergencyContact: parseEmergencyContact(body.emergencyContact),
+      nickname: typeof body.nickname === "string" ? body.nickname.trim().slice(0, 60) : undefined,
       marketingConsent,
       cats,
     });

@@ -41,7 +41,7 @@ export type RegisterFieldDef = {
 };
 
 export const REGISTER_FORM_DEFAULTS: RegisterFieldDef[] = [
-  { key: "ownerName", group: "owner", label: "ชื่อผู้ปกครอง", required: true, enabled: true, locked: true },
+  { key: "ownerName", group: "owner", label: "ชื่อ-นามสกุล", required: true, enabled: true, locked: true },
   { key: "phone", group: "owner", label: "เบอร์โทร", required: true, enabled: true, locked: true },
   { key: "ownerNickname", group: "owner", label: "ชื่อเล่น", required: false, enabled: true },
   // เบอร์ + ความเกี่ยวข้อง (กดเลือก) — ถามที่นี่ที่เดียว ฟอร์มก่อนอาบน้ำ/เข้าพักไม่ถามซ้ำ (เจ้าของระบบ 2026-11-02)

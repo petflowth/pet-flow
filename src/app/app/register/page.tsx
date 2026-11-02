@@ -412,7 +412,7 @@ export default function RegisterPage() {
           <>
             <label className="block">
               <span className="mb-1 block text-xs font-bold text-brown">
-                {customLabel("ownerName") || (isCompany ? "ชื่อผู้ติดต่อ" : historyStyle ? "ชื่อจริง-นามสกุล" : "ชื่อผู้ปกครอง")}{" "}
+                {customLabel("ownerName") || (isCompany ? "ชื่อผู้ติดต่อ" : historyStyle ? "ชื่อจริง-นามสกุล" : "ชื่อ-นามสกุล")}{" "}
                 {!historyStyle && !askNickname && (
                   <span className="font-normal text-brown-faint">
                     (ชื่อเล่นหรือชื่อจริงก็ได้นะคะ)
@@ -423,7 +423,7 @@ export default function RegisterPage() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder={historyStyle ? "เช่น สมใจ ใจดี" : "เช่น คุณมาย"}
+                placeholder={isCompany ? "เช่น คุณมาย" : "เช่น สมใจ ใจดี"}
                 className={fieldClass}
               />
             </label>

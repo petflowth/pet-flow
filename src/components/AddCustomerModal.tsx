@@ -275,11 +275,11 @@ export function AddCustomerModal({
               {!useCompanyContact && (
                 <>
                   <label className={labelCls}>
-                    {isCompany ? "ชื่อผู้ติดต่อ *" : "ชื่อลูกค้า *"}
+                    {isCompany ? "ชื่อผู้ติดต่อ *" : "ชื่อ-นามสกุล *"}
                     <input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="เช่น คุณมาย"
+                      placeholder={isCompany ? "เช่น คุณมาย" : "เช่น สมใจ ใจดี"}
                       required
                       autoFocus
                       className={`${fieldCls} font-bold`}

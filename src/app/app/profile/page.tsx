@@ -345,7 +345,7 @@ export default function ProfilePage() {
           <SectionLabel>Owner · ผู้ปกครอง</SectionLabel>
           <div className="space-y-3 rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm">
             <label className="block text-xs font-bold text-brown-soft">
-              ชื่อผู้ปกครอง
+              ชื่อ-นามสกุล
               <input value={name} onChange={(e) => setName(e.target.value)} className={`${field} mt-1 font-bold text-brown`} />
             </label>
             {nicknameField.enabled && (

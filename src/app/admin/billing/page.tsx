@@ -489,8 +489,8 @@ const KIND_OPTIONS: { id: ItemKind; label: string }[] = [
 const KIND_SETTINGS_LINK: Partial<Record<ItemKind, { href: string; menu: string }>> = {
   grooming: { href: "/admin/settings?tab=groomPrograms", menu: "/admin/settings" },
   room: { href: "/admin/settings?tab=rooms", menu: "/admin/settings" },
-  service: { href: "/admin/settings?tab=lists", menu: "/admin/settings" },
-  freebie: { href: "/admin/settings?tab=lists", menu: "/admin/settings" },
+  service: { href: "/admin/settings?tab=billing", menu: "/admin/settings" },
+  freebie: { href: "/admin/settings?tab=billing", menu: "/admin/settings" },
   product: { href: "/admin/billing?view=pos&pos=products", menu: "/admin/billing" },
   package: { href: "/admin/packages", menu: "/admin/packages" },
 };
@@ -578,7 +578,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
       .catch(() => {});
   }, []);
   const [freebiePresets, setFreebiePresets] = useState<string[]>(FREEBIE_PRESETS);
-  /** หัวข้อที่ร้านสร้างเอง (ตั้งค่า › รายการ) — ต่อท้ายช่องเลือกหมวด */
+  /** หัวข้อที่ร้านสร้างเอง (ตั้งค่า › คิดเงิน) — ต่อท้ายช่องเลือกหมวด */
   const [billCategories, setBillCategories] = useState<BillCategory[]>([]);
   /** เมนูที่พนักงานคนนี้เข้าได้ (null = เจ้าของ เห็นทุกเมนู) — ซ่อนลิงก์ "แก้รายการ" ที่กดเข้าไม่ได้ */
   const [allowedMenus, setAllowedMenus] = useState<string[] | null>([]);
@@ -2879,7 +2879,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
                     const list = c?.items || [];
                     return list.length === 0 ? (
                       <p className="rounded-lg bg-paper px-3 py-2 text-[11px] text-brown-soft">
-                        หัวข้อนี้ยังไม่มีรายการ เพิ่มได้ที่ ตั้งค่า › รายการ
+                        หัวข้อนี้ยังไม่มีรายการ เพิ่มได้ที่ ตั้งค่า › คิดเงิน
                       </p>
                     ) : (
                       <select

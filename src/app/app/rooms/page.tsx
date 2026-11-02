@@ -7,6 +7,7 @@ import { useConfig } from "@/components/ConfigProvider";
 import { BookingOnlyNotice, PageHeader } from "@/components/PageHeader";
 import { RoomCard } from "@/components/RoomCard";
 import { ContentBlocks } from "@/components/ContentBlocks";
+import { RoomSeasonPrices } from "@/components/RoomPriceDetails";
 
 export default function RoomsPage() {
   const { locale } = useLocale();
@@ -30,6 +31,7 @@ export default function RoomsPage() {
         backLabel={locale === "th" ? "บริการทั้งหมด" : "All services"}
       />
       <BookingOnlyNotice locale={locale} />
+      <RoomSeasonPrices raw={config.roomSeasons} rooms={config.rooms} />
       <div className="grid gap-4">
         {config.rooms.map((room) => (
           <RoomCard key={room.id} room={room} locale={locale} />

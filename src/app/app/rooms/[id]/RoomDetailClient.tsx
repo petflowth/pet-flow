@@ -7,6 +7,7 @@ import { LineBookingCta, PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { RoomPoster } from "@/components/RoomPoster";
+import { RoomSeasonPrices, roomPriceLine } from "@/components/RoomPriceDetails";
 
 export default function RoomDetailClient({ roomId }: { roomId: string }) {
   const { locale } = useLocale();
@@ -34,13 +35,22 @@ export default function RoomDetailClient({ roomId }: { roomId: string }) {
       <PageHeader
         eyebrow="Room"
         title={room.name}
-        subtitle={`${room.price} ${m.perNight}`}
+        subtitle={roomPriceLine(room, config.roomSeasons, m.perNight)}
         back="/app/rooms"
         backLabel={m.back}
       />
 
       <RoomPoster src={room.image} alt={room.name} priority className="shadow-petflow-sm" />
       <p className="mt-2 text-center text-[11px] text-brown-faint">{m.posterHint}</p>
+      {room.note?.th && locale === "th" && (
+        <p className="mt-3 rounded-petflow-sm bg-paper px-3 py-2 text-xs text-brown">{room.note.th}</p>
+      )}
+      {(room.maxCats ?? 1) > 1 && locale === "th" && (
+        <p className="mt-2 text-xs text-brown-soft">🐾 พักได้สูงสุด {room.maxCats} ตัว/ห้อง (บ้านเดียวกัน)</p>
+      )}
+      <div className="mt-3">
+        <RoomSeasonPrices raw={config.roomSeasons} rooms={config.rooms} room={room} />
+      </div>
 
       <LineBookingCta locale={locale} />
     </div>

@@ -19,7 +19,7 @@ import {
   attachAdvanceIncomeToInvoice,
 } from "./finance-store";
 import { calcPromoDiscount, recordAdminPromoClaim } from "./promos-store";
-import { getCoupon, redeemCoupon, unredeemCoupon, findCouponByInvoice } from "./coupons-store";
+import { getCoupon, redeemCoupon, unredeemCoupon, findCouponsByInvoice } from "./coupons-store";
 import { addPoints } from "./points-store";
 import { getSupabase, selectAllRows } from "./supabase/server";
 import { requireTenantId } from "./tenant-context";
@@ -507,11 +507,26 @@ export async function updateInvoice(
     /** เลือกคอร์สมาหักตอนแก้บิล (หักคอร์สไปแล้วที่ API) — ส่วนที่คอร์สคลุมอยู่ใน extraDiscount */
     packageId?: string;
     packageUnits?: number;
+    /** คูปองที่เลือกเพิ่มตอนแก้บิล (เช่น เพิ่งแลกแต้มแทนลูกค้า) — ยอดคิดจากคูปองจริง บวกเข้าส่วนลด */
+    couponId?: string;
   }
 ) {
   const inv = await getInvoice(id);
   if (!inv) return { ok: false as const, error: "not_found" };
   if (inv.status === "paid") return { ok: false as const, error: "already_paid" };
+
+  let couponAmount = 0;
+  if (patch.couponId) {
+    const coupon = await getCoupon(patch.couponId);
+    if (
+      !coupon ||
+      coupon.status !== "active" ||
+      (coupon.customerId && coupon.customerId !== inv.customerId)
+    ) {
+      return { ok: false as const, error: "coupon_invalid" };
+    }
+    couponAmount = Math.max(0, Math.round(coupon.amount || 0));
+  }
 
   const items = patch.items ? patch.items.map((i) => normalizeLineDiscount(i)) : inv.items;
   const before = inv.items || [];
@@ -534,13 +549,18 @@ export async function updateInvoice(
     const { discount: oldPromo } = await calcPromoDiscount(inv.promoId, inv.subtotal);
     keptExtra = Math.max(0, (inv.discount || 0) - oldPromo);
   }
-  const extra = Math.max(0, Math.round(patch.extraDiscount ?? keptExtra));
+  const extra = Math.max(0, Math.round(patch.extraDiscount ?? keptExtra)) + couponAmount;
   const discount = Math.min(subtotal, promoDiscount + extra);
   const total = subtotal - discount;
   const deposit = Math.min(
     total,
     Math.max(0, Math.round(patch.deposit ?? inv.deposit ?? 0))
   );
+  // จองคูปองก่อนเขียนบิล — แพ้ race (มีบิลอื่นใช้ไปก่อน) ก็ยังไม่แตะบิลนี้
+  if (patch.couponId) {
+    const redeemed = await redeemCoupon(patch.couponId, id);
+    if (!redeemed.ok) return { ok: false as const, error: "coupon_invalid" };
+  }
 
   inv.items = items;
   inv.subtotal = subtotal;
@@ -562,7 +582,10 @@ export async function updateInvoice(
       .update(invoiceToRow(inv))
       .eq("id", id)
       .eq("tenant_id", requireTenantId());
-    if (error) return { ok: false as const, error: "save_failed", message: error.message };
+    if (error) {
+      if (patch.couponId) await unredeemCoupon(patch.couponId);
+      return { ok: false as const, error: "save_failed", message: error.message };
+    }
     if (patch.packageId) {
       const { error: pkErr } = await sb
         .from("invoices")
@@ -574,6 +597,51 @@ export async function updateInvoice(
   }
   await syncBillStock(id, before, items);
   return { ok: true as const, invoice: inv };
+}
+
+/**
+ * ใส่คูปองเป็นส่วนลดเข้าบิลที่ออกไปแล้วทันที (ใช้ตอนแอดมินแลกแต้มแทนลูกค้าจากเมนูบิล)
+ * ไม่แตะรายการ/โปร/มัดจำ — แค่บวกส่วนลดเพิ่ม แล้วคิดยอดสุทธิใหม่
+ * ส่วนลดเกินยอดที่ยังค้างไม่ได้ (เงินที่รับไปแล้วจะเกินยอดบิล)
+ */
+export async function applyCouponToInvoice(id: string, couponId: string) {
+  const inv = await getInvoice(id);
+  if (!inv) return { ok: false as const, error: "not_found" };
+  if (inv.status === "paid") return { ok: false as const, error: "already_paid" };
+  const coupon = await getCoupon(couponId);
+  if (
+    !coupon ||
+    coupon.status !== "active" ||
+    (coupon.customerId && coupon.customerId !== inv.customerId)
+  ) {
+    return { ok: false as const, error: "coupon_invalid" };
+  }
+  const amount = Math.max(0, Math.round(coupon.amount || 0));
+  const received = inv.depositReceivedAt ? inv.deposit || 0 : 0;
+  if (amount > Math.max(0, inv.total - received)) {
+    return { ok: false as const, error: "exceeds_due" };
+  }
+  const redeemed = await redeemCoupon(couponId, id);
+  if (!redeemed.ok) return { ok: false as const, error: "coupon_invalid" };
+
+  const discount = Math.min(inv.subtotal, (inv.discount || 0) + amount);
+  const total = inv.subtotal - discount;
+  const next = { ...inv, discount, total, deposit: Math.min(total, inv.deposit || 0) };
+  const sb = getSupabase();
+  if (sb) {
+    const { error } = await sb
+      .from("invoices")
+      .update(invoiceToRow(next))
+      .eq("id", id)
+      .eq("tenant_id", requireTenantId());
+    if (error) {
+      await unredeemCoupon(couponId);
+      return { ok: false as const, error: "save_failed", message: error.message };
+    }
+  } else {
+    Object.assign(inv, next);
+  }
+  return { ok: true as const, invoice: next, amount };
 }
 
 /**
@@ -656,8 +724,8 @@ export async function deleteInvoice(id: string) {
   // ลบบิลที่เคยใช้คูปอง → คืนคูปองให้ลูกค้าใช้ใหม่ได้ ไม่งั้นคูปองค้างสถานะ "ใช้แล้ว" ตลอดไป
   // ทั้งที่ส่วนลดของบิลนั้นหายไปพร้อมบิลแล้ว (ต่างจากยกเลิกการชำระ ซึ่งบิล+ส่วนลดยังอยู่
   // จึงห้ามคืนคูปองตรงนั้น ไม่งั้นคูปองเดียวจะเอาไปลดบิลอื่นซ้ำได้อีก)
-  const usedCoupon = await findCouponByInvoice(id);
-  if (usedCoupon) await unredeemCoupon(usedCoupon.id);
+  // (บิลเดียวมีคูปองได้หลายใบ เช่น แลกแต้มเพิ่มทีหลัง — คืนให้ครบทุกใบ)
+  for (const used of await findCouponsByInvoice(id)) await unredeemCoupon(used.id);
 
   if (inv.customerId) {
     // ลบบิลที่จ่ายด้วยเครดิต Member ไปแล้ว → คืนเครดิตด้วย (revertInvoicePaid ทำแบบนี้

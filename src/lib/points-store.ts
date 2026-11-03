@@ -1,6 +1,7 @@
 import { getSiteConfig } from "./config-store";
 import { getSupabase } from "./supabase/server";
 import { requireTenantId } from "./tenant-context";
+import { rewardDiscountBaht } from "./points-reward";
 
 export type PointsHistoryEntry = {
   id: string;
@@ -241,21 +242,21 @@ export async function getAccount(
   return account;
 }
 
-/** อ่านจำนวนเงินส่วนลดจากชื่อรางวัล เช่น "คูปองส่วนลด 50 บาท" → 50 (ไม่เจอ = 0) */
-function parseDiscountBaht(label: string): number {
-  const m = (label || "").replace(/,/g, "").match(/(\d+)\s*บาท/);
-  return m ? Number(m[1]) : 0;
-}
-
 export async function redeemReward(
   lineUserId: string,
   rewardId: string,
   displayName = "",
-  customerId?: string
+  customerId?: string,
+  /** แอดมินแลกแทนลูกค้าเพื่อเอาไปลดบิล — ต้องเป็นรางวัลส่วนลดเงิน และต้องออกคูปองได้จริง
+   *  (ออกคูปองไม่ได้ = ไม่หักแต้ม กันแต้มหายฟรีๆ โดยบิลไม่ได้ลด) */
+  opts: { requireCoupon?: boolean } = {}
 ) {
   const config = await getSiteConfig();
   const tier = config.pointsRewards.find((r) => r.id === rewardId);
   if (!tier) return { ok: false as const, error: "invalid_reward" };
+  if (opts.requireCoupon && rewardDiscountBaht(tier) <= 0) {
+    return { ok: false as const, error: "not_discount" };
+  }
 
   const acc = await getAccount(lineUserId, displayName, customerId);
   if (acc.points < tier.points) {
@@ -265,9 +266,9 @@ export async function redeemReward(
   // ถ้ารางวัลมีมูลค่าส่วนลด (บาท) → ออกเป็นคูปองจริงเก็บในกระเป๋าลูกค้าเลย
   // ลูกค้ากดใช้เองได้ในแอป และหักส่วนลดตอนคิดเงินได้ (ผูกเข้าบิลหลังบ้านอัตโนมัติ)
   // ถ้าไม่ได้ตั้งช่องมูลค่าไว้ ลองอ่านเลข "X บาท" จากชื่อรางวัลให้อัตโนมัติ (เช่น "คูปองส่วนลด 50 บาท")
-  const discountAmount =
-    tier.discount && tier.discount > 0 ? tier.discount : parseDiscountBaht(tier.reward.th);
+  const discountAmount = rewardDiscountBaht(tier);
   let couponCode = `PETFLOW-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+  let couponId: string | undefined;
   if (discountAmount > 0) {
     try {
       // ใช้ customerId จาก client ก่อน (แม่นสุด) ถ้าไม่มีค่อยเดาจาก lineUserId
@@ -285,11 +286,13 @@ export async function redeemReward(
           expiresInDays: 90,
         });
         couponCode = coupon.code; // ใช้โค้ดเดียวกับคูปองจริง ประวัติแต้มกับกระเป๋าคูปองจะตรงกัน
+        couponId = coupon.id;
       }
     } catch {
       /* ออกคูปองไม่ได้ (ยังไม่ผูกลูกค้า ฯลฯ) — ยังแลกได้ แต่เป็นโค้ดในประวัติเฉยๆ */
     }
   }
+  if (opts.requireCoupon && !couponId) return { ok: false as const, error: "coupon_failed" };
   const entry: PointsHistoryEntry = {
     id: `H${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
     type: "redeem",
@@ -328,13 +331,15 @@ export async function redeemReward(
         history: [entry, ...acc.history],
       },
       couponCode,
+      couponId,
+      discountAmount,
       reward: tier,
     };
   }
 
   acc.points -= tier.points;
   acc.history.unshift(entry);
-  return { ok: true as const, account: acc, couponCode, reward: tier };
+  return { ok: true as const, account: acc, couponCode, couponId, discountAmount, reward: tier };
 }
 
 export async function addPoints(

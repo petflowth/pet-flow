@@ -18,7 +18,10 @@ import {
   invoiceCatNames,
   findOpenInvoiceForBooking,
   applyDepositCreditToInvoice,
+  applyCouponToInvoice,
 } from "@/lib/invoices-store";
+import { redeemReward } from "@/lib/points-store";
+import { rewardDiscountBaht } from "@/lib/points-reward";
 import {
   getCustomer,
   adjustDepositCredit,
@@ -638,6 +641,75 @@ async function handlePatch(req: NextRequest) {
     return NextResponse.json({ ok: true, amount });
   }
 
+  // 🎁 แลกแต้มแทนลูกค้า → ได้คูปองส่วนลด แล้วหักเข้าบิลนี้ทันที (ไม่ส่งอะไรหาลูกค้า)
+  if (action === "redeem_points") {
+    if (inv.status === "paid") return NextResponse.json({ error: "บิลปิดแล้ว แลกแต้มเข้าบิลไม่ได้" }, { status: 400 });
+    if (!inv.customerId) return NextResponse.json({ error: "บิลนี้ไม่ได้ผูกลูกค้า แลกแต้มไม่ได้" }, { status: 400 });
+    const cfg = await getSiteConfig();
+    if (!isFeatureOn(cfg, "points")) return NextResponse.json({ error: "ร้านปิดระบบแต้มอยู่" }, { status: 400 });
+    const tier = cfg.pointsRewards.find((r) => r.id === String(body.rewardId || ""));
+    const value = tier ? rewardDiscountBaht(tier) : 0;
+    if (!tier || value <= 0) return NextResponse.json({ error: "รางวัลนี้ไม่ใช่ส่วนลดเงิน" }, { status: 400 });
+    const due = Math.max(0, inv.total - (inv.depositReceivedAt ? inv.deposit || 0 : 0));
+    if (value > due) {
+      return NextResponse.json({ error: `ส่วนลด ${value} ฿ มากกว่ายอดค้าง ${due} ฿` }, { status: 400 });
+    }
+    const cust = await getCustomer(inv.customerId);
+    const red = await redeemReward(
+      cust?.lineUserId || "",
+      tier.id,
+      inv.customerName || cust?.name || "",
+      inv.customerId,
+      { requireCoupon: true }
+    );
+    if (!red.ok || !red.couponId) {
+      const msg =
+        !red.ok && red.error === "insufficient_points"
+          ? "แต้มลูกค้าไม่พอ"
+          : "แลกแต้มไม่สำเร็จ (ออกคูปองไม่ได้) — ยังไม่ได้หักแต้ม";
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
+    const applied = await applyCouponToInvoice(id, red.couponId);
+    await logAudit({
+      tenantId: requireTenantId(),
+      actorType: "tenant",
+      actorId: await actorName(req),
+      action: "redeem_points_for_bill",
+      resourceType: "invoice",
+      resourceId: id,
+      afterState: {
+        ลูกค้า: inv.customerName,
+        รางวัล: tier.reward.th,
+        แต้มที่ใช้: tier.points,
+        ส่วนลด: value,
+        แต้มคงเหลือ: red.account.points,
+        ใส่บิลแล้ว: applied.ok ? "ใช่" : "ไม่ (คูปองอยู่ในกระเป๋าลูกค้า)",
+      },
+    });
+    await sendTelegram(
+      formatBookingTelegram("🎁 แลกแต้มแทนลูกค้า → ส่วนลดบิล", {
+        ลูกค้า: inv.customerName,
+        รางวัล: tier.reward.th,
+        แต้ม: `-${tier.points} (เหลือ ${red.account.points})`,
+        บิล: inv.id,
+        ยอดใหม่: applied.ok ? `${applied.invoice.total} บาท` : "ใส่บิลไม่ได้",
+      })
+    );
+    if (!applied.ok) {
+      // แต้มถูกหักและได้คูปองแล้ว แค่ใส่บิลไม่ผ่าน — คูปองยังอยู่ เลือกใช้ตอนแก้บิลได้
+      return NextResponse.json(
+        { error: "แลกแต้มแล้ว แต่ใส่ส่วนลดเข้าบิลไม่ได้ — คูปองอยู่ในกระเป๋าลูกค้า เลือกใช้ตอนแก้บิลได้" },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json({
+      ok: true,
+      invoice: applied.invoice,
+      amount: applied.amount,
+      points: red.account.points,
+    });
+  }
+
   if (action === "mark_paid") {
     const channel = typeof body.paymentChannel === "string" ? body.paymentChannel.trim().slice(0, 40) : "";
     const result = await markInvoicePaid(id, body.paymentMethod || "transfer", channel || undefined);
@@ -878,6 +950,7 @@ async function handlePatch(req: NextRequest) {
       deposit: body.deposit,
       extraDiscount: body.extraDiscount,
       promoId: body.promoId,
+      couponId: body.couponId ? String(body.couponId) : undefined,
       ...(addPackageId ? { packageId: addPackageId, packageUnits: addUnits } : {}),
     });
     if (!res.ok && addPackageId) await refundPackageUse(addPackageId, addUnits);

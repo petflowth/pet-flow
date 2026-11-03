@@ -177,6 +177,68 @@ async function handlePost(req: NextRequest, isAdmin: boolean) {
     return NextResponse.json({ ok: true, points: acc.points });
   }
 
+  // 🎁 แอดมินแลกแต้มแทนลูกค้า (ลูกค้ามาหน้าร้าน/ทักแชทขอใช้แต้ม) → ได้คูปองส่วนลด
+  // ใช้จากหน้าออกบิล: แลกแล้วคูปองถูกเลือกใส่บิลที่กำลังทำให้ทันที · ไม่ส่งอะไรหาลูกค้า
+  if (body.action === "admin_redeem") {
+    if (!isAdmin) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+    const customerId = String(body.customerId || "").trim();
+    if (!customerId || !rewardId) {
+      return NextResponse.json({ error: "missing fields" }, { status: 400 });
+    }
+    const result = await redeemReward(
+      String(lineUserId || ""),
+      String(rewardId),
+      displayName || "",
+      customerId,
+      { requireCoupon: true }
+    );
+    if (!result.ok) {
+      const msg =
+        result.error === "insufficient_points"
+          ? "แต้มลูกค้าไม่พอ"
+          : result.error === "not_discount"
+            ? "รางวัลนี้ไม่ใช่ส่วนลดเงิน"
+            : result.error === "coupon_failed"
+              ? "ออกคูปองไม่ได้ — ยังไม่ได้หักแต้ม"
+              : "รางวัลไม่ถูกต้อง";
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
+    sendTelegramLater(
+      formatBookingTelegram("🎁 แอดมินแลกแต้มแทนลูกค้า", {
+        ลูกค้า: result.account.displayName || customerId,
+        รางวัล: result.reward.reward.th,
+        คูปอง: result.couponCode,
+        แต้มคงเหลือ: String(result.account.points),
+      })
+    );
+    await logAudit({
+      tenantId: requireTenantId(),
+      actorType: "tenant",
+      actorId: await actorName(req),
+      action: "admin_redeem_points",
+      resourceType: "points",
+      resourceId: customerId,
+      afterState: {
+        ลูกค้า: result.account.displayName || customerId,
+        รางวัล: result.reward.reward.th,
+        แต้มที่ใช้: result.reward.points,
+        คงเหลือ: result.account.points,
+      },
+    });
+    return NextResponse.json({
+      ok: true,
+      points: result.account.points,
+      coupon: {
+        id: result.couponId,
+        code: result.couponCode,
+        amount: result.discountAmount,
+        reason: `แลกจากแต้ม: ${result.reward.reward.th}`,
+      },
+    });
+  }
+
   // แลกรางวัลเอง — ต้องมีคุกกี้เซสชันที่ตรวจกับ LINE แล้วจริง ห้ามเชื่อ lineUserId จาก body
   // (ไม่งั้นใครก็ใส่ lineUserId ของคนอื่นแล้วแลกแต้มแทนได้)
   if (!isAdmin) {

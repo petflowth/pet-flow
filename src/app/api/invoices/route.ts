@@ -247,6 +247,7 @@ async function handlePost(req: NextRequest) {
         packageId: consumedPackageId,
         packageUnits: consumedPackageId ? packageUnits : undefined,
         couponId: body.couponId ? String(body.couponId) : undefined,
+        couponIds: Array.isArray(body.couponIds) ? body.couponIds.map(String) : undefined,
       });
     } catch (e) {
       // ออกบิลไม่สำเร็จ (ส่วนใหญ่เพราะคูปองใช้ไม่ได้แล้ว) — คืนครั้งคอร์สที่หักไปด้านบนก่อน
@@ -951,6 +952,7 @@ async function handlePatch(req: NextRequest) {
       extraDiscount: body.extraDiscount,
       promoId: body.promoId,
       couponId: body.couponId ? String(body.couponId) : undefined,
+        couponIds: Array.isArray(body.couponIds) ? body.couponIds.map(String) : undefined,
       ...(addPackageId ? { packageId: addPackageId, packageUnits: addUnits } : {}),
     });
     if (!res.ok && addPackageId) await refundPackageUse(addPackageId, addUnits);

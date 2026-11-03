@@ -290,6 +290,38 @@ export async function receiveDepositCredit(
   };
 }
 
+/** รวม couponId + couponIds เป็นรายการไม่ซ้ำ — บิลเดียวใช้คูปองได้หลายใบ */
+function couponIdList(one?: string, many?: string[]): string[] {
+  return [...new Set([one, ...(many || [])].map((x) => String(x || "").trim()).filter(Boolean))];
+}
+
+/** ตรวจคูปองทุกใบ (ยังใช้ได้ + เป็นของลูกค้าคนนี้) แล้วคืนยอดรวม — ใบไหนใช้ไม่ได้ = ล้มทั้งหมด */
+async function couponsTotal(ids: string[], customerId?: string): Promise<number | null> {
+  let sum = 0;
+  for (const cid of ids) {
+    const coupon = await getCoupon(cid);
+    if (!coupon || coupon.status !== "active" || (coupon.customerId && coupon.customerId !== customerId)) {
+      return null;
+    }
+    sum += Math.max(0, Math.round(coupon.amount || 0));
+  }
+  return sum;
+}
+
+/** จองคูปองทุกใบเข้าบิล — ใบไหนแพ้ race ให้คืนใบที่จองไปแล้วทั้งหมด */
+async function redeemCoupons(ids: string[], invoiceId: string): Promise<boolean> {
+  const done: string[] = [];
+  for (const cid of ids) {
+    const r = await redeemCoupon(cid, invoiceId);
+    if (!r.ok) {
+      for (const d of done) await unredeemCoupon(d);
+      return false;
+    }
+    done.push(cid);
+  }
+  return true;
+}
+
 export async function createInvoice(data: {
   customerId: string;
   lineUserId?: string;
@@ -306,6 +338,8 @@ export async function createInvoice(data: {
   packageUnits?: number;
   /** คูปองที่เลือกใช้ — ยอดส่วนลดคิดจากคูปองจริงในระบบเสมอ ไม่เชื่อยอดที่ฝั่งหน้าเว็บส่งมา */
   couponId?: string;
+  /** คูปองหลายใบในบิลเดียว (รวมกับ couponId) */
+  couponIds?: string[];
 }) {
   // ตรวจ + จองสิทธิ์คูปองก่อนเริ่มคิดเงินเลย — ถ้าใช้ไม่ได้ (หมด/ใช้ไปแล้ว/ของคนอื่น)
   // ให้ล้มทั้งการออกบิล ดีกว่าปล่อยให้ออกบิลไปแล้วค่อยพบว่าไม่ได้ลดจริง
@@ -316,18 +350,9 @@ export async function createInvoice(data: {
   const stockCheck = await checkBillStock([], data.items);
   if (!stockCheck.ok) throw new Error(`out_of_stock:${stockCheck.name}:${stockCheck.stock}`);
 
-  let couponAmount = 0;
-  if (data.couponId) {
-    const coupon = await getCoupon(data.couponId);
-    if (
-      !coupon ||
-      coupon.status !== "active" ||
-      (coupon.customerId && coupon.customerId !== data.customerId)
-    ) {
-      throw new Error("coupon_invalid");
-    }
-    couponAmount = Math.max(0, Math.round(coupon.amount || 0));
-  }
+  const couponIds = couponIdList(data.couponId, data.couponIds);
+  const couponAmount = await couponsTotal(couponIds, data.customerId);
+  if (couponAmount === null) throw new Error("coupon_invalid");
   // บังคับให้ทุกยอดเป็นตัวเลขจำนวนเต็มก่อนคิด — กันค่าที่ไม่ใช่ตัวเลขทำบิลพัง
   // (เมื่อก่อน amount ที่เป็น string จะถูกต่อสตริง เช่น 0 + "abc" = "0abc" แล้ว total กลายเป็น null
   //  ส่วนทศนิยมก็โผล่เป็น 0.30000000000000004 บนบิลลูกค้า)
@@ -349,11 +374,8 @@ export async function createInvoice(data: {
   // จองสิทธิ์คูปองตอนนี้เลย (mark used) ก่อนเขียนบิลลงจริง — WHERE status='active' ของ
   // redeemCoupon กันสองคำขอพร้อมกันแย่งใช้คูปองใบเดียวกันสำเร็จทั้งคู่ ถ้าแพ้ race ก็ยังไม่มี
   // บิลถูกสร้างขึ้นมาเลยสักใบ ไม่ต้องมาไล่ลบทีหลัง
-  if (data.couponId) {
-    const redeemed = await redeemCoupon(data.couponId, invoiceId);
-    if (!redeemed.ok) {
-      throw new Error("coupon_race");
-    }
+  if (couponIds.length && !(await redeemCoupons(couponIds, invoiceId))) {
+    throw new Error("coupon_race");
   }
   let deposit = Math.min(total, Math.max(0, Math.round(data.deposit || 0)));
 
@@ -431,7 +453,7 @@ export async function createInvoice(data: {
     }
   } catch (e) {
     // เขียนบิลไม่สำเร็จ — คืนสิทธิ์คูปองที่เพิ่งจองไว้ ไม่งั้นคูปองจะถูกเผาทิ้งฟรีๆ
-    if (data.couponId) await unredeemCoupon(data.couponId);
+    for (const cid of couponIds) await unredeemCoupon(cid);
     throw e;
   }
 
@@ -509,24 +531,16 @@ export async function updateInvoice(
     packageUnits?: number;
     /** คูปองที่เลือกเพิ่มตอนแก้บิล (เช่น เพิ่งแลกแต้มแทนลูกค้า) — ยอดคิดจากคูปองจริง บวกเข้าส่วนลด */
     couponId?: string;
+    couponIds?: string[];
   }
 ) {
   const inv = await getInvoice(id);
   if (!inv) return { ok: false as const, error: "not_found" };
   if (inv.status === "paid") return { ok: false as const, error: "already_paid" };
 
-  let couponAmount = 0;
-  if (patch.couponId) {
-    const coupon = await getCoupon(patch.couponId);
-    if (
-      !coupon ||
-      coupon.status !== "active" ||
-      (coupon.customerId && coupon.customerId !== inv.customerId)
-    ) {
-      return { ok: false as const, error: "coupon_invalid" };
-    }
-    couponAmount = Math.max(0, Math.round(coupon.amount || 0));
-  }
+  const couponIds = couponIdList(patch.couponId, patch.couponIds);
+  const couponAmount = await couponsTotal(couponIds, inv.customerId);
+  if (couponAmount === null) return { ok: false as const, error: "coupon_invalid" };
 
   const items = patch.items ? patch.items.map((i) => normalizeLineDiscount(i)) : inv.items;
   const before = inv.items || [];
@@ -557,9 +571,8 @@ export async function updateInvoice(
     Math.max(0, Math.round(patch.deposit ?? inv.deposit ?? 0))
   );
   // จองคูปองก่อนเขียนบิล — แพ้ race (มีบิลอื่นใช้ไปก่อน) ก็ยังไม่แตะบิลนี้
-  if (patch.couponId) {
-    const redeemed = await redeemCoupon(patch.couponId, id);
-    if (!redeemed.ok) return { ok: false as const, error: "coupon_invalid" };
+  if (couponIds.length && !(await redeemCoupons(couponIds, id))) {
+    return { ok: false as const, error: "coupon_invalid" };
   }
 
   inv.items = items;
@@ -583,7 +596,7 @@ export async function updateInvoice(
       .eq("id", id)
       .eq("tenant_id", requireTenantId());
     if (error) {
-      if (patch.couponId) await unredeemCoupon(patch.couponId);
+      for (const cid of couponIds) await unredeemCoupon(cid);
       return { ok: false as const, error: "save_failed", message: error.message };
     }
     if (patch.packageId) {

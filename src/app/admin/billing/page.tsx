@@ -636,7 +636,8 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
     };
   }, [customerId, billBookingIds]);
   const [discount, setDiscount] = useState("");
-  const [couponId, setCouponId] = useState("");
+  /** คูปองที่เลือกใช้ในบิลนี้ — เลือกได้หลายใบ */
+  const [couponIds, setCouponIds] = useState<string[]>([]);
   /** รางวัลแลกแต้มที่เป็นส่วนลดเงิน — ว่าง = ร้านปิดแต้ม หรือไม่มีรางวัลแบบส่วนลด */
   const [pointRewards, setPointRewards] = useState<PointReward[]>([]);
   const [redeeming, setRedeeming] = useState("");
@@ -884,7 +885,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
 
   // โหลดคูปอง + คอร์สที่ใช้ได้ของลูกค้าที่เลือก
   useEffect(() => {
-    setCouponId("");
+    setCouponIds([]);
     setPackageId("");
     setPackageTouched(false);
     if (!customerId) {
@@ -1006,7 +1007,9 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
           Math.round(((subtotal - promoDiscount) * Math.min(100, discountInput)) / 100)
         )
       : discountInput;
-  const couponAmount = customerCoupons.find((c) => c.id === couponId)?.amount || 0;
+  const couponAmount = customerCoupons
+    .filter((c) => couponIds.includes(c.id))
+    .reduce((s, c) => s + (c.amount || 0), 0);
 
   const pickedPackage = customerPackages.find((p) => p.id === packageId);
   const packageLeft = pickedPackage
@@ -1674,7 +1677,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
           deposit: depositAmount || 0,
           promoId,
           // คูปองที่เลือกตอนแก้บิล (เช่น เพิ่งแลกแต้มแทนลูกค้า) — เมื่อก่อนไม่ได้ส่ง ส่วนลดคูปองเลยไม่ลง
-          couponId: couponId || undefined,
+          couponIds: couponIds.length ? couponIds : undefined,
           ...(packageId ? { packageId, packageUnits: packageUnitsToUse || undefined } : {}),
         }),
       });
@@ -1717,7 +1720,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
         extraDiscount: (manualDiscount + packageCovers) || undefined,
         deposit: depositAmount || undefined,
         bookingId: bookingId || undefined,
-        couponId: couponId || undefined,
+        couponIds: couponIds.length ? couponIds : undefined,
         packageId: packageId || undefined,
         packageUnits: packageUnitsToUse || undefined,
       }),
@@ -1935,8 +1938,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
     if (
       !confirm(
         `แลก ${r.points} แต้มของ ${selected.name} เป็นส่วนลด ${r.value.toLocaleString()} ฿ ใส่บิลนี้?\n` +
-          `แต้มเหลือ ${(have - r.points).toLocaleString()} แต้ม` +
-          (couponId ? "\n(ใช้แทนคูปองที่เลือกไว้ — คูปองเดิมยังอยู่ในกระเป๋าลูกค้า)" : "")
+          `แต้มเหลือ ${(have - r.points).toLocaleString()} แต้ม`
       )
     )
       return;
@@ -1959,7 +1961,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
         return;
       }
       setCustomerCoupons((prev) => [data.coupon, ...prev.filter((c) => c.id !== data.coupon.id)]);
-      setCouponId(data.coupon.id);
+      setCouponIds((prev) => [...prev.filter((x) => x !== data.coupon.id), data.coupon.id]);
       setCustomers((prev) =>
         prev.map((c) => (c.id === selected.id ? { ...c, points: data.points } : c))
       );
@@ -3532,21 +3534,25 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
             <div>
               <span className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-brown-soft">
                 <Icon name="ticket" size={14} />
-                คูปองของลูกค้า (แตะเพื่อใช้)
+                คูปองของลูกค้า (แตะเพื่อใช้ · เลือกได้หลายใบ)
               </span>
               <div className="flex flex-wrap gap-2">
                 {customerCoupons.map((cp) => (
                   <button
                     key={cp.id}
                     type="button"
-                    onClick={() => setCouponId((prev) => (prev === cp.id ? "" : cp.id))}
+                    onClick={() =>
+                      setCouponIds((prev) =>
+                        prev.includes(cp.id) ? prev.filter((x) => x !== cp.id) : [...prev, cp.id]
+                      )
+                    }
                     className={`flex min-h-[40px] items-center gap-1 rounded-full px-3.5 py-2 text-xs font-bold ${
-                      couponId === cp.id
+                      couponIds.includes(cp.id)
                         ? "bg-latte-deep text-card"
                         : "bg-paper text-brown-soft"
                     }`}
                   >
-                    {couponId === cp.id && <Icon name="check" size={13} strokeWidth={2.4} />}฿{cp.amount} · {cp.reason}
+                    {couponIds.includes(cp.id) && <Icon name="check" size={13} strokeWidth={2.4} />}฿{cp.amount} · {cp.reason}
                   </button>
                 ))}
               </div>

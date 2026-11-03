@@ -238,6 +238,21 @@ export async function findCouponByInvoice(invoiceId: string): Promise<Coupon | u
   return mem.find((x) => x.usedInvoiceId === invoiceId);
 }
 
+/** คูปองทุกใบที่ใช้ในบิลนี้ — บิลเดียวมีได้หลายใบ (เช่น ใช้คูปองตอนออกบิล แล้วแลกแต้มเพิ่มทีหลัง) */
+export async function findCouponsByInvoice(invoiceId: string): Promise<Coupon[]> {
+  if (!invoiceId) return [];
+  const sb = getSupabase();
+  if (sb) {
+    const { data } = await sb
+      .from("coupons")
+      .select("*")
+      .eq("used_invoice_id", invoiceId)
+      .eq("tenant_id", requireTenantId());
+    return ((data as CouponRow[] | null) || []).map(rowToCoupon);
+  }
+  return mem.filter((x) => x.usedInvoiceId === invoiceId);
+}
+
 /** คืนคูปองกลับมาใช้ได้ (เช่นลบบิลที่ใช้คูปองไป) */
 export async function unredeemCoupon(id: string) {
   const sb = getSupabase();

@@ -8,6 +8,7 @@ import {
   type GroomFormConfig,
 } from "@/lib/groom-form";
 import { FOLLOW_UP_MESSAGES, followUpActions, followUpKey } from "@/lib/sales-insights";
+import { DEFAULT_MESSAGES } from "@/lib/messages";
 import { MISS_YOU_DEFAULT_TITLE, missYouActions } from "@/lib/miss-you-card";
 import { broadcastActionLabel } from "@/lib/broadcast-constants";
 import { BroadcastButtonPicker } from "@/components/BroadcastButtonPicker";
@@ -1165,7 +1166,9 @@ function Preview({
         <div className="space-y-2 px-4 py-3 text-[11px] text-[#4E3E32]">
           <p className={`${titleCls} font-extrabold`} style={{ color: c("accentColor", "#5C4033") }}>🐾 เรเนล</p>
           <p className="text-[10px] text-[#A2907E]">{shop}</p>
-          <p>สวัสดีค่ะ 🧡 ใกล้ถึงวันเข้าพักของน้องแล้วนะคะ</p>
+          <p className="whitespace-pre-line">
+            {(texts.prestayIntro?.trim() || DEFAULT_MESSAGES.prestayIntro).replace(/\{(?:pet|cat)\}/g, "น้องเรเนล")}
+          </p>
           {(show("dates") || show("room")) && (
             <div className="space-y-1.5 rounded-xl bg-[#F4ECE0] px-3 py-2.5">
               {show("dates") && (
@@ -1181,9 +1184,16 @@ function Preview({
               <p className="pt-1 text-xs font-extrabold" style={{ color: c("headerColor", "#5C4033") }}>
                 {t("prepTitle", "🧳 สิ่งที่ต้องเตรียมมาด้วย")}
               </p>
+              {texts.prestayPrepIntro?.trim() && (
+                <p className="whitespace-pre-line text-[10px] text-[#A2907E]">{texts.prestayPrepIntro}</p>
+              )}
               <div className="space-y-1 rounded-lg bg-[#FBF7F0] px-2.5 py-2 text-[10px]">
-                <p>🍽️ อาหารที่น้องกินประจำ</p>
-                <p>💊 ยาประจำตัว (ถ้ามี)</p>
+                {(texts.prestayPrepItems?.trim() ? texts.prestayPrepItems.split("\n") : DEFAULT_MESSAGES.prestayPrepItems)
+                  .map((x) => x.trim())
+                  .filter(Boolean)
+                  .map((x, i) => (
+                    <p key={i}>{x}</p>
+                  ))}
               </div>
             </>
           )}
@@ -1204,7 +1214,9 @@ function Preview({
             <p className="rounded-lg bg-[#FBEEE0] px-2.5 py-1.5 text-[10px] text-[#B4553B]">⚠️ ห้องนี้พักไม่ถึง 3 วัน รบกวนเตรียมทรายมาด้วยนะคะ</p>
           )}
           {show("care") && (
-            <p className="rounded-lg bg-[#FBF0F1] px-2.5 py-1.5 text-[10px] text-[#7A6A5A]">💗 มีอะไรที่ต้องดูแลพิเศษ แจ้งได้เลยนะคะ</p>
+            <p className="whitespace-pre-line rounded-lg bg-[#FBF0F1] px-2.5 py-1.5 text-[10px] text-[#7A6A5A]">
+              {(texts.prestayCareNote?.trim() || DEFAULT_MESSAGES.prestayCareNote).replace(/\{(?:pet|cat)\}/g, "น้องเรเนล")}
+            </p>
           )}
           <p className="pt-1 text-xs font-extrabold" style={{ color: c("headerColor", "#5C4033") }}>
             {t("intakeTitle", "📋 ข้อมูลที่ยังต้องส่งให้ร้าน")}

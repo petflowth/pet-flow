@@ -29,6 +29,7 @@ import { GROOM_EXTRA_CARDS, groomUsesCard, type IntakeRules } from "@/lib/intake
 import { REFERRAL_DEFAULT, referralReward } from "@/lib/referral";
 import { breedOptionsFor, petKindOf, petWords, usesLitter, withDefaultBreeds, type PetKind } from "@/lib/pet-kind";
 import { NumInput } from "@/components/NumInput";
+import { consentTextFor } from "@/lib/messages";
 import { RoomSeasonsEditor } from "@/components/RoomSeasonsEditor";
 import { normalizeRoomSeasons, type RoomSeasonConfig } from "@/lib/room-seasons";
 import {
@@ -320,14 +321,17 @@ export default function SettingsPage() {
         <GroomProgramsTab config={config} saving={saving} onSave={save} massage />
       )}
       {tab === "boardingRules" && (
-        <ContentBlocksTab
-          config={config}
-          saving={saving}
-          onSave={save}
-          field="boardingRules"
-          hint="หน้ากฎระเบียบการฝาก (ฝั่งลูกค้า ในหน้าบริการ) โชว์ข้อตกลงชุดเดียวกับการ์ดกดยินยอมอัตโนมัติ — แก้ข้อกฎที่ ข้อความ › กฎ + กดยินยอม · บล็อกด้านล่างเป็นรูป/ข้อความเสริมที่ต่อท้าย ไม่ต้องใส่ก็ได้"
-          saveLabel="บันทึกกฎระเบียบ"
-        />
+        <div className="space-y-6">
+          <ConsentRulesEditor config={config} saving={saving} onSave={save} />
+          <ContentBlocksTab
+            config={config}
+            saving={saving}
+            onSave={save}
+            field="boardingRules"
+            hint="กฎเพิ่มเติม (รูป/ข้อความ) — ขึ้นท้ายข้อตกลงเข้าพัก ทั้งหน้าที่ลูกค้ากดเซ็นยินยอม และหน้ากฎระเบียบการฝากในแอปลูกค้า ไม่ต้องใส่ก็ได้"
+            saveLabel="บันทึกกฎเพิ่มเติม"
+          />
+        </div>
       )}
       {tab === "roomsPageBlocks" && (
         <ContentBlocksTab
@@ -1929,6 +1933,83 @@ function GroomProgramsTab({
       >
         <Icon name="check" size={18} strokeWidth={2.2} />
         {saving ? "กำลังบันทึก…" : massage ? "บันทึกราคานวดทั้งหมด" : "บันทึกโปรแกรมอาบน้ำทั้งหมด"}
+      </button>
+    </div>
+  );
+}
+
+/**
+ * ข้อตกลงที่ลูกค้ากดเซ็น (ชุดเดียวกับ ข้อความ › กฎ + กดยินยอม) — แก้ได้ตรงนี้ในแท็บกฎระเบียบด้วย
+ * ร้านมักมาแก้ที่แท็บนี้ แล้วงงว่าทำไมหน้าเซ็นยังเป็นกฎเดิม
+ */
+function ConsentRulesEditor({
+  config,
+  saving,
+  onSave,
+}: {
+  config: SiteConfig;
+  saving: boolean;
+  onSave: (p: Partial<SiteConfig>) => void;
+}) {
+  const pick = (c: SiteConfig) => {
+    const stay = consentTextFor(c.messages, "stay");
+    const groom = consentTextFor(c.messages, "groom");
+    return {
+      consentTitle: stay.title,
+      consentTerms: stay.terms.join("\n"),
+      groomConsentTitle: groom.title,
+      groomConsentTerms: groom.terms.join("\n"),
+    };
+  };
+  const [f, setF] = useState(() => pick(config));
+  useEffect(() => setF(pick(config)), [config]);
+  const lines = (v: string) => v.split("\n").map((s) => s.trim()).filter(Boolean);
+
+  return (
+    <div className="space-y-3 rounded-petflow border border-petflow-line bg-card p-4">
+      <p className="text-sm font-extrabold text-brown">ข้อตกลงที่ลูกค้ากดเซ็นยินยอม</p>
+      <p className="text-[11px] text-brown-faint">
+        ข้อความชุดนี้ขึ้นในหน้าที่ลูกค้ากดเซ็น การ์ด LINE ขอเซ็น และหน้ากฎระเบียบการฝาก (ชุดเดียวกับ ข้อความ › กฎ + กดยินยอม)
+      </p>
+      <Field
+        label="หัวเรื่อง — เข้าพัก"
+        value={f.consentTitle}
+        onChange={(v) => setF({ ...f, consentTitle: v })}
+      />
+      <TextAreaField
+        label="ข้อตกลงเข้าพัก (1 บรรทัด = 1 ข้อ)"
+        value={f.consentTerms}
+        onChange={(v) => setF({ ...f, consentTerms: v })}
+        rows={10}
+      />
+      <Field
+        label="หัวเรื่อง — อาบน้ำ/นวด"
+        value={f.groomConsentTitle}
+        onChange={(v) => setF({ ...f, groomConsentTitle: v })}
+      />
+      <TextAreaField
+        label="ข้อตกลงอาบน้ำ/นวด (1 บรรทัด = 1 ข้อ · ขึ้นต้นด้วย หัวข้อ — แล้วตามด้วยเนื้อหา หัวข้อจะเป็นตัวหนา)"
+        value={f.groomConsentTerms}
+        onChange={(v) => setF({ ...f, groomConsentTerms: v })}
+        rows={8}
+      />
+      <button
+        type="button"
+        disabled={saving}
+        onClick={() =>
+          onSave({
+            messages: {
+              ...config.messages,
+              consentTitle: f.consentTitle.trim(),
+              consentTerms: lines(f.consentTerms),
+              groomConsentTitle: f.groomConsentTitle.trim(),
+              groomConsentTerms: lines(f.groomConsentTerms),
+            },
+          })
+        }
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-petflow-chocolate text-sm font-extrabold text-card shadow-petflow-sm disabled:opacity-50"
+      >
+        {saving ? "กำลังบันทึก…" : "บันทึกข้อตกลง"}
       </button>
     </div>
   );

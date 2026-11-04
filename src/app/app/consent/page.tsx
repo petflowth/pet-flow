@@ -27,6 +27,7 @@ import { customerFetch } from "@/lib/customer-fetch";
 import { bookingGroupKey, groupCatNames, stayForGroom } from "@/lib/booking-group";
 import { formatThaiDateShort, roomWithWord } from "@/lib/format-thai-date";
 import { groomUsesCard } from "@/lib/intake-rules";
+import { ContentBlocks } from "@/components/ContentBlocks";
 
 type StayBooking = Booking & {
   checkin?: string;
@@ -395,6 +396,8 @@ function ConsentContent() {
             <p className="mt-2 rounded-petflow border border-petflow-line bg-cream px-3 py-2.5 text-[11px] leading-relaxed text-brown">
               {isGroom ? DEEMED_GROOM_CONSENT_NOTICE : DEEMED_CONSENT_NOTICE}
             </p>
+            {/* กฎเพิ่มเติมที่ร้านใส่เองใน ตั้งค่า › กฎระเบียบ — ต้องขึ้นในหน้าที่ลูกค้าเซ็นด้วย ไม่ใช่แค่หน้ากฎระเบียบ */}
+            {!isGroom && <ContentBlocks blocks={config.boardingRules} />}
           </section>
 
           {/* เข้าพัก + อาบน้ำก่อนกลับ = นัดเดียว → กฎเข้าพักกับข้อตกลงอาบน้ำอยู่หน้าเดียว เซ็นครั้งเดียว */}

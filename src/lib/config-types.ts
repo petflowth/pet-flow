@@ -78,6 +78,8 @@ export type MessagesConfig = {
   prestayPrepItems: string[];
   /** การ์ดเข้าพัก — ประโยคปิดชวนแจ้งการดูแลพิเศษ — {pet} */
   prestayCareNote: string;
+  /** การ์ดเข้าพัก — กล่อง "ทางร้านเตรียมให้" (หลายบรรทัด) ว่าง = ไม่โชว์ */
+  prestayProvidedNote?: string;
   /** การ์ดเข้าพัก — ข้อความเตือนให้เตรียมทราย (เข้าพักสั้นกว่าเกณฑ์แถมฟรี) — {min} */
   prestayLitterNote: string;
   /** เตือนเช็คอิน ก่อนเข้าพัก — {shop} {pet} {checkin} {room} */

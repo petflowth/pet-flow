@@ -1236,6 +1236,8 @@ export function buildPrestayFlex(data: {
   prepIntro?: string;
   prepItems: string[];
   careNote?: string;
+  /** กล่อง "ทางร้านเตรียมให้" — ร้านพิมพ์เองในหลังบ้าน */
+  providedNote?: string;
   litterNote?: string;
   consentUrl?: string;
   consentLabel?: string;
@@ -1415,6 +1417,27 @@ export function buildPrestayFlex(data: {
         color: "#4E3E32",
         wrap: true,
       })),
+    });
+  }
+
+  // ทางร้านเตรียมให้ (ชาม/เตียง ฯลฯ) — ร้านพิมพ์เองในหลังบ้าน ไม่พิมพ์ = ไม่โชว์
+  if (data.providedNote && show("provided")) {
+    body.push({
+      type: "box",
+      layout: "vertical",
+      margin: "md",
+      paddingAll: "12px",
+      backgroundColor: "#EEF6F1",
+      cornerRadius: "10px",
+      contents: [
+        {
+          type: "text",
+          text: data.providedNote,
+          size: "xs",
+          color: "#3F5A4C",
+          wrap: true,
+        },
+      ],
     });
   }
 

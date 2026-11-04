@@ -393,6 +393,7 @@ export function buildPrestayFlexData(
     careNote: renderTemplate(msg.prestayCareNote ?? DEFAULT_MESSAGES.prestayCareNote, {
       cat: politeCat(b.catName),
     }),
+    providedNote: msg.prestayProvidedNote?.trim() || undefined,
     litterNote: litterNoteFor(b, cfg) || undefined,
   };
 }

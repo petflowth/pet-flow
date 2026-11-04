@@ -364,6 +364,7 @@ const CARDS: CardMeta[] = [
       { key: "dates", label: "กล่องวันเข้าพัก" },
       { key: "room", label: "ห้องพัก" },
       { key: "prep", label: "รายการของที่ต้องเตรียม" },
+      { key: "provided", label: "ทางร้านเตรียมให้" },
       { key: "carrier", label: "เตือนให้อยู่ในตะกร้า/กระเป๋า" },
       { key: "litter", label: "แจ้งเตรียมทราย (กรณีไม่แถมฟรี)" },
       { key: "care", label: "ชวนแจ้งการดูแลพิเศษ" },
@@ -383,6 +384,11 @@ const CARDS: CardMeta[] = [
       {
         stateKey: "prestayPrepItems",
         label: "รายการของที่ต้องเตรียม (บรรทัดละ 1 ข้อ)",
+        multiline: true,
+      },
+      {
+        stateKey: "prestayProvidedNote",
+        label: "กล่อง \"ทางร้านเตรียมให้\" (ว่าง = ไม่โชว์)",
         multiline: true,
       },
       {
@@ -1181,6 +1187,11 @@ function Preview({
               </div>
             </>
           )}
+          {show("provided") && texts.prestayProvidedNote?.trim() && (
+            <p className="whitespace-pre-line rounded-lg bg-[#EEF6F1] px-2.5 py-1.5 text-[10px] text-[#3F5A4C]">
+              {texts.prestayProvidedNote}
+            </p>
+          )}
           {show("carrier") && (
             <p className="whitespace-pre-line rounded-lg bg-[#FBEEE0] px-2.5 py-1.5 text-[10px] font-bold text-[#B4553B]">
               {t(
@@ -1760,6 +1771,7 @@ export default function CardsStudioPage() {
           prestayPrepIntro: cfg.messages?.prestayPrepIntro || "",
           prestayPrepItems: (cfg.messages?.prestayPrepItems || []).join("\n"),
           prestayCareNote: cfg.messages?.prestayCareNote || "",
+          prestayProvidedNote: cfg.messages?.prestayProvidedNote || "",
           prestayLitterNote: cfg.messages?.prestayLitterNote || "",
         });
       })
@@ -1875,6 +1887,7 @@ export default function CardsStudioPage() {
               prestayPrepIntro: texts.prestayPrepIntro,
               prestayPrepItems: lines(texts.prestayPrepItems),
               prestayCareNote: texts.prestayCareNote,
+              prestayProvidedNote: texts.prestayProvidedNote,
               prestayLitterNote: texts.prestayLitterNote,
             },
           },

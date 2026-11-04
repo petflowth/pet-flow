@@ -81,6 +81,8 @@ export function summaryFields(
 /**
  * คำถามประวัติที่หน้าสมัครสมาชิกถามเพิ่ม (ร้านเปิด registerAsksHistory) — หมวดเจ้าของ + น้อง
  * ไม่บังคับ ไม่กรอกก็สมัครได้ (เจ้าของระบบ 2026-10-23) — ข้อที่เว้นไว้ ฟอร์มก่อนเข้าพักจะถามอีกที
+ * ร้านตั้ง "บังคับทุกข้อ" (allRequired) = ถามหมวดการดูแลด้วย และข้อบังคับต้องตอบก่อนสมัคร
+ * (Back Home 2026-11-04: เห็บหมัด อาหาร เข้าสังคม/วิ่งสนามหญ้า ต้องได้คำตอบตั้งแต่สมัคร)
  * ไม่มีฟอร์มประวัติสำหรับชนิดนี้ (แมว) = null
  */
 export function registerHistoryFields(
@@ -88,15 +90,18 @@ export function registerHistoryFields(
   cfg: (WithRules & Partial<Pick<SiteConfig, "stayForm">>) | null | undefined
 ): { owner: GroomField[]; pet: GroomField[] } | null {
   if (!cfg?.intakeRules?.registerAsksHistory) return null;
-  const fs = resolveHistoryForm(kind, undefined, cfg?.stayForm)?.map((f) => ({
-    ...f,
-    required: false,
-    label: f.label.replace(/\s*\((ถ้าไม่มีเว้นว่างได้|หากมี|ถ้ามี)\)/, ""),
-  }));
-  if (!fs) return null;
+  const allRequired = Boolean(cfg.intakeRules.allRequired);
+  if (!resolveHistoryForm(kind, undefined, cfg?.stayForm)) return null;
+  const fs = resolveStayForm(cfg?.stayForm, kind, { allRequired })
+    .filter((f) => f.section === "owner" || f.section === "pet" || (allRequired && f.section === "care"))
+    .map((f) => ({
+      ...f,
+      required: allRequired ? f.required : false,
+      label: f.label.replace(/\s*\((ถ้าไม่มีเว้นว่างได้|หากมี|ถ้ามี)\)/, ""),
+    }));
   return {
     owner: fs.filter((f) => f.section === "owner"),
-    pet: fs.filter((f) => f.section === "pet"),
+    pet: fs.filter((f) => f.section !== "owner"),
   };
 }
 

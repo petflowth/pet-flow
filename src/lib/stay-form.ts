@@ -163,6 +163,8 @@ const DOG_FORM: GroomField[] = [
       { key: "skin", label: "🫧 ผิวแพ้ง่าย" },
       { key: "joints", label: "🦴 ขา/ข้อไม่ดี อุ้มเบาๆ" },
       { key: "senior", label: "👵 สูงอายุ เหนื่อยง่าย" },
+      // ร้านที่บังคับทุกข้อ ข้อนี้ต้องตอบ — ไม่มีอะไรต้องระวังก็กดข้อนี้ ไม่ต้องพิมพ์
+      { key: "none", label: "✅ ไม่มี" },
     ],
   },
   { ...text("likes", "อยากบอกอะไรเพิ่มไหมคะ (ไม่มีข้ามได้)", "เช่น ชอบลูกบอล ไม่ชอบให้จับหาง"), canSkip: true },
@@ -240,7 +242,10 @@ function fieldsFor(kind?: PetKind): GroomField[] {
  * (เจ้าของระบบ 2026-10-27)
  */
 function requireAnswer(f: GroomField): GroomField {
-  if (f.required || f.canSkip) return f;
+  if (f.required) return f;
+  // ข้อที่มีปุ่ม "ไม่มี" ให้กด บังคับได้ — ลูกค้ากดปุ่มเดียว ไม่ต้องพิมพ์ (Back Home 2026-11-04)
+  if (f.canSkip && !f.options.some((o) => o.key === "none")) return f;
+  if (f.canSkip) return { ...f, required: true, label: f.label.replace(/\s*\(ไม่มีข้ามได้\)/, " (ไม่มีกด ✅ ไม่มี)") };
   return { ...f, required: true };
 }
 

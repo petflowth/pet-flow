@@ -198,6 +198,7 @@ const CARDS: CardMeta[] = [
     fields: [
       { key: "invoiceNo", label: "เลขที่บิล" },
       { key: "points", label: "แต้มสะสมที่ได้รับ" },
+      { key: "courses", label: "สรุปคอร์สคงเหลือ (เฉพาะลูกค้าที่มีคอร์ส)" },
       { key: "closing", label: "ข้อความขอบคุณ" },
       { key: "reviewBundle", label: "แนบการ์ดขอรีวิวไปด้วย (นับ 1 ข้อความ)" },
     ],
@@ -208,6 +209,7 @@ const CARDS: CardMeta[] = [
       { key: "invoiceNoLabel", label: "หัวข้อแถวเลขที่บิล", placeholder: "เลขที่" },
       { key: "paidLabel", label: "หัวข้อกล่องยอดชำระ", placeholder: "ชำระแล้ว" },
       { key: "pointsLabel", label: "หัวข้อแถวแต้มสะสม", placeholder: "🎁 แต้มสะสมที่ได้รับ" },
+      { key: "coursesLabel", label: "หัวข้อกล่องสรุปคอร์ส", placeholder: "🎫 คอร์สคงเหลือ" },
     ],
     closingLabel: "ข้อความขอบคุณท้ายใบเสร็จ",
     hasTitleSize: true,
@@ -1070,6 +1072,19 @@ function Preview({
           {show("points") && (
             <div className="flex justify-between rounded-lg bg-[#F4ECE0] px-2.5 py-2">
               <span>🎁 แต้มสะสมที่ได้รับ</span><b className="text-[#C4956A]">+8</b>
+            </div>
+          )}
+          {show("courses") && (
+            <div className="space-y-1 rounded-lg bg-[#EEF5EC] px-2.5 py-2">
+              <p className="font-extrabold text-[#3F5E3D]">{t("coursesLabel", "🎫 คอร์สคงเหลือ")}</p>
+              <div className="flex justify-between gap-2">
+                <span>คอร์สอาบน้ำ 10 ครั้ง (ใช้ไปบิลนี้ 1 ครั้ง)</span>
+                <b className="shrink-0 text-[#2E7D4F]">เหลือ 6/10 ครั้ง</b>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span>คอร์สฝากเลี้ยง 5 คืน</span>
+                <b className="shrink-0 text-[#2E7D4F]">เหลือ 5/5 คืน</b>
+              </div>
             </div>
           )}
           {show("closing") && (

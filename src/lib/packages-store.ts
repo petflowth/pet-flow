@@ -298,3 +298,45 @@ export async function cancelPackage(id: string) {
   }
   return { ok: true as const };
 }
+
+/** หนึ่งแถวในสรุปคอร์สท้ายใบเสร็จ */
+export type ReceiptCourseLine = {
+  name: string;
+  left: number;
+  total: number;
+  /** "คืน" หรือ "ครั้ง" */
+  unitLabel: string;
+  /** บิลนี้หักคอร์สนี้ไปกี่หน่วย (ไม่หัก = ไม่มี) */
+  usedNow?: number;
+};
+
+/**
+ * สรุปคอร์สของลูกค้าสำหรับแนบท้ายใบเสร็จ — คอร์สที่ยังใช้ได้ทุกใบ
+ * + คอร์สที่บิลนี้หักไป (ถึงจะหมดพอดีแล้วก็โชว์ "เหลือ 0" ให้ลูกค้ารู้ว่าหมดแล้ว)
+ * ลูกค้าไม่มีคอร์ส = ได้ลิสต์ว่าง ใบเสร็จก็ไม่ขึ้นกล่องคอร์ส
+ */
+export async function receiptCourseSummary(
+  customerId: string | undefined,
+  usedPackageId?: string,
+  usedUnits?: number
+): Promise<ReceiptCourseLine[]> {
+  if (!customerId) return [];
+  let all: CustomerPackage[] = [];
+  try {
+    all = await listCustomerPackages(customerId);
+  } catch {
+    return [];
+  }
+  return all
+    .filter(
+      (p) =>
+        p.id === usedPackageId || (p.status === "active" && p.usedUses < p.totalUses)
+    )
+    .map((p) => ({
+      name: p.name || "คอร์ส",
+      left: Math.max(0, p.totalUses - p.usedUses),
+      total: p.totalUses,
+      unitLabel: p.unit === "night" ? "คืน" : "ครั้ง",
+      usedNow: p.id === usedPackageId ? usedUnits || 1 : undefined,
+    }));
+}

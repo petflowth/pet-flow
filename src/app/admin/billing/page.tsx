@@ -3874,15 +3874,21 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
         className="mb-2"
       />
       {(() => {
-        const linkedFor = (inv: Invoice) =>
-          bookings.find((b) => b.id === inv.bookingId) ||
-          bookings.find(
-            (b) =>
-              !!b.customerId &&
-              b.customerId === inv.customerId &&
-              b.catName === inv.catName &&
-              b.status !== "cancelled"
+        const linkedFor = (inv: Invoice) => {
+          const direct = bookings.find((b) => b.id === inv.bookingId);
+          if (direct) return direct;
+          const mine = bookings.filter(
+            (b) => !!b.customerId && b.customerId === inv.customerId && b.status !== "cancelled"
           );
+          // บิลที่ออกเอง: เดาจากนัดของลูกค้าคนเดียวกัน — ชื่อน้องตรงกัน (บิลหลายตัว "A, B" ก็นับ)
+          // หรือลูกค้ามีนัดที่ยังไม่จบอยู่นัดเดียว ก็ถือเป็นนัดนั้นเลย
+          const names = (inv.catName || "").split(/\s*,\s*/).filter(Boolean);
+          return (
+            mine.find((b) => b.catName === inv.catName) ||
+            mine.find((b) => names.includes(b.catName)) ||
+            (mine.length === 1 ? mine[0] : undefined)
+          );
+        };
         const serviceDate = (inv: Invoice) => {
           const bk = linkedFor(inv);
           return bk?.checkin || bk?.date || (inv.createdAt || "").slice(0, 10) || "";

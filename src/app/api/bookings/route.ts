@@ -1,4 +1,5 @@
 import { GROOM_EXTRA_CARDS, groomUsesCard } from "@/lib/intake-rules";
+import { receiptCourseSummary } from "@/lib/packages-store";
 import { NextRequest, NextResponse } from "next/server";
 import { petWords } from "@/lib/pet-kind";
 import { isDayCareStay } from "@/lib/day-care";
@@ -909,6 +910,8 @@ function groomInfoCardFor(
           // เครดิตปัจจุบัน = ยอดหลังหักบิลนี้ไปแล้ว (บิลถูกปิดไปก่อนถึงจะส่งใบเสร็จได้)
           const creditCustomer =
             paidByCredit && inv.customerId ? await getCustomer(inv.customerId) : null;
+          // ลูกค้ามีคอร์สอยู่ → สรุปคอร์สที่เหลือทุกใบไปท้ายใบเสร็จด้วย (เหมือนส่งจากหน้าบิล)
+          const courses = await receiptCourseSummary(inv.customerId, inv.packageId, inv.packageUnits);
           messages.push(
             buildReceiptFlex({
               invoiceId: inv.id,
@@ -922,6 +925,7 @@ function groomInfoCardFor(
               items: (inv.items || []).map((it) => ({ label: it.label, amount: it.amount })),
               memberCreditUsed: paidByCredit ? inv.total : undefined,
               memberCreditLeft: creditCustomer?.memberCredit,
+              courses,
               paymentMethod:
                 inv.paymentMethod === "member_credit"
                   ? "Member Credit"

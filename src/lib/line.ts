@@ -2601,9 +2601,29 @@ export function buildReceiptFlex(data: {
   packageUsed?: number;
   packageLeft?: number;
   packageUnitLabel?: string;
+  /**
+   * สรุปคอร์สคงเหลือของลูกค้าทุกใบ (ถ้ามีคอร์ส) — ส่งใบเสร็จแล้วลูกค้ารู้เลยว่าเหลืออีกกี่ครั้ง/คืน
+   * ร้านปิดได้ใน /admin/cards (ใบเสร็จ › สรุปคอร์สคงเหลือ)
+   */
+  courses?: { name: string; left: number; total: number; unitLabel: string; usedNow?: number }[];
 }, style?: CardStyleConfig) {
   const st = style || {};
   const show = (k: string) => st.show?.[k] !== false;
+  // ไม่ได้ส่งลิสต์คอร์สมา แต่บิลนี้หักคอร์ส → ยังโชว์คอร์สที่หักไปใบเดียว
+  const courses =
+    data.courses && data.courses.length
+      ? data.courses
+      : data.packageLeft != null
+        ? [
+            {
+              name: data.packageName || "คอร์ส",
+              left: data.packageLeft,
+              total: 0,
+              unitLabel: data.packageUnitLabel || "ครั้ง",
+              usedNow: data.packageUsed,
+            },
+          ]
+        : [];
   const bubble: Record<string, unknown> = {
     type: "bubble",
     size: "mega",
@@ -2746,33 +2766,50 @@ export function buildReceiptFlex(data: {
                         },
                       ]
                     : []),
-                  ...(data.packageLeft != null
-                    ? [
-                        {
-                          type: "box",
-                          layout: "horizontal",
-                          contents: [
-                            {
-                              type: "text",
-                              text: `คอร์สคงเหลือ${data.packageName ? ` (${data.packageName})` : ""}`,
-                              size: "sm",
-                              color: "#A2907E",
-                              flex: 3,
-                              wrap: true,
-                            },
-                            {
-                              type: "text",
-                              text: `${data.packageLeft.toLocaleString()} ${data.packageUnitLabel || "ครั้ง"}`,
-                              weight: "bold",
-                              size: "sm",
-                              color: "#2E7D4F",
-                              align: "end",
-                              flex: 2,
-                            },
-                          ],
-                        },
-                      ]
-                    : []),
+                ],
+              },
+            ]
+          : []),
+        // 🎫 สรุปคอร์สคงเหลือ — ลูกค้ามีคอร์สอยู่ (หักบิลนี้หรือไม่ก็ตาม) ให้เห็นสิทธิ์ที่เหลือทุกใบ
+        ...(show("courses") && courses.length
+          ? [
+              {
+                type: "box",
+                layout: "vertical",
+                margin: "lg",
+                paddingAll: "12px",
+                backgroundColor: "#EEF5EC",
+                cornerRadius: "10px",
+                spacing: "sm",
+                contents: [
+                  { type: "text", text: st.texts?.coursesLabel || "🎫 คอร์สคงเหลือ", size: "sm", weight: "bold", color: "#3F5E3D" },
+                  ...courses.map((c) => ({
+                    type: "box",
+                    layout: "horizontal",
+                    contents: [
+                      {
+                        type: "text",
+                        text: c.usedNow ? `${c.name} (ใช้ไปบิลนี้ ${c.usedNow} ${c.unitLabel})` : c.name,
+                        size: "xs",
+                        color: "#5C4033",
+                        flex: 5,
+                        wrap: true,
+                      },
+                      {
+                        type: "text",
+                        text:
+                          c.total > 0
+                            ? `เหลือ ${c.left.toLocaleString()}/${c.total.toLocaleString()} ${c.unitLabel}`
+                            : `เหลือ ${c.left.toLocaleString()} ${c.unitLabel}`,
+                        size: "xs",
+                        weight: "bold",
+                        color: c.left > 0 ? "#2E7D4F" : "#B4634B",
+                        align: "end",
+                        flex: 3,
+                        wrap: true,
+                      },
+                    ],
+                  })),
                 ],
               },
             ]

@@ -3976,6 +3976,25 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
                 { label: "ส่ง LINE หาลูกค้า", icon: "send", onClick: openSend },
                 { label: "ใบเสนอราคา / ใบแจ้งหนี้", icon: "doc", onClick: openDocs },
                 { label: "แก้ไขบิล", icon: "edit", onClick: () => editInvoice(inv) },
+                // ลูกค้ามาใช้คอร์สก่อนจ่ายครบ — ให้คอร์สเลยเฉพาะบิลนี้ (ปกติได้ตอนจ่ายครบ)
+                ...((inv.items || []).some((it) => it.kind === "package" && it.offerId && !it.packageIds?.length)
+                  ? [
+                      {
+                        label: "เปิดคอร์สให้ใช้ก่อน (ยังจ่ายไม่ครบ)",
+                        icon: "ticket" as const,
+                        disabled: invoiceBusy === `${inv.id}:grant_courses_early`,
+                        onClick: () =>
+                          invoiceAction(
+                            inv.id,
+                            "grant_courses_early",
+                            "เปิดคอร์สให้ลูกค้าแล้ว 🎫 — รับเงินที่เหลือได้ตามปกติ คอร์สจะไม่เพิ่มซ้ำ",
+                            "เปิดคอร์สในบิลนี้ให้ลูกค้าใช้เลย ทั้งที่ยังจ่ายไม่ครบ?\n" +
+                              "• ถ้าบิลผูกนัดเข้าพักไว้ ระบบหักคืนของนัดนั้นจากคอร์สให้เลย\n" +
+                              "• ยอดค้างยังอยู่ รับเงินที่เหลือตามปกติ (คอร์สไม่เพิ่มซ้ำ)"
+                          ),
+                      },
+                    ]
+                  : []),
                 // ลูกค้าขอใช้แต้ม — แอดมินแลกแทน แล้วหักเป็นส่วนลดบิลนี้ทันที
                 ...(inv.customerId && pointRewards.length > 0
                   ? [

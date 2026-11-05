@@ -650,6 +650,14 @@ export function CustomerSendButtons({
       onClick: () => bookingSend("send_deposit_reminder", "ส่งแจ้งยอดคงเหลือแล้ว 💰"),
     },
     { k: "inv:review", label: "ขอรีวิว", icon: "star", when: !!invId, onClick: sendReview },
+    {
+      // บิลที่ไม่ได้ผูกนัด — การ์ดที่อิงนัดส่งไม่ได้ แต่ขอข้อมูลลูกค้า (ประวัติ/สมุดวัคซีน/กฎ) ได้จากหน้าข้อมูลลูกค้า
+      k: "customer_intake",
+      label: "ขอข้อมูลลูกค้า (บิลนี้ยังไม่ผูกนัด)",
+      icon: "inbox",
+      when: !bookingId && !!customerId,
+      onClick: () => window.open(`/admin/customers?id=${encodeURIComponent(customerId || "")}`, "_self"),
+    },
   ];
   const intakeAction = singleActions.find((a) => a.k === "send_intake" && a.when);
 

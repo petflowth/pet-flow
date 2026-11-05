@@ -1145,6 +1145,27 @@ async function markInvoicePaidInner(
 }
 
 /**
+ * 🎫 เปิดคอร์สให้ใช้ก่อน — เฉพาะบิลที่ร้านกดเอง (ลูกค้ามาใช้ก่อนจ่ายครบ)
+ * ปกติคอร์สในบิลจะได้ตอนจ่ายครบ · ปุ่มนี้ให้คอร์สเลยตอนบิลยังค้าง
+ * จำ packageIds ไว้ในบรรทัด — พอรับเงินที่เหลือครบ ระบบจะไม่ให้คอร์สซ้ำอีกชุด
+ */
+export async function grantSoldCoursesEarly(id: string) {
+  const inv = await getInvoice(id);
+  if (!inv) return { ok: false as const, error: "ไม่พบบิล" };
+  if (inv.status === "paid") return { ok: false as const, error: "บิลนี้จ่ายครบแล้ว คอร์สได้ไปแล้ว" };
+  const pending = (inv.items || []).filter(
+    (it) => it.kind === "package" && it.offerId && !it.packageIds?.length
+  );
+  if (!pending.length) {
+    return { ok: false as const, error: "บิลนี้ไม่มีคอร์สที่เลือกจากรายการ หรือเปิดคอร์สไปแล้ว" };
+  }
+  await grantSoldCourses(inv);
+  const granted = pending.filter((it) => it.packageIds?.length);
+  if (!granted.length) return { ok: false as const, error: "เปิดคอร์สไม่สำเร็จ (คอร์สถูกลบไปแล้ว?)" };
+  return { ok: true as const, invoice: inv, names: granted.map((it) => it.label) };
+}
+
+/**
  * บรรทัด "ขายคอร์ส" ที่เลือกคอร์สจากรายการ → จ่ายบิลแล้วเพิ่มคอร์สให้ลูกค้าเลย
  * (เหมือนกดยืนยันออร์เดอร์ในขายคอร์ส) ไม่ลงรายรับซ้ำ เพราะบิลลงรายรับไปแล้ว
  * จำ id คอร์สที่สร้างไว้ในบรรทัด — ยกเลิกการชำระแล้วรับเงินใหม่จะไม่ได้คอร์สเพิ่มอีกชุด

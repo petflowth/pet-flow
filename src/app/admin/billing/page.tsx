@@ -3874,15 +3874,21 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
         className="mb-2"
       />
       {(() => {
-        const linkedFor = (inv: Invoice) =>
-          bookings.find((b) => b.id === inv.bookingId) ||
-          bookings.find(
-            (b) =>
-              !!b.customerId &&
-              b.customerId === inv.customerId &&
-              b.catName === inv.catName &&
-              b.status !== "cancelled"
+        const linkedFor = (inv: Invoice) => {
+          const direct = bookings.find((b) => b.id === inv.bookingId);
+          if (direct) return direct;
+          const mine = bookings.filter(
+            (b) => !!b.customerId && b.customerId === inv.customerId && b.status !== "cancelled"
           );
+          // บิลที่ออกเอง: เดาจากนัดของลูกค้าคนเดียวกัน — ชื่อน้องตรงกัน (บิลหลายตัว "A, B" ก็นับ)
+          // หรือลูกค้ามีนัดที่ยังไม่จบอยู่นัดเดียว ก็ถือเป็นนัดนั้นเลย
+          const names = (inv.catName || "").split(/\s*,\s*/).filter(Boolean);
+          return (
+            mine.find((b) => b.catName === inv.catName) ||
+            mine.find((b) => names.includes(b.catName)) ||
+            (mine.length === 1 ? mine[0] : undefined)
+          );
+        };
         const serviceDate = (inv: Invoice) => {
           const bk = linkedFor(inv);
           return bk?.checkin || bk?.date || (inv.createdAt || "").slice(0, 10) || "";
@@ -3970,6 +3976,25 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
                 { label: "ส่ง LINE หาลูกค้า", icon: "send", onClick: openSend },
                 { label: "ใบเสนอราคา / ใบแจ้งหนี้", icon: "doc", onClick: openDocs },
                 { label: "แก้ไขบิล", icon: "edit", onClick: () => editInvoice(inv) },
+                // ลูกค้ามาใช้คอร์สก่อนจ่ายครบ — ให้คอร์สเลยเฉพาะบิลนี้ (ปกติได้ตอนจ่ายครบ)
+                ...((inv.items || []).some((it) => it.kind === "package" && it.offerId && !it.packageIds?.length)
+                  ? [
+                      {
+                        label: "เปิดคอร์สให้ใช้ก่อน (ยังจ่ายไม่ครบ)",
+                        icon: "ticket" as const,
+                        disabled: invoiceBusy === `${inv.id}:grant_courses_early`,
+                        onClick: () =>
+                          invoiceAction(
+                            inv.id,
+                            "grant_courses_early",
+                            "เปิดคอร์สให้ลูกค้าแล้ว 🎫 — รับเงินที่เหลือได้ตามปกติ คอร์สจะไม่เพิ่มซ้ำ",
+                            "เปิดคอร์สในบิลนี้ให้ลูกค้าใช้เลย ทั้งที่ยังจ่ายไม่ครบ?\n" +
+                              "• ถ้าบิลผูกนัดเข้าพักไว้ ระบบหักคืนของนัดนั้นจากคอร์สให้เลย\n" +
+                              "• ยอดค้างยังอยู่ รับเงินที่เหลือตามปกติ (คอร์สไม่เพิ่มซ้ำ)"
+                          ),
+                      },
+                    ]
+                  : []),
                 // ลูกค้าขอใช้แต้ม — แอดมินแลกแทน แล้วหักเป็นส่วนลดบิลนี้ทันที
                 ...(inv.customerId && pointRewards.length > 0
                   ? [

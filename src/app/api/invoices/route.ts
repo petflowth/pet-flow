@@ -5,6 +5,7 @@ import {
   getInvoice,
   listInvoices,
   markInvoicePaid,
+  grantSoldCoursesEarly,
   revertInvoicePaid,
   markInvoiceSent,
   receiveDepositCredit,
@@ -712,6 +713,30 @@ async function handlePatch(req: NextRequest) {
       amount: applied.amount,
       points: red.account.points,
     });
+  }
+
+  // 🎫 เปิดคอร์สให้ใช้ก่อน (ลูกค้ามาใช้ก่อนจ่ายครบ) — ร้านกดเองทีละบิล กติกาปกติยังเหมือนเดิม
+  if (action === "grant_courses_early") {
+    const res = await grantSoldCoursesEarly(id);
+    if (!res.ok) return NextResponse.json({ error: res.error }, { status: 400 });
+    await logAudit({
+      tenantId: requireTenantId(),
+      actorType: "tenant",
+      actorId: await actorName(req),
+      action: "grant_courses_early",
+      resourceType: "invoice",
+      resourceId: id,
+      afterState: { ลูกค้า: inv.customerName, คอร์ส: res.names.join(", ") },
+    });
+    await sendTelegram(
+      formatBookingTelegram("🎫 เปิดคอร์สให้ใช้ก่อน (ยังจ่ายไม่ครบ)", {
+        ลูกค้า: inv.customerName,
+        คอร์ส: res.names.join(", "),
+        บิล: inv.id,
+        ยอดบิล: `${inv.total} บาท`,
+      })
+    );
+    return NextResponse.json({ ok: true });
   }
 
   if (action === "mark_paid") {

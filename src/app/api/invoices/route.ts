@@ -976,6 +976,7 @@ async function handlePatch(req: NextRequest) {
     }
     const res = await updateInvoice(id, {
       items: body.items,
+      catName: typeof body.catName === "string" && body.catName.trim() ? body.catName.trim().slice(0, 200) : undefined,
       deposit: body.deposit,
       extraDiscount: body.extraDiscount,
       promoId: body.promoId,

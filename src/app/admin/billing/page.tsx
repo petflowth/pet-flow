@@ -14,6 +14,7 @@ import { rewardDiscountBaht } from "@/lib/points-reward";
 import type { PosProduct } from "@/lib/pos-store";
 import { SERVICE_PRESETS, type ServicePreset } from "@/lib/service-presets";
 import { CustomerSendButtons } from "@/components/CustomerSendButtons";
+import { PreviewSendModal } from "@/components/PreviewSendModal";
 import { CancelToCreditButton } from "@/components/CancelToCreditButton";
 import { savedPopup, toast } from "@/components/Toast";
 import { Icon, type IconName } from "@/components/Icon";
@@ -1199,20 +1200,53 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
     };
   };
 
+  // ส่งสรุปจากหน้าคิดเงิน: ขอพรีวิวก่อนเสมอ → กดยืนยันในพรีวิวถึงส่งจริง
+  // ref กันกดรัว (state ยังไม่ทันอัปเดต ปุ่มยังไม่ disabled → ส่งซ้ำ 2 ใบ)
+  const summaryBusy = useRef(false);
+  const [summaryPreview, setSummaryPreview] = useState<{
+    lineUserId: string;
+    summary: ReturnType<typeof buildSummaryPayload>;
+    messages: Record<string, unknown>[];
+  } | null>(null);
   const sendSummaryLine = async (mode: "booking" | "deposit" | "full") => {
-    if (!selected) return;
+    if (!selected || summaryBusy.current) return;
     if (!selected.lineUserId) return toast("ลูกค้ายังไม่ได้ผูก LINE — ส่งไม่ได้", "error");
+    summaryBusy.current = true;
     setSending(true);
-    const res = await fetch("/api/line/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        lineUserId: selected.lineUserId,
-        summary: buildSummaryPayload(mode),
-      }),
-    });
-    setSending(false);
-    toast(res.ok ? "ส่งการ์ดเข้า LINE ลูกค้าแล้ว 📨" : "ส่งไม่สำเร็จ", res.ok ? "success" : "error");
+    try {
+      const summary = buildSummaryPayload(mode);
+      const res = await fetch("/api/line/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lineUserId: selected.lineUserId, summary, preview: true }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && Array.isArray(d.preview)) {
+        setSummaryPreview({ lineUserId: selected.lineUserId, summary, messages: d.preview });
+      } else {
+        toast("โหลดตัวอย่างไม่สำเร็จ", "error");
+      }
+    } finally {
+      summaryBusy.current = false;
+      setSending(false);
+    }
+  };
+  const confirmSummarySend = async () => {
+    if (!summaryPreview || summaryBusy.current) return;
+    summaryBusy.current = true;
+    setSending(true);
+    try {
+      const res = await fetch("/api/line/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lineUserId: summaryPreview.lineUserId, summary: summaryPreview.summary }),
+      });
+      toast(res.ok ? "ส่งการ์ดเข้า LINE ลูกค้าแล้ว 📨" : "ส่งไม่สำเร็จ", res.ok ? "success" : "error");
+      if (res.ok) setSummaryPreview(null);
+    } finally {
+      summaryBusy.current = false;
+      setSending(false);
+    }
   };
 
   const copySummary = async (mode: "booking" | "deposit" | "full") => {
@@ -3750,6 +3784,14 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
           )}
         </div>
 
+        {summaryPreview && (
+          <PreviewSendModal
+            messages={summaryPreview.messages}
+            sending={sending}
+            onConfirm={confirmSummarySend}
+            onCancel={() => setSummaryPreview(null)}
+          />
+        )}
         {/* ── สรุป (ก๊อป / ส่ง LINE ให้ลูกค้า) — เลือกแบบ แล้วกดส่งปุ่มเดียว ── */}
         <section className="rounded-petflow-sm border border-petflow-line bg-card p-3">
           <SectionLabel>Summary · สรุปให้ลูกค้า</SectionLabel>

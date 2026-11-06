@@ -32,6 +32,8 @@ async function handlePost(req: NextRequest) {
   try {
     if (summary && Array.isArray(summary.items)) {
       const flex = buildBillSummaryFlex(summary);
+      // preview: true = ขอดูการ์ดก่อน ยังไม่ส่งจริง (หน้าคิดเงินโชว์พรีวิวให้กดยืนยัน)
+      if (body.preview) return NextResponse.json({ ok: true, preview: [flex] });
       await pushLineMessage(lineUserId, [flex]);
       return NextResponse.json({ ok: true, kind: "flex" });
     }

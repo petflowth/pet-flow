@@ -1704,6 +1704,8 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
           id: editingId,
           action: "update",
           items: payloadItems,
+          // ชื่อน้องหัวบิลตามรายการที่เหลือ — เอาน้องออกจากบิลแล้วชื่อยังค้างที่หัวบิล/การ์ด LINE
+          catName: billedCatNames.join(CAT_SEP) || undefined,
           // ส่งค่าจริงเสมอ ("" = ไม่ใช้โปร, 0 = ไม่มีส่วนลดเพิ่ม) — เมื่อก่อนส่ง undefined
           // เซิร์ฟเวอร์เลยคงโปร/ส่วนลดเดิมไว้ กดแก้บิลแล้วยอดไม่เปลี่ยน
           // เลือกคอร์สมาหักตอนแก้บิล (เช่น บิลต่อคืน) — ส่วนที่คอร์สคลุมรวมเป็นส่วนลดของบิล
@@ -1907,7 +1909,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
             ? raw.unitAmount * Math.max(1, Math.round(raw.qty || 1)) - raw.amount
             : 0);
         return off > 0 && item.kind !== "freebie"
-          ? { ...item, discount: off, discountMode: "baht" as const }
+          ? { ...item, discount: off, discountMode: "baht" as const, discountName: raw.discountName }
           : item;
       })
     );
@@ -3481,6 +3483,19 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
             <select
               value={promoId}
               onChange={(e) => {
+                // แก้บิลเดิมแล้วเปลี่ยน/เลิกโปรลดเฉพาะรายการ — ส่วนลดของโปรเดิมโหลดมาเป็นส่วนลดรายการ
+                // ต้องถอดออกด้วย ไม่งั้นเลือก "ไม่ใช้โปร" แล้วส่วนลดยังค้างอยู่ในบิล (แก้แล้วไม่หาย)
+                const oldLp = promoAsLinePromo(promos.find((p) => p.id === promoId));
+                if (oldLp) {
+                  const fromOld = (n?: string) => !!n && (n === oldLp.name || n.startsWith(`${oldLp.name} แถม `));
+                  setItems((prev) =>
+                    prev.map((it) =>
+                      fromOld(it.discountName)
+                        ? { ...it, discount: undefined, discountMode: undefined, discountName: undefined }
+                        : it
+                    )
+                  );
+                }
                 setPromoId(e.target.value);
                 setLineFromEdit(false);
               }}

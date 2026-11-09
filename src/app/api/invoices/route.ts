@@ -5,6 +5,7 @@ import {
   getInvoice,
   listInvoices,
   markInvoicePaid,
+  setInvoiceIssueDate,
   grantSoldCoursesEarly,
   revertInvoicePaid,
   markInvoiceSent,
@@ -249,6 +250,7 @@ async function handlePost(req: NextRequest) {
         packageUnits: consumedPackageId ? packageUnits : undefined,
         couponId: body.couponId ? String(body.couponId) : undefined,
         couponIds: Array.isArray(body.couponIds) ? body.couponIds.map(String) : undefined,
+        issueDate: typeof body.issueDate === "string" ? body.issueDate : undefined,
       });
     } catch (e) {
       // ออกบิลไม่สำเร็จ (ส่วนใหญ่เพราะคูปองใช้ไม่ได้แล้ว) — คืนครั้งคอร์สที่หักไปด้านบนก่อน
@@ -963,6 +965,18 @@ async function handlePatch(req: NextRequest) {
     });
   }
 
+  // เปลี่ยนวันที่ออกบิล — บิลปิดแล้วก็แก้ได้ (วันที่บนใบเสร็จ/รายรับขยับตาม)
+  if (action === "set_issue_date") {
+    const res = await setInvoiceIssueDate(id, String(body.issueDate || ""));
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: res.error, message: "message" in res ? res.message : undefined },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json({ ok: true, invoice: res.invoice });
+  }
+
   if (action === "update") {
     // แก้บิลแล้วเลือกคอร์สมาหัก (เช่น บิลต่อคืน) — ได้เฉพาะบิลที่ยังไม่ได้หักคอร์สใบไหนมาก่อน
     let addPackageId: string | undefined;
@@ -983,6 +997,7 @@ async function handlePatch(req: NextRequest) {
       couponId: body.couponId ? String(body.couponId) : undefined,
         couponIds: Array.isArray(body.couponIds) ? body.couponIds.map(String) : undefined,
       ...(addPackageId ? { packageId: addPackageId, packageUnits: addUnits } : {}),
+      issueDate: typeof body.issueDate === "string" ? body.issueDate : undefined,
     });
     if (!res.ok && addPackageId) await refundPackageUse(addPackageId, addUnits);
     if (!res.ok) {

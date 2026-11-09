@@ -24,7 +24,7 @@ import { addPoints } from "./points-store";
 import { getSupabase, selectAllRows } from "./supabase/server";
 import { requireTenantId } from "./tenant-context";
 import { summarizeInvoiceItems } from "./invoice-item-label";
-import { bangkokToday } from "./bangkok-date";
+import { bangkokToday, bangkokDateOf, dateStamp, isValidDay } from "./bangkok-date";
 import { normalizeLineDiscount } from "./line-discount";
 
 export type InvoiceItem = {
@@ -340,6 +340,8 @@ export async function createInvoice(data: {
   couponId?: string;
   /** คูปองหลายใบในบิลเดียว (รวมกับ couponId) */
   couponIds?: string[];
+  /** วันที่ออกบิล (YYYY-MM-DD) ที่ร้านเลือก — ไม่ส่งมา = วันนี้ */
+  issueDate?: string;
 }) {
   // ตรวจ + จองสิทธิ์คูปองก่อนเริ่มคิดเงินเลย — ถ้าใช้ไม่ได้ (หมด/ใช้ไปแล้ว/ของคนอื่น)
   // ให้ล้มทั้งการออกบิล ดีกว่าปล่อยให้ออกบิลไปแล้วค่อยพบว่าไม่ได้ลดจริง
@@ -414,7 +416,8 @@ export async function createInvoice(data: {
     bookingId: data.bookingId,
     packageId: data.packageId,
     packageUnits: data.packageUnits && data.packageUnits > 1 ? Math.round(data.packageUnits) : undefined,
-    createdAt: new Date().toISOString(),
+    // วันที่บนบิล = วันที่ออกบิล (ร้านเลือกได้ ค่าเริ่มต้นวันนี้) ไม่ใช่วันเข้าพัก/วันนัด
+    createdAt: dateStamp(isValidDay(data.issueDate) ? data.issueDate : bangkokToday()),
   };
 
   try {
@@ -519,6 +522,51 @@ export async function receiveInvoiceDeposit(id: string) {
 }
 
 /** แก้ไขบิล (รายการ/มัดจำ/ส่วนลด) — ได้เฉพาะบิลที่ยังไม่ปิด */
+/** วันที่ออกบิล (YYYY-MM-DD ตามเวลาไทย) */
+export function invoiceIssueDate(inv: Pick<InvoiceRecord, "createdAt">): string {
+  return bangkokDateOf(inv.createdAt);
+}
+
+/**
+ * เปลี่ยนวันที่ออกบิล — ใช้ได้ทั้งบิลค้างและบิลปิดแล้ว
+ * บิลปิดแล้ว: วันรับเงิน (ใบเสร็จ) + รายรับ/ประวัติบริการที่ลงไว้วันเดียวกันขยับตามด้วย
+ * (มัดจำที่รับไว้คนละวันไม่แตะ — นั่นคือวันที่เงินเข้าจริง)
+ */
+export async function setInvoiceIssueDate(id: string, issueDate: string) {
+  if (!isValidDay(issueDate)) return { ok: false as const, error: "bad_date" };
+  const inv = await getInvoice(id);
+  if (!inv) return { ok: false as const, error: "not_found" };
+  const oldPaidDay = inv.paidAt ? inv.paidAt.slice(0, 10) : "";
+  inv.createdAt = dateStamp(issueDate);
+  if (inv.status === "paid") inv.paidAt = dateStamp(issueDate);
+  const sb = getSupabase();
+  if (sb) {
+    const tenantId = requireTenantId();
+    const { error } = await sb
+      .from("invoices")
+      .update({ created_at: inv.createdAt, ...(inv.status === "paid" ? { paid_at: inv.paidAt } : {}) })
+      .eq("id", id)
+      .eq("tenant_id", tenantId);
+    if (error) return { ok: false as const, error: "save_failed", message: error.message };
+    if (inv.status === "paid" && oldPaidDay && oldPaidDay !== issueDate) {
+      await sb
+        .from("finance_records")
+        .update({ date: issueDate })
+        .eq("tenant_id", tenantId)
+        .eq("invoice_id", id)
+        .eq("type", "income")
+        .eq("date", oldPaidDay);
+      await sb
+        .from("service_records")
+        .update({ date: issueDate })
+        .eq("tenant_id", tenantId)
+        .eq("invoice_id", id)
+        .eq("date", oldPaidDay);
+    }
+  }
+  return { ok: true as const, invoice: inv };
+}
+
 export async function updateInvoice(
   id: string,
   patch: {
@@ -534,6 +582,8 @@ export async function updateInvoice(
     /** คูปองที่เลือกเพิ่มตอนแก้บิล (เช่น เพิ่งแลกแต้มแทนลูกค้า) — ยอดคิดจากคูปองจริง บวกเข้าส่วนลด */
     couponId?: string;
     couponIds?: string[];
+    /** เปลี่ยนวันที่ออกบิล (YYYY-MM-DD) */
+    issueDate?: string;
   }
 ) {
   const inv = await getInvoice(id);
@@ -579,6 +629,9 @@ export async function updateInvoice(
 
   inv.items = items;
   if (patch.catName) inv.catName = patch.catName;
+  if (isValidDay(patch.issueDate) && patch.issueDate !== invoiceIssueDate(inv)) {
+    inv.createdAt = dateStamp(patch.issueDate);
+  }
   inv.subtotal = subtotal;
   inv.discount = discount;
   inv.total = total;
@@ -1035,23 +1088,10 @@ async function markInvoicePaidInner(
 
   inv.status = "paid";
   inv.paymentMethod = paymentMethod;
-  // บิลที่ดึงมาจากนัด → ลงวันที่ตามวันที่มีคิวจอง ไม่ใช่วันที่กดรับเงิน (ลูกค้าจ่าย/หักเครดิต
-  // Member ย้อนหลังได้ แต่รายรับ/ประวัติบริการต้องอยู่ในเดือนที่ใช้บริการจริง)
+  // ลงวันที่ตาม "วันที่ออกบิล" ที่ร้านเลือกไว้ (ค่าเริ่มต้น = วันที่กดออกบิล)
+  // เมื่อก่อนใช้วันเข้าพัก/วันนัด — ร้านแจ้งว่าใบเสร็จต้องเป็นวันที่ออกบิล ไม่ใช่วันเข้าพัก
   // เก็บเวลาจริงของการกดไว้ท้ายวันที่ จะได้เรียงลำดับในวันเดียวกันได้ถูก
-  const nowIso = new Date().toISOString();
-  inv.paidAt = nowIso;
-  if (inv.bookingId) {
-    try {
-      const { getBooking } = await import("./bookings-store");
-      const bk = await getBooking(inv.bookingId);
-      const queueDate = (bk?.date || bk?.checkin || "").slice(0, 10);
-      if (/^\d{4}-\d{2}-\d{2}$/.test(queueDate)) {
-        inv.paidAt = `${queueDate}T${nowIso.slice(11)}`;
-      }
-    } catch {
-      /* หานัดไม่เจอ — ใช้เวลาที่กดตามเดิม */
-    }
-  }
+  inv.paidAt = dateStamp(invoiceIssueDate(inv));
   // จ่ายด้วยเครดิต Member ไม่ให้แต้ม — ลูกค้าได้ของแถม/ส่วนลดตอนซื้อเครดิตไปแล้ว
   // ให้แต้มอีกจะเป็นการได้ประโยชน์ซ้ำสองรอบจากเงินก้อนเดียว (ปิดได้ในตั้งค่า)
   const bizCfg = (await getSiteConfig()).business;

@@ -21,7 +21,7 @@ import { Icon, type IconName } from "@/components/Icon";
 import { Avatar, EmptyState, MoreMenu, SearchField, Segmented, SectionLabel } from "@/components/ui";
 import { groupCatNames, groupForBilling } from "@/lib/booking-group";
 import { formatThaiDateShort } from "@/lib/format-thai-date";
-import { bangkokToday } from "@/lib/bangkok-date";
+import { bangkokToday, bangkokDateOf } from "@/lib/bangkok-date";
 import {
   GROOM_PROGRAMS,
   resolveGroomSizes,
@@ -718,6 +718,10 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
   // UI ล้วน: สรุปแบบไหนที่จะก๊อป/ส่ง · บิลที่เปิดแผ่นรับชำระ · บิลที่เปิดแผ่นส่ง LINE
   const [summaryMode, setSummaryMode] = useState<"booking" | "deposit" | "full">("booking");
   const [payFor, setPayFor] = useState<Invoice | null>(null);
+  /** วันที่ออกบิลในฟอร์ม — "" = วันนี้ (วันที่กดออกบิล) */
+  const [issueDate, setIssueDate] = useState("");
+  /** บิลที่กำลังเปลี่ยนวันที่ (เมนู "เปลี่ยนวันที่บิล") */
+  const [dateFor, setDateFor] = useState<{ inv: Invoice; date: string } | null>(null);
   // แผ่นรับมัดจำ/บางส่วน — ใส่ยอด แล้วเลือก โอน/เงินสด แยกปุ่ม (เดิมใช้ prompt+confirm ที่ "ยกเลิก" = โอน)
   const [partialFor, setPartialFor] = useState<Invoice | null>(null);
   const [partialAmt, setPartialAmt] = useState("");
@@ -1647,6 +1651,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
     setBookingId(undefined);
     setBookingCats([]);
     setEditingId(null);
+    setIssueDate("");
   };
 
   const createBill = async () => {
@@ -1715,6 +1720,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
           // คูปองที่เลือกตอนแก้บิล (เช่น เพิ่งแลกแต้มแทนลูกค้า) — เมื่อก่อนไม่ได้ส่ง ส่วนลดคูปองเลยไม่ลง
           couponIds: couponIds.length ? couponIds : undefined,
           ...(packageId ? { packageId, packageUnits: packageUnitsToUse || undefined } : {}),
+          issueDate: issueDate || bangkokToday(),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -1759,6 +1765,8 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
         couponIds: couponIds.length ? couponIds : undefined,
         packageId: packageId || undefined,
         packageUnits: packageUnitsToUse || undefined,
+        // วันที่บนบิล — ค่าเริ่มต้นวันที่กดออกบิล (ไม่ใช่วันเข้าพัก)
+        issueDate: issueDate || bangkokToday(),
       }),
     });
     const data = await res.json();
@@ -1938,6 +1946,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
     setDiscountMode("baht");
     setLineFromEdit(true); // ส่วนลดจากโปรเดิมโหลดกลับมาเป็นส่วนลดของแต่ละรายการแล้ว
     setEditingId(inv.id);
+    setIssueDate(inv.createdAt ? bangkokDateOf(inv.createdAt) : "");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -2544,6 +2553,56 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
       <CreditConfirmModal />
       <RedeemPointsModal />
       <PaySheet />
+      {dateFor && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 sm:items-center sm:p-3"
+          onClick={() => setDateFor(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-t-[28px] bg-card px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 shadow-petflow sm:rounded-petflow"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-sm font-extrabold text-petflow-chocolate">เปลี่ยนวันที่บิล</p>
+            <p className="mt-0.5 text-[11px] text-brown-soft">
+              {dateFor.inv.customerName} · {dateFor.inv.catName}
+            </p>
+            <input
+              type="date"
+              value={dateFor.date}
+              onChange={(e) => setDateFor({ ...dateFor, date: e.target.value })}
+              className="mt-3 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-base font-bold text-petflow-chocolate"
+            />
+            {dateFor.inv.status === "paid" && (
+              <p className="mt-2 text-[11px] text-brown-soft">
+                บิลปิดแล้ว — วันที่บนใบเสร็จและรายรับของบิลนี้จะเปลี่ยนตามด้วย
+              </p>
+            )}
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setDateFor(null)}
+                className="min-h-[44px] flex-1 rounded-full bg-paper text-sm font-bold text-brown"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                disabled={!dateFor.date || invoiceBusy === `${dateFor.inv.id}:set_issue_date`}
+                onClick={async () => {
+                  const { inv, date } = dateFor;
+                  setDateFor(null);
+                  await invoiceAction(inv.id, "set_issue_date", `เปลี่ยนวันที่บิลเป็น ${formatThaiDateShort(date)} แล้ว`, undefined, {
+                    issueDate: date,
+                  });
+                }}
+                className="min-h-[44px] flex-1 rounded-full bg-gradient-to-r from-honey to-honey-deep text-sm font-extrabold text-petflow-chocolate disabled:opacity-50"
+              >
+                บันทึก
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {partialSheet()}
       <div className="mb-4 flex items-end justify-between gap-3">
         <div className="min-w-0">
@@ -3844,6 +3903,30 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
           )}
         </section>
 
+        <label className="flex items-center justify-between gap-3 rounded-petflow-sm border border-petflow-line bg-card px-3 py-2">
+          <span className="flex items-center gap-1.5 text-xs font-extrabold text-petflow-chocolate">
+            <Icon name="calendar" size={15} />
+            วันที่ออกบิล
+          </span>
+          <span className="flex items-center gap-2">
+            {issueDate && issueDate !== bangkokToday() && (
+              <button
+                type="button"
+                onClick={() => setIssueDate("")}
+                className="text-[11px] font-bold text-latte-deep underline"
+              >
+                วันนี้
+              </button>
+            )}
+            <input
+              type="date"
+              value={issueDate || bangkokToday()}
+              onChange={(e) => setIssueDate(e.target.value)}
+              className="rounded-full border border-petflow-line bg-paper px-3 py-1.5 text-sm font-bold text-petflow-chocolate"
+            />
+          </span>
+        </label>
+
         <button
           type="button"
           disabled={creating}
@@ -4011,9 +4094,12 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
             );
           // เอกสารทางการ (ใบเสร็จ/ใบกำกับภาษี · ใบเสนอราคา · ใบแจ้งหนี้) ออกในนามบริษัทได้
           const openDocs = () => window.open(`/admin/billing/doc/${inv.id}`, "_self");
+          const changeDate = () =>
+            setDateFor({ inv, date: inv.createdAt ? bangkokDateOf(inv.createdAt) : bangkokToday() });
           const menu = paid
             ? [
                 { label: "ใบเสร็จ / ใบกำกับภาษี", icon: "receipt", onClick: openDocs },
+                { label: "เปลี่ยนวันที่บิล", icon: "calendar", onClick: changeDate },
                 {
                   label: "ยกเลิกการชำระ (กดผิด)",
                   icon: "back",
@@ -4033,6 +4119,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
                 { label: "ส่ง LINE หาลูกค้า", icon: "send", onClick: openSend },
                 { label: "ใบเสนอราคา / ใบแจ้งหนี้", icon: "doc", onClick: openDocs },
                 { label: "แก้ไขบิล", icon: "edit", onClick: () => editInvoice(inv) },
+                { label: "เปลี่ยนวันที่บิล", icon: "calendar", onClick: changeDate },
                 // ลูกค้ามาใช้คอร์สก่อนจ่ายครบ — ให้คอร์สเลยเฉพาะบิลนี้ (ปกติได้ตอนจ่ายครบ)
                 ...((inv.items || []).some((it) => it.kind === "package" && it.offerId && !it.packageIds?.length)
                   ? [
@@ -4071,6 +4158,11 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-extrabold text-petflow-chocolate">{inv.customerName}</p>
                 <p className="truncate text-[11px] text-brown-soft">{inv.catName}</p>
+                {inv.createdAt && (
+                  <p className="truncate text-[11px] text-brown-soft">
+                    วันที่บิล {formatThaiDateShort(bangkokDateOf(inv.createdAt))}
+                  </p>
+                )}
                 {sched ? (
                   // ข้อความ sched ใช้ส่งให้ลูกค้าด้วย (มีอีโมจินำหน้า) — บนจอตัดอีโมจิออกแล้วใช้ไอคอนเส้นแทน
                   <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] font-bold text-latte-deep">

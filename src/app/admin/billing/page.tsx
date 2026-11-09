@@ -2721,6 +2721,22 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
           </div>
         )}
 
+        {/* แก้บิล: วันที่บิลไว้บนสุด ให้เห็นทันที (ช่องเดิมท้ายฟอร์มอยู่ไกลจนหาไม่เจอ) */}
+        {editingId && (
+          <label className="flex items-center justify-between gap-3 rounded-petflow-sm border border-honey-deep/40 bg-honey/15 px-3 py-2">
+            <span className="flex items-center gap-1.5 text-xs font-extrabold text-petflow-chocolate">
+              <Icon name="calendar" size={15} />
+              วันที่บิล
+            </span>
+            <input
+              type="date"
+              value={issueDate || bangkokToday()}
+              onChange={(e) => setIssueDate(e.target.value)}
+              className="rounded-full border border-petflow-line bg-card px-3 py-1.5 text-sm font-bold text-petflow-chocolate"
+            />
+          </label>
+        )}
+
         {/* ── ค้นหาลูกค้า (แบบเดียวกับหน้าจองคิว) ── */}
         <section>
           <SectionLabel>Customer · ลูกค้า</SectionLabel>

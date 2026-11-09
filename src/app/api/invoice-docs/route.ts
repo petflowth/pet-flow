@@ -35,7 +35,8 @@ async function handleGet(req: NextRequest) {
       if (!inv || inv.deletedAt) return [];
       return KINDS.flatMap((kind) => {
         const no = kind === "quote" ? d.quoteNo : kind === "invoice" ? d.invoiceNo : d.receiptNo;
-        const at = kind === "quote" ? d.quoteAt : kind === "invoice" ? d.invoiceAt : d.receiptAt;
+        // ใบเสร็จ/ใบกำกับภาษี ลงวันที่ตามวันรับเงินของบิล (= วันที่ออกบิล) ให้ตรงกับตัวเอกสาร
+        const at = kind === "quote" ? d.quoteAt : kind === "invoice" ? d.invoiceAt : inv.paidAt || d.receiptAt;
         if (!no) return [];
         return [
           {

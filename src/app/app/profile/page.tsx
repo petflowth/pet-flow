@@ -32,6 +32,7 @@ import {
   emptyEmergencyForm,
   type EmergencyForm,
 } from "@/components/EmergencyContactInput";
+import { ReviewSheet, reviewDate, type ReviewSection } from "@/components/ReviewSheet";
 
 const REFERRAL_FALLBACK = [
   "Facebook",
@@ -98,6 +99,8 @@ export default function ProfilePage() {
   const [photoError, setPhotoError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  // ป๊อปอัปสรุปให้เช็คก่อนบันทึกจริง
+  const [reviewing, setReviewing] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -228,7 +231,63 @@ export default function ProfilePage() {
     setCats((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const save = async () => {
+  /** สรุปข้อมูลทั้งหมดก่อนบันทึก */
+  const reviewSections = (): ReviewSection[] => [
+    {
+      title: "ข้อมูลผู้ปกครอง",
+      icon: "user",
+      rows: [
+        { label: "ชื่อผู้ปกครอง", value: name },
+        ...(nicknameField.enabled ? [{ label: nicknameField.label, value: nickname }] : []),
+        { label: "เบอร์โทร", value: phone },
+        { label: "อีเมล", value: email },
+        { label: "วันเกิด", value: reviewDate(birthday) },
+        { label: "ที่อยู่บ้าน", value: address },
+        { label: "ลิงก์แผนที่", value: addressMapUrl ? "แนบแล้ว" : "" },
+        { label: "รหัสไปรษณีย์", value: postalCode },
+        ...(emergencyField.enabled
+          ? [{ label: emergencyField.label, value: [emergency.phone.trim(), emergency.relation.trim()].filter(Boolean).join(" · ") }]
+          : []),
+        ...(taxInvoice.on ? [{ label: "ใบกำกับภาษี", value: [taxInvoice.name, taxInvoice.taxId].map((x) => x.trim()).filter(Boolean).join(" · ") }] : []),
+      ],
+    },
+    ...cats
+      .filter((c) => c.name.trim())
+      .map((c) => ({
+        title: c.id.startsWith("new-") ? `น้อง${c.name.trim()} (เพิ่มใหม่)` : `น้อง${c.name.trim()}`,
+        icon: "paw",
+        rows: [
+          ...(asksSpecies(config) ? [{ label: "ชนิด", value: c.species === "dog" ? "หมา" : c.species === "cat" ? "แมว" : "" }] : []),
+          { label: "เพศ", value: c.gender === "male" ? "♂ ผู้" : c.gender === "female" ? "♀ เมีย" : "" },
+          { label: "สายพันธุ์", value: c.breed === OTHER_BREED ? c.breedOther : c.breed },
+          { label: "ทำหมัน", value: c.neutered === "yes" ? "ทำหมันแล้ว" : c.neutered === "no" ? "ยังไม่ทำ" : "" },
+          {
+            label: "อายุ",
+            value: [
+              c.ageValue ? `${c.ageValue} ${c.ageUnit === "month" ? "เดือน" : "ปี"}` : "",
+              c.birthday ? `เกิด ${reviewDate(c.birthday)}` : "",
+            ]
+              .filter(Boolean)
+              .join(" · "),
+          },
+          { label: "น้ำหนัก", value: c.weightKg ? `${c.weightKg} กก.` : "" },
+          { label: "โรคประจำตัว / เรื่องที่ช่างต้องรู้", value: [c.medical, c.note].map((x) => x.trim()).filter(Boolean).join("\n") },
+          { label: "ประวัติการชัก/ช็อค", value: c.seizureHistory },
+          { label: "ประวัติการแพ้", value: c.allergy },
+        ],
+      })),
+    {
+      title: "อื่น ๆ",
+      icon: "sparkle",
+      rows: [
+        { label: "รู้จักเราจากทางไหน", value: referral },
+        { label: "รับข่าวสาร/โปรโมชั่น", value: consent ? "ยินยอม" : "ไม่ยินยอม" },
+      ],
+    },
+  ];
+
+  /** กดบันทึก → เช็คข้อมูลก่อน ผ่านแล้วเปิดสรุปให้ดู (ยังไม่บันทึก) */
+  const review = () => {
     if (!profile?.lineUserId || !name.trim()) return;
     if (asksSpecies(config) && cats.some((c) => c.name.trim() && !c.species)) {
       setSaveError("เลือกว่าน้องแต่ละตัวเป็นหมาหรือแมวด้วยนะคะ");
@@ -241,8 +300,14 @@ export default function ProfilePage() {
     const taxProblem = taxInvoiceProblem(formToTaxInvoice(taxInvoice));
     setSaveError(taxProblem);
     if (taxProblem) return;
+    setReviewing(true);
+  };
+
+  const save = async () => {
+    if (!profile?.lineUserId || !name.trim()) return;
     setSaving(true);
     setSaved(false);
+    setSaveError("");
     try {
       const res = await customerFetch("/api/customers/self", {
         method: "POST",
@@ -301,10 +366,13 @@ export default function ProfilePage() {
           setPhotoError(`บันทึกข้อมูลแล้ว แต่อัปรูป ${failed.join(", ")} ไม่สำเร็จ ลองเพิ่มรูปใหม่อีกครั้งนะคะ`);
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);
+        setReviewing(false);
         savedPopup("บันทึกข้อมูลสำเร็จ");
         // โหลดใหม่ให้น้องที่เพิ่งเพิ่ม (id "new-…") ได้ id จริง — ไม่งั้นกดบันทึกซ้ำจะสร้างซ้ำ และอัปรูปได้ทันที
         setReloadKey((k) => k + 1);
       }
+    } catch {
+      setSaveError("เชื่อมต่อไม่สำเร็จ — เช็คสัญญาณอินเทอร์เน็ตแล้วลองใหม่นะคะ");
     } finally {
       setSaving(false);
     }
@@ -629,15 +697,27 @@ export default function ProfilePage() {
 
           <button
             type="button"
-            onClick={save}
+            onClick={review}
             disabled={saving || !name.trim()}
             className={`mt-6 ${BTN_PRIMARY}`}
           >
             {saving ? "กำลังบันทึก…" : "บันทึกข้อมูล"}
           </button>
-          {saveError && (
+          {saveError && !reviewing && (
             <p className="mt-2 text-center text-sm font-bold text-red-700">{saveError}</p>
           )}
+          <ReviewSheet
+            open={reviewing}
+            sections={reviewing ? reviewSections() : []}
+            saving={saving}
+            error={saveError}
+            confirmLabel="ยืนยัน บันทึกข้อมูล"
+            onEdit={() => {
+              setReviewing(false);
+              setSaveError("");
+            }}
+            onConfirm={save}
+          />
           {saved && (
             <p className="mt-2 flex items-center justify-center gap-1.5 text-sm font-extrabold text-ok">
               <Icon name="check" size={16} strokeWidth={2.4} />

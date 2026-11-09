@@ -9,6 +9,7 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { BTN_PRIMARY, PageHeader } from "@/components/PageHeader";
 import { EmptyState, SectionLabel } from "@/components/ui";
 import { Icon } from "@/components/Icon";
+import { ReviewSheet } from "@/components/ReviewSheet";
 
 type Bk = {
   id: string;
@@ -43,6 +44,8 @@ function BookingTransportContent() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+  // ป๊อปอัปสรุปให้เช็คก่อนส่งจริง
+  const [reviewing, setReviewing] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -83,11 +86,17 @@ function BookingTransportContent() {
     );
   };
 
-  const save = async () => {
+  /** กดส่ง → เช็คว่ามีอย่างน้อย 1 ช่อง แล้วโชว์สรุปก่อน */
+  const review = () => {
     if (!mapUrl.trim() && !address.trim()) {
       setError("ใส่ลิงก์ Google Maps หรือที่อยู่อย่างน้อย 1 ช่องนะคะ");
       return;
     }
+    setError("");
+    setReviewing(true);
+  };
+
+  const save = async () => {
     setSaving(true);
     setError("");
     try {
@@ -103,6 +112,7 @@ function BookingTransportContent() {
       });
       const d = await res.json().catch(() => ({}));
       if (res.ok) {
+        setReviewing(false);
         setDone(true);
         savedPopup("ส่งตำแหน่งสำเร็จ", ["ร้านได้รับที่อยู่รับ-ส่งแล้วค่ะ"]);
       } else {
@@ -112,6 +122,8 @@ function BookingTransportContent() {
             : "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง หรือส่งตำแหน่งในแชท LINE ได้เลยค่ะ"
         );
       }
+    } catch {
+      setError("เชื่อมต่อไม่สำเร็จ — เช็คสัญญาณอินเทอร์เน็ตแล้วลองใหม่นะคะ");
     } finally {
       setSaving(false);
     }
@@ -259,9 +271,34 @@ function BookingTransportContent() {
                 <p className="rounded-xl bg-wait/10 px-3 py-2 text-xs font-bold text-wait">{error}</p>
               )}
 
-              <button type="button" disabled={saving} onClick={save} className={BTN_PRIMARY}>
+              <button type="button" disabled={saving} onClick={review} className={BTN_PRIMARY}>
                 {saving ? "กำลังบันทึก…" : bk.saved ? "บันทึกการแก้ไข" : "ส่งจุดรับ-ส่ง"}
               </button>
+              <ReviewSheet
+                open={reviewing}
+                sections={[
+                  {
+                    title: `จุดรับ-ส่ง${bk.catName ? ` · ${bk.catName}` : ""}`,
+                    icon: "car",
+                    rows: [
+                      ...legs.map((l) => ({
+                        label: l.label,
+                        value: [l.date ? formatThaiDateShort(l.date) : "", l.time || ""].filter(Boolean).join(" "),
+                      })),
+                      { label: "ลิงก์ Google Maps", value: mapUrl.trim() },
+                      { label: "ที่อยู่ / จุดสังเกต", value: address.trim() },
+                    ],
+                  },
+                ]}
+                saving={saving}
+                error={error}
+                confirmLabel={bk.saved ? "ยืนยัน บันทึกการแก้ไข" : "ยืนยัน ส่งจุดรับ-ส่ง"}
+                onEdit={() => {
+                  setReviewing(false);
+                  setError("");
+                }}
+                onConfirm={save}
+              />
             </div>
           </section>
         </>

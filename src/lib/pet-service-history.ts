@@ -3,7 +3,9 @@
  * ดูจากนัด (1 นัด = น้อง 1 ตัว) แล้วผูกกับบิลของนัดนั้น — ร้านเลือกโปรแกรมอาบ/ห้องจริงตอนออกบิล
  * จึงใช้ชื่อโปรแกรม/ห้องในบิลแทนของที่จองไว้ และบรรทัดในบิลที่ไม่มีนัดรองรับ (เช่น อาบน้ำระหว่างพัก
  * หรือออกบิล walk-in) ก็ขึ้นเป็นรายการในประวัติด้วย · ไม่โชว์ยอดเงิน (ประวัติการจ่ายเงินอยู่ส่วนอื่น)
- * ไม่นับนัดที่ยกเลิก/ไม่มา · ฟังก์ชันล้วน ใช้ได้ทั้งหน้าเว็บและทดสอบ
+ * ไม่นับนัดที่ยกเลิก/ไม่มา — และบิลของนัดที่ยกเลิก หรือบิลที่ "ยกเลิกนัด เก็บยอดเป็นเครดิต" ไปแล้ว
+ * ก็ไม่สร้างรายการในประวัติ (เดิมบิลแบบนี้ที่ไม่ได้ผูกนัด ขึ้นเป็น "เข้าพัก/กำลังพัก" ทั้งที่น้องไม่ได้มา)
+ * · ฟังก์ชันล้วน ใช้ได้ทั้งหน้าเว็บและทดสอบ
  */
 import type { Breakdown, CountBooking, CountLabels } from "./monthly-pet-counts";
 import { cleanPetName } from "./pet-name";
@@ -29,6 +31,8 @@ export type HistoryEntry = {
   billed?: boolean;
   /** นัดที่ใช้เปิดบิล (/admin/billing?bookingId=) */
   billBookingId?: string;
+  /** เลขบิล — รายการที่มาจากบิลอย่างเดียว (ไม่มีนัด) ใช้เปิดบิลนั้น (/admin/billing?bill=) */
+  billId?: string;
 };
 
 /** บิลแบบย่อ — เฉพาะบรรทัดอาบน้ำ/ห้องพัก (ดู listServiceBills) */
@@ -40,6 +44,8 @@ export type HistoryBill = {
   /** วันที่จ่าย/ออกบิล YYYY-MM-DD */
   date: string;
   items: { kind?: string; program?: string; label: string; catName?: string; qty?: number }[];
+  /** ยกเลิกนัดแล้วเก็บยอดเป็นเครดิต — น้องไม่ได้มาใช้บริการ ไม่ต้องขึ้นในประวัติ */
+  voided?: boolean;
 };
 
 export type PetHistory = {
@@ -81,6 +87,8 @@ export function petKey(name?: string) {
 
 type HistoryBooking = CountBooking & {
   time?: string;
+  /** รายการที่สร้างจากบิล (ไม่มีนัด) */
+  billId?: string;
   /** ป้ายจากบิล (ใช้แทนโปรแกรม/ห้องที่จองไว้) */
   billLabel?: string;
   billBookingId?: string;
@@ -115,7 +123,10 @@ function applyBills(
   const extra = new Map<string, HistoryBooking>();
 
   for (const bill of bills) {
+    if (bill.voided) continue;
     const anchor = bill.bookingId ? byId.get(bill.bookingId) : undefined;
+    // บิลของนัดที่ยกเลิก/ไม่มา — น้องไม่ได้มา ไม่ต้องสร้างรายการจากบิล
+    if (anchor && SKIP.has(anchor.status)) continue;
     const when = anchor ? startOf(anchor) : day(bill.date);
     for (const it of bill.items) {
       const room = it.kind !== "grooming";
@@ -156,6 +167,7 @@ function applyBills(
           checkout: room ? (anchor?.checkout ? day(anchor.checkout) : isDayCareLine(it.label) ? ci : plusDays(ci!, nights)) : undefined,
           billLabel: label,
           billBookingId: bill.bookingId,
+          billId: bill.id,
         });
       }
     }
@@ -266,6 +278,7 @@ export function petServiceHistory(
     if (b.billLabel) {
       entry.billed = true;
       entry.billBookingId = b.billBookingId;
+      if (!b.billBookingId && b.billId) entry.billId = b.billId;
     }
     h.entries.push(entry);
     if (entry.upcoming) {

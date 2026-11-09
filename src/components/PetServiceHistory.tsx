@@ -132,8 +132,15 @@ function PetDetail({ h }: { h: PetHistory }) {
           const cls = "relative flex min-h-[48px] items-center gap-2.5 py-1.5 pl-5";
           return (
             <li key={e.id}>
-              {e.billBookingId ? (
-                <Link href={`/admin/billing?bookingId=${encodeURIComponent(e.billBookingId)}`} className={cls}>
+              {e.billBookingId || e.billId ? (
+                <Link
+                  href={
+                    e.billBookingId
+                      ? `/admin/billing?bookingId=${encodeURIComponent(e.billBookingId)}`
+                      : `/admin/billing?bill=${encodeURIComponent(e.billId!)}`
+                  }
+                  className={cls}
+                >
                   {inner}
                 </Link>
               ) : (

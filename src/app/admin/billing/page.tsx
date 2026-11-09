@@ -832,6 +832,20 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
       document.getElementById("bills")?.scrollIntoView({ behavior: "smooth", block: "start" })
     );
   }, []);
+  // มาจากประวัติรายตัวในหน้าลูกค้า (?bill=<เลขบิล>) — รายการที่มาจากบิลอย่างเดียว → เปิดรายการบิลแล้วค้นเลขบิลนั้น
+  const jumpedToBill = useRef(false);
+  useEffect(() => {
+    if (jumpedToBill.current || invoices.length === 0) return;
+    const billId = new URLSearchParams(window.location.search).get("bill");
+    if (!billId) return;
+    jumpedToBill.current = true;
+    setBillFilter("all");
+    setBillMonth("");
+    setBillSearch(billId);
+    requestAnimationFrame(() =>
+      document.getElementById("bills")?.scrollIntoView({ behavior: "smooth", block: "start" })
+    );
+  }, [invoices]);
   const jumpedToBills = useRef(false);
   useEffect(() => {
     if (jumpedToBills.current || invoices.length === 0) return;

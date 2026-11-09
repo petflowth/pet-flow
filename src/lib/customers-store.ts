@@ -2618,16 +2618,32 @@ export type ServiceBill = {
   catName: string;
   date: string;
   items: { kind?: string; program?: string; label: string; catName?: string; qty?: number }[];
+  /** ยกเลิกนัดแล้วเก็บยอดเป็นเครดิต — ไม่ได้ใช้บริการจริง */
+  voided?: boolean;
 };
 
-async function listServiceBills(customerId: string): Promise<ServiceBill[]> {
+/** เลขบิลที่ "ยกเลิกนัด เก็บยอดเป็นเครดิต" ไปแล้ว (จากประวัติเติมเครดิตของลูกค้า) */
+function convertedInvoiceIds(topups: MemberTopupRecord[]): Set<string> {
+  const ids = new Set<string>();
+  for (const t of topups) {
+    if (t.sourceInvoiceId) ids.add(t.sourceInvoiceId);
+    // ร้านที่ยังไม่มีคอลัมน์ source_invoice_id / เมนูเดิม "โยกเป็นเครดิต" — เลขบิลจดอยู่ในโน้ต
+    const m = (t.note || "").match(/(?:ยกเลิกนัด|โยกเป็นเครดิต)[\s\S]*?บิล\s+([^\s·()]+)/);
+    if (m) ids.add(m[1]);
+  }
+  return ids;
+}
+
+async function listServiceBills(customerId: string, topups: MemberTopupRecord[] = []): Promise<ServiceBill[]> {
   const { listInvoices } = await import("./invoices-store");
   const { isRoomLine } = await import("./stay-line");
   const invoices = await listInvoices(customerId);
+  const converted = convertedInvoiceIds(topups);
   return invoices
     .map((i) => ({
       id: i.id,
       bookingId: i.bookingId,
+      voided: converted.has(i.id) || undefined,
       catName: i.catName,
       date: (i.paidAt || i.createdAt || "").slice(0, 10),
       items: (i.items || [])
@@ -2650,7 +2666,7 @@ export async function getCustomerHistory(customerId: string) {
   const memberTopups = await listMemberTopups(customerId);
   const memberCreditUsage = await listMemberCreditUsage(customerId);
   const packageUsage = await listPackageUsage(customerId);
-  const serviceBills = await listServiceBills(customerId);
+  const serviceBills = await listServiceBills(customerId, memberTopups);
   return {
     bookings,
     upcomingBookings,

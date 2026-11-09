@@ -6,6 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { Icon } from "@/components/Icon";
 import { EmptyState, MoreMenu, Segmented } from "@/components/ui";
 import { toast } from "@/components/Toast";
+import { bangkokDateOf } from "@/lib/bangkok-date";
+import { formatThaiDateShort } from "@/lib/format-thai-date";
 import {
   DocPdfButton,
   InvoiceDocument,
@@ -53,6 +55,22 @@ export default function InvoiceDocPage({ params }: { params: Promise<{ id: strin
   const vat = !!seller?.vatRegistered;
   const docNo = docNumberOf(doc, kind);
   const backHref = search.get("from") === "docs" ? "/admin/billing/docs" : "/admin/billing";
+
+  /** เปลี่ยนวันที่บิล (= วันที่บนเอกสารทุกใบ · บิลปิดแล้ววันรับเงินขยับตาม) */
+  const changeDate = async (date: string) => {
+    if (!date || !inv) return;
+    setBusy(true);
+    const res = await fetch("/api/invoices", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: inv.id, action: "set_issue_date", issueDate: date }),
+    }).catch(() => null);
+    setBusy(false);
+    if (res?.ok) {
+      toast(`เปลี่ยนวันที่เป็น ${formatThaiDateShort(date)} แล้ว`, "success");
+      load();
+    } else toast("เปลี่ยนวันที่ไม่สำเร็จ", "error");
+  };
 
   /** ออกเลขที่ก่อน (ครั้งแรก) — ส่ง/บันทึก/พิมพ์ทุกทางต้องมีเลขที่บนเอกสาร */
   const ensureNumber = async (): Promise<Data | null> => {
@@ -209,6 +227,20 @@ export default function InvoiceDocPage({ params }: { params: Promise<{ id: strin
           </span>
           <Icon name="chevron" size={16} className="text-brown-faint" />
         </button>
+        {/* วันที่บนเอกสาร = วันที่บิล — เปลี่ยนตรงนี้แล้วทุกใบ (ใบเสนอราคา/ใบแจ้งหนี้/ใบเสร็จ) ใช้วันเดียวกัน */}
+        <label className="flex items-center justify-between gap-3 rounded-petflow-sm border border-petflow-line bg-card px-3 py-2">
+          <span className="flex items-center gap-1.5 text-xs font-extrabold text-petflow-chocolate">
+            <Icon name="calendar" size={15} />
+            วันที่บนเอกสาร
+          </span>
+          <input
+            type="date"
+            value={bangkokDateOf((kind === "receipt" && inv.paidAt) || inv.createdAt)}
+            disabled={busy}
+            onChange={(e) => changeDate(e.target.value)}
+            className="rounded-full border border-petflow-line bg-paper px-3 py-1.5 text-sm font-bold text-petflow-chocolate disabled:opacity-50"
+          />
+        </label>
         <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-brown-soft">
           <span>
             เลขที่: <b className="text-brown">{docNo || "ออกให้อัตโนมัติเมื่อส่ง / บันทึก / พิมพ์"}</b>

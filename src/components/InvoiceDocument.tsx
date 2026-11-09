@@ -116,7 +116,11 @@ export function InvoiceDocument({
   const doc = data.doc;
   const vat = !!seller.vatRegistered;
   const docNo = docNumberOf(doc, kind);
-  const docDate = kind === "receipt" ? inv.paidAt || doc.receiptAt : kind === "quote" ? doc.quoteAt : doc.invoiceAt;
+  // วันที่บนเอกสาร = วันที่บิลที่ร้านเลือก (ค่าเริ่มต้นวันที่ออกบิล) — ใบเสร็จใช้วันรับเงิน ซึ่งลงตามวันที่บิลอยู่แล้ว
+  const docDate =
+    kind === "receipt"
+      ? inv.paidAt || doc.receiptAt
+      : inv.createdAt || (kind === "quote" ? doc.quoteAt : doc.invoiceAt);
   const title = docTitle(kind, vat);
   // ราคาในร้านรวม VAT แล้ว — แยกฐานภาษีกับภาษีออกจากยอดสุทธิ
   const vatAmount = vat ? Math.round(((inv.total * seller.vatRate) / (100 + seller.vatRate)) * 100) / 100 : 0;

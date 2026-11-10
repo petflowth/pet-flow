@@ -6,8 +6,20 @@ export type GoogleCredentials = {
   privateKey: string;
   calendarId: string;
   spreadsheetId: string;
-  source: "env" | "database";
+  source: "env" | "database" | "platform";
 };
+
+/**
+ * บัญชีกลางของ PetFlow (service account ใน env) — ร้านไม่ต้องสร้าง Google Cloud เอง
+ * แค่แชร์ชีต/ปฏิทินของร้านให้อีเมลนี้ แล้ววางลิงก์ในหน้า ติดตั้งระบบ
+ * แต่ละร้านยังเขียนลงชีต/ปฏิทินของตัวเอง (เก็บ id แยกต่อร้านใน secrets)
+ */
+export function getPlatformRobot(): { email: string; privateKey: string } | null {
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim();
+  const key = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  if (!email || !key) return null;
+  return { email, privateKey: key };
+}
 
 export function parseSpreadsheetId(input: string): string {
   const trimmed = input.trim();
@@ -26,6 +38,9 @@ export function parseCalendarId(input: string): string {
       /* fall through */
     }
   }
+  // ลิงก์ฝัง/ลิงก์สาธารณะ: …/embed?src=xxx%40group.calendar.google.com
+  const src = trimmed.match(/[?&]src=([^&]+)/)?.[1];
+  if (src) return decodeURIComponent(src);
   if (trimmed.includes("@group.calendar.google.com")) return trimmed;
   return trimmed;
 }
@@ -67,6 +82,18 @@ export async function getGoogleCredentials(): Promise<GoogleCredentials | null> 
 
   const secrets = await getSecrets();
   const g = secrets.google;
+  if (g?.calendarId && g.spreadsheetId && !g.privateKey) {
+    const robot = getPlatformRobot();
+    if (robot) {
+      return {
+        serviceAccountEmail: robot.email,
+        privateKey: robot.privateKey,
+        calendarId: g.calendarId,
+        spreadsheetId: g.spreadsheetId,
+        source: "platform",
+      };
+    }
+  }
   if (g?.serviceAccountEmail && g.privateKey && g.calendarId && g.spreadsheetId) {
     return {
       serviceAccountEmail: g.serviceAccountEmail,

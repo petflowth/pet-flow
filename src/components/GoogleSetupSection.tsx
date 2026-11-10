@@ -7,18 +7,17 @@ type GoogleStatus = {
   configured: boolean;
   source: string;
   serviceAccountEmail?: string;
+  robotEmail?: string | null;
   test?: { ok: boolean; messages: string[] };
 };
 
 export function GoogleSetupSection({ adminCode }: { adminCode: string }) {
   const [status, setStatus] = useState<GoogleStatus | null>(null);
   const [jsonText, setJsonText] = useState("");
-  const [spreadsheetUrl, setSpreadsheetUrl] = useState(
-    "https://docs.google.com/spreadsheets/d/1VQD7eHUpkiy6TuyfgVATsUM_aOxNdbxyZYSbrw1EF74/edit"
-  );
-  const [calendarUrl, setCalendarUrl] = useState(
-    "https://calendar.google.com/calendar/u/0?cid=OGU5ZDJkZjU3ODBiOWJmY2U0NmI2NjBhZGQzY2VlMmVkNDFlZDcxZTFiZDcwNjViMWFlY2YzZTgxZTI3OTI3Y0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t"
-  );
+  // เดิมใส่ลิงก์ชีต/ปฏิทินของร้านแรกไว้เป็นค่าเริ่มต้น → ร้านใหม่เผลอกดบันทึกแล้วชี้ไปของร้านอื่น
+  const [spreadsheetUrl, setSpreadsheetUrl] = useState("");
+  const [calendarUrl, setCalendarUrl] = useState("");
+  const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
@@ -53,6 +52,8 @@ export function GoogleSetupSection({ adminCode }: { adminCode: string }) {
     return <p className="text-xs text-brown-soft">กำลังตรวจ Google…</p>;
   }
 
+  const robotEmail = status?.robotEmail || "";
+
   return (
     <section className="mb-4 space-y-3 rounded-petflow bg-card p-4 shadow-petflow-sm">
       <h2 className="flex items-center gap-2.5 text-sm font-extrabold text-petflow-chocolate">
@@ -62,12 +63,15 @@ export function GoogleSetupSection({ adminCode }: { adminCode: string }) {
         Google Calendar + Sheets
       </h2>
       <p className="text-xs text-brown-soft">
-        วาง 3 อย่างแล้วกดบันทึก — <b>ไม่ต้องใส่ Vercel</b> (เก็บในระบบให้)
+        การจองจะขึ้นในปฏิทินของร้าน และสำรองข้อมูลลงชีตของร้านทุกคืน —{" "}
+        <a href="/guide/google" target="_blank" className="font-bold underline">
+          ดูวิธีทำแบบมีรูป
+        </a>
       </p>
 
       {status?.configured ? (
         <div className="rounded-petflow-sm bg-sage/15 px-3 py-2 text-xs">
-          <p className="font-bold text-ok">Google พร้อมแล้ว ({status.source})</p>
+          <p className="font-bold text-ok">Google เชื่อมแล้ว ✅</p>
           {status.serviceAccountEmail && (
             <p className="mt-1 text-brown-soft">Service: {status.serviceAccountEmail}</p>
           )}
@@ -80,45 +84,74 @@ export function GoogleSetupSection({ adminCode }: { adminCode: string }) {
         </p>
       )}
 
-      <label className="block text-xs font-bold text-brown-soft">
-        1. วางไฟล์ JSON จาก Google Cloud (ทั้งก้อน)
-        <textarea
-          value={jsonText}
-          onChange={(e) => setJsonText(e.target.value)}
-          rows={6}
-          placeholder='วางเนื้อหา petflow-hote-xxxxx.json ทั้งไฟล์…'
-          className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper p-2 font-mono text-[10px]"
-        />
-      </label>
+      {robotEmail ? (
+        <div className="rounded-petflow-sm bg-honey/15 px-3 py-2 text-xs text-brown-soft">
+          <p className="font-bold text-petflow-chocolate">
+            1. แชร์ชีต (ผู้แก้ไข) และปฏิทิน (ทำการเปลี่ยนแปลงกิจกรรม) ให้อีเมลนี้
+          </p>
+          <div className="mt-1.5 flex items-center gap-2">
+            <code className="min-w-0 flex-1 break-all rounded bg-card px-2 py-1.5 text-[11px]">
+              {robotEmail}
+            </code>
+            <button
+              type="button"
+              onClick={async () => {
+                await navigator.clipboard.writeText(robotEmail);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+              className="shrink-0 rounded-full bg-petflow-chocolate px-3 py-1.5 text-[11px] font-bold text-card"
+            >
+              {copied ? "คัดลอกแล้ว" : "คัดลอก"}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <label className="block text-xs font-bold text-brown-soft">
-        2. ลิงก์ Google Sheet
+        {robotEmail ? "2" : "1"}. ลิงก์ Google Sheet ของร้าน
         <input
           value={spreadsheetUrl}
           onChange={(e) => setSpreadsheetUrl(e.target.value)}
+          placeholder="https://docs.google.com/spreadsheets/d/…"
           className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs"
         />
       </label>
 
       <label className="block text-xs font-bold text-brown-soft">
-        3. ลิงก์ Google Calendar
+        {robotEmail ? "3" : "2"}. รหัสปฏิทิน (Calendar ID) หรือลิงก์ปฏิทิน
         <input
           value={calendarUrl}
           onChange={(e) => setCalendarUrl(e.target.value)}
+          placeholder="xxxx@group.calendar.google.com"
           className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs"
         />
       </label>
 
-      <div className="rounded-petflow-sm bg-honey/15 px-3 py-2 text-[10px] text-brown-soft">
-        <p className="font-bold text-petflow-chocolate">ก่อนกดบันทึก — Share ให้ service account:</p>
-        <p className="mt-1">
-          เปิด JSON ดู <code>client_email</code> → Share Sheet (Editor) + Calendar (แก้ไข event)
+      <details open={!robotEmail} className="rounded-petflow-sm bg-paper px-3 py-2 text-xs">
+        <summary className="cursor-pointer font-bold text-brown-soft">
+          {robotEmail ? "ขั้นสูง: ใช้ Google Cloud ของร้านเอง" : "วางไฟล์ JSON จาก Google Cloud"}
+        </summary>
+        <textarea
+          value={jsonText}
+          onChange={(e) => setJsonText(e.target.value)}
+          rows={5}
+          placeholder="วางเนื้อหาไฟล์ .json ทั้งไฟล์ (ถ้าเว้นว่างจะใช้อีเมลกลางของระบบ)"
+          className="mt-2 w-full rounded-petflow-sm border border-petflow-line bg-card p-2 font-mono text-[10px]"
+        />
+        <p className="mt-1 text-[10px] text-brown-soft">
+          แชร์ชีต/ปฏิทินให้ <code>client_email</code> ในไฟล์ JSON แทน
         </p>
-      </div>
+      </details>
 
       <button
         type="button"
-        disabled={saving || !jsonText.trim()}
+        disabled={
+          saving ||
+          !spreadsheetUrl.trim() ||
+          !calendarUrl.trim() ||
+          (!robotEmail && !jsonText.trim())
+        }
         onClick={save}
         className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-petflow-chocolate text-sm font-extrabold text-card disabled:opacity-50"
       >

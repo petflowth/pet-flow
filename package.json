@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@line/liff": "^2.29.1",
+    "@line/liff": "^2.32.0",
     "@supabase/supabase-js": "^2.110.1",
     "googleapis": "^144.0.0",
     "html-to-image": "^1.11.11",

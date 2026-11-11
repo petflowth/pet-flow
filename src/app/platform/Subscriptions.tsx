@@ -6,6 +6,8 @@ import { NumInput } from "@/components/NumInput";
 type Settings = {
   monthly: number;
   yearly: number;
+  monthly2: number;
+  yearly2: number;
   bankName: string;
   accountName: string;
   accountNo: string;
@@ -16,6 +18,7 @@ type Payment = {
   id: string;
   tenantId: string;
   plan: "month" | "year";
+  branches?: number;
   amount: number;
   note: string;
   status: "pending" | "approved" | "rejected";
@@ -26,11 +29,14 @@ type Payment = {
 type ShopRef = { id: string; name: string };
 
 const PLAN_LABEL = { month: "รายเดือน", year: "รายปี" };
+const tierText = (p: { branches?: number }) => ((p.branches || 1) >= 2 ? ` ${p.branches} สาขา` : "");
 const STATUS_LABEL = { pending: "รออนุมัติ", approved: "อนุมัติแล้ว", rejected: "ไม่อนุมัติ" };
 
 const FIELDS: { key: keyof Settings; label: string; num?: boolean }[] = [
-  { key: "monthly", label: "ราคารายเดือน (บาท)", num: true },
-  { key: "yearly", label: "ราคารายปี (บาท)", num: true },
+  { key: "monthly", label: "1 สาขา รายเดือน (บาท)", num: true },
+  { key: "yearly", label: "1 สาขา รายปี (บาท)", num: true },
+  { key: "monthly2", label: "2 สาขา รายเดือน (บาท) · 0 = ยังไม่เปิดขาย", num: true },
+  { key: "yearly2", label: "2 สาขา รายปี (บาท)", num: true },
   { key: "bankName", label: "ธนาคาร" },
   { key: "accountNo", label: "เลขบัญชี" },
   { key: "accountName", label: "ชื่อบัญชี" },
@@ -82,7 +88,7 @@ export default function Subscriptions({ tenants, onChanged }: { tenants: ShopRef
   const decide = async (p: Payment, approve: boolean) => {
     const note = approve ? "" : prompt("เหตุผลที่ไม่อนุมัติ (ร้านจะเห็น)") ?? null;
     if (note === null) return;
-    if (approve && !confirm(`อนุมัติ ${nameOf(p.tenantId)} ${PLAN_LABEL[p.plan]} ${p.amount.toLocaleString()} บาท?`)) return;
+    if (approve && !confirm(`อนุมัติ ${nameOf(p.tenantId)} ${PLAN_LABEL[p.plan]}${tierText(p)} ${p.amount.toLocaleString()} บาท?`)) return;
     setBusy(p.id);
     const res = await fetch("/api/platform/subscription", {
       method: "PATCH",
@@ -115,7 +121,10 @@ export default function Subscriptions({ tenants, onChanged }: { tenants: ShopRef
       </div>
       {settings && !editing && (
         <p className="mb-3 text-xs text-white/50">
-          รายเดือน {settings.monthly.toLocaleString()} บาท · รายปี {settings.yearly.toLocaleString()} บาท
+          1 สาขา: เดือน {settings.monthly.toLocaleString()} · ปี {settings.yearly.toLocaleString()} บาท · 2 สาขา:{" "}
+          {settings.monthly2 || settings.yearly2
+            ? `เดือน ${(settings.monthly2 || 0).toLocaleString()} · ปี ${(settings.yearly2 || 0).toLocaleString()} บาท`
+            : "ยังไม่ตั้งราคา"}
           {settings.accountNo ? ` · ${settings.bankName} ${settings.accountNo}` : " · ยังไม่ได้ใส่บัญชีรับเงิน"}
         </p>
       )}
@@ -160,7 +169,8 @@ export default function Subscriptions({ tenants, onChanged }: { tenants: ShopRef
             <div className="min-w-0">
               <p className="text-sm font-bold">{nameOf(p.tenantId)}</p>
               <p className="text-[11px] text-white/60">
-                {PLAN_LABEL[p.plan]} · {p.amount.toLocaleString()} บาท · ส่งเมื่อ{" "}
+                {PLAN_LABEL[p.plan]}
+                {tierText(p)} · {p.amount.toLocaleString()} บาท · ส่งเมื่อ{" "}
                 {new Date(p.createdAt).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}
                 {p.note ? ` · ${p.note}` : ""}
               </p>
@@ -200,7 +210,8 @@ export default function Subscriptions({ tenants, onChanged }: { tenants: ShopRef
           <ul className="mt-2 space-y-1 text-[11px] text-white/60">
             {done.map((p) => (
               <li key={p.id}>
-                {nameOf(p.tenantId)} · {PLAN_LABEL[p.plan]} {p.amount.toLocaleString()} บาท · {STATUS_LABEL[p.status]}
+                {nameOf(p.tenantId)} · {PLAN_LABEL[p.plan]}
+                {tierText(p)} {p.amount.toLocaleString()} บาท · {STATUS_LABEL[p.status]}
                 {p.dueAfter ? ` · ถึง ${p.dueAfter}` : ""}
                 {p.decidedNote ? ` · ${p.decidedNote}` : ""}
               </li>

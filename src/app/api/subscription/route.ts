@@ -8,7 +8,9 @@ import {
   getBillingSettings,
   getTenantBilling,
   listPayments,
+  planPrice,
   type Plan,
+  type PlanBranches,
 } from "@/lib/subscription-store";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +33,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     status: t?.status || "active",
     dueDate: t?.dueDate || null,
+    branchLimit: t?.branchLimit || 1,
     overdue: isOverdue(t?.dueDate),
     settings,
     payments,
@@ -56,7 +59,11 @@ export async function POST(req: NextRequest) {
   }
 
   const settings = await getBillingSettings();
-  const amount = plan === "year" ? settings.yearly : settings.monthly;
+  const branches: PlanBranches = Number(body.branches) === 2 ? 2 : 1;
+  const amount = planPrice(settings, plan, branches);
+  if (branches === 2 && !amount) {
+    return NextResponse.json({ error: "แพ็กเกจ 2 สาขายังไม่เปิดให้เลือก ติดต่อ PetFlow นะคะ" }, { status: 400 });
+  }
   const id = crypto.randomUUID();
   const slipUrl = await withTenantEvenIfClosed(session.tenantId, () =>
     uploadPrivateDataUrl(`subscription-slips/${id}`, slip)
@@ -68,6 +75,7 @@ export async function POST(req: NextRequest) {
     id,
     tenantId: session.tenantId,
     plan,
+    branches,
     amount,
     slipUrl,
     note: String(body.note || "").slice(0, 300),

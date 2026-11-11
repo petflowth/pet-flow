@@ -41,11 +41,20 @@ export type BranchOverrideKey = (typeof BRANCH_OVERRIDE_KEYS)[number];
 /** คุกกี้จำว่าหลังบ้านกำลังดูสาขาไหน (ค่า = id สาขา · ไม่มีคุกกี้ = ดูทุกสาขา) */
 export const BRANCH_COOKIE = "pf_branch";
 
-type WithBranches = { branches?: Branch[] | null };
+type WithBranches = { branches?: Branch[] | null; branchLimit?: number | null };
 type WithRooms = { rooms?: { id: string; name: string; branchId?: string }[] | null };
 
 export function shopBranches(config: WithBranches | null | undefined): Branch[] {
-  return (config?.branches || []).filter((b) => b && b.id && String(b.name || "").trim());
+  const list = (config?.branches || []).filter((b) => b && b.id && String(b.name || "").trim());
+  // หลายสาขาเป็นฟังก์ชันจ่ายเพิ่ม — แพ็กเกจให้กี่สาขาก็ใช้ได้เท่านั้น (สาขาที่เกินยังเก็บไว้ ไม่ลบ จ่ายแล้วกลับมาเอง)
+  const limit = config?.branchLimit;
+  return typeof limit === "number" && limit > 0 ? list.slice(0, limit) : list;
+}
+
+/** จำนวนสาขาที่แพ็กเกจของร้านใช้ได้ (ไม่รู้ = ไม่จำกัด) */
+export function branchLimitOf(config: WithBranches | null | undefined): number {
+  const limit = config?.branchLimit;
+  return typeof limit === "number" && limit > 0 ? limit : Infinity;
 }
 
 /** มีตั้งแต่ 2 สาขาขึ้นไป — ถึงจะโชว์ปุ่มเลือกสาขา/ช่องเลือกสาขาต่าง ๆ */

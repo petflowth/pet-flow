@@ -65,6 +65,14 @@ export async function GET(req: NextRequest) {
       if (r.custom_domain) domains.set(r.id, r.custom_domain);
     }
   }
+  // จำนวนสาขาที่แพ็กเกจใช้ได้ — อ่านแยกเหมือนโดเมน (ฐานที่ยังไม่มีคอลัมน์ต้องไม่ทำให้รายชื่อร้านพัง)
+  const limits = new Map<string, number>();
+  if (!error) {
+    const { data: rows } = await sb.from("tenants").select("id, branch_limit").gt("branch_limit", 1);
+    for (const r of (rows as { id: string; branch_limit: number | null }[] | null) || []) {
+      if (r.branch_limit) limits.set(r.id, r.branch_limit);
+    }
+  }
   if (error) {
     const hint = /fetch failed/i.test(error.message) ? await probeSupabase() : "";
     return NextResponse.json({ error: hint ? `${error.message} — ${hint}` : error.message }, { status: 500 });
@@ -90,6 +98,7 @@ export async function GET(req: NextRequest) {
       template: t.template,
       trialEndsAt: t.trial_ends_at,
       dueDate: t.due_date || null,
+      branchLimit: limits.get(t.id) || 1,
       customDomain: domains.get(t.id) || null,
       createdAt: t.created_at,
       ownerUsername: t.owner_username,

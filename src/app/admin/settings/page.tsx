@@ -2154,6 +2154,39 @@ function GroomProgramsTab({
             </button>
           </div>
 
+          {/* ร้านรับสัตว์หลายชนิด: ติ๊กว่าโปรแกรมนี้ของชนิดไหน (ไม่ติ๊ก = ทุกชนิด) */}
+          {speciesListOf(config).length >= 2 && (
+            <div className="mb-3">
+              <p className="mb-1 text-[10px] font-bold text-brown-soft">
+                ใช้กับสัตว์ชนิดไหน (ไม่เลือก = ทุกชนิด · ลูกค้าจะเห็นเฉพาะโปรแกรมของชนิดสัตว์ตัวเอง)
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {speciesListOf(config).map((sp) => {
+                  const on = (prog.species || []).includes(sp.id);
+                  return (
+                    <button
+                      key={sp.id}
+                      type="button"
+                      onClick={() =>
+                        updateProgram(progIdx, {
+                          species: on
+                            ? (prog.species || []).filter((x) => x !== sp.id)
+                            : [...(prog.species || []), sp.id],
+                        })
+                      }
+                      className={`min-h-[36px] rounded-full px-3 text-[11px] font-bold ${
+                        on ? "bg-petflow-chocolate text-card" : "bg-paper text-brown-soft"
+                      }`}
+                    >
+                      {sp.emoji ? `${sp.emoji} ` : ""}
+                      {sp.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* บริการย่อยที่รวมในโปรแกรม — โชว์เป็นแท็กตอนเลือกโปรแกรมและบนบอร์ดคิว */}
           <div className="mb-3">
             <p className="mb-1 text-[10px] font-bold text-brown-soft">รวมบริการย่อย (แท็ก)</p>

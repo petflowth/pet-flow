@@ -167,7 +167,10 @@ export function LiffSetupSection({ adminCode }: { adminCode?: string }) {
         LINE LIFF — แอปลูกค้าใน LINE
       </h2>
       <p className="text-xs text-brown-soft">
-        ใช้สำหรับลูกค้าเปิดแอปจาก LINE · ลงทะเบียน · ยืนยันนัดจากการ์ดที่ส่ง
+        ใช้สำหรับลูกค้าเปิดแอปจาก LINE · ลงทะเบียน · ยืนยันนัดจากการ์ดที่ส่ง —{" "}
+        <a href="/guide/line" target="_blank" className="font-bold underline">
+          ดูวิธีทำแบบมีรูป
+        </a>
       </p>
 
       {status?.liffConfigured ? (
@@ -342,7 +345,10 @@ export function LineMessagingSetupSection({ adminCode }: { adminCode?: string })
         LINE Messaging — ส่งการ์ดยืนยันนัด
       </h2>
       <p className="text-xs text-brown-soft">
-        Channel Access Token สำหรับส่งการ์ด Flex ให้ลูกค้า (แยกจาก LIFF ด้านบน)
+        Channel Access Token สำหรับส่งการ์ด Flex ให้ลูกค้า (แยกจาก LIFF ด้านบน) —{" "}
+        <a href="/guide/line" target="_blank" className="font-bold underline">
+          ดูวิธีทำแบบมีรูป
+        </a>
         {status?.source === "env" ? (
           <span className="mt-1 block text-wait">
             ใช้ Token จาก Vercel — ถ้าส่งไม่ได้ ให้บันทึกที่นี่แทน

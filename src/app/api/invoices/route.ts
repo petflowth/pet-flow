@@ -167,7 +167,22 @@ async function handleGet(req: NextRequest, id: string | null) {
   // บิลของลูกค้ารายเดียว = ทุกสาขา · รายการบิลรวมหลังบ้าน = ตามสาขาที่เลือกดู
   const list = await listInvoices(customerId);
   const branchId = customerId ? null : await adminBranchScope(req);
-  return NextResponse.json({ invoices: branchId ? await (await branchFilter(branchId)).invoices(list) : list });
+  const shown = branchId ? await (await branchFilter(branchId)).invoices(list) : list;
+  // เงินที่เข้าร้านจริงของแต่ละบิล (รายรับที่ผูกบิลในหน้าการเงิน) — การ์ดบิลจะได้บอกได้ว่า
+  // ส่วนไหนเป็นเงินเข้า ส่วนไหนตัดเครดิต/หักคอร์ส (ซึ่งไม่ขึ้นเป็นรายรับ)
+  const moneyIn = new Map<string, number>();
+  try {
+    const { listFinance } = await import("@/lib/finance-store");
+    for (const r of await listFinance()) {
+      if (r.type !== "income" || !r.invoiceId || r.excluded) continue;
+      moneyIn.set(r.invoiceId, (moneyIn.get(r.invoiceId) || 0) + r.amount);
+    }
+  } catch {
+    /* โหลดรายรับไม่ได้ — การ์ดบิลแค่ไม่โชว์บรรทัดเงินเข้า */
+  }
+  return NextResponse.json({
+    invoices: shown.map((inv) => ({ ...inv, moneyIn: moneyIn.get(inv.id) || 0 })),
+  });
 }
 
 const CONVERTED_MSG =

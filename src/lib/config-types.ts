@@ -223,6 +223,10 @@ export type SiteConfig = {
     phones: string[];
     maps: string;
     facebook: string;
+    nameEn?: string;
+    instagram?: string;
+    tiktok?: string;
+    openHours?: string;
     /** ลิงก์ให้ลูกค้ารีวิว (แยกจากลิงก์แผนที่) */
     reviewUrl: string;
     /** คำในปุ่มรีวิว */

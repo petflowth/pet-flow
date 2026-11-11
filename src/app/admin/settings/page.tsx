@@ -1005,6 +1005,15 @@ function ShopTab({
       />
       <Field label="Google Maps URL" value={form.maps} onChange={(v) => setForm({ ...form, maps: v })} />
       <Field label="Facebook" value={form.facebook} onChange={(v) => setForm({ ...form, facebook: v })} />
+      <Field label="ชื่อร้านภาษาอังกฤษ" value={form.nameEn || ""} onChange={(v) => setForm({ ...form, nameEn: v })} />
+      <Field label="Instagram" value={form.instagram || ""} onChange={(v) => setForm({ ...form, instagram: v })} placeholder="@ชื่อร้าน หรือลิงก์" />
+      <Field label="TikTok" value={form.tiktok || ""} onChange={(v) => setForm({ ...form, tiktok: v })} placeholder="@ชื่อร้าน หรือลิงก์" />
+      <Field
+        label="เวลาเปิด-ปิด (ลูกค้าเห็นในแอป)"
+        value={form.openHours || ""}
+        onChange={(v) => setForm({ ...form, openHours: v })}
+        placeholder="เช่น ทุกวัน 09:00–18:00 หยุดวันพุธ"
+      />
       <Field
         label="ลิงก์รีวิว (Google) — ส่งให้ลูกค้ารีวิว"
         value={form.reviewUrl || ""}

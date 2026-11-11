@@ -303,6 +303,47 @@
     .petflow *, .petflow *::before, .petflow *::after { animation-duration: 0.01s !important; animation-iteration-count: 1 !important; }
     .pf-msg, .pf-card, .pf-toast, .pf-mini-row, .pf-bar-line, .pf-money, .pf-tg { opacity: 1 !important; }
   }
+
+  /* ═══ REAL SCREENSHOTS (ภาพหน้าจอจริงจากระบบ ข้อมูลตัวอย่าง) ═══ */
+  .pf-real-note { display:inline-flex; align-items:center; gap:7px; margin-top:14px; font-size:11.5px; font-weight:700; color:var(--aqua-dim); background:var(--aqua-soft); border:1px solid rgba(18,181,205,0.25); padding:6px 12px; border-radius:999px; }
+  .pf-device { position:relative; padding: 0 0 36px; }
+  .pf-browser { background:#fff; border:1px solid var(--line); border-radius:14px; overflow:hidden; box-shadow: 0 30px 70px -30px rgba(18,181,205,0.5), 0 18px 44px -24px rgba(35,37,92,0.25); }
+  .pf-browser .bar { display:flex; gap:6px; align-items:center; padding:9px 12px; background:#f6f8fc; border-bottom:1px solid var(--line); }
+  .pf-browser .bar i { width:9px; height:9px; border-radius:50%; background:#ff6b6b; }
+  .pf-browser .bar i:nth-child(2){ background:#ffc93c } .pf-browser .bar i:nth-child(3){ background:#3ccf7a }
+  .pf-browser .bar span { margin-left:10px; font-size:10.5px; color:var(--text-dim); background:#fff; border:1px solid var(--line); border-radius:6px; padding:2px 10px; }
+  .pf-browser img { display:block; width:100%; height:auto; }
+  .pf-device .pf-overphone { position:absolute; right:-10px; bottom:0; width:34%; min-width:120px; border:6px solid #fff; border-radius:22px; overflow:hidden; box-shadow: 0 22px 48px -18px rgba(35,37,92,0.45); background:#fff; }
+  .pf-device .pf-overphone img { display:block; width:100%; height:auto; }
+  @media (min-width: 881px) { .pf-hero-grid { grid-template-columns: 0.9fr 1.1fr; } }
+  @media (max-width: 880px) { .pf-device .pf-overphone { right:4px; } }
+
+  .pf-reals { display:grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: clamp(28px, 4vw, 44px); }
+  @media (max-width: 940px) { .pf-reals { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .pf-reals { grid-template-columns: 1fr; } }
+  .pf-real { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow:hidden; box-shadow: 0 14px 30px -24px rgba(35,37,92,0.45); display:flex; flex-direction:column; }
+  .pf-real .pf-shot-head .t { display:flex; align-items:center; }
+  .pf-real figure { margin: 14px 14px 12px; border-radius: 16px; overflow:hidden; border:1px solid var(--line); background:#fdf3f8; aspect-ratio: 390 / 600; }
+  .pf-real figure img { display:block; width:100%; height:100%; object-fit:cover; object-position: top; }
+  .pf-real .pf-shot-caption { margin:0; font-size:12px; }
+
+  .pf-strip { display:flex; gap:16px; overflow-x:auto; scroll-snap-type:x mandatory; padding: 6px 2px 18px; margin-top: clamp(24px, 4vw, 40px); -webkit-overflow-scrolling: touch; }
+  .pf-strip::-webkit-scrollbar { height:8px } .pf-strip::-webkit-scrollbar-thumb { background: var(--line); border-radius:8px }
+  .pf-strip-item { flex: 0 0 min(230px, 70vw); scroll-snap-align:start; }
+  .pf-strip-item .ph { border:6px solid #fff; border-radius:26px; overflow:hidden; box-shadow: 0 18px 38px -22px rgba(35,37,92,0.5); outline:1px solid var(--line); aspect-ratio: 390/760; background:#fdf3f8; }
+  .pf-strip-item .ph img { display:block; width:100%; height:100%; object-fit:cover; object-position:top; }
+  .pf-strip-item .cap { margin-top:10px; font-size:12px; color:var(--text-dim); }
+  .pf-strip-item .cap b { display:block; color:var(--text); font-size:13px; }
+  .pf-strip-hint { font-size:11.5px; color:var(--text-dim); margin-top:4px; }
+
+  .pf-linecards { columns: 3 280px; column-gap: 18px; margin-top: clamp(28px, 4vw, 44px); }
+  .pf-lc { break-inside: avoid; margin: 0 0 18px; background:#fff; border:1px solid var(--line); border-radius:18px; padding:12px; box-shadow: 0 14px 30px -24px rgba(35,37,92,0.45); }
+  .pf-lc .when { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:800; color:var(--text); margin: 2px 2px 10px; }
+  .pf-lc .when .n { flex:none; width:22px; height:22px; border-radius:50%; background: linear-gradient(135deg, var(--aqua), var(--violet)); color:#fff; font-size:11px; display:grid; place-items:center; }
+  .pf-lc .when .auto { margin-left:auto; font-size:9.5px; font-weight:800; letter-spacing:0.06em; color:var(--good); background:#e8f8ee; padding:2px 8px; border-radius:99px; white-space:nowrap; }
+  .pf-lc .when .auto.hand { color:var(--violet); background:#f1ecff; }
+  .pf-lc img { display:block; width:100%; height:auto; border-radius:12px; }
+  .pf-lc p { margin: 10px 2px 2px; font-size:12px; color:var(--text-dim); }
 </style>
 
 <div class="petflow">
@@ -323,28 +364,14 @@
       </div>
 
       <figure style="margin:0">
-        <div class="pf-phone">
-          <div class="pf-phone-screen">
-            <div class="pf-scene-bar"><i></i></div>
-            <div class="pf-chat">
-              <div class="pf-msg cust pf-t1">จองอาบน้ำให้น้อง Soju พรุ่งนี้ได้ไหมคะ 🐱</div>
-              <div class="pf-card pf-t2">
-                <div class="hd">✅ ยืนยันนัดสำเร็จ</div>
-                <div class="bd"><span><b>Soju</b> · อาบน้ำ Premium</span><span>พรุ่งนี้ · 12:30 น.</span></div>
-                <div class="bt"><span>แจ้งประวัติน้องก่อนอาบน้ำ</span></div>
-              </div>
-              <div class="pf-msg cust pf-t3">โอนมัดจำแล้วนะคะ ✔️</div>
-              <div class="pf-card pf-t4">
-                <div class="hd">🧾 ใบเสร็จรับเงิน</div>
-                <div class="bd"><span>ชำระแล้ว <b>855 บาท</b></span><span>มัดจำ 200 หักให้อัตโนมัติ · +8 แต้ม</span></div>
-                <div class="bt"><span>⭐ รีวิวให้เราหน่อยนะคะ</span></div>
-              </div>
-              <div class="pf-msg shop pf-t5">ขอบคุณที่ไว้วางใจนะคะ แล้วเจอกันพรุ่งนี้ค่ะ 🧡</div>
-            </div>
-            <div class="pf-toast pf-t6">📲 <b>Telegram → ทีมงาน:</b> ลูกค้ายืนยันนัด + ชำระแล้ว 855 บาท — ไม่ต้องเฝ้าแชทเอง</div>
+        <div class="pf-device">
+          <div class="pf-browser">
+            <div class="bar"><i></i><i></i><i></i><span>petflow.online · หลังบ้านร้าน</span></div>
+            <img src="/home/desk-schedule.webp" alt="หน้าตารางนัดของหลังบ้าน PetFlow (ภาพหน้าจอจริง ข้อมูลตัวอย่าง)" width="1600" height="1000" loading="eager" />
           </div>
+          <div class="pf-overphone"><img src="/home/card-bookingConfirm.webp" alt="การ์ด LINE ยืนยันนัดที่ลูกค้าได้รับ (ภาพจริง)" width="560" height="576" loading="eager" /></div>
         </div>
-        <figcaption class="pf-phone-caption">▶ เดโมจริงของระบบ — <b>ทั้งหมดนี้เกิดขึ้นเองอัตโนมัติ</b> ไม่มีพนักงานพิมพ์แม้แต่ข้อความเดียว</figcaption>
+        <figcaption class="pf-phone-caption">ภาพหน้าจอจริงจากระบบ — <b>หลังบ้านร้าน + การ์ด LINE ที่ลูกค้าได้รับ</b> (ใช้ข้อมูลตัวอย่าง)</figcaption>
       </figure>
     </div>
   </header>
@@ -382,158 +409,45 @@
     </div>
   </section>
 
-  <!-- ═══════════ SCREEN GALLERY — 6 product shots ═══════════ -->
+  <!-- ═══════════ SCREEN GALLERY — ภาพหน้าจอจริงฝั่งร้าน ═══════════ -->
   <section class="pf-section">
     <div class="pf-wrap">
-      <p class="pf-kicker">หน้าจอจริงของระบบ — ฝั่งร้าน</p>
+      <p class="pf-kicker">หน้าจอจริงของระบบ — ฝั่งเจ้าของร้าน</p>
       <h2 class="pf-h2">หน้าที่จะกลายเป็น<span class="glow">เครื่องมือประจำวัน</span>ของคุณ</h2>
-      <p class="pf-lead">ข้อมูลตัวอย่างจากการใช้งานจริง — ทุกหน้าเปิดจากมือถือได้ ไม่ต้องลงโปรแกรม</p>
+      <p class="pf-lead">ทุกภาพด้านล่างคือหน้าจอจริงของ PetFlow เปิดจากมือถือ — ไม่ใช่ภาพวาดหรือภาพจำลอง ไม่ต้องลงโปรแกรม</p>
+      <span class="pf-real-note">📸 ภาพหน้าจอจริง · ชื่อลูกค้าและตัวเลขเป็นข้อมูลตัวอย่าง</span>
 
-      <div class="pf-shots">
-
-        <!-- 1. Dashboard -->
-        <article class="pf-shot">
-          <div class="pf-shot-head"><span class="t">📅 ตารางนัดวันนี้</span><span class="k">Dashboard</span></div>
-          <div class="pf-shot-body">
-            <div class="pf-row2"><div class="who"><b>Soju · ตาล</b><span>🛁 อาบน้ำ · 12:30 น.</span></div><span class="pf-chipx ok">ยืนยันแล้ว</span></div>
-            <div class="pf-row2"><div class="who"><b>เรเนล · ดาด้า</b><span>🏠 เช็คอิน Mini Meow · มาส่ง 10:00</span></div><span class="pf-chipx ok">ยินยอมแล้ว</span></div>
-            <div class="pf-row2"><div class="who"><b>น้องพลูโต · คุณมาย</b><span>🛁 อาบน้ำ · 15:00 น.</span></div><span class="pf-chipx wait">รอยืนยัน</span></div>
-            <div class="pf-total"><span class="l">ยอดขายวันนี้</span><span class="v">฿4,950</span></div>
-          </div>
-          <p class="pf-shot-caption">เปิดมาเห็นทั้งวันในหน้าเดียว — <b>ใครมากี่โมง จ่ายหรือยัง ใครยังไม่ยืนยัน</b></p>
+      <div class="pf-reals">
+        <article class="pf-real">
+          <div class="pf-shot-head"><span class="t">🏠 หน้าแรกหลังบ้าน</span><span class="k">Dashboard</span></div>
+          <figure><img src="/home/own-dashboard.webp" alt="🏠 หน้าแรกหลังบ้าน — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
+          <p class="pf-shot-caption">เปิดมาเห็นทั้งวันในหน้าเดียว — <b>นัดวันนี้ น้องที่พักอยู่ ลูกค้าใหม่ งานที่ต้องตาม</b></p>
         </article>
-
-        <!-- 2. Billing -->
-        <article class="pf-shot">
-          <div class="pf-shot-head"><span class="t">🧾 ออกบิล</span><span class="k">Billing</span></div>
-          <div class="pf-shot-body">
-            <div class="pf-kv"><span>PetFlow Premium · แมวไทย M</span><span class="v">900 ฿</span></div>
-            <div class="pf-kv"><span>โปรสมาชิกใหม่ −5% (ตัดสิทธิ์อัตโนมัติ)</span><span class="v">−45 ฿</span></div>
-            <div class="pf-kv hl"><span>มัดจำที่เก็บไว้ก่อนหน้า (ผูกบิลเอง)</span><span class="v">−200 ฿</span></div>
-            <div class="pf-divider"></div>
-            <div class="pf-row2"><div class="who"><b>ส่งการ์ดเก็บยอดทาง LINE</b><span>พร้อมเลขบัญชี + ปุ่มก๊อปปี้</span></div><span class="pf-chipx aqua">1 คลิก</span></div>
-            <div class="pf-total"><span class="l">ยอดคงเหลือที่ต้องเก็บ</span><span class="v">655 ฿</span></div>
-          </div>
-          <p class="pf-shot-caption">จ่ายแล้วระบบทำต่อให้หมด: <b>ใบเสร็จ + ลงบัญชี + แต้มสะสม + ขอรีวิว</b></p>
+        <article class="pf-real">
+          <div class="pf-shot-head"><span class="t">🗓️ ตารางนัดทั้งเดือน</span><span class="k">Calendar</span></div>
+          <figure><img src="/home/own-schedule.webp" alt="🗓️ ตารางนัดทั้งเดือน — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
+          <p class="pf-shot-caption">อาบน้ำ เข้าพัก เช็คอิน-เอาท์ ในปฏิทินเดียว — <b>แตะวันไหนก็เห็นงานวันนั้น</b></p>
         </article>
-
-        <!-- 3. Customer profile -->
-        <article class="pf-shot">
-          <div class="pf-shot-head"><span class="t">🐾 โปรไฟล์ลูกค้า + แมว</span><span class="k">CRM</span></div>
-          <div class="pf-shot-body">
-            <div class="pf-row2"><div class="who"><b>เรเนล — ดาด้า</b><span>บริติช ชอร์ตแฮร์ · ขนสั้น · สีเทาเงิน · 6 ปี</span></div><span class="pf-chipx vio">💎 Member</span></div>
-            <div style="display:flex; gap:5px; flex-wrap:wrap;">
-              <span class="pf-chipx aqua">ขี้อ้อน</span><span class="pf-chipx aqua">ใจดี จับง่าย</span><span class="pf-chipx wait">แพ้แชมพูมะนาว</span><span class="pf-chipx ok">วัคซีนครบ</span>
-            </div>
-            <div class="pf-kv"><span>📍 ที่อยู่รับ-ส่ง</span><span class="v">ซ.เทพารักษ์ 12 · แผนที่ ↗</span></div>
-            <div class="pf-kv"><span>🔒 โน้ตลับพนักงาน</span><span class="v">ไม่ชอบเป่าขนแรง</span></div>
-            <div class="pf-sign">
-              <svg width="72" height="26" viewBox="0 0 72 26" aria-hidden="true"><path d="M4 18 C 12 4, 18 22, 26 12 S 40 4, 46 14 S 60 22, 68 8" fill="none" stroke="#31418c" stroke-width="1.6" stroke-linecap="round"/></svg>
-              <div class="m"><b>✍️ ลายเซ็นยินยอมเข้าพัก</b>บันทึก 14 ก.ค. 2569 · 23:49 น.</div>
-            </div>
-          </div>
-          <p class="pf-shot-caption">ความรู้เรื่องลูกค้าทุกอย่าง <b>อยู่ในระบบ ไม่หายไปกับพนักงาน</b> — พร้อมหลักฐานลายเซ็นจริง</p>
+        <article class="pf-real">
+          <div class="pf-shot-head"><span class="t">🧾 คิดเงิน · ออกบิล</span><span class="k">Billing</span></div>
+          <figure><img src="/home/own-billing.webp" alt="🧾 คิดเงิน · ออกบิล — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
+          <p class="pf-shot-caption">เลือกลูกค้าแล้วออกบิล ส่งการ์ดเก็บเงินทาง LINE — <b>จ่ายแล้วออกใบเสร็จ + แต้มให้เอง</b></p>
         </article>
-
-        <!-- 4. Win-back card -->
-        <article class="pf-shot">
-          <div class="pf-shot-head"><span class="t">💌 การ์ดตามลูกค้าที่หายไป</span><span class="k">Win-back</span></div>
-          <div class="pf-shot-body">
-            <div class="pf-row2"><div class="who"><b>ระบบกรองให้อัตโนมัติ</b><span>ลูกค้าหายไป &gt; 45 วัน · มี LINE · 12 คน</span></div><span class="pf-chipx wait">เป้าหมาย</span></div>
-            <div class="pf-linecard">
-              <div class="h">🧡 คิดถึงน้อง Soju จังเลยค่ะ</div>
-              <div class="b">
-                <span>ไม่ได้เจอกัน <b>47 วันแล้ว</b> น้องสบายดีไหมคะ 🐱</span>
-                <span>กลับมาครั้งนี้ รับส่วนลดอาบน้ำ <b>10%</b> พิเศษเฉพาะคุณเลยค่ะ</span>
-              </div>
-              <div class="btn"><span>🛁 จองคิวเลย — รับส่วนลด</span></div>
-            </div>
-          </div>
-          <p class="pf-shot-caption">ใส่ชื่อน้องแมว + จำนวนวันจริงให้อัตโนมัติ — <b>ลูกค้ารู้สึกว่าร้านจำเขาได้</b> ไม่ใช่ข้อความหว่าน</p>
+        <article class="pf-real">
+          <div class="pf-shot-head"><span class="t">🐾 รายชื่อลูกค้า + น้อง</span><span class="k">CRM</span></div>
+          <figure><img src="/home/own-customers.webp" alt="🐾 รายชื่อลูกค้า + น้อง — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
+          <p class="pf-shot-caption">ค้นจากชื่อ ชื่อน้อง หรือเบอร์ — <b>รู้ทันทีว่าใครผูก LINE แล้ว มากี่ครั้ง</b></p>
         </article>
-
-        <!-- 5. Sheets auto-export -->
-        <article class="pf-shot">
-          <div class="pf-shot-head"><span class="t">📈 Google Sheets อัตโนมัติ</span><span class="k">Data Sync</span></div>
-          <div class="pf-shot-body">
-            <div class="pf-sheet">
-              <div class="sr hdr"><span>ลูกค้า</span><span>แมว</span><span class="num">ยอดสะสม</span><span class="num">แต้ม</span></div>
-              <div class="sr"><span>ตาล</span><span>Soju</span><span class="num">4,250</span><span class="num">42</span></div>
-              <div class="sr"><span>ดาด้า</span><span>เรเนล</span><span class="num">8,900</span><span class="num">89</span></div>
-              <div class="sr"><span>จุ๊กกะดิ๊ก</span><span>กาก้า, วอเทอร์</span><span class="num">2,100</span><span class="num">21</span></div>
-              <div class="sr"><span>คุณมาย</span><span>น้องพลูโต</span><span class="num">6,300</span><span class="num">63</span></div>
-            </div>
-            <div class="pf-row2" style="margin-top:auto"><div class="who"><b>ซิงก์อัตโนมัติทุกวัน</b><span>ลูกค้า + รายรับรายจ่าย → Google Sheet ของคุณ</span></div><span class="pf-chipx ok">Auto</span></div>
-          </div>
-          <p class="pf-shot-caption">ข้อมูลเป็นของคุณ 100% — <b>เปิดดูใน Sheets ทำกราฟ ทำบัญชีต่อได้ทันที</b> เลือกคอลัมน์เองได้</p>
+        <article class="pf-real">
+          <div class="pf-shot-head"><span class="t">💰 รายรับ-รายจ่าย</span><span class="k">Finance</span></div>
+          <figure><img src="/home/own-finance.webp" alt="💰 รายรับ-รายจ่าย — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
+          <p class="pf-shot-caption">บิลที่จ่ายแล้วลงบัญชีเอง — <b>ดูยอดรายวัน รายสัปดาห์ รายเดือน</b></p>
         </article>
-
-        <!-- 6. Daily summary -->
-        <article class="pf-shot">
-          <div class="pf-shot-head"><span class="t">📲 สรุปร้านส่งถึงมือทุกวัน</span><span class="k">Daily Report</span></div>
-          <div class="pf-shot-body">
-            <div class="pf-tgbox">
-              <b>💰 สรุปวันนี้ (15 ก.ค.)</b>
-              <div class="ln"><span>รับชำระ</span><span class="v">4,950 ฿ (5 บิล)</span></div>
-              <div class="ln"><span>รอชำระ</span><span class="v">2 บิล · 1,105 ฿</span></div>
-              <div class="ln"><span>ลูกค้าใหม่</span><span class="v">2 คน</span></div>
-            </div>
-            <div class="pf-tgbox">
-              <b>🌅 เตรียมตัวพรุ่งนี้</b>
-              <div class="ln"><span>🛁 อาบน้ำ</span><span class="v">3 คิว (12:30 / 14:00 / 15:30)</span></div>
-              <div class="ln"><span>🏠 เช็คอิน</span><span class="v">เรเนล — มาส่ง 10:00</span></div>
-              <div class="ln"><span>🏠 เช็คเอาท์</span><span class="v">Soju — มารับ 18:00</span></div>
-            </div>
-          </div>
-          <p class="pf-shot-caption">ปิดร้านแล้วรู้ยอดทันที ตื่นเช้ามา<b>รู้เลยว่าวันนี้ต้องเตรียมอะไร</b> — ส่งเข้า Telegram อัตโนมัติ</p>
+        <article class="pf-real">
+          <div class="pf-shot-head"><span class="t">🎯 โปรโมชั่น + ส่งหา LINE</span><span class="k">Marketing</span></div>
+          <figure><img src="/home/own-promos.webp" alt="🎯 โปรโมชั่น + ส่งหา LINE — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
+          <p class="pf-shot-caption">ตั้งโปรเอง เลือกกลุ่มลูกค้า แล้วส่งการ์ดตรงถึง LINE — <b>ไม่ต้องพิมพ์ทีละคน</b></p>
         </article>
-
-        <!-- 7. Month calendar -->
-        <article class="pf-shot">
-          <div class="pf-shot-head"><span class="t">🗓️ ปฏิทินทั้งเดือน</span><span class="k">Calendar</span></div>
-          <div class="pf-shot-body">
-            <div class="pf-row2"><div class="who"><b>ศุกร์ 18 ก.ค.</b><span>🏠 เข้าพัก 2 · 🛁 อาบน้ำ 3</span></div><span class="pf-chipx aqua">5 งาน</span></div>
-            <div class="pf-row2"><div class="who"><b>เสาร์ 19 ก.ค.</b><span>🏠 เข้าพัก 4 · 🛁 อาบน้ำ 5</span></div><span class="pf-chipx wait">แน่น</span></div>
-            <div class="pf-row2"><div class="who"><b>อาทิตย์ 20 ก.ค.</b><span>🏠 เช็คอิน เรเนล · เช็คเอาท์ Soju</span></div><span class="pf-chipx ok">พร้อม</span></div>
-            <div class="pf-row2" style="margin-top:auto"><div class="who"><b>เคสที่จบแล้ว</b><span>ติดป้าย 🎉 จบเคส สีเขียวชัดๆ ทั้งการ์ด</span></div><span class="pf-chipx ok">✅ จบเคส</span></div>
-          </div>
-          <p class="pf-shot-caption">แตะวันไหนก็เห็นงานวันนั้นทันที — <b>วันไหนแน่น วันไหนว่าง รับจองเพิ่มได้อีกไหม รู้ในวินาทีเดียว</b></p>
-        </article>
-
-        <!-- 8. Broadcast segment picker -->
-        <article class="pf-shot">
-          <div class="pf-shot-head"><span class="t">📣 บรอดแคสต์เลือกกลุ่ม</span><span class="k">Marketing</span></div>
-          <div class="pf-shot-body">
-            <div style="display:flex; gap:5px; flex-wrap:wrap;">
-              <span class="pf-chipx aqua">หายไป &gt; 45 วัน</span>
-              <span class="pf-chipx aqua">แมวเปอร์เซีย</span>
-              <span class="pf-chipx vio">💎 Member</span>
-              <span class="pf-chipx wait">ทุกพื้นที่</span>
-            </div>
-            <div class="pf-row2"><div class="who"><b>จะส่งหา 12 คน</b><span>มี LINE ครบ · ยินยอมรับข่าวสารทุกคน</span></div><span class="pf-chipx ok">พร้อมส่ง</span></div>
-            <div class="pf-linecard">
-              <div class="h">✨ โปรโมชั่น PetFlow</div>
-              <div class="b"><span><b>อาบน้ำตัวที่ 2 ลด 50%</b> เฉพาะเดือนนี้ค่ะ 🧡</span></div>
-              <div class="btn"><span>🛁 จองคิวเลย</span></div>
-            </div>
-          </div>
-          <p class="pf-shot-caption">เลือกกลุ่มเป้าหมายแคบๆ แล้วส่งตรง — <b>ไม่หว่านโควตาทิ้ง ไม่รบกวนลูกค้าที่ไม่เกี่ยว</b></p>
-        </article>
-
-        <!-- 9. Points & rewards -->
-        <article class="pf-shot">
-          <div class="pf-shot-head"><span class="t">💎 แต้ม &amp; ของรางวัล</span><span class="k">Loyalty</span></div>
-          <div class="pf-shot-body">
-            <div class="pf-kv"><span>ทุก 100 บาท</span><span class="v">= 1 แต้ม อัตโนมัติ</span></div>
-            <div class="pf-divider"></div>
-            <div class="pf-row2"><div class="who"><b>🛁 อาบน้ำฟรี 1 ครั้ง</b><span>ของรางวัลยอดนิยม</span></div><span class="pf-chipx vio">50 แต้ม</span></div>
-            <div class="pf-row2"><div class="who"><b>🏠 ส่วนลดห้องพัก 20%</b><span>ใช้ได้ทุกประเภทห้อง</span></div><span class="pf-chipx vio">80 แต้ม</span></div>
-            <div class="pf-row2"><div class="who"><b>🎁 ทรีทเมนต์บำรุงขน</b><span>เพิ่มตอนอาบน้ำ</span></div><span class="pf-chipx vio">30 แต้ม</span></div>
-            <div class="pf-total"><span class="l">ลูกค้ากดแลกเองจากแอป</span><span class="v" style="font-size:13px">ตัดแต้มอัตโนมัติ</span></div>
-          </div>
-          <p class="pf-shot-caption">ตั้งของรางวัล + รูปเองได้จากหลังบ้าน — <b>ลูกค้าเห็นแต้มตัวเองตลอด อยากกลับมาสะสมต่อ</b></p>
-        </article>
-
       </div>
     </div>
   </section>
@@ -541,244 +455,125 @@
   <!-- ═══════════ NEW — ร้านที่มีทีมงาน ═══════════ -->
   <section class="pf-section">
     <div class="pf-wrap">
-      <p class="pf-kicker">อัปเดตใหม่ <span class="pf-new-badge">NEW</span></p>
+      <p class="pf-kicker">ร้านที่มีทีมงาน</p>
       <h2 class="pf-h2">ร้านโตขึ้น มีทีมงานหลายคน — <span class="glow">ระบบก็ดูแลทีมให้ด้วย</span></h2>
-      <p class="pf-lead">หน้าใหม่สำหรับหน้าร้านและเจ้าของ: คิวงานวันนี้ เช็คลิสต์ดูแลน้อง เงินเดือนช่าง และสรุปข้อมูลที่บอกเลยว่าควรทำอะไรต่อ</p>
+      <p class="pf-lead">หน้าจริงสำหรับหน้าร้านและเจ้าของ: คิวงานวันนี้ เช็คลิสต์ดูแลน้อง เงินเดือนช่าง และสรุปข้อมูลร้าน</p>
 
-      <div class="pf-shots">
-
-        <!-- N1. Grooming queue board -->
-        <article class="pf-shot">
-          <div class="pf-shot-head"><span class="t">🛁 บอร์ดคิวอาบน้ำวันนี้<span class="pf-new-badge">NEW</span></span><span class="k">Queue</span></div>
-          <div class="pf-shot-body">
-            <div class="pf-lanes">
-              <div class="pf-lane"><div class="lh"><span>รอคิว</span><span>2</span></div>
-                <div class="tk"><b>มะลิ</b>12:30 · อาบน้ำ</div>
-                <div class="tk"><b>เหมียว</b>15:30 · Premium</div>
-              </div>
-              <div class="pf-lane"><div class="lh"><span>กำลังทำ</span><span>1</span></div>
-                <div class="tk"><b>บูบู</b>ช่าง: พี่แนน<br><span class="g">ทำมาแล้ว 25 นาที</span></div>
-              </div>
-              <div class="pf-lane"><div class="lh"><span>เสร็จแล้ว</span><span>1</span></div>
-                <div class="tk"><b>Soju</b><span class="g">✓ แจ้งเจ้าของแล้ว</span></div>
-              </div>
-            </div>
-          </div>
-          <p class="pf-shot-caption">ช่างกดเริ่ม-กดเสร็จจากมือถือ ทุกเครื่องเห็นตรงกัน — <b>เสร็จปุ๊บ LINE บอกเจ้าของว่ามารับน้องได้</b></p>
+      <div class="pf-reals">
+        <article class="pf-real">
+          <div class="pf-shot-head"><span class="t">🛁 บอร์ดคิวอาบน้ำวันนี้</span><span class="k">Queue</span></div>
+          <figure><img src="/home/own-queue.webp" alt="🛁 บอร์ดคิวอาบน้ำวันนี้ — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
+          <p class="pf-shot-caption">ช่างกด "เริ่มทำ" → "เสร็จ" ทีละตัว — <b>ลูกค้าได้ LINE แจ้งให้มารับเอง</b></p>
         </article>
-
-        <!-- N2. Daily care checklist -->
-        <article class="pf-shot">
-          <div class="pf-shot-head"><span class="t">✅ เช็คลิสต์ดูแลรายวัน<span class="pf-new-badge">NEW</span></span><span class="k">Daily Care</span></div>
-          <div class="pf-shot-body">
-            <div class="pf-row2"><div class="who"><b>ทองดี · Mid Cozy Room</b><span>คุณบี · ออก 20 ต.ค.</span></div><span class="pf-chipx aqua">4/6</span></div>
-            <div class="pf-checks">
-              <span class="on">อาหารเช้า</span><span class="on">อาหารเย็น</span>
-              <span class="on">เปลี่ยนน้ำ</span><span class="on">เก็บกระบะทราย</span>
-              <span>เล่น / ออกกำลัง</span><span>ให้ยา (ถ้ามี)</span>
-            </div>
-            <div class="pf-prog" style="margin-top:auto"><i style="width:67%"></i></div>
-          </div>
-          <p class="pf-shot-caption">น้องที่พักทุกตัวมีการ์ดของตัวเอง — <b>ติ๊กแล้วจดเวลาให้ เปลี่ยนกะไม่ต้องส่งต่อด้วยปาก</b></p>
+        <article class="pf-real">
+          <div class="pf-shot-head"><span class="t">✅ เช็คลิสต์ดูแลรายวัน</span><span class="k">Daily Care</span></div>
+          <figure><img src="/home/own-care.webp" alt="✅ เช็คลิสต์ดูแลรายวัน — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
+          <p class="pf-shot-caption">น้องที่พักอยู่มีรายการให้ติ๊ก อาหาร ยา เปลี่ยนน้ำ — <b>ใครทำ ทำเมื่อไหร่ บันทึกให้หมด</b></p>
         </article>
-
-        <!-- N3. Payroll & commission -->
-        <article class="pf-shot">
-          <div class="pf-shot-head"><span class="t">💰 เงินเดือน &amp; ค่าคอม<span class="pf-new-badge">NEW</span></span><span class="k">Payroll</span></div>
-          <div class="pf-shot-body">
-            <div class="pf-row2"><div class="who"><b>พี่แนน (ช่าง)</b><span>ฐาน ฿12,000 · คอม 10% ของยอดอาบน้ำ</span></div><span class="pf-chipx aqua">32 ตัว</span></div>
-            <div class="pf-kv"><span>เงินเดือนฐาน</span><span class="v">12,000 ฿</span></div>
-            <div class="pf-kv hl"><span>ค่าคอม (นับจากบอร์ดคิวเอง)</span><span class="v">+2,750 ฿</span></div>
-            <div class="pf-kv"><span>โบนัส / หักลา-สาย</span><span class="v">+500 ฿</span></div>
-            <div class="pf-total"><span class="l">ยอดจ่ายสุทธิ</span><span class="v">15,250 ฿</span></div>
-          </div>
-          <p class="pf-shot-caption">สิ้นเดือนไม่ต้องนั่งนับ — <b>กดจ่ายแล้วลงบัญชีรายจ่ายให้เอง</b> เห็นเฉพาะเจ้าของหรือคนที่ได้สิทธิ์</p>
+        <article class="pf-real">
+          <div class="pf-shot-head"><span class="t">💵 เงินเดือน &amp; ค่าคอม</span><span class="k">Payroll</span></div>
+          <figure><img src="/home/own-payroll.webp" alt="💵 เงินเดือน &amp; ค่าคอม — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
+          <p class="pf-shot-caption">ทุกตัวที่ช่างอาบเสร็จ <b>นับเป็นค่าคอมให้เอง</b> สิ้นเดือนไม่ต้องนั่งนับ</p>
         </article>
-
-        <!-- N4. Staff performance -->
-        <article class="pf-shot">
-          <div class="pf-shot-head"><span class="t">🏅 ผลงานพนักงาน<span class="pf-new-badge">NEW</span></span><span class="k">Team</span></div>
-          <div class="pf-shot-body">
-            <div class="pf-row2"><div class="who"><b>🥇 พี่แนน</b><span>เฉลี่ย 917 ฿/ตัว · ขายเสริม 640 ฿</span></div><span class="pf-chipx ok">นัดต่อ 33%</span></div>
-            <div class="pf-row2"><div class="who"><b>🥈 น้องฟ้า</b><span>เฉลี่ย 467 ฿/ตัว · ขายเสริม 0 ฿</span></div><span class="pf-chipx wait">นัดต่อ 0%</span></div>
-            <div class="pf-tip" style="margin-top:auto">
-              <span class="th">✨ สิ่งที่ควรทำ</span>
-              <div><em>1</em><span>ให้น้องฟ้าเสนอทรีทเมนต์เสริมแบบที่พี่แนนทำ</span></div>
-              <div><em>2</em><span>ชวนลูกค้านัดรอบหน้าตอนส่งน้องคืนทุกครั้ง</span></div>
-            </div>
-          </div>
-          <p class="pf-shot-caption">เทียบงานช่างแต่ละคนแบบยุติธรรม — <b>รู้ว่าใครเก่งตรงไหน ควรโค้ชเรื่องอะไร</b></p>
+        <article class="pf-real">
+          <div class="pf-shot-head"><span class="t">🏅 ผลงานพนักงาน</span><span class="k">Team</span></div>
+          <figure><img src="/home/own-staff.webp" alt="🏅 ผลงานพนักงาน — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
+          <p class="pf-shot-caption">ใครอาบไปกี่ตัว ยอดเท่าไหร่ เทียบเดือนก่อน — <b>เห็นชัดไม่ต้องเดา</b></p>
         </article>
-
-        <!-- N5. Actionable insights -->
-        <article class="pf-shot">
-          <div class="pf-shot-head"><span class="t">💡 สรุปข้อมูลที่บอกว่าควรทำอะไร<span class="pf-new-badge">NEW</span></span><span class="k">Insights</span></div>
-          <div class="pf-shot-body">
-            <div class="pf-row2"><div class="who"><b>อาบน้ำอย่างเดียว ยังไม่เคยฝากพัก</b><span>โอกาสได้ยอด ~1,208 ฿</span></div><span class="pf-chipx vio">8 คน</span></div>
-            <div class="pf-row2"><div class="who"><b>ถึงรอบอาบน้ำแล้ว ยังไม่ได้จอง</b><span>มาครั้งล่าสุด 25–60 วันก่อน</span></div><span class="pf-chipx vio">5 คน</span></div>
-            <div style="font-size:9.5px; color:var(--text-dim)">คิวอาบน้ำแต่ละวัน (90 วัน) — วันสีชมพู = ว่างสุด ควรจัดโปร</div>
-            <div class="pf-bars"><i class="hi" style="height:18%"></i><i style="height:45%"></i><i style="height:42%"></i><i class="hi" style="height:12%"></i><i style="height:95%"></i><i style="height:80%"></i><i style="height:82%"></i></div>
-          </div>
-          <p class="pf-shot-caption">ไม่ใช่แค่กราฟ — <b>เจอกลุ่มที่ควรทัก แล้วกดส่งโปรทาง LINE ได้ทันที</b></p>
+        <article class="pf-real">
+          <div class="pf-shot-head"><span class="t">📊 สรุปข้อมูลร้าน</span><span class="k">Insights</span></div>
+          <figure><img src="/home/own-insights.webp" alt="📊 สรุปข้อมูลร้าน — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
+          <p class="pf-shot-caption">บริการไหนขายดี ห้องไหนเต็ม จำนวนน้องต่อเดือน — <b>รู้ว่าควรทำโปรอะไรต่อ</b></p>
         </article>
-
-        <!-- N6. Pet counts summary -->
-        <article class="pf-shot">
-          <div class="pf-shot-head"><span class="t">🐾 สรุปจำนวนน้อง<span class="pf-new-badge">NEW</span></span><span class="k">Stats</span></div>
-          <div class="pf-shot-body">
-            <div style="display:flex; gap:5px; flex-wrap:wrap;"><span class="pf-chipx aqua">วันนี้</span><span class="pf-chipx aqua">สัปดาห์นี้</span><span class="pf-chipx vio">เดือนนี้</span><span class="pf-chipx aqua">เลือกช่วงเอง</span></div>
-            <div class="pf-kv"><span>🛁 อาบน้ำทั้งหมด</span><span class="v">86 ตัว</span></div>
-            <div class="pf-kv"><span>&nbsp;&nbsp;· อาบน้ำ Premium</span><span class="v">34 ตัว</span></div>
-            <div class="pf-kv"><span>🏠 เข้าพักทั้งหมด</span><span class="v">41 ตัว</span></div>
-            <div class="pf-kv"><span>&nbsp;&nbsp;· Mid Cozy Room</span><span class="v">17 ตัว</span></div>
-            <div class="pf-total"><span class="l">รวมทั้งเดือน</span><span class="v">127 ตัว</span></div>
-          </div>
-          <p class="pf-shot-caption">รู้ว่าเดือนนี้รับน้องไปกี่ตัว <b>แยกตามโปรแกรมและห้อง</b> — วางแผนคนและของใช้ได้แม่น</p>
-        </article>
-
       </div>
     </div>
   </section>
 
-  <!-- ═══════════ CUSTOMER SIDE ═══════════ -->
+  <!-- ═══════════ CUSTOMER SIDE — หน้าแอปลูกค้าจริง ═══════════ -->
   <section class="pf-section">
     <div class="pf-wrap">
       <p class="pf-kicker">ฝั่งลูกค้า</p>
-      <h2 class="pf-h2">ลูกค้าทำเองได้หมดจากมือถือ — <span class="glow">เสร็จปุ๊บ เด้งบอกร้านทันที</span></h2>
-      <p class="pf-lead">ทุกอย่างเปิดจากแชท LINE ที่ลูกค้าใช้อยู่แล้ว ไม่ต้องโหลดแอป ไม่ต้องสมัครอะไรเพิ่ม</p>
+      <h2 class="pf-h2">ลูกค้าเห็นอะไรบ้าง — <span class="glow">หน้าแอปจริงในมือถือลูกค้า</span></h2>
+      <p class="pf-lead">ลูกค้าเปิดจากเมนูในแชท LINE ของร้าน ไม่ต้องโหลดแอป — สมัคร จองคิว ดูนัด เก็บแต้ม ได้เองหมด และขึ้นชื่อ-สีของร้านคุณเอง</p>
+      <span class="pf-real-note">📸 ภาพหน้าจอจริง · ข้อมูลตัวอย่าง</span>
 
-      <div class="pf-cust">
-
-        <!-- Step 1: sign consent -->
-        <div class="pf-cust-item">
-          <span class="pf-step"><span class="n">1</span> เซ็นยอมรับข้อตกลง</span>
-          <div class="pf-mini-phone">
-            <div class="pf-mini-screen">
-              <span class="ttl">📋 ข้อตกลงการเข้าพัก</span>
-              <div class="pf-terms">1. โรงแรมดูแลน้องตามมาตรฐาน พ.ร.บ. สวัสดิภาพสัตว์ …<br />2. กรณีเจ็บป่วยจะแจ้งเจ้าของทันที …<br />3. ยกเลิกล่วงหน้า 5–10 วัน …</div>
-              <span style="font-size:10px; font-weight:800; color:#6b5c40;">✍️ เซ็นชื่อในกรอบ</span>
-              <div class="pf-signbox">
-                <svg width="110" height="34" viewBox="0 0 110 34" aria-hidden="true"><path d="M8 24 C 20 6, 30 30, 42 16 S 62 6, 72 20 S 92 28, 104 10" fill="none" stroke="#31418c" stroke-width="2" stroke-linecap="round"/></svg>
-              </div>
-              <div class="pf-lbtn">ยอมรับข้อตกลง</div>
-            </div>
-          </div>
-          <p class="pf-cust-cap">ลายเซ็น + วันเวลา <b>ถูกเก็บเป็นหลักฐานในระบบ</b> แยกทุกรอบเข้าพัก</p>
-        </div>
-
-        <!-- Step 2: pick check-in time -->
-        <div class="pf-cust-item">
-          <span class="pf-step"><span class="n">2</span> เลือกเวลามาส่งน้อง</span>
-          <div class="pf-mini-phone">
-            <div class="pf-mini-screen">
-              <span class="ttl">🕒 พรุ่งนี้จะมาส่งน้องกี่โมงคะ?</span>
-              <span style="font-size:10px; color:#8a7a5c;">เช็คอิน 20 ก.ค. · ห้อง Mini Meow</span>
-              <div class="pf-timegrid">
-                <span class="pf-lchip on">10:00</span>
-                <span class="pf-lchip">12:00</span>
-                <span class="pf-lchip">14:00</span>
-                <span class="pf-lchip">16:00</span>
-                <span class="pf-lchip">18:00</span>
-                <span class="pf-lchip">พิมพ์เวลาเอง…</span>
-              </div>
-              <div class="pf-lbtn">ยืนยันเวลา 10:00 น.</div>
-            </div>
-          </div>
-          <p class="pf-cust-cap">ไม่ต้องพิมพ์ถาม-ตอบกันไปมา — <b>กดเลือกจบใน 5 วินาที</b></p>
-        </div>
-
-        <!-- Step 3: groom info form -->
-        <div class="pf-cust-item">
-          <span class="pf-step"><span class="n">3</span> แจ้งประวัติน้องก่อนอาบน้ำ</span>
-          <div class="pf-mini-phone">
-            <div class="pf-mini-screen">
-              <span class="ttl">🩺 ประวัติน้อง Soju</span>
-              <span style="font-size:10px; font-weight:800; color:#6b5c40;">นิสัยตอนอาบน้ำ</span>
-              <div>
-                <span class="pf-lchip on">ขี้อ้อน</span><span class="pf-lchip">ขี้กลัว</span><span class="pf-lchip on">ใจดี จับง่าย</span><span class="pf-lchip">ดุ/กัด</span>
-              </div>
-              <span style="font-size:10px; font-weight:800; color:#6b5c40;">วัคซีน</span>
-              <div><span class="pf-lchip on">✅ ได้รับแล้ว</span><span class="pf-lchip">ยังไม่ได้รับ</span></div>
-              <span style="font-size:10px; font-weight:800; color:#6b5c40;">แพ้อะไรไหม</span>
-              <div class="pf-terms">แพ้แชมพูกลิ่นมะนาว</div>
-              <div class="pf-lbtn">💛 ส่งข้อมูลให้ร้าน</div>
-            </div>
-          </div>
-          <p class="pf-cust-cap">กรอกครั้งเดียว <b>เก็บถาวรที่ตัวน้อง</b> — มาครั้งหน้าไม่ต้องถามซ้ำ</p>
-        </div>
-
+      <div class="pf-strip">
+        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-home.webp" alt="หน้าแรกของลูกค้า — หน้าแอปลูกค้า (ภาพจริง)" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>หน้าแรกของลูกค้า</b>จองคิว ดูคูปอง ดูนัด และน้องของฉันในหน้าเดียว</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-register.webp" alt="สมัครครั้งเดียว — หน้าแอปลูกค้า (ภาพจริง)" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>สมัครครั้งเดียว</b>กรอกข้อมูลเจ้าของ + น้อง เข้าการ์ดลูกค้าของร้านทันที</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-grooming.webp" alt="เมนูอาบน้ำ + ราคา — หน้าแอปลูกค้า (ภาพจริง)" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>เมนูอาบน้ำ + ราคา</b>ร้านใส่รูปเมนู/ราคาเองได้ ลูกค้ากดจองต่อได้เลย</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-rooms.webp" alt="ห้องพักน้อง — หน้าแอปลูกค้า (ภาพจริง)" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>ห้องพักน้อง</b>รูปห้อง ราคา สิ่งที่ได้ — ร้านตั้งเองจากหลังบ้าน</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-bookings.webp" alt="คิวของฉัน — หน้าแอปลูกค้า (ภาพจริง)" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>คิวของฉัน</b>เห็นนัดทุกนัด และรู้ว่ายังต้องทำอะไรก่อนวันนัด</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-points.webp" alt="แต้มสะสม — หน้าแอปลูกค้า (ภาพจริง)" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>แต้มสะสม</b>ลูกค้าเห็นแต้มตัวเองและกดแลกของรางวัลเอง</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-coupons.webp" alt="กระเป๋าคูปอง — หน้าแอปลูกค้า (ภาพจริง)" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>กระเป๋าคูปอง</b>คูปองชวนเพื่อน คูปองวันเกิด เก็บไว้ที่เดียว</p></div>
       </div>
-
-      <!-- everything customers do → instant notify -->
-      <div class="pf-notify-strip">
-        <p class="head">📲 ลูกค้าทำอะไรเสร็จ → เด้งแจ้งร้านทันทีทุกครั้ง ไม่ต้องเฝ้าถาม</p>
-        <div class="pf-notify-grid">
-          <div class="pf-tgbox">
-            <b>✅ ลูกค้ายอมรับข้อตกลงแล้ว</b>
-            <div class="ln"><span>น้องแมว</span><span class="v">เรเนล</span></div>
-            <div class="ln"><span>ลายเซ็น</span><span class="v">มี ✍️</span></div>
-            <div class="ln"><span>ดูแลพิเศษ</span><span class="v">ไม่ชอบเสียงดัง</span></div>
-          </div>
-          <div class="pf-tgbox">
-            <b>🕒 ลูกค้าเลือกเวลาส่งน้อง</b>
-            <div class="ln"><span>น้องแมว</span><span class="v">เรเนล</span></div>
-            <div class="ln"><span>เวลา</span><span class="v">10:00 น.</span></div>
-            <div class="ln"><span>วันที่</span><span class="v">20 ก.ค.</span></div>
-          </div>
-          <div class="pf-tgbox">
-            <b>🩺 ลูกค้ากรอกประวัติน้องแล้ว</b>
-            <div class="ln"><span>นิสัย</span><span class="v">ขี้อ้อน · ใจดี</span></div>
-            <div class="ln"><span>วัคซีน</span><span class="v">ได้รับแล้ว</span></div>
-            <div class="ln"><span>แพ้</span><span class="v">แชมพูมะนาว</span></div>
-          </div>
-        </div>
-      </div>
+      <p class="pf-strip-hint">← เลื่อนดูหน้าจออื่น →</p>
     </div>
   </section>
 
-  <!-- ═══════════ SHOWREEL — 3 live scenes ═══════════ -->
+  <!-- ═══════════ LINE CARDS — ข้อความที่ลูกค้าได้รับจริง ═══════════ -->
   <section class="pf-section">
     <div class="pf-wrap">
-      <p class="pf-kicker">ดูระบบทำงาน</p>
-      <h2 class="pf-h2">สามฉากที่เกิดขึ้นจริง <span class="glow">ทุกวัน</span></h2>
-      <p class="pf-lead">ทุกจอด้านล่างเล่นวนอัตโนมัติ — นี่คือสิ่งที่ระบบทำแทนคุณตลอดเวลา</p>
+      <p class="pf-kicker">ลูกค้าได้รับอะไรทาง LINE</p>
+      <h2 class="pf-h2">ตั้งแต่จองจนน้องกลับบ้าน — <span class="glow">ลูกค้าได้การ์ดแบบนี้</span></h2>
+      <p class="pf-lead">นี่คือการ์ดจริงที่ระบบส่งเข้าแชท LINE ของลูกค้า ร้านเปลี่ยนสี ข้อความ และเลือกส่วนที่จะโชว์ได้เองจากหลังบ้าน</p>
+      <span class="pf-real-note">📸 การ์ดจริงจากระบบ · ชื่อและเลขบัญชีเป็นข้อมูลตัวอย่าง</span>
 
-      <div class="pf-reel">
-
-        <article class="pf-scene">
-          <div class="pf-scene-head"><span class="t">🌅 ตื่นมา งานถูกจัดให้แล้ว</span><span class="pf-live">LIVE</span></div>
-          <div class="pf-scene-body">
-            <div class="pf-tg pf-t1"><span class="em">📲</span><div><b>PetFlow → Telegram (ทุกเช้า)</b><span>เตรียมตัวพรุ่งนี้: อาบน้ำ 3 คิว · เช็คอิน 2 · เช็คเอาท์ 1</span></div></div>
-            <div class="pf-mini-row pf-t2"><div class="who"><b>Soju · ตาล</b><span>🛁 12:30 น. · แจ้งประวัติแล้ว</span></div><span class="pf-chipx ok">พร้อม</span></div>
-            <div class="pf-mini-row pf-t3"><div class="who"><b>เรเนล · ดาด้า</b><span>🏠 เช็คอิน · แจ้งมาส่ง 10:00</span></div><span class="pf-chipx ok">ยินยอมแล้ว</span></div>
-            <div class="pf-mini-row pf-t4"><div class="who"><b>น้องพลูโต · คุณมาย</b><span>🛁 15:00 น.</span></div><span class="pf-chipx wait">รอยืนยัน</span></div>
-            <div class="pf-tg pf-t5"><span class="em">🤖</span><div><b>ระบบส่งการ์ดเตือนเอง</b><span>ลูกค้าที่ยังไม่ยืนยัน จะได้การ์ดเตือนอัตโนมัติ — คุณไม่ต้องทวง</span></div></div>
-          </div>
-        </article>
-
-        <article class="pf-scene">
-          <div class="pf-scene-head"><span class="t">💰 เงินทุกบาทมีที่มา</span><span class="pf-live">LIVE</span></div>
-          <div class="pf-scene-body">
-            <div class="pf-bar-line pf-t1"><span>PetFlow Premium · แมวไทย M</span><span class="v">900 ฿</span></div>
-            <div class="pf-bar-line pf-t2"><span>โปรสมาชิกใหม่ −5% <em style="color:var(--aqua); font-style:normal">(ตัดสิทธิ์อัตโนมัติ)</em></span><span class="v">−45 ฿</span></div>
-            <div class="pf-bar-line pf-t3"><span>มัดจำที่เก็บไว้ก่อนหน้า <em style="color:var(--aqua); font-style:normal">(ผูกบิลเอง)</em></span><span class="v">−200 ฿</span></div>
-            <div class="pf-mini-row pf-t4"><div class="who"><b>ส่งการ์ดเก็บยอดคงเหลือทาง LINE</b><span>พร้อมเลขบัญชี + ปุ่มก๊อปปี้</span></div><span class="pf-chipx aqua">1 คลิก</span></div>
-            <div class="pf-tg pf-t5"><span class="em">🧾</span><div><b>จ่ายแล้ว → ใบเสร็จ + แต้ม อัตโนมัติ</b><span>ลงบัญชีรายรับทันที · แต้มสะสมเข้าเอง · ขอรีวิวต่อให้</span></div></div>
-            <div class="pf-money pf-t6"><span class="l">ยอดคงเหลือที่ต้องเก็บ</span><span class="v">655 ฿</span></div>
-          </div>
-        </article>
-
-        <article class="pf-scene">
-          <div class="pf-scene-head"><span class="t">🎯 ตามลูกค้ากลับมาเอง</span><span class="pf-live">LIVE</span></div>
-          <div class="pf-scene-body">
-            <div class="pf-mini-row pf-t1"><div class="who"><b>ลูกค้าหายไป &gt; 45 วัน</b><span>ระบบกรองให้: 12 คน · มี LINE ครบ</span></div><span class="pf-chipx wait">เป้าหมาย</span></div>
-            <div class="pf-mini-row pf-t2"><div class="who"><b>ส่งโปรเฉพาะกลุ่ม</b><span>เลือกจากพันธุ์แมว / ระดับลูกค้า / พื้นที่</span></div><span class="pf-chipx aqua">Segment</span></div>
-            <div class="pf-tg pf-t3"><span class="em">🎂</span><div><b>วันเกิดน้องแมว → อวยพร + คูปองเอง</b><span>ไม่ต้องจำวันเกิดลูกค้าสักคน</span></div></div>
-            <div class="pf-tg pf-t4"><span class="em">👥</span><div><b>ชวนเพื่อน = คูปอง 2 ต่อ</b><span>จ่ายจริงเมื่อเพื่อนมาใช้บริการ — กันบัญชีปลอม</span></div></div>
-            <div class="pf-mini-row pf-t5"><div class="who"><b>ลูกค้ากลับมาจอง</b><span>ทุกอย่างวนเข้าระบบเดิม อัตโนมัติ</span></div><span class="pf-chipx ok">ครบวงจร</span></div>
-          </div>
-        </article>
-
+      <div class="pf-linecards">
+        <div class="pf-lc">
+          <div class="when"><span class="n">1</span>ยืนยันนัด<span class="auto">ส่งอัตโนมัติ</span></div>
+          <img src="/home/card-bookingConfirm.webp" alt="การ์ด LINE: ยืนยันนัด (ภาพจริง)" width="560" height="576" loading="lazy" />
+          <p>ส่งก่อนวันนัด ลูกค้ากด "ยืนยันนัด" ได้ในแชท ร้านเห็นสถานะเปลี่ยนเอง</p>
+        </div>
+        <div class="pf-lc">
+          <div class="when"><span class="n">2</span>เตรียมตัวก่อนเข้าพัก<span class="auto">ส่งอัตโนมัติ</span></div>
+          <img src="/home/card-intake.webp" alt="การ์ด LINE: เตรียมตัวก่อนเข้าพัก (ภาพจริง)" width="560" height="595" loading="lazy" />
+          <p>รวมทุกอย่างที่ต้องทำไว้ในการ์ดเดียว: กรอกข้อมูลน้อง แนบวัคซีน แนบบัตร เซ็นยินยอม</p>
+        </div>
+        <div class="pf-lc">
+          <div class="when"><span class="n">3</span>เลือกเวลามาส่งน้อง<span class="auto">ส่งอัตโนมัติ</span></div>
+          <img src="/home/card-timePicker.webp" alt="การ์ด LINE: เลือกเวลามาส่งน้อง (ภาพจริง)" width="560" height="273" loading="lazy" />
+          <p>ลูกค้ากดเลือกเวลาเอง ไม่ต้องพิมพ์ถามกันไปมา</p>
+        </div>
+        <div class="pf-lc">
+          <div class="when"><span class="n">4</span>แจ้งมัดจำ<span class="auto hand">ร้านกดส่ง 1 คลิก</span></div>
+          <img src="/home/card-depositRequest.webp" alt="การ์ด LINE: แจ้งมัดจำ (ภาพจริง)" width="560" height="622" loading="lazy" />
+          <p>ยอดมัดจำ + เลขบัญชีพร้อมปุ่มคัดลอก มัดจำผูกกับบิลให้เอง</p>
+        </div>
+        <div class="pf-lc">
+          <div class="when"><span class="n">5</span>แจ้งยอดชำระ<span class="auto hand">ร้านกดส่ง 1 คลิก</span></div>
+          <img src="/home/card-billSummary.webp" alt="การ์ด LINE: แจ้งยอดชำระ (ภาพจริง)" width="560" height="610" loading="lazy" />
+          <p>รายการ ส่วนลด ของแถม ยอดสุทธิ ครบในการ์ดเดียว</p>
+        </div>
+        <div class="pf-lc">
+          <div class="when"><span class="n">6</span>น้องพร้อมกลับบ้าน<span class="auto">ส่งอัตโนมัติ</span></div>
+          <img src="/home/card-readyForPickup.webp" alt="การ์ด LINE: น้องพร้อมกลับบ้าน (ภาพจริง)" width="560" height="333" loading="lazy" />
+          <p>ช่างกด "เสร็จ" ในบอร์ดคิว ลูกค้าได้ข้อความนี้ทันที</p>
+        </div>
+        <div class="pf-lc">
+          <div class="when"><span class="n">7</span>ใบเสร็จรับเงิน<span class="auto hand">ร้านกดส่ง 1 คลิก</span></div>
+          <img src="/home/card-receipt.webp" alt="การ์ด LINE: ใบเสร็จรับเงิน (ภาพจริง)" width="560" height="636" loading="lazy" />
+          <p>รับเงินแล้วกดส่งใบเสร็จ ในการ์ดมีแต้มที่ได้และคอร์สคงเหลือ</p>
+        </div>
+        <div class="pf-lc">
+          <div class="when"><span class="n">8</span>ได้แต้มสะสม<span class="auto hand">ร้านกดส่ง 1 คลิก</span></div>
+          <img src="/home/card-pointsAward.webp" alt="การ์ด LINE: ได้แต้มสะสม (ภาพจริง)" width="560" height="353" loading="lazy" />
+          <p>ให้แต้มพิเศษ เช่น ลูกค้ารีวิวร้าน ลูกค้าได้การ์ดแจ้งแต้มรวมทันที</p>
+        </div>
+        <div class="pf-lc">
+          <div class="when"><span class="n">9</span>ขอรีวิว<span class="auto">ส่งอัตโนมัติ</span></div>
+          <img src="/home/card-review.webp" alt="การ์ด LINE: ขอรีวิว (ภาพจริง)" width="560" height="423" loading="lazy" />
+          <p>ขอรีวิวหลังใช้บริการ (ลูกค้าเข้าพักได้อัตโนมัติวันถัดจากเช็คเอาท์) พาไปรีวิวร้านใน Google</p>
+        </div>
+        <div class="pf-lc">
+          <div class="when"><span class="n">10</span>คิดถึงน้อง<span class="auto hand">ร้านกดส่ง 1 คลิก</span></div>
+          <img src="/home/card-missYou.webp" alt="การ์ด LINE: คิดถึงน้อง (ภาพจริง)" width="560" height="397" loading="lazy" />
+          <p>ลูกค้าที่หายไปนาน ระบบกรองให้ ส่งการ์ดพร้อมปุ่มจองได้ในคลิกเดียว</p>
+        </div>
+        <div class="pf-lc">
+          <div class="when"><span class="n">11</span>สุขสันต์วันเกิดน้อง<span class="auto">ส่งอัตโนมัติ</span></div>
+          <img src="/home/card-birthday.webp" alt="การ์ด LINE: สุขสันต์วันเกิดน้อง (ภาพจริง)" width="560" height="356" loading="lazy" />
+          <p>วันเกิดน้อง ระบบอวยพรและแจกคูปองเอง</p>
+        </div>
       </div>
     </div>
   </section>

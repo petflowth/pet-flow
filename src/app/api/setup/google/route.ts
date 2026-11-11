@@ -85,6 +85,17 @@ async function handlePost(req: NextRequest) {
       );
     }
 
+    if (!calendarId.includes("@")) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "รหัสปฏิทินไม่ถูกต้อง — คัดลอก \"รหัสปฏิทิน\" จากการตั้งค่าปฏิทิน (ลงท้ายด้วย @group.calendar.google.com)",
+        },
+        { status: 400 }
+      );
+    }
+
     // ใช้อีเมลกลางร่วมกันทุกร้าน → กันร้านหนึ่งวางลิงก์ชีต/ปฏิทินที่ร้านอื่นใช้อยู่แล้ว
     const takenBy = await usedByOtherShop(spreadsheetId, calendarId);
     if (takenBy) {

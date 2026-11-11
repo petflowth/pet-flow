@@ -113,6 +113,9 @@ export function GoogleSetupSection({ adminCode }: { adminCode: string }) {
         <input
           value={spreadsheetUrl}
           onChange={(e) => setSpreadsheetUrl(e.target.value)}
+          // กันเบราว์เซอร์เติมคำเก่าให้เอง (เคยเติม "back-home-dog-service" ลงช่องปฏิทิน)
+          name="petflow-google-sheet-url"
+          autoComplete="off"
           placeholder="https://docs.google.com/spreadsheets/d/…"
           className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs"
         />
@@ -123,6 +126,8 @@ export function GoogleSetupSection({ adminCode }: { adminCode: string }) {
         <input
           value={calendarUrl}
           onChange={(e) => setCalendarUrl(e.target.value)}
+          name="petflow-google-calendar-id"
+          autoComplete="off"
           placeholder="xxxx@group.calendar.google.com"
           className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs"
         />
@@ -135,6 +140,7 @@ export function GoogleSetupSection({ adminCode }: { adminCode: string }) {
         <textarea
           value={jsonText}
           onChange={(e) => setJsonText(e.target.value)}
+          autoComplete="off"
           rows={5}
           placeholder="วางเนื้อหาไฟล์ .json ทั้งไฟล์ (ถ้าเว้นว่างจะใช้อีเมลกลางของระบบ)"
           className="mt-2 w-full rounded-petflow-sm border border-petflow-line bg-card p-2 font-mono text-[10px]"

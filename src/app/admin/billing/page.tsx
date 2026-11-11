@@ -3,7 +3,8 @@
 import { copyText } from "@/lib/copy-text";
 import Link from "next/link";
 import { askDepositReceive } from "@/lib/deposit-confirm";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { depositPercentFor } from "@/lib/booking-deposit";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PosPanel } from "@/components/PosPanel";
 import type { BillCategory } from "@/lib/config-types";
@@ -691,6 +692,16 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
   const [groomSizeLabels, setGroomSizeLabels] = useState<Partial<Record<GroomSize, string>>>({});
   const [seasons, setSeasons] = useState<RoomSeasonConfig | null>(null);
   const [items, setItems] = useState<Item[]>([newGrooming()]);
+  // มัดจำ % ที่ร้านตั้งไว้ (ตั้งค่า › การเงิน) — บิลที่มีห้องพักใช้ % ห้องพัก นอกนั้นใช้ % อาบน้ำ · ขึ้นเป็นปุ่ม ★
+  const shopDepositPct = useMemo(() => {
+    const dep = siteConfig.bookingDeposit;
+    const stay = items.some((it) => it.kind === "room");
+    return depositPercentFor(dep, stay ? "room" : "groom") || depositPercentFor(dep, stay ? "groom" : "room");
+  }, [siteConfig.bookingDeposit, items]);
+  const depositPctOptions = useMemo(
+    () => [...new Set([10, 20, 30, 50, ...(shopDepositPct ? [shopDepositPct] : [])])].sort((a, b) => a - b),
+    [shopDepositPct]
+  );
   // ขายเร็ว ไม่ระบุลูกค้า — ใช้ลูกค้าโครง "ลูกค้าหน้าร้าน" แทน (สำหรับขายสินค้าล้วนๆ ไม่มีนัด)
   const [quickSale, setQuickSale] = useState(false);
   const [products, setProducts] = useState<
@@ -3847,7 +3858,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
             />
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
-            {[10, 20, 30, 50].map((pct) => {
+            {depositPctOptions.map((pct) => {
               const amt = Math.round((total * pct) / 100);
               return (
                 <button
@@ -3864,7 +3875,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
                       : "bg-card text-brown-soft"
                   }`}
                 >
-                  {pct}%
+                  {pct}%{pct === shopDepositPct ? " ★" : ""}
                 </button>
               );
             })}

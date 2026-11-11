@@ -122,6 +122,8 @@ export type InvoiceRecord = {
   createdAt: string;
   /** เวลาที่กด "รับมัดจำแล้ว" (ต้องรัน migration ก่อน) */
   depositReceivedAt?: string;
+  /** ยอดมัดจำส่วนที่หักมาจาก "เครดิตมัดจำล่วงหน้า" ของลูกค้า (ไม่ใช่เงินที่รับเข้าบิลนี้ตรงๆ) */
+  depositFromCredit?: number;
   /** ลบแบบกู้คืนได้ (soft delete) — ต้องรัน migration ก่อน */
   deletedAt?: string;
   /** สาขาที่ออกบิล (ร้านหลายสาขา) — ว่าง = ตามนัดที่ผูก หรือสาขาแรก ดู branches.ts */
@@ -151,6 +153,7 @@ type InvoiceRow = {
   sent_at: string | null;
   created_at: string;
   deposit_received_at?: string | null;
+  deposit_from_credit?: number | null;
   deleted_at?: string | null;
   branch_id?: string | null;
 };
@@ -181,6 +184,7 @@ function rowToInvoice(r: InvoiceRow): InvoiceRecord {
     sentAt: r.sent_at || undefined,
     createdAt: r.created_at,
     depositReceivedAt: r.deposit_received_at ?? undefined,
+    depositFromCredit: Number(r.deposit_from_credit) || undefined,
     deletedAt: r.deleted_at ?? undefined,
     branchId: r.branch_id || undefined,
   };
@@ -466,6 +470,7 @@ export async function createInvoice(data: {
   }
 
   await syncBillStock(invoice.id, [], invoice.items);
+  if (autoAppliedCredit > 0) await markDepositFromCredit(invoice, autoAppliedCredit);
 
   // เลือกโปรจาก dropdown ตอนออกบิล → บันทึกว่าลูกค้าใช้สิทธิ์แล้ว กันเห็นเป็นใช้ได้อีกในแอป
   if (data.promoId && data.customerId) {
@@ -936,6 +941,7 @@ export async function applyDepositCreditToInvoice(id: string) {
   await adjustDepositCredit(inv.customerId, -amount);
   await attachAdvanceIncomeToInvoice(inv.customerId, id, amount);
   await updateInvoice(id, { deposit: amount });
+  await markDepositFromCredit(inv, amount);
 
   const already = await incomeForInvoice(id);
   if (already < amount) {
@@ -960,6 +966,20 @@ export async function applyDepositCreditToInvoice(id: string) {
     deposit: amount,
     remaining: Math.max(0, inv.total - amount),
   };
+}
+
+/** จดไว้ที่บิลว่ามัดจำส่วนนี้หักมาจากเครดิตมัดจำล่วงหน้า — การ์ดบิลจะได้บอกที่มาของมัดจำได้ */
+async function markDepositFromCredit(inv: InvoiceRecord, amount: number) {
+  inv.depositFromCredit = amount;
+  const sb = getSupabase();
+  if (sb) {
+    await healWrite("invoices", ["deposit_from_credit"], () =>
+      sb.from("invoices").update({ deposit_from_credit: amount }).eq("id", inv.id).eq("tenant_id", requireTenantId())
+    );
+  } else {
+    const m = mem.find((x) => x.id === inv.id);
+    if (m) m.depositFromCredit = amount;
+  }
 }
 
 export async function listInvoicesForBookings(bookingIds: string[]) {

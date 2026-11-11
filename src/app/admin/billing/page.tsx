@@ -121,6 +121,8 @@ type Invoice = {
   customerId?: string;
   bookingId?: string;
   depositReceivedAt?: string;
+  /** มัดจำส่วนที่หักจากเครดิตมัดจำล่วงหน้า */
+  depositFromCredit?: number;
   createdAt?: string;
   /** วิธีปิดบิล — member_credit = ตัดเครดิต Member, package = หักคอร์ส */
   paymentMethod?: "transfer" | "member_credit" | "cash" | "package";
@@ -4292,6 +4294,11 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
                   <div className="flex justify-between border-t border-petflow-line pt-1 font-bold">
                     <span className={inv.depositReceivedAt || paid ? "text-ok" : "text-brown"}>
                       มัดจำ {inv.depositReceivedAt || paid ? "(รับแล้ว)" : "(รอรับ)"}
+                      {inv.depositFromCredit ? (
+                        <span className="font-normal text-latte-deep">
+                          {" "}· หักจากเครดิตมัดจำ {inv.depositFromCredit.toLocaleString()} ฿
+                        </span>
+                      ) : null}
                     </span>
                     <span className={inv.depositReceivedAt || paid ? "text-ok" : "text-brown"}>
                       {inv.deposit!.toLocaleString()} ฿

@@ -99,6 +99,84 @@ function splitList(s: string): string[] {
     .filter(Boolean);
 }
 
+/** นาทีมากสุดที่พิมพ์ไว้ เช่น "S 60 / M 90 / L 120 นาที" → 120 · "2 ชม." → 120 */
+function maxMinutes(s: string): number {
+  const nums = (s.replace(/,/g, "").match(/\d+(?:\.\d+)?/g) || []).map(Number);
+  if (!nums.length) return 0;
+  const m = Math.max(...nums);
+  return /ชม|ชั่วโมง/.test(s) && m <= 12 ? Math.round(m * 60) : Math.round(m);
+}
+
+/** เปลี่ยนน้ำเสียงข้อความ: ลงท้าย ครับ แทน ค่ะ · ร้านแทนตัวเองตามที่ร้านเลือก */
+export function retone(text: string, polite: string, voice: string): string {
+  let t = text;
+  if (polite === "ครับ") {
+    t = t.replace(/นะคะ/g, "นะครับ").replace(/ค่ะ/g, "ครับ").replace(/คะ(?=[\s!?.,)」"']|$)/g, "ครับ");
+  }
+  if (voice && voice !== "ทางร้าน") t = t.replace(/ทางร้าน/g, voice);
+  return t;
+}
+
+const TH_MONTHS = [
+  ["ม.ค.", "มกรา"], ["ก.พ.", "กุมภา"], ["มี.ค.", "มีนา"], ["เม.ย.", "เมษา"], ["พ.ค.", "พฤษภา"], ["มิ.ย.", "มิถุนา"],
+  ["ก.ค.", "กรกฎา"], ["ส.ค.", "สิงหา"], ["ก.ย.", "กันยา"], ["ต.ค.", "ตุลา"], ["พ.ย.", "พฤศจิกา"], ["ธ.ค.", "ธันวา"],
+];
+function thMonth(s: string): number | null {
+  const x = s.replace(/\s+/g, "");
+  const strip = (v: string) => v.replace(/\./g, "");
+  for (let i = 0; i < 12; i++) {
+    const [abbr, full] = TH_MONTHS[i];
+    if (x.startsWith(full) || x === abbr || strip(x) === strip(abbr) || x.startsWith(abbr)) return i + 1;
+  }
+  return null;
+}
+
+/**
+ * วันปิดยาวที่ร้านพิมพ์ เช่น "30 ธ.ค. – 2 ม.ค." · "13-15 เม.ย." · "30/12 - 2/1" (หลายช่วงคั่นด้วย , หรือขึ้นบรรทัด)
+ * → รายการวันที่ YYYY-MM-DD (ปีนี้ ถ้าช่วงนั้นผ่านไปแล้วเป็นปีหน้า) · อ่านไม่ออก = []
+ */
+export function parseHolidayDates(text: string, today = new Date(Date.now() + 7 * 3600_000)): string[] {
+  const out: string[] = [];
+  const todayIso = today.toISOString().slice(0, 10);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const point = (p: string) => {
+    const t = p.trim();
+    let m = t.match(/^(\d{1,2})\s*\/\s*(\d{1,2})(?:\s*\/\s*(\d{2,4}))?$/);
+    if (m) return { d: +m[1], mo: +m[2], y: m[3] ? +m[3] : null };
+    m = t.match(/^(\d{1,2})(?:\s*([^\d\s][^\d]*?))?(?:\s*(\d{2,4}))?$/);
+    if (!m) return null;
+    const mo = m[2] ? thMonth(m[2]) : null;
+    if (m[2] && !mo) return null;
+    return { d: +m[1], mo, y: m[3] ? +m[3] : null };
+  };
+  const fullYear = (y: number | null) => (y == null ? null : y >= 2400 ? y - 543 : y < 100 ? (y >= 60 ? 1957 + y : 2000 + y) : y);
+  for (const seg of String(text || "").split(/[,\n;]+|\s+และ\s+/)) {
+    if (!seg.trim()) continue;
+    const parts = seg.split(/\s*(?:–|—|-|ถึง)\s*/).filter(Boolean);
+    if (parts.length > 2) continue;
+    const a = point(parts[0]);
+    const b = parts[1] ? point(parts[1]) : a;
+    if (!a || !b) continue;
+    const endMo = b.mo ?? a.mo;
+    const startMo = a.mo ?? b.mo;
+    if (!startMo || !endMo) continue;
+    let y = fullYear(a.y) ?? fullYear(b.y) ?? today.getUTCFullYear();
+    const mk = (yy: number, mo: number, d: number) => new Date(Date.UTC(yy, mo - 1, d));
+    let start = mk(y, startMo, a.d);
+    let end = mk(endMo < startMo ? y + 1 : y, endMo, b.d);
+    if (a.y == null && b.y == null && end.toISOString().slice(0, 10) < todayIso) {
+      y += 1;
+      start = mk(y, startMo, a.d);
+      end = mk(endMo < startMo ? y + 1 : y, endMo, b.d);
+    }
+    if (isNaN(+start) || isNaN(+end) || end < start || (+end - +start) / 86400000 > 60) continue;
+    for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+      out.push(`${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`);
+    }
+  }
+  return [...new Set(out)];
+}
+
 /** ตัวเลขตัวแรกในข้อความ เช่น "500 บาท" → 500 · "1,200" → 1200 */
 function firstNum(s: string): number | null {
   const m = s.replace(/,/g, "").match(/\d+(?:\.\d+)?/);
@@ -254,6 +332,26 @@ function buildDrafts(ans: IntakeAnswers, cfg: SiteConfig): Draft[] {
   biz("reviewUrl", "ลิงก์รีวิวร้าน", r.raw("reviewUrl"));
   biz("reviewButtonText", "คำบนปุ่มชวนรีวิว", r.T(r.one("reviewBtn")));
   biz("facebook", "Facebook", r.raw("facebook"));
+  biz("nameEn", "ชื่อร้านภาษาอังกฤษ", r.raw("shopNameEn").trim());
+  biz("instagram", "Instagram", r.raw("instagram").trim());
+  biz("tiktok", "TikTok", r.raw("tiktok").trim());
+  biz("openHours", "เวลาเปิด-ปิดร้าน", r.raw("openHours").trim());
+  // วันปิดยาว — อ่านช่วงวันที่ เช่น "30 ธ.ค. – 2 ม.ค." เป็นวันหยุดรายวัน (อ่านไม่ออก = อยู่ในรายการตั้งเอง)
+  const holidayDates = parseHolidayDates(r.raw("holidays"));
+  if (holidayDates.length) {
+    const have = new Set((cfg.closedDates || []).map((d) => d.date));
+    const added = holidayDates.filter((d) => !have.has(d));
+    if (added.length)
+      add({
+        key: "closedDates",
+        label: "วันปิดยาว (วันหยุดเฉพาะวัน)",
+        before: show((cfg.closedDates || []).map((d) => d.date)),
+        after: show([...(cfg.closedDates || []).map((d) => d.date), ...added]),
+        patch: (c) => ({
+          closedDates: [...(c.closedDates || []), ...added.map((date) => ({ date, note: "ปิดยาว (จากแบบสอบถาม)" }))],
+        }),
+      });
+  }
 
   const walkin = r.raw("walkin");
   if (walkin) {
@@ -401,10 +499,28 @@ function buildDrafts(ans: IntakeAnswers, cfg: SiteConfig): Draft[] {
       });
   }
 
+  // ช่องทางรับเงินอื่น (นอกจากโอน/เงินสด) → ปุ่มรับเงินในหน้าคิดเงิน/ขายหน้าร้าน
+  const ways = (r.many("payWays") || [])
+    .filter((w) => w !== "โอน/สแกน QR" && w !== "เงินสด")
+    .map((w) => {
+      const pct = firstNum(r.fol("payWays", w));
+      return pct ? `${w} (+${pct}%)` : w;
+    });
+  if (ways.length) {
+    const methods = [...new Set([...(cfg.payment.extraMethods || []), ...ways])];
+    add({
+      key: "payment.extraMethods",
+      label: "ช่องทางรับเงินอื่น",
+      before: show(cfg.payment.extraMethods),
+      after: show(methods),
+      patch: () => ({ payment: { extraMethods: methods } as SiteConfig["payment"] }),
+    });
+  }
+
   // ── ห้องพัก ──
   const roomCount = Math.min(10, firstNum(r.one("roomTypes")) || 0);
   if (roomCount > 0) {
-    const amenities = (r.many("inRoom") || []).map(r.T);
+    const amenities = [...new Set([...(r.many("inRoom") || []), ...(r.many("catRoom") || [])])].map(r.T);
     const rooms: RoomType[] = [];
     for (let i = 0; i < roomCount; i++) {
       const f = (k: string) => r.raw(`rooms.${i}.${k}`);
@@ -532,6 +648,17 @@ function buildDrafts(ans: IntakeAnswers, cfg: SiteConfig): Draft[] {
   extraFee("waitPickup", "รับช้าคิดเพิ่ม", "รับช้าหลังอาบน้ำเสร็จ");
   extraFee("lateFee", "คิดเพิ่มเป็นชั่วโมง", "รับช้ากว่าเวลาเช็คเอาท์ ต่อชั่วโมง");
   extraFee("lateFee", "คิดเพิ่มครึ่งวัน", "รับช้า คิดครึ่งวัน");
+  extraFee("litter", "ร้านมีให้ คิดเงินเพิ่ม", "ทรายแมว ต่อวัน");
+  extraFee("priceBy", "ขนาด + ขนสั้น/ยาว", "ขนยาว คิดเพิ่ม");
+  // รับ-ส่ง → ปุ่ม "ค่ารับ-ส่ง" ในบิล (ชื่อต้องมีคำว่า รับ-ส่ง ระบบถึงคิดเป็นเที่ยวให้)
+  const pickupAns = r.raw("pickup");
+  if (pickupAns && pickupAns !== "ไม่มี") {
+    const f = r.fol("pickup", pickupAns);
+    const min = f.replace(/,/g, "").match(/ขั้นต่ำ\s*(\d+)/);
+    const amount = /ฟรี/.test(pickupAns) ? 0 : min ? Number(min[1]) : /ระยะทาง/.test(pickupAns) ? 0 : firstNum(f) || 0;
+    const way = r.raw("pickupWay");
+    addons.push({ label: `ค่ารับ-ส่ง${f ? ` (${f})` : ""}${way === "คิดต่อเที่ยว" ? " ต่อเที่ยว" : ""}`, amount });
+  }
   // ช้าเกินเวลาที่ตั้ง = คิดเพิ่ม 1 คืน (ราคาตามห้อง — ไม่ใส่ยอดตายตัว ให้เลือกห้องเพิ่ม 1 คืนในบิล)
   if (addons.length)
     add({
@@ -629,6 +756,48 @@ function buildDrafts(ans: IntakeAnswers, cfg: SiteConfig): Draft[] {
       after: `${perSlot}`,
       patch: () => ({ groomSlotDefaultCapacity: perSlot }),
     });
+
+  // เวลาอาบ 1 ตัว → ค่าระบบ "เวลาอาบน้ำต่อตัว" (ใช้เตือนคิวชนกันในหลังบ้าน)
+  const gt = r.raw("groomTime");
+  const groomMin =
+    gt === "ไม่เกิน 1 ชม." ? 60 : gt === "1–2 ชม." ? 120 : gt === "2–3 ชม." ? 180 : gt ? maxMinutes(r.fol("groomTime", gt) || r.one("groomTime")) : 0;
+  if (groomMin)
+    add({
+      key: "rules.groomDurationMin",
+      label: "เวลาอาบน้ำต่อตัว (นาที)",
+      before: show(cfg.rules?.groomDurationMin),
+      after: `${groomMin}`,
+      patch: (c) => ({ rules: { ...c.rules, groomDurationMin: groomMin } }),
+    });
+  // คำถามก่อนอาบน้ำ → เปิด/ปิดข้อในฟอร์มประวัติก่อนอาบน้ำ · ข้อที่ไม่มีในฟอร์ม ไปอยู่ในหัวข้อช่อง "อื่นๆ ที่อยากบอก"
+  const ask = r.many("askBefore");
+  if (ask?.length) {
+    const map: Record<string, string> = {
+      นิสัยตอนอาบน้ำ: "temperament",
+      โรคผิวหนัง: "health",
+      เคยอาบที่อื่นไหม: "bathedBefore",
+    };
+    const extraAsk = ask.filter((a) => !map[a]);
+    const form: Record<string, { enabled: boolean; label?: string }> = {};
+    for (const [opt, key] of Object.entries(map)) form[key] = { enabled: ask.includes(opt) };
+    if (extraAsk.length) form.note = { enabled: true, label: `${extraAsk.join(" / ")} / อื่นๆ ที่อยากบอกช่าง` };
+    const desc = (g?: SiteConfig["groomForm"]) =>
+      Object.entries(map)
+        .filter(([, k]) => g?.[k]?.enabled !== false)
+        .map(([o]) => o)
+        .concat(g?.note?.label ? [g.note.label] : [])
+        .join(", ") || "—";
+    const nextForm = Object.fromEntries(
+      Object.entries(form).map(([k, v]) => [k, { ...(cfg.groomForm?.[k] || {}), ...v }])
+    ) as SiteConfig["groomForm"];
+    add({
+      key: "groomForm",
+      label: "คำถามในฟอร์มก่อนอาบน้ำ",
+      before: desc(cfg.groomForm),
+      after: desc({ ...(cfg.groomForm || {}), ...nextForm }),
+      patch: (c) => ({ groomForm: { ...(c.groomForm || {}), ...nextForm } }),
+    });
+  }
 
   // ── บริการนอกสถานที่ (ช่างไปที่บ้านลูกค้า) ──
   const home = r.raw("homeService");
@@ -822,6 +991,13 @@ function buildDrafts(ans: IntakeAnswers, cfg: SiteConfig): Draft[] {
   const refund = r.raw("refund");
   if (refund) depTerms.push(`ยกเลิก: ${refund}${r.fol("refund", refund) ? ` (${r.fol("refund", refund)})` : ""}`);
   if (depTerms.length) rules.push(`💰 ${depTerms.join(" · ")}`);
+  const minN = firstNum(r.raw("minNights"));
+  if (minN) rules.push(`🌙 พักขั้นต่ำ ${minN} คืน`);
+  const litter = r.raw("litter");
+  if (litter) rules.push(`🐱 ทรายแมวระหว่างฝาก: ${litter}${firstNum(r.fol("litter", litter)) ? ` วันละ ${firstNum(r.fol("litter", litter))} บาท` : ""}`);
+  const pk = r.raw("pickup");
+  if (pk && pk !== "ไม่มี")
+    rules.push(`🚗 บริการรับ-ส่ง: ${pk}${r.fol("pickup", pk) ? ` (${r.fol("pickup", pk)})` : ""}${r.raw("pickupWay") ? ` · ${r.raw("pickupWay")}` : ""}`);
   const extra = r.raw("rulesExtra");
   if (extra) rules.push(extra);
   if (rules.length) {
@@ -851,6 +1027,61 @@ function buildDrafts(ans: IntakeAnswers, cfg: SiteConfig): Draft[] {
       after: show(depTerms),
       patch: () => ({ messages: { depositTerms: depTerms } as unknown as SiteConfig["messages"] }),
     });
+
+  // ── น้ำเสียงข้อความ (ค่ะ/ครับ · ร้านแทนตัวเองว่า) + ข้อเสนอตอนทักชวนกลับ ──
+  const polite = r.raw("politeness");
+  const voice = r.raw("voice");
+  const tone = (t: string) => retone(t, polite, voice);
+  const offerAns = r.raw("comebackOffer");
+  const offer = offerAns === "ให้ส่วนลด" ? r.fol("comebackOffer", offerAns).trim() : "";
+  const baseFollow = cfg.crm.followUpMessage || "";
+  const follow = tone(offer && !baseFollow.includes(offer) ? `${baseFollow}\nกลับมาใช้บริการรอบนี้ รับส่วนลด ${offer} ค่ะ 🎁` : baseFollow);
+  if (follow !== baseFollow)
+    add({
+      key: "crm.followUpMessage",
+      label: "ข้อความทักชวนลูกค้ากลับมา",
+      before: baseFollow,
+      after: follow,
+      patch: () => ({ crm: { followUpMessage: follow } as SiteConfig["crm"] }),
+    });
+  if (polite === "ครับ" || (voice && voice !== "ทางร้าน")) {
+    const skip = new Set(["prestayPrepItems", "depositTerms"]);
+    const changed: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(cfg.messages || {})) {
+      if (skip.has(k)) continue;
+      if (typeof v === "string") {
+        if (tone(v) !== v) changed[k] = tone(v);
+      } else if (Array.isArray(v) && v.every((x) => typeof x === "string")) {
+        const nv = (v as string[]).map(tone);
+        if (nv.some((x, i) => x !== v[i])) changed[k] = nv;
+      } else if (k === "texts" && v && typeof v === "object") {
+        const t = Object.fromEntries(Object.entries(v as unknown as Record<string, string>).map(([a, b]) => [a, tone(String(b))]));
+        if (JSON.stringify(t) !== JSON.stringify(v)) changed[k] = t;
+      }
+    }
+    if (Object.keys(changed).length)
+      add({
+        key: "messages.tone",
+        label: "น้ำเสียงข้อความถึงลูกค้า",
+        before: "ลงท้าย ค่ะ · แทนตัวว่า ทางร้าน",
+        after: `ลงท้าย ${polite === "ครับ" ? "ครับ" : "ค่ะ"} · แทนตัวว่า ${voice || "ทางร้าน"} (${Object.keys(changed).length} ข้อความ)`,
+        patch: () => ({ messages: changed as unknown as SiteConfig["messages"] }),
+      });
+  }
+  // แจ้งเตือนทาง Google Calendar → อีเมลเจ้าของปฏิทินนัดของร้าน
+  const notify = r.many("notify") || [];
+  if (notify.includes("Google Calendar")) {
+    const emails = (r.fol("notify", "Google Calendar").match(/[^\s,;/]+@[^\s,;/]+\.[a-z]{2,}/gi) || []).map((e) => e.toLowerCase());
+    const all = [...new Set([...(cfg.business.calendarOwnerEmails || []), ...emails])];
+    if (emails.length)
+      add({
+        key: "business.calendarOwnerEmails",
+        label: "อีเมลเจ้าของปฏิทินนัด (Google Calendar)",
+        before: show(cfg.business.calendarOwnerEmails),
+        after: show(all),
+        patch: () => ({ business: { calendarOwnerEmails: all } as SiteConfig["business"] }),
+      });
+  }
 
   // ── ข้อความ LINE อัตโนมัติ ──
   const auto = r.many("auto");
@@ -1002,7 +1233,15 @@ export function manualItems(ans: IntakeAnswers): string[] {
   if (answered("roomTypes") && !(firstNum(r.one("roomTypes")) && r.raw("rooms.0.price"))) items.push("ห้องพักและราคาห้อง");
   if (answered("services") && !sizeCount) items.push("ราคาอาบน้ำตัดขน");
   const courses = (r.many("courses") || []).filter((c) => c !== "ยังไม่มี" && c !== "แพ็กห้องพัก");
-  if (courses.length) items.push(`สร้างรายการขายในเมนูคอร์ส: ${courses.map((c) => `${c} (${r.fol("courses", c)})`).join(" · ")}`);
+  if (courses.length) {
+    const terms = [
+      r.raw("courseExpire") === "มีวันหมดอายุ" ? `หมดอายุ ${r.fol("courseExpire", "มีวันหมดอายุ") || "?"} เดือน` : r.raw("courseExpire") ? "ไม่หมดอายุ" : "",
+      r.raw("installment") === "ได้" ? `แบ่งจ่ายได้ ${r.fol("installment", "ได้") || "?"} งวด` : "",
+    ].filter(Boolean);
+    items.push(
+      `สร้างรายการขายในเมนูคอร์ส: ${courses.map((c) => `${c} (${r.fol("courses", c)})`).join(" · ")}${terms.length ? ` — ${terms.join(", ")}` : ""}`
+    );
+  }
   if (r.raw("products") === "ขาย") items.push("สินค้าหน้าร้าน");
   if (r.raw("moveData") === "อยาก") items.push("ย้ายข้อมูลลูกค้าเก่า");
   if (answered("sheetLink")) items.push(`กรอกข้อมูลจากชีทของร้าน: ${r.raw("sheetLink")}`);
@@ -1011,9 +1250,29 @@ export function manualItems(ans: IntakeAnswers): string[] {
   else if (r.raw("lineAdmin") === "เพิ่มแล้ว") items.push("เชื่อม LINE ของร้าน (Token, LIFF, Webhook)");
   else if (r.raw("lineReady")) items.push("เชื่อม LINE ของร้าน (ร้านยังไม่ได้เพิ่มทีมเป็นผู้ดูแล)");
   if (answered("rewards") && !/\d+\s*แต้ม/.test(r.raw("rewards"))) items.push("แต้มแลกรางวัล (อ่านคำตอบเป็นตัวเลขไม่ได้)");
-  if (answered("staffCount") && r.raw("staffCount") !== "0") items.push("รหัสพนักงาน");
+  if (answered("staffCount") && r.raw("staffCount") !== "0") {
+    const n = Math.min(15, firstNum(r.one("staffCount")) || 0);
+    const people = Array.from({ length: n }, (_, i) => {
+      const f = (k: string) => r.raw(`staff.${i}.${k}`);
+      const name = f("name");
+      if (!name) return "";
+      const extra = [f("role"), f("salary") ? `เงินเดือน ${f("salary")}` : "", f("commission") ? `คอม ${f("commission")}` : ""].filter(Boolean);
+      return extra.length ? `${name} (${extra.join(", ")})` : name;
+    }).filter(Boolean);
+    const see = (r.many("staffSee") || []).join(", ");
+    items.push(
+      `รหัสพนักงาน${people.length ? `: ${people.join(" · ")}` : ""}${see ? ` — สิทธิ์ที่เห็น: ${see}` : ""}`
+    );
+  }
   if (answered("pics")) items.push(`ใส่รูปที่ร้านส่งมา: ${(r.many("pics") || []).join(", ")}`);
-  if (answered("holidays")) items.push(`วันปิดยาว (${r.raw("holidays")})`);
+  if (answered("holidays") && !parseHolidayDates(r.raw("holidays")).length) items.push(`วันปิดยาว (อ่านวันที่ไม่ได้: ${r.raw("holidays")})`);
+  const notify = (r.many("notify") || []).filter((x) => x === "LINE" || x === "Telegram");
+  if (notify.length) items.push(`เชื่อมแจ้งเตือนจองใหม่ทาง ${notify.join(" + ")}`);
+  if (r.raw("oldData")) {
+    const src = r.raw("oldData") === "แอปอื่น" ? `แอป ${r.fol("oldData", "แอปอื่น") || "อื่น"}` : r.raw("oldData");
+    if (src !== "ยังไม่มีลูกค้า") items.push(`(ข้อมูล) ร้านจดลูกค้าเดิมไว้ที่: ${src}`);
+  }
+  if (answered("wish")) items.push(`(ข้อมูล) ร้านอยากให้ระบบช่วย: ${r.raw("wish")}`);
   if (r.raw("peak") === "เพิ่ม") items.push(`ราคาเทศกาล: ${r.fol("peak", "เพิ่ม")} (ตั้งช่วงวันใน ตั้งค่า › ห้องพัก › Low/High season)`);
   if (r.raw("lateFee") === "คิดเพิ่ม 1 คืน") items.push(`มารับช้า (${r.fol("lateFee", "คิดเพิ่ม 1 คืน") || "ตามเวลาที่ร้านกำหนด"}) = เพิ่มห้อง 1 คืนในบิลเอง (เขียนไว้ในหน้ากฎแล้ว)`);
   return items;

@@ -282,7 +282,32 @@ export default function CustomerHome() {
           💬 LINE {config.business.lineOa} · {m.chatBook}
         </a>
       )}
+      {(config.business.openHours || config.business.instagram || config.business.tiktok) && (
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-brown-soft">
+          {config.business.openHours ? <span>🕒 {config.business.openHours}</span> : null}
+          {socialUrl(config.business.instagram, "instagram") ? (
+            <a href={socialUrl(config.business.instagram, "instagram")} target="_blank" rel="noopener noreferrer" className="font-bold underline">
+              Instagram
+            </a>
+          ) : null}
+          {socialUrl(config.business.tiktok, "tiktok") ? (
+            <a href={socialUrl(config.business.tiktok, "tiktok")} target="_blank" rel="noopener noreferrer" className="font-bold underline">
+              TikTok
+            </a>
+          ) : null}
+        </div>
+      )}
       </div>
     </div>
   );
+}
+
+/** "@shop" / "shop" / ลิงก์เต็ม → ลิงก์โปรไฟล์ */
+function socialUrl(v: string | undefined, kind: "instagram" | "tiktok"): string {
+  const t = String(v || "").trim();
+  if (!t) return "";
+  if (/^https?:\/\//i.test(t)) return t;
+  const h = t.replace(/^@/, "").replace(/\s+/g, "");
+  if (!/^[\w.]+$/.test(h)) return "";
+  return kind === "instagram" ? `https://instagram.com/${h}` : `https://www.tiktok.com/@${h}`;
 }

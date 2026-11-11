@@ -80,6 +80,19 @@ export async function setRecordBranch(
 type BookingLike = { id: string; branchId?: string; room?: string; service?: string };
 type InvoiceLike = { id: string; branchId?: string; bookingId?: string };
 
+/** สาขาจริงของบิลใบเดียว — สาขาที่บันทึกไว้ → สาขาของนัดที่ผูก → สาขาแรก · ร้านสาขาเดียว = undefined */
+export async function invoiceBranchOf(cfg: SiteConfig, inv: { branchId?: string; bookingId?: string }) {
+  if (!isMultiBranch(cfg)) return undefined;
+  const own = knownBranchId(cfg, inv.branchId);
+  if (own) return own;
+  if (inv.bookingId) {
+    const { getBooking } = await import("./bookings-store");
+    const b = await getBooking(inv.bookingId).catch(() => null);
+    if (b) return bookingBranchId(cfg, b);
+  }
+  return recordBranchId(cfg, inv.branchId);
+}
+
 /**
  * ตัวกรองรายการตามสาขา — โหลดนัด/บิลมาเท่าที่ต้องใช้หาสาขาของบิลที่ผูกนัด
  * และรายการเงินที่ผูกบิล (ของเก่าที่ยังไม่มีสาขาของตัวเอง)

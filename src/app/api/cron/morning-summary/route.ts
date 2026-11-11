@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendTelegram, SHOP_NAME_TOKEN } from "@/lib/telegram";
-import { buildMorningSummaryMessage } from "@/lib/telegram-commands";
+import { buildMorningSummaryMessage, sendPerBranch } from "@/lib/telegram-commands";
 import { withTenant } from "@/lib/tenant-context";
 import { listActiveTenantIds } from "@/lib/tenant-directory";
 import { verifyCronSecret } from "@/lib/cron-auth";
@@ -34,8 +34,8 @@ export async function GET(req: NextRequest) {
 
 async function runForTenant() {
   const today = new Date().toISOString().slice(0, 10);
-  const msg = await buildMorningSummaryMessage(today);
-  const res = await sendTelegram(msg);
+  // ร้านหลายสาขา: สรุปแยกสาขาละข้อความ (เข้ากลุ่มของร้าน + กลุ่มของสาขานั้นถ้าตั้งไว้)
+  const res = await sendPerBranch((branchId) => buildMorningSummaryMessage(today, branchId));
   // แยกข้อความรับ-ส่งไว้อีกข้อความ ส่งต่อให้คนขับได้ทั้งก้อน — ไม่มีเที่ยว = ไม่ส่ง
   const transport = await buildTransportSummaryMessage(today, {
     heading: `🚗 รับ-ส่งวันนี้ (${today})`,
@@ -61,7 +61,7 @@ async function sendIntakeAnswers(today: string) {
   for (const b of todays) {
     const answers = await bookingIntakeAnswers(b, { list, customers, config });
     if (!answers.sections.length) continue;
-    const r = await sendTelegram(`🐾 <b>${SHOP_NAME_TOKEN}</b>\n${formatIntakeTelegram(b, answers, today)}`);
+    const r = await sendTelegram(`🐾 <b>${SHOP_NAME_TOKEN}</b>\n${formatIntakeTelegram(b, answers, today)}`, { booking: b });
     if (r.ok) sent++;
     // กลุ่ม Telegram รับได้ ~20 ข้อความ/นาที — เว้นจังหวะกันโดนบล็อก
     await new Promise((res) => setTimeout(res, 1100));

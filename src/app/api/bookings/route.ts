@@ -351,7 +351,8 @@ async function handlePost(req: NextRequest) {
       ...(hasTransport(booking.transport) ? { รับส่ง: transportLabel(booking.transport) } : {}),
       วันที่: `${body.date || body.checkin}${body.time ? ` ${body.time}` : ""}`,
       ปฏิทิน: cal.googleUrl || icsUrl,
-    })
+    }),
+      { booking: booking }
   );
 
   return NextResponse.json({
@@ -436,7 +437,8 @@ async function handlePatch(req: NextRequest, admin: boolean) {
         ลูกค้า: String(b.customerName),
         น้อง: String(b.catName),
         วันที่: String(b.date || b.checkin),
-      })
+      }),
+      { booking: b }
     );
     const matched = await findCustomerForBooking(b);
     if (matched) await recalculateCustomerTier(matched.id);
@@ -485,7 +487,8 @@ async function handlePatch(req: NextRequest, admin: boolean) {
         ลูกค้า: String(first.customerName),
         น้อง: [...new Set(confirmed.map((x) => x!.catName))].join(", "),
         วันที่: String(first.date || first.checkin),
-      })
+      }),
+      { booking: first }
     );
     const matched = await findCustomerForBooking(first);
     if (matched) await recalculateCustomerTier(matched.id);
@@ -1391,7 +1394,8 @@ function groomInfoCardFor(
               : inv.kind === "warn"
                 ? `⚠️ ${inv.message}`
                 : "-",
-      })
+      }),
+      { booking: h }
     );
     return NextResponse.json({
       ok: true,
@@ -1459,7 +1463,8 @@ function groomInfoCardFor(
         น้อง: String(updated.catName),
         วันที่: String(updated.date || updated.checkin),
         เวลา: String(updated.time || "-"),
-      })
+      }),
+      { booking: updated }
     );
 
     return NextResponse.json({ ok: true, booking: toBooking(updated) });
@@ -1524,7 +1529,8 @@ function groomInfoCardFor(
           บริการ: b.service === "room" ? "ห้องพัก" : "อาบน้ำ",
           ...(status === "ready" ? { แจ้งลูกค้า: sent ? "ส่งแล้ว" : "ไม่ได้ส่ง" } : {}),
         }
-      )
+      ),
+      { booking: b }
     );
 
     return NextResponse.json({ ok: true, sent, status });
@@ -1548,7 +1554,8 @@ function groomInfoCardFor(
         ลูกค้า: String(b.customerName),
         น้อง: String(b.catName),
         วันที่: String(b.date || b.checkin),
-      })
+      }),
+      { booking: b }
     );
 
     return NextResponse.json({ ok: true, booking: toBooking(updated) });

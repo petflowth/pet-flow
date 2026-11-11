@@ -185,7 +185,8 @@ async function handlePost(req: NextRequest) {
         วันที่: date,
         ...(branchName ? { สาขา: branchName } : {}),
         ...depositTelegramLine(deposit),
-      })
+      }),
+      { branchId }
     );
     return NextResponse.json({ ok: true, booking: bookings[0], bookings });
   }
@@ -253,7 +254,8 @@ async function handlePost(req: NextRequest) {
       ห้อง: roomsNeeded > 1 ? `${roomCfg?.name || room} × ${roomsNeeded}` : roomCfg?.name || room,
       ...(roomBranchId(siteCfg, room) ? { สาขา: branchById(siteCfg, roomBranchId(siteCfg, room))?.name || "" } : {}),
       ...depositTelegramLine(deposit),
-    })
+    }),
+    { booking: { service: "room", room } }
   );
   return NextResponse.json({ ok: true, booking: bookings[0], bookings });
 }

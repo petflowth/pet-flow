@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendTelegram } from "@/lib/telegram";
-import { buildEndOfDaySummaryMessage } from "@/lib/telegram-commands";
+import { buildEndOfDaySummaryMessage, sendPerBranch } from "@/lib/telegram-commands";
 import { withTenant } from "@/lib/tenant-context";
 import { listActiveTenantIds } from "@/lib/tenant-directory";
 import { verifyCronSecret } from "@/lib/cron-auth";
@@ -36,8 +36,8 @@ export async function GET(req: NextRequest) {
 async function runForTenant() {
   const today = new Date().toISOString().slice(0, 10);
   const tomorrow = addDays(today, 1);
-  const msg = await buildEndOfDaySummaryMessage(today, tomorrow);
-  const res = await sendTelegram(msg);
+  // ร้านหลายสาขา: สรุปยอดและตารางพรุ่งนี้แยกสาขาละข้อความ
+  const res = await sendPerBranch((branchId) => buildEndOfDaySummaryMessage(today, tomorrow, branchId));
   // รับ-ส่งพรุ่งนี้ ส่งตั้งแต่คืนก่อน จะได้วางเส้นทาง/ทักลูกค้าที่ยังไม่ส่งพิกัดทัน
   const transport = await buildTransportSummaryMessage(tomorrow, {
     heading: `🚗 รับ-ส่งพรุ่งนี้ (${tomorrow})`,

@@ -449,9 +449,11 @@ export async function deleteInvoicePaymentIncome(invoiceId: string) {
   }
 }
 
-export async function financeSummary(from?: string, to?: string) {
+export async function financeSummary(from?: string, to?: string, branchId?: string | null) {
   // รายการที่ติ๊ก "ไม่นับเป็นรายได้" ไม่เข้ายอดสรุป (เช่นยอดยกมาจากระบบเก่า)
-  const list = (await listFinance(from, to)).filter((r) => !r.excluded);
+  let list = (await listFinance(from, to)).filter((r) => !r.excluded);
+  // ร้านหลายสาขา: ยอดของสาขาเดียว (สรุปปิดวันแยกสาขา)
+  if (branchId) list = await (await (await import("./branch-scope")).branchFilter(branchId)).finance(list);
   const income = list.filter((r) => r.type === "income").reduce((s, r) => s + r.amount, 0);
   const expense = list.filter((r) => r.type === "expense").reduce((s, r) => s + r.amount, 0);
   return { income, expense, net: income - expense, count: list.length };
@@ -475,9 +477,9 @@ export async function setFinanceExcluded(id: string, excluded: boolean) {
   return { ok: true as const };
 }
 
-export async function todayFinance() {
+export async function todayFinance(branchId?: string | null) {
   const today = new Date().toISOString().slice(0, 10);
-  return financeSummary(today, today);
+  return financeSummary(today, today, branchId);
 }
 
 export async function monthFinance(yearMonth?: string) {

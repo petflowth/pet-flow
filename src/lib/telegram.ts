@@ -12,6 +12,7 @@ import {
 import { requireTenantId } from "./tenant-context";
 import { runAfterResponse } from "./after-response";
 import { getSiteConfig } from "./config-store";
+import { bookingBranchId, branchById, isMultiBranch, knownBranchId } from "./branches";
 
 const TELEGRAM_API = "https://api.telegram.org";
 
@@ -215,13 +216,39 @@ export async function pushTelegramMenuToOwners(text?: string) {
   };
 }
 
-export async function sendTelegram(text: string) {
+/**
+ * ร้านหลายสาขา: ข้อความนี้เป็นเรื่องของสาขาไหน — ใส่ branchId ตรง ๆ หรือส่งนัดมาให้หาสาขาเอง
+ * ข้อความจะขึ้นชื่อสาขา และส่งเข้ากลุ่ม Telegram ของสาขานั้นด้วย (ถ้าสาขาตั้ง Chat ID ไว้)
+ */
+export type TelegramBranchOpts = {
+  branchId?: string | null;
+  booking?: { branchId?: string; room?: string; service?: string } | null;
+};
+
+export async function sendTelegram(text: string, opts?: TelegramBranchOpts) {
   const creds = await getTelegramCredentials();
-  if (!creds?.botToken || !creds.ownerChatIds.length) {
-    return { ok: false, reason: "not_configured" };
+  if (!creds?.botToken) return { ok: false, reason: "not_configured" };
+  const config = text.includes(SHOP_NAME_TOKEN) || opts?.branchId || opts?.booking ? await getSiteConfig().catch(() => null) : null;
+
+  // สาขาของข้อความนี้ → ขึ้นชื่อสาขา + ส่งเข้ากลุ่มของสาขาด้วย
+  const chatIds = [...creds.ownerChatIds];
+  if (config && isMultiBranch(config) && (opts?.branchId || opts?.booking)) {
+    const branchId = opts.branchId ? knownBranchId(config, opts.branchId) : bookingBranchId(config, opts.booking || {});
+    const branch = branchId ? branchById(config, branchId) : undefined;
+    if (branch) {
+      if (!text.includes("<b>สาขา</b>") && !text.includes("🏬")) {
+        const nl = text.indexOf("\n");
+        const tag = `🏬 <b>${escapeHtml(branch.name)}</b>`;
+        text = nl < 0 ? `${text}\n${tag}` : `${text.slice(0, nl)}\n${tag}${text.slice(nl)}`;
+      }
+      for (const id of String(branch.telegramChatIds || "").split(/[,\s]+/)) {
+        if (/^-?\d+$/.test(id) && !chatIds.includes(id)) chatIds.push(id);
+      }
+    }
   }
+  if (!chatIds.length) return { ok: false, reason: "not_configured" };
   if (text.includes(SHOP_NAME_TOKEN)) {
-    const name = (await getSiteConfig().catch(() => null))?.business?.name?.trim() || "แจ้งเตือนร้าน";
+    const name = config?.business?.name?.trim() || "แจ้งเตือนร้าน";
     text = text.split(SHOP_NAME_TOKEN).join(escapeHtml(name));
   }
 
@@ -238,9 +265,7 @@ export async function sendTelegram(text: string) {
   }
 
   const results = await Promise.all(
-    creds.ownerChatIds.map((chatId) =>
-      sendTelegramToChat(creds.botToken, chatId, text, { showMenu: false })
-    )
+    chatIds.map((chatId) => sendTelegramToChat(creds.botToken, chatId, text, { showMenu: false }))
   );
 
   return { ok: results.every((r) => r.ok) };
@@ -253,8 +278,8 @@ const webhookCheckedAt = new Map<string, number>();
  * แจ้งเจ้าของร้านหลังตอบลูกค้าแล้ว — ใช้ใน route ฝั่งลูกค้าแทน await sendTelegram()
  * ลูกค้าไม่ต้องรอ Telegram (ช้า/ล่มก็ไม่ขวางการสมัคร/จอง) ข้อความยังส่งครบเหมือนเดิม
  */
-export function sendTelegramLater(text: string) {
-  runAfterResponse("telegram notify", () => sendTelegram(text));
+export function sendTelegramLater(text: string, opts?: TelegramBranchOpts) {
+  runAfterResponse("telegram notify", () => sendTelegram(text, opts));
 }
 
 /** ส่งรูป + คำบรรยายให้เจ้าของทุกคน (เช่น รูปโปรไฟล์คนที่แอด LINE) */

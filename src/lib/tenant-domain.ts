@@ -3,7 +3,7 @@ import { getDirectoryDb } from "./supabase/server";
 /**
  * โดเมนของร้านเอง (เช่น catcha.com) → ร้านไหน
  *
- * ปกติร้านเข้าผ่าน pet-flow-1.vercel.app/s/<slug>/... — ร้านที่ซื้อโดเมนเองให้ผู้ดูแลระบบ
+ * ปกติร้านเข้าผ่าน petflow.online/s/<slug>/... (หรือ pet-flow-1.vercel.app เดิม) — ร้านที่ซื้อโดเมนเองให้ผู้ดูแลระบบ
  * ใส่โดเมนในหน้า /platform (เก็บใน tenants.custom_domain) แล้วเพิ่มโดเมนเดียวกันใน Vercel
  * middleware จะดูชื่อโดเมนที่เปิดเข้ามา แล้วทำเหมือนเปิดลิงก์ /s/<slug>/... ของร้านนั้น
  * ลิงก์ /s/<slug> เดิมยังใช้ได้ตามปกติ ดูขั้นตอนใน CUSTOM_DOMAIN.md
@@ -11,12 +11,19 @@ import { getDirectoryDb } from "./supabase/server";
  * ไฟล์นี้ถูกดึงเข้า middleware — ห้าม import อะไรที่ใช้ Node อย่างเดียว
  */
 
+/** โดเมนหลักของ PetFlow เอง — ร้านใช้ลิงก์ petflow.online/s/<slug>/... */
+const BUILTIN_PLATFORM_HOSTS = ["petflow.online", "www.petflow.online"];
+
 /** โดเมนของแพลตฟอร์มเอง (ไม่ใช่โดเมนร้าน) — เพิ่มได้ด้วย env PLATFORM_HOSTS คั่นด้วย , */
 function platformHosts(): string[] {
   const extra = (process.env.PLATFORM_HOSTS || "")
     .split(",")
     .map((h) => h.trim().toLowerCase())
     .filter(Boolean);
+  extra.push(...BUILTIN_PLATFORM_HOSTS);
+  // โดเมน production ที่ Vercel ตั้งให้ (กลายเป็นโดเมนของเราเองเมื่อผูกโดเมน)
+  const prod = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim().toLowerCase();
+  if (prod) extra.push(prod.replace(/^https?:\/\//, "").replace(/\/.*$/, ""));
   const app = process.env.NEXT_PUBLIC_APP_URL?.trim();
   if (app) {
     try {

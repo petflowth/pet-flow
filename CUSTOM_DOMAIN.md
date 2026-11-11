@@ -68,5 +68,5 @@ LINE (LIFF) ของร้านยังใช้ลิงก์ `/s/<ชื�
 - `src/lib/tenant-domain.ts` แปลง host → slug (cache 60 วินาที)
 - `src/middleware.ts` ทำให้ทุกคำขอบนโดเมนร้านเหมือนเปิด `/s/<slug>/...`
 - โดเมนของแพลตฟอร์ม (`*.vercel.app`, localhost, host ของ `NEXT_PUBLIC_APP_URL`, และ env `PLATFORM_HOSTS` คั่นด้วย `,`)
-  ใช้ลิงก์ `/s/<slug>` แบบเดิม ถ้าวันหนึ่งย้ายแพลตฟอร์มไปโดเมนของตัวเอง (เช่น petflow.co) ต้องใส่ใน `PLATFORM_HOSTS`
+  ใช้ลิงก์ `/s/<slug>` แบบเดิม โดเมนหลัก `petflow.online` (และ www) ถูกนับเป็นโดเมนแพลตฟอร์มในโค้ดแล้ว — โดเมนแพลตฟอร์มอื่นใส่ใน `PLATFORM_HOSTS`
   ไม่งั้นระบบจะคิดว่าเป็นโดเมนร้านแล้วขึ้น "ยังไม่ได้ผูกโดเมนนี้"

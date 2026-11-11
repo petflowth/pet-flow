@@ -333,6 +333,7 @@
   @media (max-width: 880px) { .pf-device .pf-overphone { right:4px; } }
 
   .pf-reals { display:grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: clamp(28px, 4vw, 44px); }
+  @media (min-width: 941px) { .pf-reals > :last-child:nth-child(3n+1) { grid-column: 2; } }
   @media (max-width: 940px) { .pf-reals { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 560px) { .pf-reals { grid-template-columns: 1fr; } }
   .pf-real { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow:hidden; box-shadow: 0 14px 30px -24px rgba(35,37,92,0.45); display:flex; flex-direction:column; }
@@ -458,6 +459,11 @@
           <div class="pf-shot-head"><span class="t">🗓️ ตารางนัดทั้งเดือน</span><span class="k">Calendar</span></div>
           <figure><img src="/home/own-schedule.webp" alt="🗓️ ตารางนัดทั้งเดือน — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
           <p class="pf-shot-caption">อาบน้ำ เข้าพัก เช็คอิน-เอาท์ ในปฏิทินเดียว — <b>แตะวันไหนก็เห็นงานวันนั้น</b></p>
+        </article>
+        <article class="pf-real">
+          <div class="pf-shot-head"><span class="t">🏨 เช็คห้องว่าง</span><span class="k">Rooms</span></div>
+          <figure><img src="/home/own-roomsMonth.webp" alt="🏨 ตารางเช็คห้องว่างทั้งเดือน — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
+          <p class="pf-shot-caption">ปฏิทินบอกห้องว่างทุกวัน เลือกช่วงเข้า-ออกเช็คว่างได้ทันที — <b>ดูผังรายห้องว่าห้องไหนมีน้องพักวันไหน</b></p>
         </article>
         <article class="pf-real">
           <div class="pf-shot-head"><span class="t">🧾 คิดเงิน · ออกบิล</span><span class="k">Billing</span></div>
@@ -652,6 +658,7 @@
             <li>ลูกค้าเลือกเวลามาส่ง-มารับเองจาก LINE</li>
             <li>ซิงก์ Google Calendar + ไฟล์ iCal</li>
             <li><b>บริการนวด</b> แยกคิวจากอาบน้ำ ตั้งราคาเองได้</li>
+            <li><b>ตารางเช็คห้องว่าง</b> รายวัน + ผังรายห้อง เลือกช่วงเข้า-ออกแล้วรู้ทันทีว่าว่างไหม</li>
             <li><b>ราคาห้อง Low / High season</b> ตามช่วงวันที่ร้านกำหนด</li>
             <li>ตั้งวันหยุดร้าน และจำนวนรับต่อรอบ — เต็มแล้วจองไม่ได้</li>
             <li>เลือกได้ว่าให้ลูกค้าจองเอง หรือทักร้านแล้วร้านลงนัดให้</li>

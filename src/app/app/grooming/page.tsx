@@ -7,7 +7,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { useConfig } from "@/components/ConfigProvider";
 import { BookingOnlyNotice, LineBookingCta, PageHeader } from "@/components/PageHeader";
 import { ContentBlocks } from "@/components/ContentBlocks";
-import { petKindOf } from "@/lib/pet-kind";
+import { petKindOf, speciesName } from "@/lib/pet-kind";
 import { isFeatureOn } from "@/lib/features";
 import { branchHasOverride, configForBranch, knownBranchId, mainBranchId, shopBranches } from "@/lib/branches";
 import { bathPrograms, GROOM_PROGRAMS, resolveGroomPrograms, resolveMassagePrograms, resolveGroomSizes } from "@/lib/grooming-prices";
@@ -111,7 +111,14 @@ export default function GroomingPage() {
             const cols = flat ? [{ id: "m" as const, label: locale === "th" ? "ราคา" : "Price" }] : sizes;
             return (
             <div key={p.id} className="overflow-hidden rounded-petflow border border-petflow-line bg-card shadow-petflow-sm">
-              <p className="bg-honey/25 px-4 py-2.5 text-sm font-extrabold text-petflow-chocolate">{p.name}</p>
+              <p className="bg-honey/25 px-4 py-2.5 text-sm font-extrabold text-petflow-chocolate">
+                {p.name}
+                {p.species?.length ? (
+                  <span className="ml-2 text-[11px] font-bold text-brown-soft">
+                    {p.species.map((id) => speciesName(config, id)).filter(Boolean).join(" · ")}
+                  </span>
+                ) : null}
+              </p>
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-brown-soft">

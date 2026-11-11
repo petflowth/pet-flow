@@ -12,7 +12,13 @@ const LAST_BRANCH_KEY = "pf-last-branch";
 import { isFeatureOn } from "@/lib/features";
 import { PageHeader } from "@/components/PageHeader";
 import { isSelfBookableRoom } from "@/lib/self-bookable-rooms";
-import { bathPrograms, resolveGroomPrograms, resolveMassagePrograms } from "@/lib/grooming-prices";
+import {
+  bathPrograms,
+  programFitsSpecies,
+  programsForSpecies,
+  resolveGroomPrograms,
+  resolveMassagePrograms,
+} from "@/lib/grooming-prices";
 import { extraCatChargePerNight } from "@/lib/business";
 import { roomPricing } from "@/lib/room-board";
 import {
@@ -25,7 +31,7 @@ import {
 import { toJpegDataUrl } from "@/lib/image-convert";
 import { PetPickList, type PetPickItem } from "@/components/PetPickList";
 import { PetProgramSelect } from "@/components/GroomProgramPicker";
-import { petWords } from "@/lib/pet-kind";
+import { petWords, speciesOf } from "@/lib/pet-kind";
 import { customerFetch } from "@/lib/customer-fetch";
 
 type Service = "groom" | "room";
@@ -144,7 +150,7 @@ function BookPageInner() {
   }, [tab, groomOn, hotelOn, massageOn]);
   // สาขาตั้งราคา/โปรแกรมเองได้ — โชว์ของสาขาที่ลูกค้าเลือก
   const branchPrograms = configForBranch(config, multiBranch ? branch : null).groomPricePrograms;
-  const tabPrograms = massage
+  const allTabPrograms = massage
     ? resolveMassagePrograms(branchPrograms)
     : bathPrograms(resolveGroomPrograms(branchPrograms));
   // เลือกน้องได้หลายตัวทั้งอาบน้ำและเข้าพัก — เข้าพักบ้านเดียวกันอยู่ห้องเดียวกัน (เกินจุห้อง = เพิ่มห้อง)
@@ -186,6 +192,10 @@ function BookPageInner() {
     [customer?.cats, catDetails]
   );
 
+  // ร้านรับสัตว์หลายชนิด: โชว์เฉพาะโปรแกรมของชนิดสัตว์ตัวที่เลือก (โปรแกรมที่ไม่ระบุชนิด = เห็นทุกตัว)
+  const speciesOfPet = (name: string) => speciesOf(petItems.find((p) => p.name === name), config);
+  const tabPrograms = programsForSpecies(allTabPrograms, catNames.map(speciesOfPet));
+
   // groom state
   const [date, setDate] = useState(todayISO());
   const [slots, setSlots] = useState<GroomSlot[] | null>(null);
@@ -197,6 +207,22 @@ function BookPageInner() {
   const [groomProgram, setGroomProgram] = useState("");
   // จองหลายตัว: แต่ละตัวเลือกโปรแกรมของตัวเองได้ (ทับโปรแกรมที่เลือกให้ทุกตัว)
   const [petPrograms, setPetPrograms] = useState<Record<string, string>>({});
+  // เปลี่ยนน้อง/สาขาแล้วโปรแกรมที่เลือกไว้ใช้กับชนิดนั้นไม่ได้ = ล้างออก ให้เลือกใหม่
+  const fitKey = tabPrograms.map((p) => p.id).join("|");
+  useEffect(() => {
+    const ids = new Set(fitKey.split("|"));
+    setGroomProgram((cur) => (cur && !ids.has(cur) ? "" : cur));
+    setPetPrograms((cur) => {
+      const next = Object.fromEntries(
+        Object.entries(cur).filter(([n, pid]) => {
+          const prog = allTabPrograms.find((p) => p.id === pid);
+          return !pid || (prog && programFitsSpecies(prog, speciesOfPet(n)));
+        })
+      );
+      return Object.keys(next).length === Object.keys(cur).length ? cur : next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fitKey]);
 
   // room state
   const [roomType, setRoomType] = useState("");
@@ -682,7 +708,7 @@ function BookPageInner() {
                           cat={n}
                           value={petPrograms[n] ?? groomProgram}
                           onChange={(v) => setPetPrograms((p) => ({ ...p, [n]: v }))}
-                          programs={tabPrograms}
+                          programs={allTabPrograms.filter((p) => programFitsSpecies(p, speciesOfPet(n)))}
                           emptyLabel="ยังไม่เลือก — ให้ทางร้านแนะนำ"
                         />
                       </div>

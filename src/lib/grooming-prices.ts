@@ -24,7 +24,27 @@ export type GroomProgram = {
   includes?: string[];
   /** "massage" = โปรแกรมนวด (แท็บนวดแยกจากอาบน้ำ คิวแยกกัน) — ไม่ระบุ = อาบน้ำ/กรูมมิ่ง */
   kind?: "massage";
+  /**
+   * โปรแกรมนี้ใช้กับสัตว์ชนิดไหน (id ชนิดจากตั้งค่า › รายการ เช่น cat, rabbit) — ไม่ตั้ง/ว่าง = ทุกชนิด
+   * ลูกค้าจองเองจะเห็นเฉพาะโปรแกรมของชนิดสัตว์ตัวที่เลือก
+   */
+  species?: string[];
 };
+
+/** โปรแกรมนี้ใช้กับสัตว์ชนิดนี้ได้ไหม — โปรแกรมที่ไม่ได้ระบุชนิด หรือน้องที่ยังไม่รู้ชนิด = ใช้ได้ */
+export function programFitsSpecies(p: Pick<GroomProgram, "species">, species?: string | null): boolean {
+  if (!p.species?.length || !species) return true;
+  return p.species.includes(species);
+}
+
+/** โปรแกรมที่ใช้ได้กับน้องอย่างน้อยหนึ่งตัวในกลุ่มนี้ (ไม่มีน้อง/ไม่รู้ชนิดเลย = ทุกโปรแกรม) */
+export function programsForSpecies<P extends Pick<GroomProgram, "species">>(
+  programs: P[],
+  speciesList: (string | null | undefined)[]
+): P[] {
+  if (speciesList.length === 0 || speciesList.some((s) => !s)) return programs;
+  return programs.filter((p) => speciesList.some((s) => programFitsSpecies(p, s)));
+}
 
 export const GROOM_PROGRAMS: GroomProgram[] = [
   {

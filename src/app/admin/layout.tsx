@@ -74,13 +74,18 @@ function DueBanner({ dueDate, pathname }: { dueDate: string | null; pathname: st
  * ร้านหลายสาขา: เลือกว่าจะดูสาขาไหน — คิว ห้อง บิล ขายหน้าร้าน รายรับรายจ่าย กรองตามนี้ทั้งหลังบ้าน
  * ร้านสาขาเดียวไม่เห็นแถบนี้เลย
  */
+/** หน้าที่สร้างบิล/รายการเงินโดยไม่มีช่องเลือกสาขาในตัว */
+const CREATE_PAGES = ["/admin/billing", "/admin/pos", "/admin/finance", "/admin/packages"];
+
 function BranchBar({
   config,
   inHeader,
   staffBranches,
+  pathname,
 }: {
   config: SiteConfig;
   inHeader?: boolean;
+  pathname?: string;
   /** สาขาที่พนักงานคนนี้เห็นได้ (จากเจ้าของตั้งไว้) — ว่าง = ทุกสาขา */
   staffBranches?: string[];
 }) {
@@ -130,6 +135,12 @@ function BranchBar({
           .filter((b) => !allowed || allowed.includes(b.id))
           .map((b) => pill(b.id, b.name))}
       </div>
+      {/* หน้าที่สร้างรายการเงิน: ดู "ทุกสาขา" อยู่ ระบบไม่รู้ว่าเป็นของสาขาไหน เลยลงเป็นของสาขาแรก */}
+      {!current && !allowed && pathname && CREATE_PAGES.some((p) => pathname.startsWith(p)) && (
+        <p className={`mx-auto px-4 pb-2 text-[11px] font-bold text-wait lg:px-6 ${inHeader ? "max-w-3xl lg:max-w-6xl" : "max-w-[1600px]"}`}>
+          กำลังดูทุกสาขา รายการที่สร้างตอนนี้จะลงเป็นของ “{shopBranches(config)[0]?.name}” เลือกสาขาก่อนถ้าเป็นของสาขาอื่น
+        </p>
+      )}
     </div>
   );
 }
@@ -335,7 +346,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
         </header>
       )}
       <DueBanner dueDate={dueDate} pathname={pathname} />
-      {!isDashboard && <BranchBar config={config} staffBranches={staffBranches} />}
+      {!isDashboard && <BranchBar config={config} staffBranches={staffBranches} pathname={pathname} />}
       <AdminNav menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
       <div className={`mx-auto ${maxW} ${isDashboard ? "-mt-8" : "mt-4 lg:mt-6"} px-4 lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6 lg:px-6`}>
         <aside className="print:hidden">

@@ -27,11 +27,34 @@ export async function adminBranchScope(req: CookieReq): Promise<string | null> {
   if (!raw && !limited) return null;
   const config = await getSiteConfig();
   if (!isMultiBranch(config)) return null;
-  const picked = raw ? knownBranchId(config, decodeURIComponent(raw)) || null : null;
+  let cookieId = "";
+  try {
+    cookieId = raw ? decodeURIComponent(raw) : "";
+  } catch {
+    /* คุกกี้เสีย = ถือว่าไม่ได้เลือกสาขา */
+  }
+  const picked = knownBranchId(config, cookieId) || null;
   // พนักงานที่เจ้าของจำกัดสาขาไว้: ดูได้เฉพาะสาขาของตัวเอง (ไม่มี "ทุกสาขา") — คุกกี้ชี้สาขาอื่น = ใช้สาขาแรกที่ได้รับ
   const allowed = limited ? staffBranchIds(config, session?.branches) : null;
   if (allowed) return picked && allowed.includes(picked) ? picked : allowed[0];
   return picked;
+}
+
+/**
+ * สาขาที่หลังบ้านเลือกดูอยู่ ของคำขอที่กำลังทำงานอยู่ — ใช้ในชั้น store ที่ไม่มี req ส่งมาถึง
+ * (ขายคอร์ส เติมเครดิต รับค่างวด → รายรับลงสาขาที่พนักงานกำลังทำงานอยู่)
+ * คืน null: ไม่ใช่คำขอจากหลังบ้านที่ล็อกอินแล้ว / งานอัตโนมัติ (cron) / ดูทุกสาขา
+ */
+export async function requestBranchScope(): Promise<string | null> {
+  try {
+    const { cookies } = await import("next/headers");
+    const jar = await cookies();
+    const req: CookieReq = { cookies: { get: (name) => jar.get(name) } };
+    if (!(await getSessionFrom(req).catch(() => null))) return null;
+    return await adminBranchScope(req);
+  } catch {
+    return null;
+  }
 }
 
 /** สาขาที่คนที่ล็อกอินอยู่ใช้ได้ — null = ไม่จำกัด (เจ้าของร้าน / พนักงานที่เห็นทุกสาขา) */

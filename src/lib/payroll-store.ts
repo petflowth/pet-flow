@@ -258,6 +258,8 @@ export async function payPayroll(
   await addFinanceEntry({
     type: "expense",
     amount,
+    // เงินเดือนเป็นรายจ่ายของทั้งร้าน ไม่ผูกกับสาขาที่กำลังเลือกดู
+    branchId: "",
     category: PAYROLL_CATEGORY,
     description: `เงินเดือน ${line.employee.name} ${m}/${y} (${parts.join(" + ")}) ${payrollTag(employeeId, month)}`,
     date: opts.date,

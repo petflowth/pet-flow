@@ -676,6 +676,7 @@ export async function updateBooking(
       | "roomUnit"
       | "transport"
       | "roomSegments"
+      | "branchId"
     >
   >
 ) {
@@ -730,6 +731,10 @@ export async function updateBooking(
     // รับ-ส่ง — undefined ใน patch = ไม่ได้ส่งมา, ส่งมาเป็นค่าว่างให้ล้างทิ้ง (ใช้ "transport" in patch)
     if ("transport" in patch) await writeTransport(id, merged.transport || null);
     if ("roomSegments" in patch) await writeRoomSegments(id, merged.roomSegments || []);
+    // ย้ายนัดไปอีกสาขา (ร้านหลายสาขา)
+    if (patch.branchId) {
+      await healWrite("bookings", ["branch_id"], () => sb.from("bookings").update({ branch_id: patch.branchId }).eq("id", id).eq("tenant_id", requireTenantId()));
+    }
     return getBooking(id);
   }
 

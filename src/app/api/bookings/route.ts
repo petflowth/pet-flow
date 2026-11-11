@@ -1436,6 +1436,18 @@ function groomInfoCardFor(
       const programs = lookupGroomPrograms(await getSiteConfig());
       patch.groomProgram = pid && groomProgram(pid, programs) ? pid : "";
     }
+    // ย้ายนัดอาบน้ำ/นวดไปอีกสาขา (ห้องพักไม่ต้อง — ตามสาขาของห้องที่เลือก) · พนักงานย้ายได้เฉพาะไปสาขาที่ตัวเองมีสิทธิ์
+    if (body.branchId != null && (patch.service ?? b.service) !== "room") {
+      const cfg = await getSiteConfig();
+      const to = isMultiBranch(cfg) ? knownBranchId(cfg, String(body.branchId)) : undefined;
+      if (to && to !== bookingBranchId(cfg, b)) {
+        const allowed = await staffAllowedBranches(req, cfg);
+        if (allowed && !allowed.includes(to)) {
+          return NextResponse.json({ error: "branch_forbidden", message: "คุณไม่มีสิทธิ์สาขาปลายทางค่ะ" }, { status: 403 });
+        }
+        patch.branchId = to;
+      }
+    }
     // รับ-ส่ง — ส่ง null/{} มา = ยกเลิกบริการรับ-ส่งของนัดนี้
     if (body.transport !== undefined) patch.transport = cleanTransport(body.transport);
     // ย้ายห้องกลางทาง — [] = อยู่ห้องเดียวตลอด · คิดจากห้อง/วันใหม่ในคำขอนี้ (ถ้ามี)

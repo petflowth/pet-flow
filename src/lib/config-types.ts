@@ -7,6 +7,7 @@ import type { GroomProgram } from "./grooming-prices";
 import type { RoomClosure } from "./room-board";
 import type { RoomSeasonConfig } from "./room-seasons";
 import type { LinePromo } from "./line-discount";
+import type { Branch } from "./branches";
 
 /** บล็อกเนื้อหาหน้ากฎระเบียบการฝาก — ใส่ได้ทั้งรูปและ/หรือข้อความ เรียงตามลำดับที่ตั้งไว้ */
 export type BookingDepositConfig = {
@@ -297,6 +298,11 @@ export type SiteConfig = {
     catflix: number;
   };
   rooms: RoomType[];
+  /**
+   * สาขาของร้าน — ว่าง/มีสาขาเดียว = ร้านสาขาเดียว (หน้าตาเหมือนเดิมทุกอย่าง)
+   * ตัวแรกคือสาขาหลัก: ข้อมูลเก่าที่ยังไม่มีสาขา และสาขาที่ถูกลบ จะนับเป็นสาขาแรกเสมอ
+   */
+  branches?: Branch[];
   /** ปิดห้องรายห้อง (ซ่อม/ใช้งานไม่ได้) — ตั้งจากผังห้องในตารางนัด */
   roomClosures?: RoomClosure[];
   /** ราคาห้องตาม Low / High season (ร้านกรอกช่วงวันเอง) — ไม่ตั้ง/ปิด = ราคาห้องปกติ */

@@ -19,6 +19,8 @@ export type FinanceRecord = {
    * (ต้องรัน "อัปเดตฐานข้อมูล" ก่อนถึงจะบันทึกได้)
    */
   excluded?: boolean;
+  /** สาขา (ร้านหลายสาขา) — ว่าง = ตามบิลที่ผูก หรือสาขาแรก ดู branches.ts */
+  branchId?: string;
   createdAt: string;
 };
 
@@ -33,6 +35,7 @@ type FinanceRow = {
   invoice_id: string | null;
   receipt_url?: string | null;
   excluded?: boolean | null;
+  branch_id?: string | null;
   created_at: string;
 };
 
@@ -50,6 +53,7 @@ function rowToFinance(r: FinanceRow): FinanceRecord {
     invoiceId: r.invoice_id || undefined,
     receiptUrl: r.receipt_url || undefined,
     excluded: r.excluded === true,
+    branchId: r.branch_id || undefined,
     createdAt: r.created_at,
   };
 }
@@ -242,6 +246,9 @@ export async function addFinanceEntry(
     // แนบรูปบิลแยก เพราะร้านที่ยังไม่รัน migration จะ insert ไม่ผ่านทั้งแถว
     if (rec.receiptUrl) {
       await healWrite("finance_records", ["receipt_url"], () => sb.from("finance_records").update({ receipt_url: rec.receiptUrl }).eq("id", rec.id).eq("tenant_id", requireTenantId()));
+    }
+    if (rec.branchId) {
+      await healWrite("finance_records", ["branch_id"], () => sb.from("finance_records").update({ branch_id: rec.branchId }).eq("id", rec.id).eq("tenant_id", requireTenantId()));
     }
     return rec;
   }

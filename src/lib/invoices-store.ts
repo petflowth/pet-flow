@@ -123,6 +123,8 @@ export type InvoiceRecord = {
   depositReceivedAt?: string;
   /** ลบแบบกู้คืนได้ (soft delete) — ต้องรัน migration ก่อน */
   deletedAt?: string;
+  /** สาขาที่ออกบิล (ร้านหลายสาขา) — ว่าง = ตามนัดที่ผูก หรือสาขาแรก ดู branches.ts */
+  branchId?: string;
 };
 
 type InvoiceRow = {
@@ -149,6 +151,7 @@ type InvoiceRow = {
   created_at: string;
   deposit_received_at?: string | null;
   deleted_at?: string | null;
+  branch_id?: string | null;
 };
 
 const mem: InvoiceRecord[] = [];
@@ -178,6 +181,7 @@ function rowToInvoice(r: InvoiceRow): InvoiceRecord {
     createdAt: r.created_at,
     depositReceivedAt: r.deposit_received_at ?? undefined,
     deletedAt: r.deleted_at ?? undefined,
+    branchId: r.branch_id || undefined,
   };
 }
 

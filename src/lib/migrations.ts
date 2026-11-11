@@ -58,6 +58,10 @@ const SCHEMA_CHECKS: { table: string; column: string; feature: string }[] = [
   { table: "bookings", column: "flea_tick_treated", feature: "หลักฐานหยดยาเห็บหมัด" },
   { table: "bookings", column: "room_unit", feature: "ระบุห้องจริงตอนจอง" },
   { table: "room_plans", column: "payments", feature: "แพ็กห้องรายเดือน (แบ่งจ่าย)" },
+  { table: "bookings", column: "branch_id", feature: "สาขาของนัด" },
+  { table: "invoices", column: "branch_id", feature: "สาขาของบิล" },
+  { table: "pos_sales", column: "branch_id", feature: "สาขาของบิลขายหน้าร้าน" },
+  { table: "finance_records", column: "branch_id", feature: "สาขาของรายรับรายจ่าย" },
   { table: "customer_packages", column: "room_type", feature: "คอร์สคืนผูกประเภทห้อง" },
   { table: "invoice_docs", column: "receipt_no", feature: "ใบเสร็จ/ใบเสนอราคาในนามบริษัท" },
   { table: "pos_products", column: "image_url", feature: "POS สินค้า/สต็อก" },
@@ -741,6 +745,11 @@ where staff_note like '%🎁%';`,
     name: "customers.nickname",
     sql: "alter table customers add column if not exists nickname text;",
   },
+  // ── หลายสาขาในร้านเดียว · ว่าง = สาขาแรก (ข้อมูลเก่าไม่ต้องย้าย) ──
+  { name: "bookings.branch_id", sql: "alter table bookings add column if not exists branch_id text;" },
+  { name: "invoices.branch_id", sql: "alter table invoices add column if not exists branch_id text;" },
+  { name: "pos_sales.branch_id", sql: "alter table pos_sales add column if not exists branch_id text;" },
+  { name: "finance_records.branch_id", sql: "alter table finance_records add column if not exists branch_id text;" },
 ];
 
 export type MigrateResult = {

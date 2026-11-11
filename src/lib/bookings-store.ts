@@ -53,6 +53,8 @@ export type StoredBooking = Booking & {
   depositStatus?: DepositStatus;
   /** ย้ายห้องกลางทาง — ห้องถัดไปตั้งแต่วันไหน (ห้องแรกยังอยู่ที่ room/roomUnit) ดู room-segments.ts */
   roomSegments?: RoomSegment[];
+  /** สาขาที่บันทึกตอนจอง (ร้านหลายสาขา) — ว่าง = สาขาแรก · ห้องพักยึดสาขาของห้อง ดู branches.ts */
+  branchId?: string;
 };
 
 export { AUTO_MESSAGE_TOPICS, autoMuted } from "./auto-messages";
@@ -90,6 +92,7 @@ type BookingRow = {
   deposit_slip_url?: string | null;
   deposit_status?: string | null;
   room_segments?: RoomSegment[] | null;
+  branch_id?: string | null;
 };
 
 const mem: StoredBooking[] = seedEnabled()
@@ -146,6 +149,7 @@ function rowToStored(r: BookingRow): StoredBooking {
     depositStatus:
       Number(r.deposit_amount) > 0 || r.deposit_status ? cleanDepositStatus(r.deposit_status) : undefined,
     roomSegments: r.room_segments?.length ? r.room_segments : undefined,
+    branchId: r.branch_id || undefined,
   };
 }
 
@@ -629,6 +633,15 @@ export async function addBooking(
       );
     }
     if (booking.roomSegments?.length) writes.push(writeRoomSegments(booking.id, booking.roomSegments));
+    // แยกจากชุด extra — ร้านที่ยังไม่ migrate คอลัมน์สาขา จะได้ไม่ทำให้ค่าอื่นในชุดนั้นหายไปด้วย
+    if (booking.branchId) {
+      const branchId = booking.branchId;
+      writes.push(
+        healWrite("bookings", ["branch_id"], () =>
+          sb.from("bookings").update({ branch_id: branchId }).eq("id", booking.id).eq("tenant_id", requireTenantId())
+        )
+      );
+    }
     await Promise.all(writes);
     return booking;
   }

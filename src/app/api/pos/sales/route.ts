@@ -3,11 +3,14 @@ import { bangkokToday } from "@/lib/bangkok-date";
 import { createSale, listSales, voidSale } from "@/lib/pos-store";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { withTenant } from "@/lib/tenant-context";
+import { adminBranchScope, branchFilter } from "@/lib/branch-scope";
 
 /** บิลขายของวัน ?date=YYYY-MM-DD (ไม่ใส่ = วันนี้) */
 async function handleGet(req: NextRequest) {
   const date = req.nextUrl.searchParams.get("date") || bangkokToday();
-  return NextResponse.json({ date, sales: await listSales(date) });
+  const sales = await listSales(date);
+  const branchId = await adminBranchScope(req);
+  return NextResponse.json({ date, sales: branchId ? (await branchFilter(branchId)).sales(sales) : sales });
 }
 
 /** ปิดบิลขาย */
@@ -21,6 +24,7 @@ async function handlePost(req: NextRequest) {
     customerId: body.customerId ? String(body.customerId) : undefined,
     customerName: body.customerName ? String(body.customerName) : undefined,
     note: body.note ? String(body.note) : undefined,
+    branchId: (await adminBranchScope(req)) || undefined,
   });
   if ("sale" in res) return NextResponse.json({ ok: true, sale: res.sale });
   const msg =

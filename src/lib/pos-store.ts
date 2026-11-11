@@ -77,6 +77,8 @@ export type PosSale = {
   status: "paid" | "void";
   createdAt: string;
   voidedAt?: string;
+  /** สาขาที่ขาย (ร้านหลายสาขา) — ว่าง = สาขาแรก */
+  branchId?: string;
 };
 
 export type PosClosing = {
@@ -366,6 +368,7 @@ type SaleRow = {
   status: "paid" | "void";
   created_at: string;
   voided_at: string | null;
+  branch_id?: string | null;
 };
 
 function saleFromRow(r: SaleRow): PosSale {
@@ -386,6 +389,7 @@ function saleFromRow(r: SaleRow): PosSale {
     status: r.status,
     createdAt: r.created_at,
     voidedAt: r.voided_at || undefined,
+    branchId: r.branch_id || undefined,
   };
 }
 
@@ -438,6 +442,8 @@ export type SaleInput = {
   customerId?: string;
   customerName?: string;
   note?: string;
+  /** สาขาที่ขาย (ร้านหลายสาขา) */
+  branchId?: string;
 };
 
 export type SaleError =
@@ -500,6 +506,7 @@ export async function createSale(input: SaleInput): Promise<{ sale: PosSale } | 
     note: input.note?.trim().slice(0, 300) || undefined,
     status: "paid",
     createdAt: now(),
+    branchId: input.branchId || undefined,
   };
 
   const sb = getSupabase();
@@ -525,6 +532,12 @@ export async function createSale(input: SaleInput): Promise<{ sale: PosSale } | 
       })
     );
     if (error) throw new Error((error as { message?: string }).message || "save_failed");
+    if (sale.branchId) {
+      const { healWrite } = await import("./heal-write");
+      await healWrite("pos_sales", ["branch_id"], () =>
+        sb.from("pos_sales").update({ branch_id: sale.branchId }).eq("id", sale.id).eq("tenant_id", requireTenantId())
+      );
+    }
   } else {
     memSales.set(sale.id, sale);
   }
@@ -545,6 +558,7 @@ export async function createSale(input: SaleInput): Promise<{ sale: PosSale } | 
       date,
       customerId: sale.customerId,
       invoiceId: sale.id,
+      branchId: sale.branchId,
     });
   }
   return { sale };

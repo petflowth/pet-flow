@@ -54,10 +54,12 @@ import {
   roomClosureReasons,
   staffNoteTags,
 } from "@/lib/shop-rules";
+import { isMultiBranch, knownBranchId, mainBranchId, newBranchId, shopBranches, type Branch } from "@/lib/branches";
 
 type Tab =
   | "features"
   | "shop"
+  | "branches"
   | "payment"
   | "linePromos"
   | "messages"
@@ -86,6 +88,7 @@ const TAB_GROUPS: { title: string; items: { id: Tab; icon: string; hint?: string
     title: "Shop",
     items: [
       { id: "shop", icon: "home", hint: "ชื่อร้าน ช่องทางติดต่อ ที่อยู่" },
+      { id: "branches", icon: "home", hint: "ร้านมีหลายสาขา ใช้ LINE เดียวกัน แยกห้อง คิว บิล ตามสาขา" },
       { id: "payment", icon: "wallet", hint: "บัญชีรับโอน" },
       { id: "billing", icon: "receipt", hint: "บริการเสริม · หัวข้อเพิ่มเอง · ของแถม (รายการในบิล)" },
       { id: "lists", icon: "doc", hint: "ประเภทร้าน · สายพันธุ์ · รู้จักร้านจากไหน" },
@@ -128,6 +131,7 @@ const TAB_GROUPS: { title: string; items: { id: Tab; icon: string; hint?: string
 const TABS: { id: Tab; label: string }[] = [
   { id: "features", label: "เปิด/ปิดฟีเจอร์" },
   { id: "shop", label: "ร้าน" },
+  { id: "branches", label: "สาขา" },
   { id: "payment", label: "บัญชี" },
   { id: "linePromos", label: "โปรลดเฉพาะรายการ" },
   { id: "messages", label: "ข้อความ" },
@@ -300,6 +304,9 @@ export default function SettingsPage() {
       {tab === "shop" && (
         <ShopTab config={config} saving={saving} onSave={save} />
       )}
+      {tab === "branches" && (
+        <BranchesTab config={config} saving={saving} onSave={save} />
+      )}
       {tab === "payment" && (
         <PaymentTab config={config} saving={saving} onSave={save} />
       )}
@@ -411,6 +418,126 @@ const BRANDING_PRESETS: { label: string; swatch: string; colors: Omit<NonNullabl
     },
   },
 ];
+
+/**
+ * สาขาของร้าน — ใช้ LINE OA / ลิงก์ / ลูกค้าชุดเดียวกัน แยกห้อง คิว บิล และยอดขายตามสาขา
+ * มีตั้งแต่ 2 สาขาขึ้นไป หลังบ้านถึงจะมีแถบเลือกสาขา (ร้านสาขาเดียวไม่ต้องตั้งอะไรในหน้านี้)
+ */
+function BranchesTab({
+  config,
+  saving,
+  onSave,
+}: {
+  config: SiteConfig;
+  saving: boolean;
+  onSave: (p: Partial<SiteConfig>) => void;
+}) {
+  const [list, setList] = useState<Branch[]>(config.branches || []);
+  useEffect(() => setList(config.branches || []), [config.branches]);
+  const update = (idx: number, patch: Partial<Branch>) =>
+    setList((prev) => prev.map((b, i) => (i === idx ? { ...b, ...patch } : b)));
+
+  const add = () =>
+    setList((prev) => {
+      // เพิ่มครั้งแรก: สร้างสาขาแรกจากข้อมูลร้านเดิมให้เลย แล้วตามด้วยสาขาใหม่ให้กรอก
+      const first: Branch[] = prev.length
+        ? prev
+        : [
+            {
+              id: newBranchId(),
+              name: "สาขา 1",
+              phone: config.business?.phones?.[0] || "",
+              mapsUrl: config.business?.maps || "",
+            },
+          ];
+      return [...first, { id: newBranchId(), name: `สาขา ${first.length + 1}` }];
+    });
+
+  const remove = (idx: number) => {
+    const b = list[idx];
+    if (
+      !confirm(
+        `ลบ "${b.name}" เลยไหม?\nห้อง นัด บิล และรายการเงินของสาขานี้จะไม่หาย แต่จะย้ายไปนับรวมกับสาขาแรก`
+      )
+    )
+      return;
+    setList((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const clean = list
+    .map((b) => ({
+      id: b.id,
+      name: b.name.trim(),
+      address: b.address?.trim() || undefined,
+      phone: b.phone?.trim() || undefined,
+      mapsUrl: b.mapsUrl?.trim() || undefined,
+    }))
+    .filter((b) => b.name);
+
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSave({ branches: clean });
+      }}
+    >
+      <div className="rounded-petflow bg-card p-4 text-xs leading-relaxed text-brown-soft shadow-petflow-sm">
+        <p className="font-extrabold text-petflow-chocolate">ร้านมีหลายสาขา ใช้ LINE เดียวกันได้</p>
+        <p className="mt-1">
+          ลูกค้า เครดิต แต้ม คอร์ส และราคา ใช้ร่วมกันทุกสาขา · ห้อง คิว บิล ขายหน้าร้าน และรายรับรายจ่าย
+          แยกตามสาขา
+        </p>
+        <p className="mt-1">
+          เพิ่มสาขาที่ 2 แล้ว หลังบ้านจะมีแถบ “สาขา” ด้านบนให้เลือกดูทีละสาขาหรือทุกสาขา
+          และไปเลือกว่าห้องไหนอยู่สาขาไหนได้ที่ ตั้งค่า › ห้อง
+        </p>
+        <p className="mt-1">ข้อมูลเดิมทั้งหมดของร้านนับเป็นของสาขาแรก · ร้านสาขาเดียวไม่ต้องตั้งหน้านี้</p>
+      </div>
+
+      {list.map((b, idx) => (
+        <div key={b.id} className="space-y-2 rounded-petflow border border-petflow-line bg-card p-4">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] font-extrabold text-latte-deep">
+              {idx === 0 ? "สาขาแรก (สาขาหลัก)" : `สาขาที่ ${idx + 1}`}
+            </p>
+            {idx > 0 && (
+              <button
+                type="button"
+                onClick={() => remove(idx)}
+                className="flex h-9 shrink-0 items-center gap-1 rounded-full bg-wait/10 px-3 text-[11px] font-bold text-wait"
+              >
+                <Icon name="trash" size={14} />
+                ลบ
+              </button>
+            )}
+          </div>
+          <Field label="ชื่อสาขา (ลูกค้าเห็นชื่อนี้)" value={b.name} onChange={(v) => update(idx, { name: v })} placeholder="เช่น สาขานิมมาน" />
+          <Field label="ที่อยู่" value={b.address || ""} onChange={(v) => update(idx, { address: v })} />
+          <Field label="เบอร์โทรสาขา" value={b.phone || ""} onChange={(v) => update(idx, { phone: v })} />
+          <Field
+            label="ลิงก์ Google Maps"
+            value={b.mapsUrl || ""}
+            onChange={(v) => update(idx, { mapsUrl: v })}
+            placeholder="https://maps.app.goo.gl/..."
+          />
+        </div>
+      ))}
+
+      <button
+        type="button"
+        onClick={add}
+        className="flex h-11 w-full items-center justify-center gap-1.5 rounded-full border border-dashed border-latte-deep text-xs font-extrabold text-latte-deep"
+      >
+        + เพิ่มสาขา
+      </button>
+      {list.length === 1 && (
+        <p className="text-center text-[11px] text-brown-faint">มีสาขาเดียว = ระบบทำงานแบบร้านสาขาเดียวเหมือนเดิม</p>
+      )}
+      <SaveBtn saving={saving} />
+    </form>
+  );
+}
 
 function ShopTab({
   config,
@@ -1476,6 +1603,22 @@ function RoomsTab({
                 <option value="S+M">S+M</option>
               </select>
             </label>
+            {isMultiBranch(config) && (
+              <label className="flex shrink-0 items-center gap-1 text-[10px] font-bold text-brown-soft">
+                สาขา
+                <select
+                  value={knownBranchId(config, room.branchId) || mainBranchId(config)}
+                  onChange={(e) => updateRoom(idx, { branchId: e.target.value })}
+                  className="max-w-[9rem] rounded-petflow-sm border border-petflow-line bg-paper px-1.5 py-1 text-[11px]"
+                >
+                  {shopBranches(config).map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <button
               type="button"
               onClick={() => removeRoom(idx)}

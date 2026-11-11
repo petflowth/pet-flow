@@ -1,5 +1,6 @@
 "use client";
 
+import { roomsInView } from "@/lib/branches";
 import { groomUsesCard } from "@/lib/intake-rules";
 import { isDayCareStay } from "@/lib/day-care";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -982,7 +983,7 @@ export function BookingCalendar() {
 
   const loadConfig = useCallback(async () => {
     const d = await fetch("/api/config").then((r) => r.json());
-    if (d.config?.rooms) setRooms(attachClosures(d.config.rooms, d.config.roomClosures));
+    if (d.config?.rooms) setRooms(attachClosures(roomsInView(d.config, d.config.rooms), d.config.roomClosures));
     setRoomClosures(d.config?.roomClosures || []);
     if (d.config?.groomSlots) setGroomSlots(d.config.groomSlots);
     setGroomPrograms(resolveGroomPrograms(d.config?.groomPricePrograms));

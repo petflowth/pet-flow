@@ -35,6 +35,8 @@ export type CustomerPackage = {
    * ไม่ระบุ = คอร์สนับครั้งแบบเดิม หัก 1 ครั้งแล้วบิลนั้นฟรี
    */
   groomProgram?: string;
+  /** ร้านหลายสาขา: ใช้ได้เฉพาะสาขาเหล่านี้ (ว่าง = ทุกสาขา) */
+  branchIds?: string[];
 };
 
 type PackageRow = {
@@ -51,6 +53,7 @@ type PackageRow = {
   room_label?: string | null;
   plan_id?: string | null;
   groom_program?: string | null;
+  branch_ids?: string[] | null;
 };
 
 const mem: CustomerPackage[] = [];
@@ -70,6 +73,7 @@ function rowToPackage(r: PackageRow): CustomerPackage {
     roomLabel: r.room_label || undefined,
     planId: r.plan_id || undefined,
     groomProgram: r.groom_program || undefined,
+    branchIds: Array.isArray(r.branch_ids) && r.branch_ids.length ? r.branch_ids.map(String) : undefined,
   };
 }
 
@@ -95,6 +99,8 @@ export async function sellPackage(data: {
    * ถ้าลงตอนสร้างด้วย ยอดขายจะนับซ้ำสองรอบ
    */
   noIncome?: boolean;
+  /** ร้านหลายสาขา: ใช้ได้เฉพาะสาขาเหล่านี้ (ว่าง = ทุกสาขา) */
+  branchIds?: string[];
 }): Promise<CustomerPackage> {
   const pkg: CustomerPackage = {
     id: `PKG${Date.now()}${Math.floor(Math.random() * 1000)}`,
@@ -110,6 +116,7 @@ export async function sellPackage(data: {
     roomLabel: data.unit === "night" ? data.roomLabel || undefined : undefined,
     planId: data.planId || undefined,
     groomProgram: data.unit === "night" ? undefined : data.groomProgram || undefined,
+    branchIds: data.branchIds?.length ? data.branchIds : undefined,
   };
 
   const sb = getSupabase();
@@ -156,6 +163,12 @@ export async function sellPackage(data: {
           await sb.from("customer_packages").update(extra).eq("tenant_id", requireTenantId()).eq("id", pkg.id);
         }
       }
+    }
+    if (pkg.branchIds?.length) {
+      const { healWrite } = await import("./heal-write");
+      await healWrite("customer_packages", ["branch_ids"], () =>
+        sb.from("customer_packages").update({ branch_ids: pkg.branchIds }).eq("tenant_id", requireTenantId()).eq("id", pkg.id)
+      );
     }
   } else {
     mem.unshift(pkg);

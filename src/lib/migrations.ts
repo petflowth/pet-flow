@@ -756,6 +756,10 @@ where staff_note like '%🎁%';`,
   { name: "finance_records.branch_id", sql: "alter table finance_records add column if not exists branch_id text;" },
   // สาขาที่พนักงานเห็นได้ · ว่าง = ทุกสาขา
   { name: "staff_users.branches", sql: "alter table staff_users add column if not exists branches jsonb;" },
+  // คอร์สที่เปิดขาย / คอร์สของลูกค้า / โปรโมชั่น ใช้ได้เฉพาะบางสาขา · ว่าง = ทุกสาขา
+  { name: "package_offers.branch_ids", sql: "alter table package_offers add column if not exists branch_ids jsonb;" },
+  { name: "customer_packages.branch_ids", sql: "alter table customer_packages add column if not exists branch_ids jsonb;" },
+  { name: "promos.branch_ids", sql: "alter table promos add column if not exists branch_ids jsonb;" },
   {
     // หลายสาขาเป็นฟังก์ชันจ่ายเพิ่ม — tenants.branch_limit = จำนวนสาขาที่ร้านใช้ได้ (ว่าง = 1 สาขา)
     // tenant_payments.branches = สลิปนี้จ่ายแพ็กเกจกี่สาขา (อนุมัติแล้วตั้ง branch_limit ตาม)

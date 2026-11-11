@@ -20,6 +20,8 @@ type Offer = {
   roomLabel?: string;
   /** ชุดรวม / ของแถม — เช่น ["ห้อง Mid Cozy 5 คืน", "อาบน้ำ Premium 6 ครั้ง + แถม 2"] */
   itemLabels?: string[];
+  /** ร้านหลายสาขา: "เฉพาะสาขา A" */
+  branchLabel?: string;
 };
 
 type Order = {
@@ -254,6 +256,9 @@ export function PackageShopSection() {
                       </>
                     )}
                   </p>
+                  {o.branchLabel && (
+                    <p className="mt-1 text-[10px] font-bold text-latte-deep">ใช้ได้{o.branchLabel}</p>
+                  )}
                   {o.description && (
                     <div className="mt-1">
                       <ExpandableText

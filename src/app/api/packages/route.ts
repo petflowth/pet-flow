@@ -10,6 +10,7 @@ import {
 import { sendTelegramLater, formatBookingTelegram } from "@/lib/telegram";
 import { pushLineMessage, buildPackageFlex, buildRoomPlanFlex } from "@/lib/line";
 import { getSiteConfig } from "@/lib/config-store";
+import { cleanBranchIds } from "@/lib/branches";
 import { normalizeOfferItems, sellOfferItems } from "@/lib/package-shop-store";
 import { roomPlanOutstanding, createPackagePlan, viewRoomPlan } from "@/lib/room-plans-store";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
@@ -99,6 +100,8 @@ async function handlePost(req: NextRequest) {
   const preview = body.preview === true;
   // คอร์สห้องพัก / ชุดรวม / แถมฟรี — รายการละ 1 คอร์ส (ไม่ส่ง = คอร์สนับครั้งแบบเดิม)
   const items = normalizeOfferItems(body.items);
+  // ร้านหลายสาขา: คอร์สนี้ใช้ได้เฉพาะสาขาที่เลือก (ไม่ส่งมา/ครบทุกสาขา = ทุกสาขา)
+  const branchIds = cleanBranchIds(await getSiteConfig(), body.branchIds);
   const amountText = items.length
     ? items.map((it) => `${it.paid}${it.free ? ` + แถม ${it.free}` : ""} ${it.unit === "night" ? "คืน" : "ครั้ง"}`).join(" · ")
     : `${totalUses} ครั้ง`;
@@ -216,7 +219,7 @@ async function handlePost(req: NextRequest) {
   }
 
   const pkg = items.length
-    ? (await sellOfferItems({ customerId, customerName: cust.name, name, price, items, isLegacy }))[0]
+    ? (await sellOfferItems({ customerId, customerName: cust.name, name, price, items, isLegacy, branchIds }))[0]
     : await sellPackage({
         customerId,
         customerName: cust.name,
@@ -225,6 +228,7 @@ async function handlePost(req: NextRequest) {
         price,
         isLegacy,
         groomProgram,
+        branchIds,
       });
   if (!pkg) return NextResponse.json({ error: "ใส่จำนวนในคอร์สก่อน" }, { status: 400 });
   sendTelegramLater(

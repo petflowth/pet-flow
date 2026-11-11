@@ -21,6 +21,24 @@ import {
 } from "@/lib/promos-store";
 import { findCustomerByLine } from "@/lib/customers-store";
 import { getSiteConfig } from "@/lib/config-store";
+import { getBooking } from "@/lib/bookings-store";
+import { adminBranchScope } from "@/lib/branch-scope";
+import { bookingBranchId, branchScopeLabel, cleanBranchIds, isMultiBranch } from "@/lib/branches";
+
+/** ร้านหลายสาขา: เติมข้อความ "เฉพาะสาขา A" ให้โปรที่จำกัดสาขา (ลูกค้าเห็นในแอป) */
+async function withBranchLabel<T extends { branchIds?: string[] }>(list: T[]): Promise<(T & { branchLabel?: string })[]> {
+  if (!list.some((p) => p.branchIds?.length)) return list;
+  const config = await getSiteConfig();
+  return list.map((p) => ({ ...p, branchLabel: branchScopeLabel(config, p.branchIds) || undefined }));
+}
+
+/** สาขาของบิลที่กำลังออก — จากนัดที่ผูก (exclude) ไม่มีนัด = สาขาที่หลังบ้านเลือกดูอยู่ */
+async function billBranch(req: NextRequest, bookingIds: string[]): Promise<string | null> {
+  const config = await getSiteConfig();
+  if (!isMultiBranch(config)) return null;
+  const b = bookingIds[0] ? await getBooking(bookingIds[0]).catch(() => null) : null;
+  return b ? bookingBranchId(config, b) : await adminBranchScope(req);
+}
 import { pushLineMessage, buildPointsAwardFlex } from "@/lib/line";
 import { sendTelegramLater, formatBookingTelegram } from "@/lib/telegram";
 
@@ -53,7 +71,7 @@ async function handlePublicGet(req: NextRequest, admin: boolean) {
     const lineUserId = admin
       ? req.nextUrl.searchParams.get("lineUserId") || ""
       : (await requireCustomerSession(req))?.lineUserId || "";
-    if (lineUserId) return NextResponse.json({ promos: await getCustomerPromos(lineUserId) });
+    if (lineUserId) return NextResponse.json({ promos: await withBranchLabel(await getCustomerPromos(lineUserId)) });
   }
 
   // นัดที่กำลังออกบิลอยู่ — ไม่นับเป็น "เคยมาแล้ว" ตอนตัดสินลูกค้าใหม่
@@ -66,14 +84,14 @@ async function handlePublicGet(req: NextRequest, admin: boolean) {
   // ข้อมูลลูกค้า (ลูกค้าใหม่/ใช้โปรแล้ว) — เฉพาะหลังบ้าน
   if (blockedFor && admin) {
     return NextResponse.json({
-      blocked: await promoBlockReasons(blockedFor, new Date(), exclude),
+      blocked: await promoBlockReasons(blockedFor, new Date(), exclude, await billBranch(req, exclude)),
     });
   }
 
   const autoFor = req.nextUrl.searchParams.get("autoFor");
   if (autoFor && admin) {
     const subtotal = Number(req.nextUrl.searchParams.get("subtotal")) || 0;
-    const opts = { excludeBookingIds: exclude };
+    const opts = { excludeBookingIds: exclude, branchId: await billBranch(req, exclude) };
     const newCustomer = await isNewCustomerForBill(autoFor, exclude);
     return NextResponse.json({
       promo: await getBestPromoForCustomer(autoFor, subtotal, new Date(), opts),
@@ -90,11 +108,11 @@ async function handlePublicGet(req: NextRequest, admin: boolean) {
 
   if (active) {
     const kind = req.nextUrl.searchParams.get("kind") as PromoKind | null;
-    return NextResponse.json({ promos: await getActivePromos(new Date(), kind || undefined) });
+    return NextResponse.json({ promos: await withBranchLabel(await getActivePromos(new Date(), kind || undefined)) });
   }
 
   // ทั้งหมด (รวมโปรที่ปิดแล้ว/รหัสคูปองลับ) — หลังบ้านเท่านั้น คนนอกเห็นแค่ที่เปิดใช้อยู่
-  if (!admin) return NextResponse.json({ promos: await getActivePromos(new Date()) });
+  if (!admin) return NextResponse.json({ promos: await withBranchLabel(await getActivePromos(new Date())) });
   // หลังบ้านเปิดรายการโปร → ย้ายโปรตอนออกบิลแบบเก่า (ตั้งค่า) เข้ารายการโปรให้ครั้งเดียว
   await importConfigLinePromos().catch(() => 0);
   return NextResponse.json({ promos: await listPromos() });
@@ -207,6 +225,7 @@ async function handlePost(req: NextRequest) {
     pointsBonus: body.pointsBonus ? Number(body.pointsBonus) : undefined,
     pointsMultiplier: body.pointsMultiplier ? Number(body.pointsMultiplier) : undefined,
     billRule: body.billRule || undefined,
+    branchIds: cleanBranchIds(await getSiteConfig(), body.branchIds),
   });
   if (!promo) return NextResponse.json({ error: "บันทึกโปรไม่สำเร็จ" }, { status: 500 });
   return NextResponse.json({ ok: true, promo });
@@ -220,7 +239,9 @@ export async function PATCH(req: NextRequest) {
 
 async function handlePatch(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  const promo = await updatePromo(body.id, body.patch || body);
+  const patch = body.patch || body;
+  if (patch.branchIds !== undefined) patch.branchIds = cleanBranchIds(await getSiteConfig(), patch.branchIds);
+  const promo = await updatePromo(body.id, patch);
   if (!promo) return NextResponse.json({ error: "บันทึกโปรไม่สำเร็จ" }, { status: 404 });
   return NextResponse.json({ ok: true, promo });
 }

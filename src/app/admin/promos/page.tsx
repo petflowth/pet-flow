@@ -1,5 +1,6 @@
 "use client";
 
+import { BranchScopePicker } from "@/components/BranchScopePicker";
 import { savedPopup } from "@/components/Toast";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
@@ -60,6 +61,8 @@ type Promo = {
   pointsBonus?: number;
   pointsMultiplier?: number;
   billRule?: PromoBillRule;
+  /** ร้านหลายสาขา: ใช้ได้เฉพาะสาขาเหล่านี้ (ว่าง = ทุกสาขา) */
+  branchIds?: string[];
 };
 
 /** แบบของโปร — เลือกในฟอร์มเดียว */
@@ -153,6 +156,7 @@ export default function PromosAdminPage() {
   /** โปรส่วนลดที่ให้แต้มด้วย (rewardType "both") */
   const [alsoPoints, setAlsoPoints] = useState(false);
   const [kinds, setKinds] = useState<LinePromoKind[]>(["stay"]);
+  const [branchIds, setBranchIds] = useState<string[]>([]);
   const [broadcastTier, setBroadcastTier] = useState<StoreCustomerTier | "all">("all");
   const [broadcastBreed, setBroadcastBreed] = useState("");
   const [broadcastInactive, setBroadcastInactive] = useState(0);
@@ -366,6 +370,7 @@ export default function PromosAdminPage() {
 
   const openNew = () => {
     setEditing(null);
+    setBranchIds([]);
     const s = resetFormState();
     setImageUrl(s.imageUrl);
     setShowOnHome(s.showOnHome);
@@ -386,6 +391,7 @@ export default function PromosAdminPage() {
     setPromoType(promoTypeOf(p));
     setAlsoPoints(p.rewardType === "both");
     setKinds(p.billRule?.kinds?.length ? p.billRule.kinds : ["stay"]);
+    setBranchIds(p.branchIds || []);
     setOpen(true);
   };
 
@@ -444,6 +450,7 @@ export default function PromosAdminPage() {
       pointsBonus: Number(fd.get("pointsBonus")) || undefined,
       pointsMultiplier: Number(fd.get("pointsMultiplier")) || undefined,
       billRule,
+      branchIds,
     };
     let res: Response;
     if (editing) {
@@ -1094,6 +1101,8 @@ export default function PromosAdminPage() {
                   <p className="text-[10px] text-brown-faint">เช่น จอง 10 แถม 1 = พัก 11 คืน จ่าย 10 · ลดเฉพาะค่าห้องพัก</p>
                 </div>
               )}
+
+              <BranchScopePicker value={branchIds} onChange={setBranchIds} label="โปรนี้ใช้ได้ที่สาขา" />
 
               {promoType !== "points" && (
                 <label className="flex items-center gap-2 text-xs font-bold text-brown-soft">

@@ -10,6 +10,7 @@ import { getSupabase } from "./supabase/server";
 import { seedEnabled } from "./demo-seed";
 import { requireTenantId } from "./tenant-context";
 import { billRuleLabel, promoAsLinePromo, type PromoBillRule } from "./line-discount";
+import { branchScopeLabel, usableAtBranch } from "./branches";
 
 export type PromoKind = "display" | "customer";
 export type PromoRestriction = "none" | "first_visit" | "calendar_month";
@@ -37,6 +38,8 @@ export type PromoRecord = {
   pointsMultiplier?: number;
   /** ลดเฉพาะรายการ / แถมคืนฟรี ตอนออกบิล — ไม่มี = ลดทั้งบิล */
   billRule?: PromoBillRule;
+  /** ร้านหลายสาขา: โปรนี้ใช้ได้เฉพาะสาขาเหล่านี้ (ว่าง = ทุกสาขา) */
+  branchIds?: string[];
 };
 
 export type PromoClaimRecord = {
@@ -79,6 +82,7 @@ type PromoRow = {
   points_bonus?: number | null;
   points_multiplier?: number | null;
   bill_rule?: PromoBillRule | null;
+  branch_ids?: string[] | null;
 };
 
 type PromoClaimRow = {
@@ -174,6 +178,7 @@ function rowToPromo(r: PromoRow): PromoRecord {
     pointsBonus: r.points_bonus ?? undefined,
     pointsMultiplier: r.points_multiplier != null ? Number(r.points_multiplier) : undefined,
     billRule: r.bill_rule || undefined,
+    branchIds: Array.isArray(r.branch_ids) && r.branch_ids.length ? r.branch_ids.map(String) : undefined,
   };
 }
 
@@ -225,6 +230,16 @@ async function writePromoRow(
     if (error && !p.billRule) {
       delete row.bill_rule;
       ({ error } = await write(row));
+    }
+  }
+  // สาขาที่ใช้โปรนี้ได้ — คอลัมน์เพิ่มมาทีหลัง เขียนแยก (ยังไม่มีก็สร้างให้เอง) ไม่ให้กระทบการบันทึกโปร
+  if (!error) {
+    const sb = getSupabase();
+    if (sb) {
+      const { healWrite } = await import("./heal-write");
+      await healWrite("promos", ["branch_ids"], () =>
+        sb.from("promos").update({ branch_ids: p.branchIds?.length ? p.branchIds : null }).eq("id", p.id).eq("tenant_id", requireTenantId())
+      );
     }
   }
   return !error;
@@ -357,7 +372,7 @@ export async function getBestPromoForCustomer(
   customerId: string,
   subtotal: number,
   now = new Date(),
-  opts: { excludeBookingIds?: string[]; onlyNewCustomer?: boolean } = {}
+  opts: { excludeBookingIds?: string[]; onlyNewCustomer?: boolean; branchId?: string | null } = {}
 ): Promise<{
   id: string;
   label: string;
@@ -369,8 +384,10 @@ export async function getBestPromoForCustomer(
   if (!customer) return null;
 
   const visits = await countCustomerVisitsExcluding(customerId, opts.excludeBookingIds);
+  // ร้านหลายสาขา: โปรที่จำกัดสาขา ใช้ได้เฉพาะบิลของสาขานั้น (ไม่รู้สาขาของบิล = นับเป็นสาขาแรกเหมือนทั้งระบบ)
+  const branchCfg = await (await import("./config-store")).getSiteConfig();
   const promos = (await getActivePromos(now)).filter(
-    (p) => !opts.onlyNewCustomer || isNewCustomerPromo(p)
+    (p) => (!opts.onlyNewCustomer || isNewCustomerPromo(p)) && usableAtBranch(branchCfg, p.branchIds, opts.branchId)
   );
 
   let best: {
@@ -422,13 +439,19 @@ export async function getBestPromoForCustomer(
 export async function promoBlockReasons(
   customerId: string,
   now = new Date(),
-  excludeBookingIds: string[] = []
+  excludeBookingIds: string[] = [],
+  branchId?: string | null
 ): Promise<Record<string, string>> {
   const customer = await getCustomer(customerId);
   if (!customer) return {};
   const visits = await countCustomerVisitsExcluding(customerId, excludeBookingIds);
   const out: Record<string, string> = {};
+  const branchCfg = branchId ? await (await import("./config-store")).getSiteConfig() : null;
   for (const promo of await listPromos()) {
+    if (branchCfg && !usableAtBranch(branchCfg, promo.branchIds, branchId)) {
+      out[promo.id] = `โปรนี้ใช้ได้${branchScopeLabel(branchCfg, promo.branchIds)} บิลนี้เป็นของสาขาอื่น`;
+      continue;
+    }
     const claim = await getClaimForCustomer(promo.id, customerId);
     const { eligible, reason } = checkPromoEligibility(promo, customer, visits, Boolean(claim), now);
     if (!eligible) out[promo.id] = (reason || "ลูกค้าคนนี้ใช้โปรนี้ไม่ได้").replace("ของคุณ", "ของลูกค้าคนนี้").replace("คุณใช้", "ลูกค้าคนนี้ใช้");

@@ -241,3 +241,35 @@ export function configInView<T extends WithBranches>(config: T): T {
 export function roomsInView<T extends { id: string; branchId?: string }>(config: WithBranches, rooms: T[]): T[] {
   return roomsOfBranch(config, rooms, knownBranchId(config, readBranchCookie()));
 }
+
+/**
+ * คอร์ส โปร และแพ็กเกจ เลือกได้ว่าใช้ได้ทุกสาขาหรือเฉพาะบางสาขา (branchIds ว่าง = ทุกสาขา)
+ * cleanBranchIds: เก็บเฉพาะ id สาขาที่มีจริง · ติ๊กครบทุกสาขา = ถือว่าทุกสาขา (คืน [])
+ */
+export function cleanBranchIds(config: WithBranches | null | undefined, raw: unknown): string[] {
+  if (!Array.isArray(raw) || !isMultiBranch(config)) return [];
+  const all = shopBranches(config).map((b) => b.id);
+  const picked = all.filter((id) => raw.map(String).includes(id));
+  return picked.length === all.length ? [] : picked;
+}
+
+/** ใช้ที่สาขานี้ได้ไหม — ร้านสาขาเดียว / ไม่ได้จำกัด / สาขาที่จำกัดไว้ถูกลบหมดแล้ว = ใช้ได้ */
+export function usableAtBranch(
+  config: WithBranches | null | undefined,
+  branchIds: string[] | null | undefined,
+  branchId?: string | null
+): boolean {
+  if (!isMultiBranch(config)) return true;
+  const known = (branchIds || []).filter((id) => knownBranchId(config || {}, id));
+  if (!known.length) return true;
+  return known.includes(recordBranchId(config || {}, branchId));
+}
+
+/** ข้อความ "เฉพาะสาขา A, B" — ไม่ได้จำกัด/ร้านสาขาเดียว = "" */
+export function branchScopeLabel(config: WithBranches | null | undefined, branchIds?: string[] | null): string {
+  if (!isMultiBranch(config)) return "";
+  const names = shopBranches(config)
+    .filter((b) => (branchIds || []).includes(b.id))
+    .map((b) => b.name);
+  return names.length ? `เฉพาะ${names.join(", ")}` : "";
+}

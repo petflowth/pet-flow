@@ -148,7 +148,7 @@ export async function testGoogleConnection(
   });
 
   try {
-    const cal = google.calendar({ version: "v3", auth });
+    const cal = google.calendar({ version: "v3", auth, timeout: 15000 });
     await cal.calendars.get({ calendarId: creds.calendarId });
     calendar = true;
     messages.push("✅ เชื่อมปฏิทินได้");
@@ -159,7 +159,7 @@ export async function testGoogleConnection(
   }
 
   try {
-    const sheetsApi = google.sheets({ version: "v4", auth });
+    const sheetsApi = google.sheets({ version: "v4", auth, timeout: 15000 });
     await sheetsApi.spreadsheets.get({ spreadsheetId: creds.spreadsheetId });
     sheets = true;
     messages.push("✅ เชื่อม Google Sheet ได้");

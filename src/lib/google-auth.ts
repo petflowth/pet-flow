@@ -19,7 +19,7 @@ export async function getSheetsApi() {
     "https://www.googleapis.com/auth/spreadsheets",
   ]);
   const { google } = await import("googleapis");
-  return google.sheets({ version: "v4", auth });
+  return google.sheets({ version: "v4", auth, timeout: 20000 });
 }
 
 export async function googleServiceConfigured() {

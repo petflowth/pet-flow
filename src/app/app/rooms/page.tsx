@@ -6,6 +6,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { useConfig } from "@/components/ConfigProvider";
 import { BookingOnlyNotice, PageHeader } from "@/components/PageHeader";
 import { RoomCard } from "@/components/RoomCard";
+import { isMultiBranch, roomsOfBranch, shopBranches } from "@/lib/branches";
 import { ContentBlocks } from "@/components/ContentBlocks";
 import { RoomSeasonPrices } from "@/components/RoomPriceDetails";
 
@@ -32,11 +33,30 @@ export default function RoomsPage() {
       />
       <BookingOnlyNotice locale={locale} />
       <RoomSeasonPrices raw={config.roomSeasons} rooms={config.rooms} />
-      <div className="grid gap-4">
-        {config.rooms.map((room) => (
-          <RoomCard key={room.id} room={room} locale={locale} />
-        ))}
-      </div>
+      {isMultiBranch(config) ? (
+        // ร้านหลายสาขา: แสดงห้องแยกเป็นกลุ่มตามสาขา
+        shopBranches(config).map((b) => {
+          const rooms = roomsOfBranch(config, config.rooms, b.id);
+          if (!rooms.length) return null;
+          return (
+            <section key={b.id} className="mb-5">
+              <h2 className="mb-2 text-sm font-extrabold text-petflow-chocolate">📍 {b.name}</h2>
+              {b.address ? <p className="-mt-1.5 mb-2 text-[11px] text-brown-soft">{b.address}</p> : null}
+              <div className="grid gap-4">
+                {rooms.map((room) => (
+                  <RoomCard key={room.id} room={room} locale={locale} />
+                ))}
+              </div>
+            </section>
+          );
+        })
+      ) : (
+        <div className="grid gap-4">
+          {config.rooms.map((room) => (
+            <RoomCard key={room.id} room={room} locale={locale} />
+          ))}
+        </div>
+      )}
       <ContentBlocks blocks={config.roomsPageBlocks} />
     </div>
   );

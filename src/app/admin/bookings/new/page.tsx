@@ -567,7 +567,9 @@ export default function NewBookingPage() {
     }
     let alive = true;
     fetch(
-      `/api/bookings/availability?service=${massage ? "massage" : "groom"}&date=${appointmentDate}&cats=${Math.max(1, bookingCats.length)}`
+      `/api/bookings/availability?service=${massage ? "massage" : "groom"}&date=${appointmentDate}&cats=${Math.max(1, bookingCats.length)}${
+        multiBranch && branchPick ? `&branch=${encodeURIComponent(branchPick)}` : ""
+      }`
     )
       .then((r) => r.json())
       .then((d) => {
@@ -579,7 +581,7 @@ export default function NewBookingPage() {
     return () => {
       alive = false;
     };
-  }, [service, massage, appointmentDate, availTick, bookingCats.length]);
+  }, [service, massage, appointmentDate, availTick, bookingCats.length, multiBranch, branchPick]);
   useEffect(() => {
     setCatTimes(
       groomMode === "together"

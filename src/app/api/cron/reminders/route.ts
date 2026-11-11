@@ -298,6 +298,7 @@ async function runForTenant() {
           notes: primary.notes,
           groomProgram: primary.groomProgram,
           transport: primary.transport,
+          branchId: primary.branchId,
         }, group),
       ];
 

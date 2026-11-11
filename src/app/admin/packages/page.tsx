@@ -1,5 +1,8 @@
 "use client";
 
+import { BranchScopePicker } from "@/components/BranchScopePicker";
+import { branchScopeLabel } from "@/lib/branches";
+import { useConfig } from "@/components/ConfigProvider";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { toast } from "@/components/Toast";
@@ -60,6 +63,8 @@ type Offer = {
   /** ชุดรวม / ของแถม */
   items?: OfferItem[];
   itemLabels?: string[];
+  /** ร้านหลายสาขา: ใช้ได้เฉพาะสาขาเหล่านี้ (ว่าง = ทุกสาขา) */
+  branchIds?: string[];
   active: boolean;
 };
 
@@ -161,6 +166,8 @@ function OfferRow({
   const [price, setPrice] = useState(String(o.price));
   const [creditAmount, setCreditAmount] = useState(String(o.creditAmount ?? o.price));
   const [desc, setDesc] = useState(o.description || "");
+  const [branchIds, setBranchIds] = useState<string[]>(o.branchIds || []);
+  const { config: shopConfig } = useConfig();
   const [program, setProgram] = useState(o.groomProgram || "");
   const [room, setRoom] = useState(o.roomType || "");
   const [free, setFree] = useState("");
@@ -183,6 +190,7 @@ function OfferRow({
     setPrice(String(o.price));
     setCreditAmount(String(o.creditAmount ?? o.price));
     setDesc(o.description || "");
+    setBranchIds(o.branchIds || []);
     setProgram(o.groomProgram || "");
     setRoom(o.roomType || "");
     setFree(single?.free ? String(single.free) : "");
@@ -215,6 +223,7 @@ function OfferRow({
           price: Math.round(Number(price) || 0),
           ...(isCredit ? { creditAmount: Math.round(Number(creditAmount) || 0) } : {}),
           description: desc.trim(),
+          branchIds,
           ...(image !== undefined ? { image } : {}),
           ...(o.kind === "package" ? { groomProgram: program } : {}),
           ...(isNights ? { roomType: room } : {}),
@@ -338,6 +347,7 @@ function OfferRow({
               className={`${field} resize-y leading-relaxed`}
             />
           </Labeled>
+          {!isCredit && <BranchScopePicker value={branchIds} onChange={setBranchIds} label="คอร์สนี้ใช้ได้ที่สาขา" />}
           {o.kind === "package" && (
             <GroomProgramPicker value={program} onChange={setProgram} programs={programs} />
           )}
@@ -434,6 +444,9 @@ function OfferRow({
           {o.groomProgram && ` · ${groomProgramName(o.groomProgram, programs) || "โปรแกรมที่ลบไปแล้ว"}`}
           {isNights && ` · ${o.roomType ? o.roomLabel || "ห้องที่ลบไปแล้ว" : "ทุกห้อง"}`}
         </span>
+        {branchScopeLabel(shopConfig, o.branchIds) ? (
+          <span className="block text-[11px] font-bold text-latte-deep">ใช้ได้{branchScopeLabel(shopConfig, o.branchIds)}</span>
+        ) : null}
         {o.description ? (
           <span className="block truncate text-[11px] text-brown-faint">{o.description}</span>
         ) : null}
@@ -512,6 +525,7 @@ export default function AdminPackagesPage() {
   const [price, setPrice] = useState("");
   const [creditAmount, setCreditAmount] = useState("");
   const [desc, setDesc] = useState("");
+  const [branchIds, setBranchIds] = useState<string[]>([]);
   const [image, setImage] = useState("");
   const [program, setProgram] = useState("");
   const [room, setRoom] = useState("");
@@ -577,6 +591,7 @@ export default function AdminPackagesPage() {
           price: Math.round(Number(price) || 0),
           ...(kind === "credit" ? { creditAmount: Math.round(Number(creditAmount) || 0) } : {}),
           description: desc.trim() || undefined,
+          branchIds: kind === "credit" ? [] : branchIds,
           image: image || undefined,
           groomProgram: kind === "package" ? program || undefined : undefined,
           roomType: kind === "nights" ? room || undefined : undefined,
@@ -600,6 +615,7 @@ export default function AdminPackagesPage() {
         setPrice("");
         setCreditAmount("");
         setDesc("");
+        setBranchIds([]);
         setImage("");
         setProgram("");
         setRoom("");
@@ -799,6 +815,7 @@ export default function AdminPackagesPage() {
               placeholder="รายละเอียด / คำโปรย (ถ้ามี) เช่น ประหยัดกว่าซื้อแยก 500฿ (ขึ้นบรรทัดใหม่ได้)"
               className={`${field} resize-y leading-relaxed`}
             />
+            {kind !== "credit" && <BranchScopePicker value={branchIds} onChange={setBranchIds} label="คอร์สนี้ใช้ได้ที่สาขา" />}
             {kind === "package" && (
               <GroomProgramPicker value={program} onChange={setProgram} programs={groomPrograms} />
             )}

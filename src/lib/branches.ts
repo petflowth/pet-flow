@@ -17,6 +17,10 @@ export type Branch = {
   phone?: string;
   /** ลิงก์ Google Maps ของสาขา */
   mapsUrl?: string;
+  /** Chat ID กลุ่ม Telegram ของสาขานี้ (คั่นด้วย , ได้หลายกลุ่ม) — แจ้งเตือนของสาขานี้ส่งเข้ากลุ่มนี้เพิ่มจากกลุ่มของร้าน */
+  telegramChatIds?: string;
+  /** เลขสาขาตามใบทะเบียนภาษีมูลค่าเพิ่ม เช่น 00001 (สาขาแรกมักเป็น สำนักงานใหญ่ 00000) — โชว์ในใบกำกับภาษี */
+  taxBranchNo?: string;
   /**
    * ค่าที่สาขานี้ตั้งเองต่างจากค่ากลางของร้าน (เฉพาะหัวข้อใน BRANCH_OVERRIDE_KEYS)
    * หัวข้อไหนไม่ได้ตั้ง = ใช้ค่ากลางของร้าน
@@ -236,4 +240,36 @@ export function configInView<T extends WithBranches>(config: T): T {
 
 export function roomsInView<T extends { id: string; branchId?: string }>(config: WithBranches, rooms: T[]): T[] {
   return roomsOfBranch(config, rooms, knownBranchId(config, readBranchCookie()));
+}
+
+/**
+ * คอร์ส โปร และแพ็กเกจ เลือกได้ว่าใช้ได้ทุกสาขาหรือเฉพาะบางสาขา (branchIds ว่าง = ทุกสาขา)
+ * cleanBranchIds: เก็บเฉพาะ id สาขาที่มีจริง · ติ๊กครบทุกสาขา = ถือว่าทุกสาขา (คืน [])
+ */
+export function cleanBranchIds(config: WithBranches | null | undefined, raw: unknown): string[] {
+  if (!Array.isArray(raw) || !isMultiBranch(config)) return [];
+  const all = shopBranches(config).map((b) => b.id);
+  const picked = all.filter((id) => raw.map(String).includes(id));
+  return picked.length === all.length ? [] : picked;
+}
+
+/** ใช้ที่สาขานี้ได้ไหม — ร้านสาขาเดียว / ไม่ได้จำกัด / สาขาที่จำกัดไว้ถูกลบหมดแล้ว = ใช้ได้ */
+export function usableAtBranch(
+  config: WithBranches | null | undefined,
+  branchIds: string[] | null | undefined,
+  branchId?: string | null
+): boolean {
+  if (!isMultiBranch(config)) return true;
+  const known = (branchIds || []).filter((id) => knownBranchId(config || {}, id));
+  if (!known.length) return true;
+  return known.includes(recordBranchId(config || {}, branchId));
+}
+
+/** ข้อความ "เฉพาะสาขา A, B" — ไม่ได้จำกัด/ร้านสาขาเดียว = "" */
+export function branchScopeLabel(config: WithBranches | null | undefined, branchIds?: string[] | null): string {
+  if (!isMultiBranch(config)) return "";
+  const names = shopBranches(config)
+    .filter((b) => (branchIds || []).includes(b.id))
+    .map((b) => b.name);
+  return names.length ? `เฉพาะ${names.join(", ")}` : "";
 }

@@ -1,6 +1,6 @@
 import { buildReferralRewardCard } from "@/lib/notice-cards";
 import { NextRequest, NextResponse } from "next/server";
-import { adminBranchScope, branchFilter, setRecordBranch } from "@/lib/branch-scope";
+import { adminBranchScope, branchFilter, invoiceBranchOf, otherBranchDenied, setRecordBranch } from "@/lib/branch-scope";
 import {
   createInvoice,
   getInvoice,
@@ -52,6 +52,7 @@ import { renderTemplate } from "@/lib/messages";
 import { consumePackage, refundPackageUse, getPackage, receiptCourseSummary } from "@/lib/packages-store";
 import { roomPlanOutstanding } from "@/lib/room-plans-store";
 import { getBooking } from "@/lib/bookings-store";
+import { bookingBranchId, branchScopeLabel, isMultiBranch, usableAtBranch } from "@/lib/branches";
 import { bookingScheduleText } from "@/lib/booking-reminders";
 import type { InvoiceRecord } from "@/lib/invoices-store";
 import type { SiteConfig, CardStyleConfig } from "@/lib/config-types";
@@ -198,8 +199,20 @@ async function actorName(req: NextRequest): Promise<string> {
  * เช็กว่าเอาคอร์สนี้มาหักบิลนี้ได้ไหม (ใช้ทั้งตอนออกบิลและตอนแก้บิล) — คืนข้อความเหตุผลถ้าไม่ได้
  * แพ็กห้องรายเดือนต้องจ่ายครบก่อน · คอร์สคืนผูกห้องหักได้ไม่เกินคืนของห้องนั้น · คอร์สอาบน้ำผูกโปรแกรมเหมือนกัน
  */
-async function packageProblem(packageId: string, rawItems: unknown, packageUnits: number) {
+async function packageProblem(
+  packageId: string,
+  rawItems: unknown,
+  packageUnits: number,
+  /** สาขาของบิลนี้ (ร้านหลายสาขา) — คอร์สที่จำกัดสาขาหักได้เฉพาะบิลของสาขานั้น */
+  branchId?: string | null
+) {
   const pk = await getPackage(packageId);
+  if (pk?.branchIds?.length) {
+    const cfg = await getSiteConfig();
+    if (!usableAtBranch(cfg, pk.branchIds, branchId)) {
+      return `คอร์สนี้ใช้ได้${branchScopeLabel(cfg, pk.branchIds)} บิลนี้เป็นของสาขาอื่น`;
+    }
+  }
   const owed = await roomPlanOutstanding(pk?.planId);
   if (owed > 0) return `แพ็กนี้ยังค้างจ่าย ${owed.toLocaleString()} บาท — ต้องจ่ายครบก่อนถึงจะใช้คืนได้`;
   const items: { label?: string; kind?: string; qty?: number; program?: string }[] = Array.isArray(rawItems)
@@ -240,7 +253,10 @@ async function handlePost(req: NextRequest) {
     // คอร์สแบบคืนหักหลายหน่วยในบิลเดียว (พัก 5 คืน = หัก 5) ไม่ระบุ = 1 เหมือนเดิม
     const packageUnits = Math.max(1, Math.round(Number(body.packageUnits) || 1));
     if (body.packageId) {
-      const bad = await packageProblem(String(body.packageId), body.items, packageUnits);
+      const cfgB = await getSiteConfig();
+      const linked = body.bookingId ? await getBooking(String(body.bookingId)).catch(() => null) : null;
+      const billBranch = !isMultiBranch(cfgB) ? null : linked ? bookingBranchId(cfgB, linked) : await adminBranchScope(req);
+      const bad = await packageProblem(String(body.packageId), body.items, packageUnits, billBranch);
       if (bad) return NextResponse.json({ error: bad }, { status: 400 });
       try {
         const used = await consumePackage(String(body.packageId), packageUnits);
@@ -416,6 +432,9 @@ async function handlePatch(req: NextRequest) {
   const preview = body.preview === true;
   const inv = await getInvoice(id);
   if (!inv) return NextResponse.json({ error: "not found" }, { status: 404 });
+  // พนักงานที่ถูกจำกัดสาขา แก้/เก็บเงิน/ลบบิลของสาขาอื่นไม่ได้
+  const denied = await otherBranchDenied(req, (cfg) => invoiceBranchOf(cfg, inv));
+  if (denied) return NextResponse.json({ error: denied }, { status: 403 });
 
   // ลิงก์ในการ์ดต้องมีชื่อร้าน (/s/<slug>) — /app เปล่า ๆ คือร้าน PetFlow
   const base = await shopAppBase();
@@ -1003,7 +1022,12 @@ async function handlePatch(req: NextRequest) {
     let addPackageId: string | undefined;
     const addUnits = Math.max(1, Math.round(Number(body.packageUnits) || 1));
     if (body.packageId && !inv.packageId) {
-      const bad = await packageProblem(String(body.packageId), body.items ?? inv.items, addUnits);
+      const bad = await packageProblem(
+        String(body.packageId),
+        body.items ?? inv.items,
+        addUnits,
+        await invoiceBranchOf(await getSiteConfig(), inv)
+      );
       if (bad) return NextResponse.json({ error: bad }, { status: 400 });
       const used = await consumePackage(String(body.packageId), addUnits).catch(() => null);
       if (!used?.ok) return NextResponse.json({ error: "package_unavailable" }, { status: 400 });

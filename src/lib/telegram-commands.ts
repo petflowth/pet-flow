@@ -12,6 +12,24 @@ import {
 import { parseTelegramCommand } from "@/lib/telegram";
 import { buildTransportSummaryMessage } from "@/lib/transport-summary";
 import { roomOn } from "@/lib/room-segments";
+import { getSiteConfig } from "@/lib/config-store";
+import { bookingBranchId, branchById, isMultiBranch, shopBranches } from "@/lib/branches";
+import { sendTelegram } from "@/lib/telegram";
+
+/**
+ * ส่งสรุปประจำวัน — ร้านสาขาเดียว 1 ข้อความ · ร้านหลายสาขา แยกสาขาละข้อความ
+ * (ข้อความของสาขาไหน เข้ากลุ่มของร้าน และกลุ่ม Telegram ของสาขานั้นถ้าตั้งไว้)
+ */
+export async function sendPerBranch(build: (branchId?: string) => Promise<string>) {
+  const config = await getSiteConfig();
+  if (!isMultiBranch(config)) return sendTelegram(await build());
+  let ok = true;
+  for (const b of shopBranches(config)) {
+    const r = await sendTelegram(await build(b.id), { branchId: b.id });
+    if (!r.ok) ok = false;
+  }
+  return { ok };
+}
 
 /**
  * สร้างข้อความตารางงานของวันหนึ่ง — อาบน้ำ + เช็คอิน + เช็คเอาท์
@@ -20,12 +38,20 @@ import { roomOn } from "@/lib/room-segments";
  */
 export async function buildDayScheduleMessage(
   date: string,
-  opts?: { heading?: string; emptyText?: string; includeOngoingStays?: boolean }
+  opts?: { heading?: string; emptyText?: string; includeOngoingStays?: boolean; branchId?: string }
 ) {
-  const heading = opts?.heading ?? `🗓️ ตารางงาน (${date})`;
+  // ร้านหลายสาขา + ระบุสาขา: เฉพาะงานของสาขานั้น และหัวข้อขึ้นชื่อสาขา
+  const cfg = opts?.branchId ? await getSiteConfig() : null;
+  const branch = cfg && isMultiBranch(cfg) ? branchById(cfg, opts?.branchId || "") : undefined;
+  const heading = (opts?.heading ?? `🗓️ ตารางงาน (${date})`) + (branch ? `\n🏬 ${branch.name}` : "");
   const all = await listBookings();
   // ยกเลิก/ไม่มา ไม่ต้องขึ้นตารางงาน — ไม่มีอะไรให้ทำแล้ว
-  const live = all.filter((b) => b.status !== "cancelled" && b.status !== "no_show");
+  const live = all.filter(
+    (b) =>
+      b.status !== "cancelled" &&
+      b.status !== "no_show" &&
+      (!branch || !cfg || bookingBranchId(cfg, b) === branch.id)
+  );
   // เรียงตามเวลา ให้อ่านเป็นไทม์ไลน์ของวัน — ยังไม่แจ้งเวลาไว้ท้าย
   const byTime = (pick: (b: (typeof live)[number]) => string | undefined) =>
     (a: (typeof live)[number], b: (typeof live)[number]) =>
@@ -145,8 +171,9 @@ export async function buildTomorrowPrepMessage(tomorrow: string) {
 }
 
 /** สรุปเช้า — งานของวันนี้ทั้งหมด ส่งให้ร้านตอนเช้าทุกวัน */
-export async function buildMorningSummaryMessage(today: string) {
+export async function buildMorningSummaryMessage(today: string, branchId?: string) {
   return buildDayScheduleMessage(today, {
+    branchId,
     heading: `☀️ สรุปเช้า — งานวันนี้ (${today})`,
     emptyText: "วันนี้ยังไม่มีนัด/เข้าพัก-ออกพักในระบบค่ะ พักผ่อนได้เต็มที่ 🐾",
     // แจ้งตัวที่ยังพักอยู่ (ไม่ใช่แค่วันเข้า/วันออก) ทุกเช้า จะได้เห็นโน้ต/สถานะเซ็นเงื่อนไข
@@ -159,10 +186,12 @@ export async function buildMorningSummaryMessage(today: string) {
  * สรุปปิดวัน — ยอดรายรับ-รายจ่ายของวันนี้ + ตารางงานพรุ่งนี้ ส่งตอนเย็นทุกวัน
  * ตัวเลขดึงจากบัญชีรายรับ-รายจ่ายชุดเดียวกับหน้า /finance
  */
-export async function buildEndOfDaySummaryMessage(today: string, tomorrow: string) {
-  const fin = await todayFinance();
+export async function buildEndOfDaySummaryMessage(today: string, tomorrow: string, branchId?: string) {
+  const fin = await todayFinance(branchId);
+  const cfg = branchId ? await getSiteConfig() : null;
+  const branchName = cfg && isMultiBranch(cfg) ? branchById(cfg, branchId || "")?.name : "";
   const lines: string[] = [
-    `🌙 สรุปปิดวัน (${today})`,
+    `🌙 สรุปปิดวัน (${today})${branchName ? `\n🏬 ${branchName}` : ""}`,
     "",
     `💰 รายรับวันนี้: ${fin.income.toLocaleString()} บาท`,
   ];
@@ -173,6 +202,8 @@ export async function buildEndOfDaySummaryMessage(today: string, tomorrow: strin
   lines.push(`📑 รายการทั้งหมด: ${fin.count} รายการ`);
   lines.push("");
   lines.push(await buildDayScheduleMessage(tomorrow, {
+    // ชื่อสาขาอยู่ที่หัวข้อความแล้ว ไม่ต้องซ้ำใต้ตารางพรุ่งนี้
+    branchId,
     heading: `🗓️ ตารางพรุ่งนี้ (${tomorrow})`,
     emptyText: "พรุ่งนี้ยังไม่มีนัดในระบบค่ะ 🎉",
   }));

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { bangkokToday } from "@/lib/bangkok-date";
-import { createSale, listSales, voidSale } from "@/lib/pos-store";
+import { createSale, getSale, listSales, voidSale } from "@/lib/pos-store";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { withTenant } from "@/lib/tenant-context";
-import { adminBranchScope, branchFilter } from "@/lib/branch-scope";
+import { adminBranchScope, branchFilter, otherBranchDenied } from "@/lib/branch-scope";
 
 /** บิลขายของวัน ?date=YYYY-MM-DD (ไม่ใส่ = วันนี้) */
 async function handleGet(req: NextRequest) {
@@ -41,6 +41,10 @@ async function handlePost(req: NextRequest) {
 /** ยกเลิกบิล {id} — คืนสต็อกและลบรายรับ */
 async function handlePatch(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
+  // พนักงานที่ถูกจำกัดสาขา ยกเลิกบิลขายของสาขาอื่นไม่ได้
+  const target = await getSale(String(body.id || ""));
+  const denied = target ? await otherBranchDenied(req, () => target.branchId) : null;
+  if (denied) return NextResponse.json({ error: denied }, { status: 403 });
   const sale = await voidSale(String(body.id || ""));
   if (!sale) return NextResponse.json({ error: "ไม่พบบิล" }, { status: 404 });
   return NextResponse.json({ ok: true, sale });

@@ -1,5 +1,6 @@
 "use client";
 
+import { BranchScopePicker } from "@/components/BranchScopePicker";
 import { splitVaccinePhotos } from "@/lib/vaccine-photos";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -1676,6 +1677,8 @@ function CustomerSummaryCard({
   const rooms = useRoomOptions();
   /** "" = ใช้ได้ทุกห้อง */
   const [pkgRoom, setPkgRoom] = useState("");
+  // ร้านหลายสาขา: คอร์สนี้ใช้ได้เฉพาะสาขาที่เลือก (ว่าง = ทุกสาขา)
+  const [pkgBranchIds, setPkgBranchIds] = useState<string[]>([]);
   const [pkgFree, setPkgFree] = useState("");
   const [pkgItems, setPkgItems] = useState<OfferItemDraft[]>([]);
   const [pkgUses, setPkgUses] = useState("");
@@ -1733,6 +1736,7 @@ function CustomerSummaryCard({
       price,
       isLegacy: pkgLegacy,
       notify: pkgNotify,
+      branchIds: pkgBranchIds,
       groomProgram: pkgProgram || undefined,
       installments: pkgLegacy ? 1 : pkgInstallments,
       firstPayment: !pkgLegacy && pkgInstallments > 1 ? Math.round(Number(pkgFirstPay) || 0) : undefined,
@@ -2435,6 +2439,9 @@ function CustomerSummaryCard({
                 )}
               </div>
             )}
+            <div className="mt-2">
+              <BranchScopePicker value={pkgBranchIds} onChange={setPkgBranchIds} label="คอร์สนี้ใช้ได้ที่สาขา" />
+            </div>
             <div className="mt-2 flex gap-2">
               {pkgMode !== "bundle" && (
                 <>

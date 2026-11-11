@@ -20,6 +20,7 @@ import {
 import { findCustomerByLine, getCustomer } from "@/lib/customers-store";
 import { getPaymentConfig } from "@/lib/payment-config";
 import { getSiteConfig } from "@/lib/config-store";
+import { cleanBranchIds } from "@/lib/branches";
 import { sendTelegramLater, formatBookingTelegram } from "@/lib/telegram";
 import { pushLineMessage, buildPackageFlex, buildMemberBalanceFlex } from "@/lib/line";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
@@ -191,6 +192,7 @@ async function handlePost(req: NextRequest, isAdminSession: boolean) {
       roomType: body.roomType ? String(body.roomType) : undefined,
       items: Array.isArray(body.items) ? normalizeOfferItems(body.items) : undefined,
       image: body.image ? String(body.image) : undefined,
+      branchIds: cleanBranchIds(await getSiteConfig(), body.branchIds),
     });
     if (!offer) {
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
@@ -298,6 +300,7 @@ async function handlePatch(req: NextRequest) {
       description: body.description !== undefined ? String(body.description) : undefined,
       groomProgram: body.groomProgram !== undefined ? String(body.groomProgram) : undefined,
       roomType: body.roomType !== undefined ? String(body.roomType) : undefined,
+      branchIds: body.branchIds !== undefined ? cleanBranchIds(await getSiteConfig(), body.branchIds) : undefined,
       items: Array.isArray(body.items) ? normalizeOfferItems(body.items) : undefined,
     });
     if (!res.ok) {

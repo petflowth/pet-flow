@@ -15,6 +15,8 @@ type Promo = {
   title: { th: string; en: string };
   body: { th: string; en: string };
   until: string;
+  /** ร้านหลายสาขา: "เฉพาะสาขา A" */
+  branchLabel?: string;
   imageUrl?: string;
   discountPercent?: number;
 };
@@ -76,6 +78,9 @@ export default function PromosPage() {
                       className="text-xs leading-relaxed text-brown-soft"
                     />
                   </div>
+                  {promo.branchLabel ? (
+                    <p className="mt-1 text-[11px] font-bold text-latte-deep">ใช้ได้{promo.branchLabel}</p>
+                  ) : null}
                   {promo.until ? (
                     <span className="mt-2 flex items-center gap-1 text-[11px] font-bold text-brown-faint">
                       <Icon name="clock" size={13} />

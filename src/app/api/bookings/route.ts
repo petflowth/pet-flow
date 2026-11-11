@@ -64,7 +64,7 @@ import {
   copyBookingDocsToCustomer,
 } from "@/lib/customers-store";
 import { getSiteConfig } from "@/lib/config-store";
-import { adminBranchScope, branchFilter, staffAllowedBranches } from "@/lib/branch-scope";
+import { adminBranchScope, branchFilter, otherBranchDenied, staffAllowedBranches } from "@/lib/branch-scope";
 import { bookingBranchId, branchById, isMultiBranch, knownBranchId, roomBranchId } from "@/lib/branches";
 import { getLineCredentials } from "@/lib/line-config";
 import { cleanRoomSegments } from "@/lib/room-segments";
@@ -351,7 +351,8 @@ async function handlePost(req: NextRequest) {
       ...(hasTransport(booking.transport) ? { รับส่ง: transportLabel(booking.transport) } : {}),
       วันที่: `${body.date || body.checkin}${body.time ? ` ${body.time}` : ""}`,
       ปฏิทิน: cal.googleUrl || icsUrl,
-    })
+    }),
+      { booking: booking }
   );
 
   return NextResponse.json({
@@ -380,6 +381,12 @@ async function handlePatch(req: NextRequest, admin: boolean) {
   const preview = body.preview === true;
   const b = await getBooking(id);
   if (!b) return NextResponse.json({ error: "not found" }, { status: 404 });
+
+  // พนักงานที่ถูกจำกัดสาขา แตะนัดของสาขาอื่นไม่ได้ (ดูตัวอย่างการ์ดก็ไม่ได้ เพราะเห็นข้อมูลลูกค้า)
+  if (admin) {
+    const denied = await otherBranchDenied(req, (cfg) => bookingBranchId(cfg, b));
+    if (denied) return NextResponse.json({ error: "branch_forbidden", message: denied }, { status: 403 });
+  }
 
   // ลูกค้าใน LINE ทำได้อย่างเดียวคือกดยืนยันนัด "ของตัวเอง"
   // การกระทำอื่นทั้งหมด (ยกเลิก แก้ไข ส่งการ์ด เรียกเก็บเงิน) ต้องล็อกอินหลังบ้าน
@@ -436,7 +443,8 @@ async function handlePatch(req: NextRequest, admin: boolean) {
         ลูกค้า: String(b.customerName),
         น้อง: String(b.catName),
         วันที่: String(b.date || b.checkin),
-      })
+      }),
+      { booking: b }
     );
     const matched = await findCustomerForBooking(b);
     if (matched) await recalculateCustomerTier(matched.id);
@@ -485,7 +493,8 @@ async function handlePatch(req: NextRequest, admin: boolean) {
         ลูกค้า: String(first.customerName),
         น้อง: [...new Set(confirmed.map((x) => x!.catName))].join(", "),
         วันที่: String(first.date || first.checkin),
-      })
+      }),
+      { booking: first }
     );
     const matched = await findCustomerForBooking(first);
     if (matched) await recalculateCustomerTier(matched.id);
@@ -1391,7 +1400,8 @@ function groomInfoCardFor(
               : inv.kind === "warn"
                 ? `⚠️ ${inv.message}`
                 : "-",
-      })
+      }),
+      { booking: h }
     );
     return NextResponse.json({
       ok: true,
@@ -1426,6 +1436,18 @@ function groomInfoCardFor(
       const programs = lookupGroomPrograms(await getSiteConfig());
       patch.groomProgram = pid && groomProgram(pid, programs) ? pid : "";
     }
+    // ย้ายนัดอาบน้ำ/นวดไปอีกสาขา (ห้องพักไม่ต้อง — ตามสาขาของห้องที่เลือก) · พนักงานย้ายได้เฉพาะไปสาขาที่ตัวเองมีสิทธิ์
+    if (body.branchId != null && (patch.service ?? b.service) !== "room") {
+      const cfg = await getSiteConfig();
+      const to = isMultiBranch(cfg) ? knownBranchId(cfg, String(body.branchId)) : undefined;
+      if (to && to !== bookingBranchId(cfg, b)) {
+        const allowed = await staffAllowedBranches(req, cfg);
+        if (allowed && !allowed.includes(to)) {
+          return NextResponse.json({ error: "branch_forbidden", message: "คุณไม่มีสิทธิ์สาขาปลายทางค่ะ" }, { status: 403 });
+        }
+        patch.branchId = to;
+      }
+    }
     // รับ-ส่ง — ส่ง null/{} มา = ยกเลิกบริการรับ-ส่งของนัดนี้
     if (body.transport !== undefined) patch.transport = cleanTransport(body.transport);
     // ย้ายห้องกลางทาง — [] = อยู่ห้องเดียวตลอด · คิดจากห้อง/วันใหม่ในคำขอนี้ (ถ้ามี)
@@ -1459,7 +1481,8 @@ function groomInfoCardFor(
         น้อง: String(updated.catName),
         วันที่: String(updated.date || updated.checkin),
         เวลา: String(updated.time || "-"),
-      })
+      }),
+      { booking: updated }
     );
 
     return NextResponse.json({ ok: true, booking: toBooking(updated) });
@@ -1524,7 +1547,8 @@ function groomInfoCardFor(
           บริการ: b.service === "room" ? "ห้องพัก" : "อาบน้ำ",
           ...(status === "ready" ? { แจ้งลูกค้า: sent ? "ส่งแล้ว" : "ไม่ได้ส่ง" } : {}),
         }
-      )
+      ),
+      { booking: b }
     );
 
     return NextResponse.json({ ok: true, sent, status });
@@ -1548,7 +1572,8 @@ function groomInfoCardFor(
         ลูกค้า: String(b.customerName),
         น้อง: String(b.catName),
         วันที่: String(b.date || b.checkin),
-      })
+      }),
+      { booking: b }
     );
 
     return NextResponse.json({ ok: true, booking: toBooking(updated) });

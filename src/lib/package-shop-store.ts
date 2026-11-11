@@ -91,6 +91,10 @@ export type PackageOffer = {
   items?: OfferItem[];
   /** คำอธิบายแต่ละรายการ เช่น "ห้อง Mid Cozy 5 คืน + แถม 1" (เติมให้ตอนอ่าน ไม่ได้เก็บ) */
   itemLabels?: string[];
+  /** ร้านหลายสาขา: คอร์สนี้ใช้ได้เฉพาะสาขาเหล่านี้ (ว่าง = ทุกสาขา) — ติดไปกับคอร์สของลูกค้าตอนขาย */
+  branchIds?: string[];
+  /** "เฉพาะสาขา A" (เติมให้ตอนอ่าน ไม่ได้เก็บ) — ไม่ได้จำกัด = ไม่มี */
+  branchLabel?: string;
   active: boolean;
   createdAt: string;
 };
@@ -135,6 +139,7 @@ type OfferRow = {
   groom_program?: string | null;
   room_type?: string | null;
   items?: unknown;
+  branch_ids?: string[] | null;
   active: boolean;
   created_at: string;
 };
@@ -176,6 +181,7 @@ function rowToOffer(r: OfferRow): PackageOffer {
     groomProgram: r.groom_program || undefined,
     roomType: r.room_type || undefined,
     items: normalizeOfferItems(r.items).length ? normalizeOfferItems(r.items) : undefined,
+    branchIds: Array.isArray(r.branch_ids) && r.branch_ids.length ? r.branch_ids.map(String) : undefined,
     active: r.active !== false,
     createdAt: r.created_at,
   };
@@ -270,6 +276,16 @@ async function writeItems(
   }
 }
 
+/** สาขาที่ใช้คอร์สนี้ได้ — คอลัมน์เพิ่มมาทีหลัง เขียนแยก ยังไม่มีก็สร้างให้เอง */
+async function writeOfferBranches(id: string, branchIds: string[] | null) {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { healWrite } = await import("./heal-write");
+  await healWrite("package_offers", ["branch_ids"], () =>
+    sb.from("package_offers").update({ branch_ids: branchIds }).eq("tenant_id", requireTenantId()).eq("id", id)
+  );
+}
+
 /** "อาบน้ำ Premium" — ชื่อโปรแกรมที่มีคำว่าอาบน้ำอยู่แล้วไม่เติมซ้ำ */
 function bathName(program?: string | false): string {
   if (!program) return "อาบน้ำ";
@@ -327,6 +343,12 @@ export async function listPackageOffers(activeOnly = false): Promise<PackageOffe
         return it.free ? `${what} + แถม ${it.free}` : what;
       }),
     }));
+  }
+  if (list.some((o) => o.branchIds?.length)) {
+    const { getSiteConfig } = await import("./config-store");
+    const { branchScopeLabel } = await import("./branches");
+    const cfg = await getSiteConfig().catch(() => null);
+    list = list.map((o) => ({ ...o, branchLabel: branchScopeLabel(cfg, o.branchIds) || undefined }));
   }
   return activeOnly ? list.filter((o) => o.active) : list;
 }
@@ -405,6 +427,8 @@ export async function createPackageOffer(data: {
   image?: string;
   /** ใช้รูปที่อัปไว้แล้ว (ตอนก๊อปคอร์ส) */
   imageUrl?: string;
+  /** ร้านหลายสาขา: ใช้ได้เฉพาะสาขาเหล่านี้ (ว่าง = ทุกสาขา) */
+  branchIds?: string[];
 }): Promise<PackageOffer | null> {
   const kind = toOfferKind(data.kind);
   const items = kind === "credit" ? [] : normalizeOfferItems(data.items);
@@ -449,6 +473,7 @@ export async function createPackageOffer(data: {
     groomProgram: kind === "package" ? data.groomProgram || undefined : undefined,
     roomType: kind === "nights" ? data.roomType || undefined : undefined,
     items: items.length ? items : undefined,
+    branchIds: data.branchIds?.length ? data.branchIds : undefined,
     active: true,
     createdAt: new Date().toISOString(),
   };
@@ -477,6 +502,7 @@ export async function createPackageOffer(data: {
     if (offer.groomProgram) await writeGroomProgram("package_offers", offer.id, offer.groomProgram);
     if (offer.roomType) await writeRoomType("package_offers", offer.id, offer.roomType);
     if (offer.items) await writeItems("package_offers", offer.id, offer.items);
+    if (offer.branchIds) await writeOfferBranches(offer.id, offer.branchIds);
     if (offer.imageUrl) {
       try {
         const { error } = await sb
@@ -564,6 +590,8 @@ export async function updatePackageOffer(
     roomType?: string;
     /** [] = ไม่มีของแถม/รายการ (คอร์สเดี่ยวแบบเดิม) */
     items?: OfferItem[];
+    /** [] = ใช้ได้ทุกสาขา */
+    branchIds?: string[];
   }
 ) {
   const patch: Record<string, unknown> = {};
@@ -589,7 +617,8 @@ export async function updatePackageOffer(
     Object.keys(patch).length === 0 &&
     groomProgram === undefined &&
     roomType === undefined &&
-    items === undefined
+    items === undefined &&
+    data.branchIds === undefined
   )
     return { ok: true as const };
 
@@ -598,6 +627,8 @@ export async function updatePackageOffer(
     if (groomProgram !== undefined) await writeGroomProgram("package_offers", id, groomProgram);
     if (roomType !== undefined) await writeRoomType("package_offers", id, roomType);
     if (items !== undefined) await writeItems("package_offers", id, items.length ? items : null);
+    if (data.branchIds !== undefined) await writeOfferBranches(id, data.branchIds.length ? data.branchIds : null);
+    if (Object.keys(patch).length === 0) return { ok: true as const };
     const { error } = await sb
       .from("package_offers")
       .update(patch)
@@ -626,6 +657,7 @@ export async function updatePackageOffer(
       if (groomProgram !== undefined) o.groomProgram = groomProgram || undefined;
       if (roomType !== undefined) o.roomType = roomType || undefined;
       if (items !== undefined) o.items = items.length ? items : undefined;
+      if (data.branchIds !== undefined) o.branchIds = data.branchIds.length ? data.branchIds : undefined;
     }
   }
   return { ok: true as const };
@@ -869,6 +901,8 @@ export async function confirmPackageOrder(
     price: order.price,
     items: parts,
     isLegacy: opts?.isLegacy,
+    // คอร์สจำกัดสาขาตามที่ร้านตั้งไว้ในคอร์สที่เปิดขาย (คอร์สถูกลบไปแล้ว = ใช้ได้ทุกสาขา)
+    branchIds: order.offerId ? (await listPackageOffers()).find((o) => o.id === order.offerId)?.branchIds : undefined,
   });
   const pkg = made[0];
   if (!pkg) return { ok: false as const, error: "no_items" };
@@ -948,6 +982,8 @@ export async function sellOfferItems(data: {
   /** ผูกแผนแบ่งจ่าย — คอร์สล็อกจนจ่ายครบ รายรับลงตามงวด */
   planId?: string;
   noIncome?: boolean;
+  /** ร้านหลายสาขา: คอร์สที่ได้ใช้ได้เฉพาะสาขาเหล่านี้ (ว่าง = ทุกสาขา) */
+  branchIds?: string[];
 }) {
   const { sellPackage } = await import("./packages-store");
   const labels = await roomLabels().catch(() => new Map<string, string>());
@@ -990,6 +1026,7 @@ export async function sellOfferItems(data: {
         isLegacy: data.isLegacy,
         planId: data.planId,
         noIncome: data.noIncome,
+        branchIds: data.branchIds,
       })
     );
   }

@@ -84,6 +84,8 @@ export type PosSale = {
 export type PosClosing = {
   id: string;
   date: string;
+  /** ลิ้นชักของสาขาไหน (ร้านหลายสาขา) — ว่าง = ร้านสาขาเดียว / ของเดิม = สาขาแรก */
+  branchId?: string;
   /** เงินสดที่ควรมีในลิ้นชัก = เงินทอนตั้งต้น + รับเงินสดทั้งวัน */
   expectedCash: number;
   countedCash: number;
@@ -646,17 +648,21 @@ export async function voidSale(id: string): Promise<PosSale | null> {
 
 // ── ปิดยอดรายวัน ───────────────────────────────────────
 
-export async function dayTotals(date: string): Promise<DayTotals> {
-  const sales = (await listSales(date)).filter((s) => s.status === "paid");
+/** ยอดของวัน — ใส่ branchId = เฉพาะสาขานั้น (ลิ้นชักของสาขา) · ไม่ใส่ = รวมทั้งร้าน */
+export async function dayTotals(date: string, branchId?: string | null): Promise<DayTotals> {
+  const filter = branchId ? await (await import("./branch-scope")).branchFilter(branchId) : null;
+  const paidSales = (await listSales(date)).filter((s) => s.status === "paid");
+  const sales = filter ? filter.sales(paidSales) : paidSales;
   const pos: Record<PosMethod, number> = { cash: 0, promptpay: 0, transfer: 0 };
   for (const s of sales) pos[s.method] = money(pos[s.method] + s.total);
 
   const services = { cash: 0, transfer: 0, member_credit: 0 };
   let servicesCount = 0;
   const { listInvoices } = await import("./invoices-store");
-  for (const inv of await listInvoices()) {
-    if (inv.status !== "paid" || inv.deletedAt || !inv.paidAt) continue;
-    if (inv.paidAt.slice(0, 10) !== date) continue;
+  const paidToday = (await listInvoices()).filter(
+    (inv) => inv.status === "paid" && !inv.deletedAt && !!inv.paidAt && inv.paidAt.slice(0, 10) === date
+  );
+  for (const inv of filter ? await filter.invoices(paidToday) : paidToday) {
     // มัดจำที่รับไว้ก่อนวันนี้ไม่ได้เข้าลิ้นชักวันนี้ — นับเฉพาะยอดที่เก็บตอนปิดบิล
     const depositEarlier =
       inv.deposit > 0 && (!inv.depositReceivedAt || inv.depositReceivedAt.slice(0, 10) !== date);
@@ -673,6 +679,7 @@ export async function dayTotals(date: string): Promise<DayTotals> {
 type ClosingRow = {
   id: string;
   date: string;
+  branch_id?: string | null;
   expected_cash: number | string;
   counted_cash: number | string;
   diff: number | string;
@@ -686,6 +693,7 @@ function closingFromRow(r: ClosingRow): PosClosing {
   return {
     id: r.id,
     date: r.date,
+    branchId: r.branch_id || undefined,
     expectedCash: Number(r.expected_cash) || 0,
     countedCash: Number(r.counted_cash) || 0,
     diff: Number(r.diff) || 0,
@@ -696,13 +704,31 @@ function closingFromRow(r: ClosingRow): PosClosing {
   };
 }
 
-export async function getClosing(date: string): Promise<PosClosing | null> {
+const memKey = (date: string, branchId?: string | null) => `${date}|${branchId || ""}`;
+
+/**
+ * การปิดยอดของวันนั้น — branchId = ลิ้นชักของสาขานั้น
+ * alsoLegacy: สาขาแรกรับของเดิมที่ปิดไว้ก่อนร้านจะมีสาขา (branch_id ว่าง) ด้วย
+ */
+export async function getClosing(
+  date: string,
+  branchId?: string | null,
+  alsoLegacy = false
+): Promise<PosClosing | null> {
+  const want = branchId || "";
   const sb = getSupabase();
+  let rows: PosClosing[];
   if (sb) {
-    const { data, error } = await sb.from("pos_closings").select("*").eq("tenant_id", requireTenantId()).eq("date", date).maybeSingle();
-    return !error && data ? closingFromRow(data as ClosingRow) : null;
+    const { data, error } = await sb.from("pos_closings").select("*").eq("tenant_id", requireTenantId()).eq("date", date);
+    rows = error ? [] : ((data as ClosingRow[] | null) || []).map(closingFromRow);
+  } else {
+    rows = [...memClosings.values()].filter((c) => c.date === date);
   }
-  return memClosings.get(date) || null;
+  return (
+    rows.find((c) => (c.branchId || "") === want) ||
+    (alsoLegacy && want ? rows.find((c) => !c.branchId) : undefined) ||
+    null
+  );
 }
 
 export async function listClosings(limit = 14): Promise<PosClosing[]> {
@@ -718,22 +744,28 @@ export async function listClosings(limit = 14): Promise<PosClosing[]> {
   return [...memClosings.values()].sort((a, b) => b.date.localeCompare(a.date)).slice(0, limit);
 }
 
-/** บันทึกปิดยอด — วันละ 1 รายการ ปิดซ้ำ = แก้ทับ (นับเงินใหม่ได้) */
+/** บันทึกปิดยอด — วันละ 1 รายการต่อลิ้นชัก (ต่อสาขา) ปิดซ้ำ = แก้ทับ (นับเงินใหม่ได้) */
 export async function closeDay(input: {
   date?: string;
   openingCash?: number;
   countedCash: number;
   note?: string;
+  /** ร้านหลายสาขา: ลิ้นชักของสาขาไหน */
+  branchId?: string | null;
+  /** สาขานี้คือสาขาแรก — แก้ทับของเดิมที่ปิดไว้ก่อนมีสาขาได้ */
+  isMainBranch?: boolean;
 }): Promise<PosClosing> {
   const date = input.date || bangkokToday();
-  const totals = await dayTotals(date);
+  const branchId = input.branchId || "";
+  const totals = await dayTotals(date, branchId || null);
   const openingCash = money(input.openingCash);
   const expectedCash = money(openingCash + totals.pos.cash + totals.services.cash);
   const countedCash = money(input.countedCash);
-  const prev = await getClosing(date);
+  const prev = await getClosing(date, branchId, !!input.isMainBranch);
   const c: PosClosing = {
     id: prev?.id || rid("PC"),
     date,
+    branchId: branchId || undefined,
     expectedCash,
     countedCash,
     diff: Math.round((countedCash - expectedCash) * 100) / 100,
@@ -744,26 +776,26 @@ export async function closeDay(input: {
   };
   const sb = getSupabase();
   if (sb) {
-    const { error } = await withPosTables(() =>
-      sb.from("pos_closings").upsert(
-        {
-          tenant_id: requireTenantId(),
-          id: c.id,
-          date: c.date,
-          expected_cash: c.expectedCash,
-          counted_cash: c.countedCash,
-          diff: c.diff,
-          opening_cash: c.openingCash,
-          totals: c.totals,
-          note: c.note || null,
-          created_at: c.createdAt,
-        },
-        { onConflict: "tenant_id,date" }
-      )
-    );
+    const row: Record<string, unknown> = {
+      tenant_id: requireTenantId(),
+      id: c.id,
+      date: c.date,
+      expected_cash: c.expectedCash,
+      counted_cash: c.countedCash,
+      diff: c.diff,
+      opening_cash: c.openingCash,
+      totals: c.totals,
+      note: c.note || null,
+      created_at: c.createdAt,
+    };
+    // ร้านสาขาเดียวไม่ส่ง branch_id — ฐานที่ยังไม่มีคอลัมน์นี้ยังปิดยอดได้ตามเดิม
+    if (branchId) row.branch_id = branchId;
+    // เขียนตาม id (ไม่พึ่ง unique index) — index เดิมเป็นวันละ 1 รายการทั้งร้าน ถ้าชน withPosTables จะรัน pos.setup ที่เปลี่ยน index ให้แล้วลองใหม่
+    const { error } = await withPosTables(() => sb.from("pos_closings").upsert(row, { onConflict: "id" }));
     if (error) throw new Error((error as { message?: string }).message || "save_failed");
   } else {
-    memClosings.set(date, c);
+    if (prev) memClosings.delete(memKey(prev.date, prev.branchId));
+    memClosings.set(memKey(date, branchId), c);
   }
   return c;
 }

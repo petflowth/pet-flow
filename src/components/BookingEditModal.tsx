@@ -17,6 +17,7 @@ import { useConfig, usePetWords } from "@/components/ConfigProvider";
 import { RoomMovesEditor } from "@/components/RoomMovesEditor";
 import type { RoomSegment } from "@/lib/room-segments";
 import { cardOn } from "@/lib/features";
+import { branchesForUser, isMultiBranch, mainBranchId } from "@/lib/branches";
 
 export type EditableBooking = Booking & {
   lineUserId?: string;
@@ -51,6 +52,8 @@ export type EditableBooking = Booking & {
   depositStatus?: DepositStatus;
   /** ย้ายห้องกลางทาง (ดู room-segments.ts) */
   roomSegments?: RoomSegment[];
+  /** สาขาของนัด (ร้านหลายสาขา) */
+  branchId?: string;
 };
 
 const DEPOSIT_BADGE: Record<DepositStatus, string> = {
@@ -234,6 +237,11 @@ export function BookingEditModal({
     booking.service || (booking.roomType || booking.checkin ? "room" : "groom")
   );
   const [saving, setSaving] = useState(false);
+  // ร้านหลายสาขา: ย้ายนัดอาบน้ำไปอีกสาขาได้ (ห้องพักย้ายโดยเลือกห้องของสาขานั้น)
+  const multiBranch = isMultiBranch(siteConfig);
+  const [branchSel, setBranchSel] = useState(booking.branchId || mainBranchId(siteConfig));
+  // ส่งสาขาไปเฉพาะตอนกดเปลี่ยนเอง — นัดที่หน้าจอไม่ได้ส่งสาขามาให้ ห้ามถูกย้ายไปสาขาแรกเงียบ ๆ
+  const [branchTouched, setBranchTouched] = useState(false);
   const [catName, setCatName] = useState(booking.catName);
   const [savedCats, setSavedCats] = useState<string[]>(customerCats || []);
   useEffect(() => {
@@ -358,6 +366,7 @@ export function BookingEditModal({
             arrivalTime: String(fd.get("arrivalTime") || "") || undefined,
             transport: transportPayload,
             autoOff,
+            ...(multiBranch && branchTouched && branchSel ? { branchId: branchSel } : {}),
           }
         : {
             action: "update",
@@ -432,6 +441,7 @@ export function BookingEditModal({
         transport: transportPayload,
         autoOff,
         silent: true,
+        ...(service === "groom" && multiBranch && branchTouched && branchSel ? { branchId: branchSel } : {}),
         ...(service === "room"
           ? {
               room: "room" in payload ? payload.room ?? "" : "",
@@ -586,6 +596,33 @@ export function BookingEditModal({
           )}
           {service === "groom" ? (
             <>
+              {multiBranch && (
+                <label className="block text-xs font-bold text-brown-soft">
+                  สาขา
+                  <select
+                    value={branchSel}
+                    onChange={(e) => {
+                      setBranchSel(e.target.value);
+                      setBranchTouched(true);
+                    }}
+                    className="mt-1 min-h-[44px] w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm text-brown"
+                  >
+                    {/* พนักงานที่ถูกจำกัดสาขาเห็นเฉพาะสาขาของตัวเอง + สาขาเดิมของนัด */}
+                    {(siteConfig?.branches || [])
+                      .filter((x) => x.id === branchSel || branchesForUser(siteConfig).some((y) => y.id === x.id))
+                      .map((x) => (
+                        <option key={x.id} value={x.id}>
+                          {x.name}
+                        </option>
+                      ))}
+                  </select>
+                  {branchTouched && branchSel !== (booking.branchId || mainBranchId(siteConfig)) && (
+                    <span className="mt-1 block text-[11px] font-bold text-wait">
+                      ย้ายนัดนี้ไปอีกสาขา ตรวจรอบเวลาและราคาของสาขาใหม่ด้วยนะคะ
+                    </span>
+                  )}
+                </label>
+              )}
               <EditField label="วันที่นัด" name="date" type="date" defaultValue={booking.date} required onChange={setGroomDate} />
               <label className="block text-xs font-bold text-brown-soft">
                 รอบเวลา

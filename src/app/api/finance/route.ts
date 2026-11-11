@@ -8,13 +8,14 @@ import {
   financeSummary,
   setFinanceExcluded,
 } from "@/lib/finance-store";
+import { getInvoice } from "@/lib/invoices-store";
 import { getSessionFrom } from "@/lib/auth";
 import { withTenant } from "@/lib/tenant-context";
 import { uploadPrivateDataUrl } from "@/lib/supabase/storage";
 import { logAudit } from "@/lib/audit-log";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { requireTenantId } from "@/lib/tenant-context";
-import { adminBranchScope, branchFilter } from "@/lib/branch-scope";
+import { adminBranchScope, branchFilter, invoiceBranchOf, otherBranchDenied } from "@/lib/branch-scope";
 
 /** ใครกดปุ่มนี้ — ไว้ลงบันทึกว่าใครแตะบัญชี */
 async function actorName(req: NextRequest): Promise<string> {
@@ -116,6 +117,16 @@ async function handlePost(req: NextRequest) {
   return NextResponse.json({ ok: true, record: rec });
 }
 
+/** พนักงานที่ถูกจำกัดสาขา แก้/ลบรายรับรายจ่ายของสาขาอื่นไม่ได้ */
+async function financeBranchDenied(req: NextRequest, id: string) {
+  return otherBranchDenied(req, async (cfg) => {
+    const rec = (await listFinance()).find((r) => r.id === id);
+    if (!rec) return undefined;
+    if (rec.branchId || !rec.invoiceId) return rec.branchId;
+    return invoiceBranchOf(cfg, (await getInvoice(rec.invoiceId)) || {});
+  });
+}
+
 export async function PATCH(req: NextRequest) {
   const session = await requireTenantSession(req);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -125,6 +136,8 @@ export async function PATCH(req: NextRequest) {
 async function handlePatch(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   if (!body.id) return NextResponse.json({ error: "id required" }, { status: 400 });
+  const denied = await financeBranchDenied(req, String(body.id));
+  if (denied) return NextResponse.json({ error: denied }, { status: 403 });
 
   // ติ๊ก "ไม่นับเป็นรายได้" — ยอดยกมาจากระบบเก่า เก็บแถวไว้แต่ไม่เข้ายอดสรุป/เอกสารภาษี
   if (body.action === "set_excluded") {
@@ -172,6 +185,8 @@ export async function DELETE(req: NextRequest) {
 async function handleDelete(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
+  const denied = await financeBranchDenied(req, id);
+  if (denied) return NextResponse.json({ error: denied }, { status: 403 });
   await deleteFinanceEntry(id);
   return NextResponse.json({ ok: true });
 }

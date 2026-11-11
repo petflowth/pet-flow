@@ -64,6 +64,25 @@ export async function staffAllowedBranches(req: CookieReq, config: SiteConfig): 
   return staffBranchIds(config, session.branches);
 }
 
+/**
+ * พนักงานที่เจ้าของจำกัดสาขาไว้ ห้ามแก้/ลบ/ยกเลิกรายการของสาขาอื่น — กันที่ API ไม่ใช่แค่ซ่อนจากหน้ารายการ
+ * คืนข้อความ error ถ้าไม่มีสิทธิ์ · null = ทำได้ (เจ้าของร้าน พนักงานที่เห็นทุกสาขา หรือร้านสาขาเดียว)
+ * branchOf: หาสาขาจริงของรายการนั้น (เรียกเฉพาะตอนต้องตรวจ)
+ */
+export async function otherBranchDenied(
+  req: CookieReq,
+  branchOf: (config: SiteConfig) => Promise<string | undefined> | string | undefined
+): Promise<string | null> {
+  const session = await getSessionFrom(req).catch(() => null);
+  if (session?.role !== "staff" || !(session.branches || []).length) return null;
+  const config = await getSiteConfig();
+  if (!isMultiBranch(config)) return null;
+  const allowed = staffBranchIds(config, session.branches);
+  if (!allowed) return null;
+  const branchId = recordBranchId(config, await branchOf(config));
+  return allowed.includes(branchId) ? null : "รายการนี้เป็นของสาขาที่คุณไม่มีสิทธิ์ ให้เจ้าของร้านเปิดสิทธิ์สาขานี้ก่อนนะคะ";
+}
+
 /** บันทึกสาขาให้แถวที่เพิ่งสร้าง (best-effort · ยังไม่ migrate ก็ซ่อมเองแล้วเขียนใหม่) */
 export async function setRecordBranch(
   table: "bookings" | "invoices" | "pos_sales" | "finance_records",
@@ -79,6 +98,19 @@ export async function setRecordBranch(
 
 type BookingLike = { id: string; branchId?: string; room?: string; service?: string };
 type InvoiceLike = { id: string; branchId?: string; bookingId?: string };
+
+/** สาขาจริงของบิลใบเดียว — สาขาที่บันทึกไว้ → สาขาของนัดที่ผูก → สาขาแรก · ร้านสาขาเดียว = undefined */
+export async function invoiceBranchOf(cfg: SiteConfig, inv: { branchId?: string; bookingId?: string }) {
+  if (!isMultiBranch(cfg)) return undefined;
+  const own = knownBranchId(cfg, inv.branchId);
+  if (own) return own;
+  if (inv.bookingId) {
+    const { getBooking } = await import("./bookings-store");
+    const b = await getBooking(inv.bookingId).catch(() => null);
+    if (b) return bookingBranchId(cfg, b);
+  }
+  return recordBranchId(cfg, inv.branchId);
+}
 
 /**
  * ตัวกรองรายการตามสาขา — โหลดนัด/บิลมาเท่าที่ต้องใช้หาสาขาของบิลที่ผูกนัด

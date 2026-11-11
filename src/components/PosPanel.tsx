@@ -804,7 +804,16 @@ function ProductSheet({
 // ── ปิดยอด ─────────────────────────────────────────────
 
 function CloseView() {
-  const [data, setData] = useState<{ date: string; totals: DayTotals; closing: PosClosing | null; history: PosClosing[] } | null>(null);
+  const [data, setData] = useState<{
+    date: string;
+    totals: DayTotals;
+    closing: PosClosing | null;
+    history: (PosClosing & { branchName?: string })[];
+    /** ร้านหลายสาขา ดูแบบทุกสาขา = ยอดรวม + ของแต่ละสาขา (ปิดยอดต้องเลือกสาขาก่อน) */
+    allBranches?: boolean;
+    branches?: { id: string; name: string; totals: DayTotals; closing: PosClosing | null }[];
+    branchName?: string;
+  } | null>(null);
   const [opening, setOpening] = useState("");
   const [counted, setCounted] = useState("");
   const [note, setNote] = useState("");
@@ -820,11 +829,9 @@ function CloseView() {
     }
     setLoadError("");
     setData(d);
-    if (d?.closing) {
-      setOpening(String(d.closing.openingCash || ""));
-      setCounted(String(d.closing.countedCash));
-      setNote(d.closing.note || "");
-    }
+    setOpening(d?.closing ? String(d.closing.openingCash || "") : "");
+    setCounted(d?.closing ? String(d.closing.countedCash) : "");
+    setNote(d?.closing?.note || "");
   }, []);
   useEffect(() => {
     load();
@@ -872,7 +879,7 @@ function CloseView() {
   return (
     <div className="space-y-4">
       <section>
-        <SectionLabel>Today · ยอดวันนี้ {new Date(`${data.date}T00:00:00`).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })}</SectionLabel>
+        <SectionLabel>Today · ยอดวันนี้{data.allBranches ? " รวมทุกสาขา" : data.branchName ? ` ${data.branchName}` : ""} {new Date(`${data.date}T00:00:00`).toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" })}</SectionLabel>
         <div className="rounded-petflow bg-card p-4 shadow-petflow-sm">
           <p className="text-[11px] font-bold text-brown-soft">ขายหน้าร้าน · {t.posCount} บิล</p>
           <Row label="เงินสด" value={t.pos.cash} />
@@ -888,8 +895,42 @@ function CloseView() {
         </div>
       </section>
 
+      {data.allBranches && (
+        <section>
+          <SectionLabel>Branches · แยกตามสาขา</SectionLabel>
+          <ul className="divide-y divide-petflow-line rounded-petflow bg-card shadow-petflow-sm">
+            {(data.branches || []).map((b) => {
+              const bt = b.totals;
+              const sum = bt.pos.cash + bt.pos.promptpay + bt.pos.transfer + bt.services.cash + bt.services.transfer + bt.services.member_credit;
+              return (
+                <li key={b.id} className="px-4 py-3 text-sm">
+                  <div className="flex items-center justify-between font-extrabold text-petflow-chocolate">
+                    <span>{b.name}</span>
+                    <span>{baht(sum)}</span>
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-brown-soft">
+                    เงินสดเข้าลิ้นชัก {baht(bt.pos.cash + bt.services.cash)} · {bt.posCount + bt.servicesCount} บิล
+                  </p>
+                  <p className={`mt-0.5 text-[11px] font-bold ${b.closing ? (Math.abs(b.closing.diff) < 0.01 ? "text-ok" : "text-wait") : "text-brown-faint"}`}>
+                    {b.closing
+                      ? `ปิดยอดแล้ว นับได้ ${baht(b.closing.countedCash)} · ${
+                          Math.abs(b.closing.diff) < 0.01 ? "ตรง" : `${b.closing.diff > 0 ? "เกิน" : "ขาด"} ${baht(Math.abs(b.closing.diff))}`
+                        }`
+                      : "ยังไม่ได้ปิดยอด"}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="mt-2 rounded-petflow-sm bg-honey/15 px-3 py-2 text-[11px] font-bold text-brown">
+            แต่ละสาขามีลิ้นชักของตัวเอง เลือกสาขาที่แถบด้านบนก่อน แล้วค่อยนับเงินปิดยอดของสาขานั้น
+          </p>
+        </section>
+      )}
+
+      {!data.allBranches && (
       <section>
-        <SectionLabel>Cash count · นับเงินในลิ้นชัก</SectionLabel>
+        <SectionLabel>Cash count · นับเงินในลิ้นชัก{data.branchName ? ` ${data.branchName}` : ""}</SectionLabel>
         <div className="space-y-2.5 rounded-petflow bg-card p-4 shadow-petflow-sm">
           <div className="grid grid-cols-2 gap-2">
             <label className="text-[11px] font-bold text-brown-soft">
@@ -921,6 +962,7 @@ function CloseView() {
           )}
         </div>
       </section>
+      )}
 
       {data.history.length > 0 && (
         <section>
@@ -930,6 +972,7 @@ function CloseView() {
               <li key={c.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
                 <span className="flex-1 text-brown">
                   {new Date(`${c.date}T00:00:00`).toLocaleDateString("th-TH", { day: "numeric", month: "short" })}
+                  {data.allBranches && c.branchName ? <span className="ml-1.5 text-[11px] font-bold text-latte-deep">{c.branchName}</span> : null}
                   <span className="ml-2 text-[11px] text-brown-soft">เงินสด {baht(c.countedCash)}</span>
                 </span>
                 <span className={`text-xs font-bold ${Math.abs(c.diff) < 0.01 ? "text-ok" : "text-wait"}`}>

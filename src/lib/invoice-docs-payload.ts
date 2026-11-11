@@ -1,3 +1,5 @@
+import { branchById } from "./branches";
+import { invoiceBranchOf } from "./branch-scope";
 import { getInvoice } from "./invoices-store";
 import { getCustomer } from "./customers-store";
 import { getSiteConfig } from "./config-store";
@@ -47,6 +49,8 @@ export async function buildDocPayload(invoiceId: string, opts: { forCustomer?: b
   // ยังไม่ได้ตั้งผู้ซื้อ แต่ลูกค้ากรอกข้อมูลออกบิลไว้ → ใช้เลย (บันทึกติดเอกสารตอนออกเลขที่)
   const effectiveDoc: InvoiceDoc = autoBuyer ? { ...(doc || { invoiceId }), buyer: autoBuyer } : doc || { invoiceId };
   const b = config.business;
+  // ร้านหลายสาขา: ใบกำกับภาษีใช้เลขสาขา (และที่อยู่ เบอร์) ของสาขาที่ออกบิล ถ้าสาขานั้นกรอกไว้ที่ ตั้งค่า › สาขา
+  const branch = branchById(config, await invoiceBranchOf(config, invoice));
   return {
     // ลิงก์ลูกค้า: ส่งเฉพาะช่องที่โชว์บนเอกสาร ไม่ส่ง LINE id / ข้อมูลภายในอื่น ๆ
     invoice: opts.forCustomer
@@ -77,10 +81,10 @@ export async function buildDocPayload(invoiceId: string, opts: { forCustomer?: b
     seller: {
       name: b.legalName || b.name,
       shopName: b.name,
-      address: b.location?.th || "",
-      phone: b.phones?.filter(Boolean)[0] || "",
+      address: branch?.address?.trim() || b.location?.th || "",
+      phone: branch?.phone?.trim() || b.phones?.filter(Boolean)[0] || "",
       taxId: b.taxId || "",
-      branch: b.taxBranch || "",
+      branch: branch?.taxBranchNo?.trim() || b.taxBranch || "",
       vatRegistered: !!b.vatRegistered,
       vatRate: b.vatRate ?? 7,
       /** โลโก้ของร้านเอง (ตั้งค่า › ร้าน) — ร้านที่ยังไม่มีโลโก้ = ไม่โชว์ ไม่ใช้โลโก้ PetFlow แทน */

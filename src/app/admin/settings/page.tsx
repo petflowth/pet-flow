@@ -627,6 +627,8 @@ function BranchesTab({
       address: b.address?.trim() || undefined,
       phone: b.phone?.trim() || undefined,
       mapsUrl: b.mapsUrl?.trim() || undefined,
+      taxBranchNo: b.taxBranchNo?.trim() || undefined,
+      telegramChatIds: b.telegramChatIds?.trim() || undefined,
       // ค่าที่สาขาตั้งเอง (รอบคิว วันหยุด ราคา) ต้องติดไปด้วย ไม่งั้นกดบันทึกหน้านี้แล้วหาย
       overrides: b.overrides,
     }))
@@ -698,6 +700,22 @@ function BranchesTab({
             onChange={(v) => update(idx, { mapsUrl: v })}
             placeholder="https://maps.app.goo.gl/..."
           />
+          <Field
+            label="สาขาในใบกำกับภาษี (ใส่ตามใบทะเบียนภาษี ไม่ออกใบกำกับไม่ต้องใส่)"
+            value={b.taxBranchNo || ""}
+            onChange={(v) => update(idx, { taxBranchNo: v })}
+            placeholder={idx === 0 ? "เช่น สำนักงานใหญ่" : "เช่น สาขา 00001"}
+          />
+          <Field
+            label="Chat ID กลุ่ม Telegram ของสาขานี้ (ไม่ใส่ = แจ้งเข้ากลุ่มของร้านอย่างเดียว)"
+            value={b.telegramChatIds || ""}
+            onChange={(v) => update(idx, { telegramChatIds: v.replace(/[^\d,\s-]/g, "") })}
+            placeholder="เช่น -1001234567890"
+          />
+          <p className="text-[11px] leading-relaxed text-brown-faint">
+            แจ้งเตือนนัดและสรุปเช้า-เย็นของสาขานี้จะขึ้นชื่อสาขา และส่งเข้ากลุ่มนี้เพิ่มอีกที่ · ต้องเชิญบอท Telegram
+            ของร้านเข้ากลุ่มก่อน แล้วพิมพ์ /start ในกลุ่มเพื่อดู Chat ID
+          </p>
         </div>
       ))}
 

@@ -765,6 +765,113 @@ export const GUIDE_TOPICS: GuideTopic[] = [
       },
     ],
   },
+  {
+    slug: "line",
+    no: 17,
+    who: "owner",
+    icon: "💬",
+    title: "เชื่อม LINE OA ของร้าน",
+    desc: "ให้ลูกค้าจองคิว สมัครสมาชิก และรับการ์ดยืนยันนัดผ่าน LINE ของร้านเอง ทำเองได้ในประมาณ 15 นาที",
+    steps: [
+      {
+        title: 'เปิดเมนู "ติดตั้ง"',
+        text: 'ที่หลังร้าน แตะ Menu แล้วเลือก "ติดตั้ง" เลื่อนลงมาจะเจอการ์ด LINE สองใบ คือ "LINE LIFF — แอปลูกค้าใน LINE" และ "LINE Messaging — ส่งการ์ดยืนยันนัด" ทำครั้งเดียวจบ',
+        tip: "ฝั่ง LINE ทำบนคอมพิวเตอร์จะง่ายที่สุด เปิดหลังร้านไว้อีกแท็บคู่กัน จะได้คัดลอกค่าไปมาสะดวก ต้องมีบัญชี LINE OA ของร้านก่อน (สมัครฟรีที่ manager.line.biz)",
+        img: "/guide/line/1.webp",
+      },
+      {
+        title: "เข้า LINE OA Manager ของร้าน",
+        text: 'เปิด manager.line.biz ล็อกอินด้วย LINE ของเจ้าของร้าน เลือกบัญชี LINE OA ของร้าน แล้วกด "ตั้งค่า" มุมขวาบน',
+        img: "/guide/line/2.webp",
+      },
+      {
+        title: "เปิดใช้ Messaging API",
+        text: 'เมนูซ้ายเลือก "Messaging API" กด "ใช้ Messaging API" แล้วเลือก "สร้างผู้ให้บริการใหม่" (Provider) ตั้งชื่อเป็นชื่อร้าน กดตกลงไปจนจบ ช่องนโยบายความเป็นส่วนตัวเว้นว่างได้',
+        tip: "ต้องเป็น Provider ใหม่ชื่อร้านของคุณเอง ห้ามเลือก Provider ของคนอื่นหรือของ PetFlow ไม่งั้นข้อมูลลูกค้าจะไม่ตรงกัน",
+        img: "/guide/line/3.webp",
+      },
+      {
+        title: "คัดลอก Channel secret",
+        text: 'เปิด developers.line.biz/console ล็อกอินด้วย LINE เดียวกัน เลือก Provider ชื่อร้าน แล้วเลือกแชนแนลแบบ Messaging API แท็บ "Basic settings" เลื่อนหา "Channel secret" แล้วกดคัดลอก',
+        tip: "Channel secret และ Token เป็นรหัสลับของร้าน วางในหลังร้านเท่านั้น อย่าส่งในแชทหรือบอกใคร",
+        img: "/guide/line/4.webp",
+      },
+      {
+        title: "ออก Channel access token",
+        text: 'แท็บ "Messaging API" เลื่อนลงล่างสุด ที่ "Channel access token (long-lived)" กด "Issue" แล้วคัดลอกโค้ดยาวๆ ที่ขึ้นมา',
+        img: "/guide/line/5.webp",
+      },
+      {
+        title: 'วางทั้งสองค่า แล้วกด "บันทึก LINE Token"',
+        text: 'กลับมาที่หลังร้าน การ์ด "LINE Messaging" วาง Token ในช่อง "Channel Access Token" และ Secret ในช่อง "Channel Secret" แล้วกด "บันทึก LINE Token" ระบบจะทดสอบให้ทันที ถ้าถูกจะขึ้น "พร้อมส่งการ์ด" ตามด้วยชื่อร้าน',
+        tip: "ต้องใส่ Channel Secret ด้วยทุกครั้ง ถ้าไม่ใส่ ระบบจะไม่รับข้อความจาก LINE เพื่อกันคนปลอมส่งข้อมูลเข้ามา",
+        img: "/guide/line/6.webp",
+      },
+      {
+        title: 'กด "ตั้ง Webhook อัตโนมัติ"',
+        text: 'พอบันทึก Token แล้ว จะมีปุ่มสีเขียว "ตั้ง Webhook อัตโนมัติ (กดครั้งเดียว)" โผล่ขึ้นมา กดหนึ่งครั้ง ระบบจะบอก LINE ให้ส่งเรื่องคนแอดเพื่อนและข้อความลูกค้ามาที่ร้านเอง ไม่ต้องไปพิมพ์ลิงก์ในหน้า LINE',
+        tip: 'ถ้าขึ้นว่าสวิตช์ "Use webhook" ยังปิดอยู่ ให้ไปที่ LINE Developers › แชนแนล Messaging API › แท็บ Messaging API แล้วเปิด "Use webhook" จากนั้นทำขั้นถัดไปต่อได้เลย',
+        img: "/guide/line/7.webp",
+      },
+      {
+        title: "เปิด Webhook ใน LINE OA Manager",
+        text: 'กลับไปที่ LINE OA Manager › "ตั้งค่า" › "การตอบกลับ" เปิดสวิตช์ "Webhook" ให้เป็นสีเขียว ส่วน "แชท" เปิดไว้เหมือนเดิม ร้านยังตอบแชทลูกค้าเองได้ตามปกติ',
+        img: "/guide/line/8.webp",
+      },
+      {
+        title: "สร้างแชนแนล LINE Login",
+        text: 'ที่ LINE Developers เข้า Provider ชื่อร้าน (อันเดียวกับขั้นที่ 3) กด "Create a new channel" เลือก "LINE Login" ตั้ง Region เป็น Thailand ใส่ชื่อ เช่น "ร้านของฉัน แอปลูกค้า" ติ๊ก "Web app" ยอมรับเงื่อนไข แล้วกด "Create"',
+        tip: "ต้องสร้างใน Provider เดียวกับ Messaging API เท่านั้น ถ้าคนละ Provider ระบบจะจำลูกค้าคนเดิมไม่ได้ และส่งการ์ดหาลูกค้าไม่ถึง",
+        img: "/guide/line/9.webp",
+      },
+      {
+        title: "ผูก LINE OA เข้ากับแอป",
+        text: 'ในแชนแนล LINE Login ที่เพิ่งสร้าง แท็บ "Basic settings" หาหัวข้อ "Linked LINE Official Account" กด Edit เลือก LINE OA ของร้าน แล้วกด "Update"',
+        img: "/guide/line/10.webp",
+      },
+      {
+        title: 'กด "Publish" ให้แอปเปิดใช้จริง',
+        text: 'ข้างชื่อแชนแนลจะมีป้ายเหลือง "Developing" กดป้ายนั้น แล้วกด "Publish" ให้เปลี่ยนเป็น "Published" สีเขียว',
+        tip: 'ถ้ายังเป็น "Developing" จะมีแค่เจ้าของร้านที่เปิดแอปได้ ลูกค้าคนอื่นจะเปิดไม่ขึ้น',
+        img: "/guide/line/11.webp",
+      },
+      {
+        title: "คัดลอก Endpoint URL จากหลังร้าน",
+        text: 'กลับมาที่หลังร้าน การ์ด "LINE LIFF" ข้อ 3 จะมีลิงก์ของร้านคุณ หน้าตาแบบ https://petflow.online/s/ชื่อร้าน/app กด "คัดลอก"',
+        tip: "ใช้ลิงก์จากหน้านี้เท่านั้น ลิงก์ของแต่ละร้านไม่เหมือนกัน และต้องขึ้นต้นด้วย petflow.online",
+        img: "/guide/line/12.webp",
+      },
+      {
+        title: "สร้าง LIFF app",
+        text: 'ที่ LINE Developers แชนแนล LINE Login แท็บ "LIFF" กด "Add" ตั้งชื่อแอปเป็นชื่อร้าน Size เลือก "Full" วาง Endpoint URL ที่คัดลอกมา Scopes ติ๊ก "openid" และ "profile" Add friend option เลือก "On (Aggressive)" แล้วกด "Add"',
+        tip: '"On (Aggressive)" จะชวนลูกค้าแอดเพื่อน LINE OA ของร้านทันทีที่เปิดแอป ร้านจะส่งการ์ดยืนยันนัดหาลูกค้าได้',
+        img: "/guide/line/13.webp",
+      },
+      {
+        title: "คัดลอก LIFF ID",
+        text: 'จะเห็นแอปที่เพิ่งสร้าง คัดลอก "LIFF ID" (ตัวเลขขีดตามด้วยตัวอักษร เช่น 2007654321-AbCdEfGh)',
+        tip: "เอาแค่ LIFF ID ไม่ต้องคัดลอกลิงก์ liff.line.me ทั้งเส้น",
+        img: "/guide/line/14.webp",
+      },
+      {
+        title: 'วาง LIFF ID แล้วกด "บันทึก LIFF ID"',
+        text: 'กลับมาที่หลังร้าน การ์ด "LINE LIFF" วาง LIFF ID ในช่อง แล้วกด "บันทึก LIFF ID" จะขึ้น "ตั้ง LIFF แล้ว" กด "ทดสอบ LIFF" เพื่อลองเปิดได้เลย',
+        img: "/guide/line/15.webp",
+      },
+      {
+        title: "ใส่แอปไว้ในริชเมนู LINE",
+        text: 'ที่ LINE OA Manager › "ริชเมนู" › "สร้าง" เลือกเทมเพลต ตั้งปุ่มเป็น "ลิงก์" แล้ววาง https://liff.line.me/ ตามด้วย LIFF ID ตั้งป้ายเช่น "จองคิว / สมัครสมาชิก" แล้วกดบันทึก',
+        tip: "ลิงก์ liff.line.me ไม่เปลี่ยนแม้ระบบย้ายโดเมน ใส่ครั้งเดียวใช้ได้ตลอด",
+        img: "/guide/line/16.webp",
+      },
+      {
+        title: "ลองสแกนด้วยมือถือ เสร็จเรียบร้อย",
+        text: 'การ์ด "QR ลงทะเบียนลูกค้า" จะเปลี่ยนเป็นลิงก์ LINE ของร้าน ลองสแกนด้วยมือถือ สมัครเป็นลูกค้าทดลองหนึ่งคน แล้วลองจองคิวและส่งการ์ดยืนยันนัดจากหลังร้าน ถ้าการ์ดเด้งเข้า LINE แปลว่าเชื่อมครบแล้ว พิมพ์ QR นี้ตั้งไว้ที่เคาน์เตอร์ได้เลย',
+        tip: 'ถ้าเปิดแอปแล้วขึ้น error ให้เช็กขั้นที่ 11 (ต้อง Published) และขั้นที่ 13 (Endpoint URL ต้องตรงกับหลังร้าน) ถ้าการ์ดไม่เด้ง ให้เช็กขั้นที่ 6 ว่าขึ้น "พร้อมส่งการ์ด" แล้ว',
+        img: "/guide/line/17.webp",
+      },
+    ],
+  },
 ];
 
 export function getGuideTopic(slug: string) {

@@ -4,12 +4,16 @@ import { useCallback, useEffect, useState } from "react";
 import { ADMIN_TABS } from "@/components/AdminNav";
 import { ADMIN_TAB_ICONS, Icon } from "@/components/Icon";
 import { Avatar, EmptyState, MoreMenu, SectionLabel } from "@/components/ui";
+import { useConfig } from "@/components/ConfigProvider";
+import { shopBranches } from "@/lib/branches";
 
 export type StaffItem = {
   id: string;
   name: string;
   username: string;
   menus: string[];
+  /** สาขาที่เห็นได้ — ไม่มี/ว่าง = ทุกสาขา */
+  branches?: string[];
   active: boolean;
 };
 
@@ -38,6 +42,11 @@ export function StaffSection() {
     "/admin/billing",
   ]);
   const [busy, setBusy] = useState(false);
+  // ร้านหลายสาขา: เลือกได้ว่าพนักงานแต่ละคนเห็นสาขาไหน (ไม่ติ๊กเลย = เห็นทุกสาขา)
+  const { config } = useConfig();
+  const branches = shopBranches(config);
+  const multiBranch = branches.length >= 2;
+  const [newBranches, setNewBranches] = useState<string[]>([]);
 
   const adminCode =
     typeof window !== "undefined" ? sessionStorage.getItem("petflow-admin") || "" : "";
@@ -81,6 +90,7 @@ export function StaffSection() {
           username: newUsername,
           password: newPassword,
           menus: newMenus,
+          ...(multiBranch ? { branches: newBranches } : {}),
         }),
       });
       const d = await res.json().catch(() => ({}));
@@ -89,6 +99,7 @@ export function StaffSection() {
         setNewName("");
         setNewUsername("");
         setNewPassword("");
+        setNewBranches([]);
         load();
       } else {
         setMsg(`${d.error || "เพิ่มไม่สำเร็จ"}`);
@@ -149,6 +160,33 @@ export function StaffSection() {
     </div>
   );
 
+  const branchPicker = (selected: string[], onToggle: (id: string) => void) => {
+    const known = selected.filter((id) => branches.some((b) => b.id === id));
+    return (
+      <div>
+        <p className="text-[11px] font-bold text-brown-soft">สาขาที่ให้เห็น</p>
+        <div className="mt-1 flex flex-wrap gap-x-4">
+          {branches.map((b) => (
+            <label key={b.id} className="flex min-h-[40px] items-center gap-2 text-xs text-brown">
+              <input
+                type="checkbox"
+                checked={known.includes(b.id)}
+                onChange={() => onToggle(b.id)}
+                className="h-4 w-4 shrink-0 accent-latte-deep"
+              />
+              <span className="min-w-0 truncate">{b.name}</span>
+            </label>
+          ))}
+        </div>
+        <p className="text-[10px] text-brown-faint">
+          {known.length === 0 || known.length === branches.length
+            ? "ตอนนี้เห็นทุกสาขา — ติ๊กเฉพาะสาขาที่ให้ดูแล เพื่อจำกัดให้เห็นแค่สาขานั้น"
+            : "เห็นเฉพาะสาขาที่ติ๊ก: ตารางนัด ผังห้อง บิล ขายหน้าร้าน และรายรับรายจ่าย"}
+        </p>
+      </div>
+    );
+  };
+
   const field = "w-full min-w-0 rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm";
 
   return (
@@ -176,6 +214,13 @@ export function StaffSection() {
                         </span>
                         <span className="block truncate text-[11px] text-brown-soft">
                           @{s.username} · เห็น {ADMIN_TABS.filter((t) => s.menus.includes(t.href)).length}/{ADMIN_TABS.length} เมนู
+                          {multiBranch &&
+                            ` · ${
+                              branches
+                                .filter((b) => (s.branches || []).includes(b.id))
+                                .map((b) => b.name)
+                                .join(", ") || "ทุกสาขา"
+                            }`}
                         </span>
                       </span>
                       <Icon name="chevron" size={16} className="text-brown-faint transition group-open:rotate-90" />
@@ -185,6 +230,10 @@ export function StaffSection() {
                       {menuPicker(s.menus, (href) =>
                         patchStaff(s.id, { menus: toggleMenu(s.menus, href) })
                       )}
+                      {multiBranch &&
+                        branchPicker(s.branches || [], (id) =>
+                          patchStaff(s.id, { branches: toggleMenu(s.branches || [], id) })
+                        )}
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
@@ -260,6 +309,7 @@ export function StaffSection() {
           </div>
           <p className="text-[11px] font-bold text-brown-soft">เมนูที่ให้เห็น</p>
           {menuPicker(newMenus, (href) => setNewMenus((prev) => toggleMenu(prev, href)))}
+          {multiBranch && branchPicker(newBranches, (id) => setNewBranches((prev) => toggleMenu(prev, id)))}
           <button
             type="button"
             disabled={

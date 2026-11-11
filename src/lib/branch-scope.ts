@@ -2,12 +2,14 @@ import { getSiteConfig } from "./config-store";
 import { getSupabase } from "./supabase/server";
 import { healWrite } from "./heal-write";
 import { requireTenantId } from "./tenant-context";
+import { getSessionFrom } from "./auth";
 import {
   BRANCH_COOKIE,
   bookingBranchId,
   isMultiBranch,
   knownBranchId,
   recordBranchId,
+  staffBranchIds,
 } from "./branches";
 import type { SiteConfig } from "./config-types";
 
@@ -20,10 +22,23 @@ type CookieReq = { cookies: { get(name: string): { value: string } | undefined }
  */
 export async function adminBranchScope(req: CookieReq): Promise<string | null> {
   const raw = req.cookies.get(BRANCH_COOKIE)?.value;
-  if (!raw) return null;
+  const session = await getSessionFrom(req).catch(() => null);
+  const limited = session?.role === "staff" && (session.branches || []).length > 0;
+  if (!raw && !limited) return null;
   const config = await getSiteConfig();
   if (!isMultiBranch(config)) return null;
-  return knownBranchId(config, decodeURIComponent(raw)) || null;
+  const picked = raw ? knownBranchId(config, decodeURIComponent(raw)) || null : null;
+  // พนักงานที่เจ้าของจำกัดสาขาไว้: ดูได้เฉพาะสาขาของตัวเอง (ไม่มี "ทุกสาขา") — คุกกี้ชี้สาขาอื่น = ใช้สาขาแรกที่ได้รับ
+  const allowed = limited ? staffBranchIds(config, session?.branches) : null;
+  if (allowed) return picked && allowed.includes(picked) ? picked : allowed[0];
+  return picked;
+}
+
+/** สาขาที่คนที่ล็อกอินอยู่ใช้ได้ — null = ไม่จำกัด (เจ้าของร้าน / พนักงานที่เห็นทุกสาขา) */
+export async function staffAllowedBranches(req: CookieReq, config: SiteConfig): Promise<string[] | null> {
+  const session = await getSessionFrom(req).catch(() => null);
+  if (session?.role !== "staff") return null;
+  return staffBranchIds(config, session.branches);
 }
 
 /** บันทึกสาขาให้แถวที่เพิ่งสร้าง (best-effort · ยังไม่ migrate ก็ซ่อมเองแล้วเขียนใหม่) */

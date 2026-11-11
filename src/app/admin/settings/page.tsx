@@ -54,7 +54,19 @@ import {
   roomClosureReasons,
   staffNoteTags,
 } from "@/lib/shop-rules";
-import { isMultiBranch, knownBranchId, mainBranchId, newBranchId, shopBranches, type Branch } from "@/lib/branches";
+import {
+  branchHasOverride,
+  clearBranchOverrides,
+  configForBranch,
+  isMultiBranch,
+  knownBranchId,
+  mainBranchId,
+  newBranchId,
+  patchForBranch,
+  shopBranches,
+  type Branch,
+  type BranchOverrideKey,
+} from "@/lib/branches";
 
 type Tab =
   | "features"
@@ -158,6 +170,7 @@ export default function SettingsPage() {
   const [config, setConfig] = useState<SiteConfig | null>(null);
   const [tab, setTab] = useState<Tab | null>(null);
   const [saving, setSaving] = useState(false);
+  const [cfgBranch, setCfgBranch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
@@ -207,6 +220,16 @@ export default function SettingsPage() {
     setSaving(false);
     setTimeout(() => setMsg(""), 3000);
   };
+
+  // ร้านหลายสาขา: หน้าที่ตั้งแยกสาขาได้ เลือกก่อนว่ากำลังตั้งของสาขาไหน ("" = ค่ากลางที่ใช้ทุกสาขา)
+  const pickedBranch = (config && knownBranchId(config, cfgBranch)) || "";
+  const branchConfig = config ? configForBranch(config, pickedBranch) : config;
+  const saveForBranch = (patch: Partial<SiteConfig>) =>
+    save(
+      config
+        ? (patchForBranch(config, pickedBranch, patch as Record<string, unknown>) as Partial<SiteConfig>)
+        : patch
+    );
 
   if (loading) {
     return <p className="text-center text-sm text-brown-soft py-10">กำลังโหลด…</p>;
@@ -335,10 +358,43 @@ export default function SettingsPage() {
         <RoomsTab config={config} saving={saving} onSave={save} />
       )}
       {tab === "groomPrograms" && (
-        <GroomProgramsTab config={config} saving={saving} onSave={save} />
+        <>
+          <BranchSettingBar
+            config={config}
+            value={cfgBranch}
+            onChange={setCfgBranch}
+            keys={PRICE_BRANCH_KEYS}
+            what="ราคาและโปรแกรมอาบน้ำ"
+            saving={saving}
+            onSave={save}
+          />
+          <GroomProgramsTab
+            key={`bath-${cfgBranch}-${branchHasOverride(config, cfgBranch, PRICE_BRANCH_KEYS)}`}
+            config={branchConfig || config}
+            saving={saving}
+            onSave={saveForBranch}
+          />
+        </>
       )}
       {tab === "massagePrograms" && (
-        <GroomProgramsTab config={config} saving={saving} onSave={save} massage />
+        <>
+          <BranchSettingBar
+            config={config}
+            value={cfgBranch}
+            onChange={setCfgBranch}
+            keys={MASSAGE_BRANCH_KEYS}
+            what="ราคา รอบเวลา และจำนวนรับของนวด"
+            saving={saving}
+            onSave={save}
+          />
+          <GroomProgramsTab
+            key={`massage-${cfgBranch}-${branchHasOverride(config, cfgBranch, MASSAGE_BRANCH_KEYS)}`}
+            config={branchConfig || config}
+            saving={saving}
+            onSave={saveForBranch}
+            massage
+          />
+        </>
       )}
       {tab === "boardingRules" && (
         <div className="space-y-6">
@@ -374,7 +430,23 @@ export default function SettingsPage() {
         />
       )}
       {tab === "grooming" && (
-        <GroomingTab config={config} saving={saving} onSave={save} />
+        <>
+          <BranchSettingBar
+            config={config}
+            value={cfgBranch}
+            onChange={setCfgBranch}
+            keys={QUEUE_BRANCH_KEYS}
+            what="รอบเวลา จำนวนรับต่อรอบ และวันหยุด"
+            saving={saving}
+            onSave={save}
+          />
+          <GroomingTab
+            key={`grooming-${cfgBranch}-${branchHasOverride(config, cfgBranch, QUEUE_BRANCH_KEYS)}`}
+            config={branchConfig || config}
+            saving={saving}
+            onSave={saveForBranch}
+          />
+        </>
       )}
       {tab === "points" && (
         <PointsTab config={config} saving={saving} onSave={save} />
@@ -423,6 +495,85 @@ const BRANDING_PRESETS: { label: string; swatch: string; colors: Omit<NonNullabl
  * สาขาของร้าน — ใช้ LINE OA / ลิงก์ / ลูกค้าชุดเดียวกัน แยกห้อง คิว บิล และยอดขายตามสาขา
  * มีตั้งแต่ 2 สาขาขึ้นไป หลังบ้านถึงจะมีแถบเลือกสาขา (ร้านสาขาเดียวไม่ต้องตั้งอะไรในหน้านี้)
  */
+const QUEUE_BRANCH_KEYS: BranchOverrideKey[] = [
+  "groomSlots",
+  "groomSlotCapacity",
+  "groomSlotDefaultCapacity",
+  "groomDuration",
+  "closedWeekdays",
+  "closedDates",
+];
+const PRICE_BRANCH_KEYS: BranchOverrideKey[] = ["groomPricePrograms"];
+const MASSAGE_BRANCH_KEYS: BranchOverrideKey[] = ["groomPricePrograms", "massageSlots", "massageSlotCapacity"];
+
+/**
+ * ร้านหลายสาขา: เลือกว่ากำลังตั้งค่าของ "ทุกสาขา (ค่ากลาง)" หรือของสาขาเดียว
+ * สาขาที่ยังไม่ได้ตั้งเอง ใช้ค่ากลาง · บันทึกตอนเลือกสาขาอยู่ = เก็บเป็นค่าของสาขานั้น
+ */
+function BranchSettingBar({
+  config,
+  value,
+  onChange,
+  keys,
+  what,
+  saving,
+  onSave,
+}: {
+  config: SiteConfig;
+  value: string;
+  onChange: (id: string) => void;
+  keys: BranchOverrideKey[];
+  what: string;
+  saving: boolean;
+  onSave: (p: Partial<SiteConfig>) => void;
+}) {
+  if (!isMultiBranch(config)) return null;
+  const current = knownBranchId(config, value) || "";
+  const own = current ? branchHasOverride(config, current, keys) : false;
+  const pill = (id: string, label: string, marked: boolean) => (
+    <button
+      key={id || "all"}
+      type="button"
+      onClick={() => onChange(id)}
+      className={`h-9 shrink-0 rounded-full px-3.5 text-xs font-bold ${
+        current === id ? "bg-petflow-chocolate text-card" : "bg-paper text-petflow-chocolate"
+      }`}
+    >
+      {label}
+      {marked ? " ●" : ""}
+    </button>
+  );
+  return (
+    <div className="mb-4 space-y-2 rounded-petflow border border-petflow-line bg-card p-4">
+      <p className="text-xs font-extrabold text-petflow-chocolate">กำลังตั้งค่าของสาขาไหน</p>
+      <div className="flex flex-wrap gap-2">
+        {pill("", "ทุกสาขา (ค่ากลาง)", false)}
+        {shopBranches(config).map((b) => pill(b.id, b.name, branchHasOverride(config, b.id, keys)))}
+      </div>
+      <p className="text-[11px] leading-relaxed text-brown-soft">
+        {!current
+          ? `ค่ากลาง ใช้กับทุกสาขาที่ยังไม่ได้ตั้งเอง · สาขาที่มีจุด ● คือตั้ง${what}ของตัวเองแล้ว`
+          : own
+            ? `สาขานี้ใช้${what}ของตัวเอง แก้แล้วกดบันทึกได้เลย (ส่วนอื่นในหน้านี้ยังใช้ร่วมกันทุกสาขา)`
+            : `สาขานี้ยังใช้ค่ากลางอยู่ · แก้${what}แล้วกดบันทึก จะเก็บเป็นของสาขานี้สาขาเดียว (ส่วนอื่นในหน้านี้ยังใช้ร่วมกันทุกสาขา)`}
+      </p>
+      {current && own && (
+        <button
+          type="button"
+          disabled={saving}
+          onClick={() => {
+            if (confirm(`ล้าง${what}ที่สาขานี้ตั้งเอง แล้วกลับไปใช้ค่ากลางของร้าน?`))
+              onSave(clearBranchOverrides(config, current, keys) as Partial<SiteConfig>);
+          }}
+          className="h-9 rounded-full bg-wait/10 px-3.5 text-[11px] font-bold text-wait disabled:opacity-50"
+        >
+          กลับไปใช้ค่ากลาง
+        </button>
+      )}
+    </div>
+  );
+}
+
 function BranchesTab({
   config,
   saving,
@@ -471,6 +622,8 @@ function BranchesTab({
       address: b.address?.trim() || undefined,
       phone: b.phone?.trim() || undefined,
       mapsUrl: b.mapsUrl?.trim() || undefined,
+      // ค่าที่สาขาตั้งเอง (รอบคิว วันหยุด ราคา) ต้องติดไปด้วย ไม่งั้นกดบันทึกหน้านี้แล้วหาย
+      overrides: b.overrides,
     }))
     .filter((b) => b.name);
 

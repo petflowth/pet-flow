@@ -169,3 +169,30 @@ export function groomPrice(
   const b = prog?.breeds.find((x) => x.breed === breed);
   return b ? b.prices[size] : 0;
 }
+
+/**
+ * โปรแกรมของทุกสาขารวมกัน (ไม่ซ้ำ id) — ใช้ "หาชื่อ/ชนิดโปรแกรมจาก id" ของนัด/บิลเก่า
+ * ที่อาจเป็นโปรแกรมของสาขาไหนก็ได้ · ราคาและตัวเลือกตอนจองให้ใช้ configForBranch แทน
+ * ร้านสาขาเดียว = เท่ากับ resolveGroomPrograms(config.groomPricePrograms)
+ */
+export function lookupGroomPrograms(
+  config?: {
+    groomPricePrograms?: GroomProgram[] | null;
+    branches?: { overrides?: Record<string, unknown> }[] | null;
+  } | null
+): GroomProgram[] {
+  const base = resolveGroomPrograms(config?.groomPricePrograms || undefined);
+  const seen = new Set(base.map((p) => p.id));
+  const out = [...base];
+  for (const b of config?.branches || []) {
+    const list = b?.overrides?.groomPricePrograms;
+    if (!Array.isArray(list)) continue;
+    for (const p of list as GroomProgram[]) {
+      if (p?.id && !seen.has(p.id)) {
+        seen.add(p.id);
+        out.push(p);
+      }
+    }
+  }
+  return out;
+}

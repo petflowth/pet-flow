@@ -4,7 +4,7 @@ import { bookingConfirmUrl as buildConfirmUrl, bookingTransportUrl, shopAppBase 
 import { hasTransport, type BookingTransport } from "./transport";
 import { getLineCredentials } from "./line-config";
 import { buildAppointmentConfirmFlex } from "./line";
-import { groomProgramName, isMassageBooking, resolveGroomPrograms } from "./grooming-prices";
+import { groomProgramName, isMassageBooking, lookupGroomPrograms } from "./grooming-prices";
 import { roomText } from "./booking-reminders";
 import type { RoomSegment } from "./room-segments";
 
@@ -44,7 +44,7 @@ export async function buildBookingConfirmFlex(
 
   const { groomProgram: groomProgramId, branchId: _branchId, ...rest } = booking;
   void _branchId;
-  const programs = resolveGroomPrograms(config.groomPricePrograms);
+  const programs = lookupGroomPrograms(config);
   const nameOf = (id?: string) => groomProgramName(id, programs) || undefined;
 
   // หลายตัวแต่โปรแกรม/เวลาไม่เหมือนกัน → บรรทัดรายตัว แทนชื่อโปรแกรมเดียวท้ายหัวการ์ด

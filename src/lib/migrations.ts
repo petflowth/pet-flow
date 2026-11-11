@@ -62,6 +62,7 @@ const SCHEMA_CHECKS: { table: string; column: string; feature: string }[] = [
   { table: "invoices", column: "branch_id", feature: "สาขาของบิล" },
   { table: "pos_sales", column: "branch_id", feature: "สาขาของบิลขายหน้าร้าน" },
   { table: "finance_records", column: "branch_id", feature: "สาขาของรายรับรายจ่าย" },
+  { table: "staff_users", column: "branches", feature: "สาขาที่พนักงานเห็นได้" },
   { table: "customer_packages", column: "room_type", feature: "คอร์สคืนผูกประเภทห้อง" },
   { table: "invoice_docs", column: "receipt_no", feature: "ใบเสร็จ/ใบเสนอราคาในนามบริษัท" },
   { table: "pos_products", column: "image_url", feature: "POS สินค้า/สต็อก" },
@@ -750,6 +751,8 @@ where staff_note like '%🎁%';`,
   { name: "invoices.branch_id", sql: "alter table invoices add column if not exists branch_id text;" },
   { name: "pos_sales.branch_id", sql: "alter table pos_sales add column if not exists branch_id text;" },
   { name: "finance_records.branch_id", sql: "alter table finance_records add column if not exists branch_id text;" },
+  // สาขาที่พนักงานเห็นได้ · ว่าง = ทุกสาขา
+  { name: "staff_users.branches", sql: "alter table staff_users add column if not exists branches jsonb;" },
 ];
 
 export type MigrateResult = {

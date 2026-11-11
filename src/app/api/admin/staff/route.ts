@@ -41,6 +41,7 @@ async function handlePost(req: NextRequest) {
       username: String(body.username || ""),
       password: String(body.password || ""),
       menus: Array.isArray(body.menus) ? body.menus.map(String) : [],
+      branches: Array.isArray(body.branches) ? body.branches.map(String) : undefined,
     });
     if (!res.ok) {
       const messages: Record<string, string> = {
@@ -76,6 +77,7 @@ async function handlePatch(req: NextRequest) {
     ...(body.username !== undefined ? { username: String(body.username) } : {}),
     ...(body.password !== undefined ? { password: String(body.password) } : {}),
     ...(Array.isArray(body.menus) ? { menus: body.menus.map(String) } : {}),
+    ...(Array.isArray(body.branches) ? { branches: body.branches.map(String) } : {}),
     ...(typeof body.active === "boolean" ? { active: body.active } : {}),
   });
   if (!res.ok) {
@@ -83,6 +85,7 @@ async function handlePatch(req: NextRequest) {
       username_too_short: "username ต้องยาวอย่างน้อย 3 ตัว",
       password_too_short: "password ต้องยาวอย่างน้อย 6 ตัว",
       username_in_use: "username นี้ถูกใช้แล้ว — ตั้งชื่ออื่น",
+      need_sql: "ต้องอัปเดตฐานข้อมูลก่อน (ตั้งค่า → ขั้นสูง → อัปเดตฐานข้อมูล)",
     };
     return NextResponse.json(
       { error: messages[res.error] || res.error },

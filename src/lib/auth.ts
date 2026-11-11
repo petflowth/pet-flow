@@ -20,6 +20,8 @@ export type SessionPayload = {
   staffId?: string;
   /** เมนูที่พนักงานคนนี้เปิดดูได้ — undefined = เข้าได้ทุกเมนู (เจ้าของร้าน) */
   menus?: string[];
+  /** สาขาที่พนักงานคนนี้เห็นได้ — undefined/ว่าง = ทุกสาขา (เจ้าของร้านเห็นทุกสาขาเสมอ) */
+  branches?: string[];
   /** session นี้มาจากผู้ดูแลระบบกด "เข้าดูแทน" ไม่ใช่เจ้าของร้านล็อกอินเอง — โชว์แถบเตือนใน UI */
   impersonating?: boolean;
   /** หมดอายุ (epoch ms) */

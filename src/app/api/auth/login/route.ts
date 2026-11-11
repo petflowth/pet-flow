@@ -48,11 +48,12 @@ export async function GET(req: NextRequest) {
         const same =
           s.staffId === fresh.id &&
           (s.menus || []).length === fresh.menus.length &&
-          fresh.menus.every((m) => (s.menus || []).includes(m));
+          fresh.menus.every((m) => (s.menus || []).includes(m)) &&
+          (s.branches || []).join("|") === (fresh.branches || []).join("|");
         if (!same) {
           const { exp: _exp, ...rest } = s;
           void _exp;
-          const next = { ...rest, staffId: fresh.id, name: fresh.name || s.name, menus: fresh.menus };
+          const next = { ...rest, staffId: fresh.id, name: fresh.name || s.name, menus: fresh.menus, branches: fresh.branches };
           refreshed = await signSession(next).catch(() => null);
           if (refreshed) session = { ...s, ...next };
         }
@@ -67,6 +68,7 @@ export async function GET(req: NextRequest) {
     role: session.role,
     name: session.name,
     menus: session.menus,
+    branches: session.role === "staff" ? session.branches || [] : [],
     impersonating: session.impersonating || false,
     dueDate: gate?.dueDate || null,
     overdue: isOverdue(gate?.dueDate),
@@ -106,6 +108,7 @@ export async function POST(req: NextRequest) {
         tenantSlug?: string;
         staffId?: string;
         menus?: string[];
+        branches?: string[];
       }
     | null = null;
 
@@ -137,6 +140,7 @@ export async function POST(req: NextRequest) {
         tenantId: staff.tenantId,
         staffId: staff.id,
         menus: staff.menus || [],
+        branches: staff.branches,
       };
     }
   }

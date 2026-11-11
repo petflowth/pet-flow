@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { t } from "@/lib/i18n";
 import { useLocale } from "@/components/LocaleProvider";
@@ -8,6 +9,7 @@ import { BookingOnlyNotice, LineBookingCta, PageHeader } from "@/components/Page
 import { ContentBlocks } from "@/components/ContentBlocks";
 import { petKindOf } from "@/lib/pet-kind";
 import { isFeatureOn } from "@/lib/features";
+import { branchHasOverride, configForBranch, knownBranchId, mainBranchId, shopBranches } from "@/lib/branches";
 import { bathPrograms, GROOM_PROGRAMS, resolveGroomPrograms, resolveMassagePrograms, resolveGroomSizes } from "@/lib/grooming-prices";
 
 const GROOMING_MENU_POSTER = "/catalog/grooming/grooming-menu.jpg";
@@ -24,6 +26,23 @@ export default function GroomingPage() {
   const { config, loading: configLoading } = useConfig();
   const m = t(locale).grooming;
 
+  // ร้านหลายสาขาที่ตั้งราคาต่างกัน: ให้ลูกค้าเลือกดูราคาของแต่ละสาขา (จำสาขาเดียวกับหน้าจอง)
+  const branches = shopBranches(config);
+  const pricesDiffer =
+    branches.length >= 2 && branches.some((b) => branchHasOverride(config, b.id, ["groomPricePrograms"]));
+  const [priceBranch, setPriceBranch] = useState("");
+  useEffect(() => {
+    if (!pricesDiffer) return;
+    let saved = "";
+    try {
+      saved = localStorage.getItem("pf-last-branch") || "";
+    } catch {
+      /* เปิดในโหมดที่ใช้ localStorage ไม่ได้ */
+    }
+    setPriceBranch((cur) => knownBranchId(config, cur) || knownBranchId(config, saved) || mainBranchId(config));
+  }, [config, pricesDiffer]);
+  const priceCfg = configForBranch(config, pricesDiffer ? priceBranch : null);
+
   const menus = config.grooming.menus as {
     bath?: { poster?: string };
     advance?: { poster?: string };
@@ -37,7 +56,7 @@ export default function GroomingPage() {
   // รูปเมนูที่ติดมากับระบบเป็นเมนูร้านแมว — ร้านหมา / หมาและแมวที่ยังไม่อัปรูปเอง โชว์ตารางราคาจากหน้าตั้งค่าแทน
   // ร้านแมวที่ตั้งราคาอาบน้ำของตัวเองแล้ว (ไม่ใช่ชุดตัวอย่างของระบบ) — โชว์ตารางราคาของร้าน ไม่ใช่โปสเตอร์ตัวอย่าง
   const defaultIds = new Set(GROOM_PROGRAMS.map((p) => p.id));
-  const ownPrices = (config.groomPricePrograms || []).some((p) => !defaultIds.has(p.id));
+  const ownPrices = (priceCfg.groomPricePrograms || []).some((p) => !defaultIds.has(p.id));
   const showTable = !custom.length && (petKindOf(config) !== "cat" || ownPrices);
   const posters = custom.length ? custom : showTable ? [] : [GROOMING_MENU_POSTER];
   const sizes = resolveGroomSizes(config.groomSizeLabels);
@@ -64,12 +83,28 @@ export default function GroomingPage() {
         ))}
       </div>
 
+      {showTable && pricesDiffer && (
+        <div className="mb-3 flex flex-wrap gap-2">
+          {branches.map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => setPriceBranch(b.id)}
+              className={`min-h-[40px] rounded-full px-4 text-xs font-bold ${
+                priceBranch === b.id ? "bg-petflow-chocolate text-card" : "bg-card text-petflow-chocolate shadow-petflow-sm"
+              }`}
+            >
+              {b.name}
+            </button>
+          ))}
+        </div>
+      )}
       {showTable && (
         <div className="space-y-4">
           {[
-            ...bathPrograms(resolveGroomPrograms(config.groomPricePrograms)),
+            ...bathPrograms(resolveGroomPrograms(priceCfg.groomPricePrograms)),
             // ร้านเปิดบริการนวด — โชว์ราคานวดต่อท้ายในหน้าเดียวกัน
-            ...(isFeatureOn(config, "massage") ? resolveMassagePrograms(config.groomPricePrograms) : []),
+            ...(isFeatureOn(config, "massage") ? resolveMassagePrograms(priceCfg.groomPricePrograms) : []),
           ].map((p) => {
             // ราคาเท่ากันทุกไซส์ (ร้านที่ใส่ไซส์เป็นแถว หรือบริการราคาเดียว) — โชว์คอลัมน์เดียว
             const flat = p.breeds.every((b) => b.prices.kitten === b.prices.m && b.prices.m === b.prices.l);

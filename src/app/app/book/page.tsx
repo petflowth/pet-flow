@@ -5,7 +5,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLiff } from "@/components/LiffProvider";
 import { useConfig } from "@/components/ConfigProvider";
-import { knownBranchId, mainBranchId, roomsOfBranch, shopBranches } from "@/lib/branches";
+import { configForBranch, knownBranchId, mainBranchId, roomsOfBranch, shopBranches } from "@/lib/branches";
 
 /** จำสาขาที่ลูกค้าเลือกล่าสุด (ในเครื่องลูกค้า) */
 const LAST_BRANCH_KEY = "pf-last-branch";
@@ -142,9 +142,11 @@ function BookPageInner() {
     const next = (["groom", "room", "massage"] as const).find((t) => on[t]);
     if (next) setTab(next);
   }, [tab, groomOn, hotelOn, massageOn]);
+  // สาขาตั้งราคา/โปรแกรมเองได้ — โชว์ของสาขาที่ลูกค้าเลือก
+  const branchPrograms = configForBranch(config, multiBranch ? branch : null).groomPricePrograms;
   const tabPrograms = massage
-    ? resolveMassagePrograms(config.groomPricePrograms)
-    : bathPrograms(resolveGroomPrograms(config.groomPricePrograms));
+    ? resolveMassagePrograms(branchPrograms)
+    : bathPrograms(resolveGroomPrograms(branchPrograms));
   // เลือกน้องได้หลายตัวทั้งอาบน้ำและเข้าพัก — เข้าพักบ้านเดียวกันอยู่ห้องเดียวกัน (เกินจุห้อง = เพิ่มห้อง)
   const [catNames, setCatNames] = useState<string[]>([]);
   const toggleCat = (name: string) => {

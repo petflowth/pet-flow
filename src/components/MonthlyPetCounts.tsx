@@ -7,7 +7,7 @@ import { DateRangePicker } from "@/components/DateRangePicker";
 import { bangkokToday } from "@/lib/bangkok-date";
 import { resolveRange, type RangeId } from "@/lib/date-range";
 import { formatThaiDateShort } from "@/lib/format-thai-date";
-import { GROOM_PROGRAMS, groomProgramName, resolveGroomPrograms, type GroomProgram } from "@/lib/grooming-prices";
+import { GROOM_PROGRAMS, groomProgramName, lookupGroomPrograms, type GroomProgram } from "@/lib/grooming-prices";
 import { ROOMS, type RoomType } from "@/lib/business";
 import {
   petCounts,
@@ -145,7 +145,7 @@ export function MonthlyPetCounts({ bookings }: { bookings: CountBooking[] }) {
       .then((r) => r.json())
       .then((d) => {
         if (!alive) return;
-        setPrograms(resolveGroomPrograms(d.config?.groomPricePrograms));
+        setPrograms(lookupGroomPrograms(d.config));
         if (d.config?.rooms?.length) setRooms(d.config.rooms);
       })
       .catch(() => {});

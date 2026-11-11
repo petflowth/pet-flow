@@ -1158,6 +1158,24 @@ function groomInfoCardFor(
             } else if (customer) {
               await adjustDepositCredit(customer.id, amount);
             }
+            if (openInv || customer) {
+              const s = await getAdminSession(req).catch(() => null);
+              const { logAudit } = await import("@/lib/audit-log");
+              const { requireTenantId } = await import("@/lib/tenant-context");
+              await logAudit({
+                tenantId: requireTenantId(),
+                actorType: "tenant",
+                actorId: s?.name || s?.role || "ไม่ทราบ",
+                action: "request_deposit",
+                resourceType: openInv ? "invoice" : "customer",
+                resourceId: openInv ? openInv.id : customer!.id,
+                afterState: {
+                  ลูกค้า: String(b.customerName),
+                  มัดจำที่เรียกเก็บ: amount,
+                  ลงที่: openInv ? `บิล ${openInv.id}` : "เครดิตมัดจำล่วงหน้าของลูกค้า (ยังไม่มีบิล)",
+                },
+              }).catch(() => {});
+            }
           }
           const payment = await getPaymentConfig();
           // ไปกับเรื่องขอข้อมูลอื่นได้ — มีเรื่องอื่นด้วยจะกลายเป็นกล่องยอดมัดจำ + ปุ่มคัดลอกเลขบัญชีในการ์ดรวม

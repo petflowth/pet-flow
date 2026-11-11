@@ -754,6 +754,8 @@ where staff_note like '%🎁%';`,
   { name: "invoices.branch_id", sql: "alter table invoices add column if not exists branch_id text;" },
   { name: "pos_sales.branch_id", sql: "alter table pos_sales add column if not exists branch_id text;" },
   { name: "finance_records.branch_id", sql: "alter table finance_records add column if not exists branch_id text;" },
+  // มัดจำของบิลส่วนที่หักจากเครดิตมัดจำล่วงหน้า (ไว้บอกที่มาของมัดจำบนการ์ดบิล)
+  { name: "invoices.deposit_from_credit", sql: "alter table invoices add column if not exists deposit_from_credit numeric;" },
   // สาขาที่พนักงานเห็นได้ · ว่าง = ทุกสาขา
   { name: "staff_users.branches", sql: "alter table staff_users add column if not exists branches jsonb;" },
   // คอร์สที่เปิดขาย / คอร์สของลูกค้า / โปรโมชั่น ใช้ได้เฉพาะบางสาขา · ว่าง = ทุกสาขา

@@ -311,6 +311,20 @@ async function handlePost(req: NextRequest) {
     // บิลที่ไม่ผูกนัด (ขายคอร์ส/บิลเปล่า) = สาขาที่หลังบ้านเลือกดูอยู่ · บิลผูกนัดตามสาขาของนัดเอง
     if (!body.bookingId) await setRecordBranch("invoices", invoice.id, await adminBranchScope(req));
     if (invoice.autoAppliedCredit > 0) {
+      await logAudit({
+        tenantId: requireTenantId(),
+        actorType: "tenant",
+        actorId: await actorName(req),
+        action: "apply_deposit_credit",
+        resourceType: "invoice",
+        resourceId: invoice.id,
+        afterState: {
+          ลูกค้า: invoice.customerName,
+          มัดจำที่หักจากเครดิต: invoice.autoAppliedCredit,
+          ยอดบิล: invoice.total,
+          หมายเหตุ: "หักเครดิตมัดจำล่วงหน้าเข้าบิลอัตโนมัติตอนออกบิล",
+        },
+      });
       await sendTelegram(
         formatBookingTelegram("💰 หักมัดจำล่วงหน้าเข้าบิลอัตโนมัติ", {
           ลูกค้า: invoice.customerName,
@@ -364,6 +378,19 @@ async function handlePost(req: NextRequest) {
     } else {
       await adjustDepositCredit(body.customerId, amount);
     }
+    await logAudit({
+      tenantId: requireTenantId(),
+      actorType: "tenant",
+      actorId: await actorName(req),
+      action: "request_deposit",
+      resourceType: linkInvoiceId ? "invoice" : "customer",
+      resourceId: linkInvoiceId || String(body.customerId),
+      afterState: {
+        ลูกค้า: customer.name,
+        มัดจำที่เรียกเก็บ: amount,
+        ลงที่: linkInvoiceId ? `บิล ${linkInvoiceId}` : "เครดิตมัดจำล่วงหน้าของลูกค้า (ยังไม่มีบิล)",
+      },
+    });
     const notifyErr = await notifyCustomer(customer.lineUserId, [depositFlex]);
     return NextResponse.json({ ok: true, notifyError: notifyErr });
   }
@@ -938,6 +965,15 @@ async function handlePatch(req: NextRequest) {
     if (!res.ok) {
       return NextResponse.json({ error: res.error }, { status: 400 });
     }
+    await logAudit({
+      tenantId: requireTenantId(),
+      actorType: "tenant",
+      actorId: await actorName(req),
+      action: "apply_deposit_credit",
+      resourceType: "invoice",
+      resourceId: id,
+      afterState: { ลูกค้า: inv.customerName, มัดจำที่หักจากเครดิต: res.deposit, คงเหลือ: res.remaining },
+    });
     await sendTelegram(
       formatBookingTelegram("💰 รับมัดจำแล้ว", {
         ลูกค้า: inv.customerName,

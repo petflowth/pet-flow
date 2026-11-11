@@ -26,6 +26,8 @@ const ACTION_LABEL: Record<string, string> = {
   include_finance: "กลับมานับเป็นรายได้",
   send_birthday_greetings: "ส่งการ์ดวันเกิด",
   receive_deposit: "รับมัดจำ",
+  request_deposit: "เรียกเก็บมัดจำ",
+  apply_deposit_credit: "หักเครดิตมัดจำเข้าบิล",
   auto_line_round: "รอบส่ง LINE อัตโนมัติ",
 };
 
@@ -41,6 +43,8 @@ const ACTION_ICON: Record<string, string> = {
   include_finance: "check",
   send_birthday_greetings: "cake",
   receive_deposit: "money",
+  request_deposit: "send",
+  apply_deposit_credit: "wallet",
   auto_line_round: "clock",
 };
 

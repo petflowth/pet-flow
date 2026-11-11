@@ -18,6 +18,13 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "profile.line-scdn.net",
       },
+      // รูปที่ร้านอัปในตั้งค่า (ห้องพัก โลโก้ โปสเตอร์) ถูกย้ายไปเก็บที่ Supabase storage
+      // ไม่ใส่ไว้ตรงนี้ next/image ตอบ 400 → รูปห้องไม่ขึ้นในหน้าลูกค้า
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
     ],
   },
   // หน้าแรก (/) ให้เสิร์ฟหน้าขาย PetFlow (public/petflow.html) แทนหน้า demo โรงแรมแมว

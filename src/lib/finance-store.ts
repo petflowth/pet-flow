@@ -171,20 +171,39 @@ export async function listFinanceEnriched(
   const { getCustomer } = await import("./customers-store");
   const { getInvoice } = await import("./invoices-store");
 
-  return Promise.all(
+  // บิล/ลูกค้าเดียวกันมีหลายรายการ (มัดจำ + ยอดคงเหลือ) — ดึงครั้งเดียวต่อ id ไม่ยิงซ้ำทุกแถว
+  const invoiceCache = new Map<string, ReturnType<typeof getInvoice>>();
+  const customerCache = new Map<string, ReturnType<typeof getCustomer>>();
+  const invoiceOf = (id: string) => {
+    if (!invoiceCache.has(id)) invoiceCache.set(id, getInvoice(id).catch(() => undefined));
+    return invoiceCache.get(id)!;
+  };
+  const customerOf = (id: string) => {
+    if (!customerCache.has(id)) customerCache.set(id, getCustomer(id).catch(() => undefined));
+    return customerCache.get(id)!;
+  };
+  /** รายรับของบิลที่ปิดแล้วแต่ลงคนละวันกับวันที่บิล — ซ่อมให้ตรง (ดู paidInvoiceIncomeDay) */
+  const misdated: { id: string; day: string }[] = [];
+
+  const enriched = await Promise.all(
     list.map(async (r) => {
       let customerName: string | undefined;
       let catName: string | undefined;
 
       if (r.invoiceId) {
-        const inv = await getInvoice(r.invoiceId);
+        const inv = await invoiceOf(r.invoiceId);
         if (inv) {
           customerName = inv.customerName;
           catName = inv.catName;
+          const day = paidInvoiceIncomeDay(inv, r);
+          if (day && day !== r.date) {
+            misdated.push({ id: r.id, day });
+            r = { ...r, date: day };
+          }
         }
       }
       if (r.customerId) {
-        const c = await getCustomer(r.customerId);
+        const c = await customerOf(r.customerId);
         if (c) {
           customerName = customerName || c.name;
           if (!catName && c.cats.length === 1) catName = c.cats[0].name;
@@ -214,6 +233,54 @@ export async function listFinanceEnriched(
       return { ...r, customerName, catName, displayTitle };
     })
   );
+
+  if (misdated.length) await moveFinanceDates(misdated);
+  return enriched;
+}
+
+/** หมวดรายรับ "รับเงินบางส่วน" (ผ่อนเป็นงวด) — ลงตามวันที่รับเงินจริงแต่ละงวด ไม่ย้ายไปวันที่บิล */
+const PARTIAL_CATEGORY = "รับเงินบางส่วน";
+
+/**
+ * บิลที่ปิดแล้ว: รายรับทุกก้อนของบิล (มัดจำ + ยอดคงเหลือ) นับในวันที่บิล ให้ตรงกับหน้าบิล
+ * เดิมมัดจำลงตามวันที่กดรับมัดจำ — บิลที่มัดจำครบยอด/รับมัดจำไว้คนละเดือน เลยไม่โผล่ในยอดเดือนของบิล
+ * คืน undefined = แถวนี้ไม่ต้องย้าย (บิลยังไม่ปิด / รายจ่าย / งวดผ่อน / ติ๊กไม่นับไว้)
+ */
+export function paidInvoiceIncomeDay(
+  inv: { status?: string; paidAt?: string },
+  r: Pick<FinanceRecord, "type" | "category" | "excluded">
+): string | undefined {
+  if (inv.status !== "paid" || !inv.paidAt) return undefined;
+  if (r.type !== "income" || r.excluded || r.category === PARTIAL_CATEGORY) return undefined;
+  const day = inv.paidAt.slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : undefined;
+}
+
+/** ย้ายวันที่ของรายการเงินหลายแถว (จัดกลุ่มตามวันปลายทาง ยิงทีละวัน) */
+async function moveFinanceDates(rows: { id: string; day: string }[]) {
+  const byDay = new Map<string, string[]>();
+  for (const r of rows) byDay.set(r.day, [...(byDay.get(r.day) || []), r.id]);
+  const sb = getSupabase();
+  for (const [day, ids] of byDay) {
+    if (sb) {
+      try {
+        await sb.from("finance_records").update({ date: day }).eq("tenant_id", requireTenantId()).in("id", ids);
+      } catch {
+        /* ซ่อมไม่ได้ตอนนี้ — หน้าการเงินยังโชว์วันที่ถูกให้อยู่แล้ว รอบหน้าซ่อมใหม่ */
+      }
+    } else {
+      for (const m of mem) if (ids.includes(m.id)) m.date = day;
+    }
+  }
+}
+
+/** ย้ายรายรับทุกก้อนของบิลที่ปิดแล้วไปวันที่บิล (ตอนปิดบิล / เปลี่ยนวันที่บิล) */
+export async function alignInvoiceIncomeDates(inv: { id: string; status?: string; paidAt?: string }) {
+  const rows = (await listFinance()).filter((r) => r.invoiceId === inv.id);
+  const fix = rows
+    .map((r) => ({ id: r.id, day: paidInvoiceIncomeDay(inv, r), date: r.date }))
+    .filter((r): r is { id: string; day: string; date: string } => !!r.day && r.day !== r.date);
+  if (fix.length) await moveFinanceDates(fix);
 }
 
 export async function addFinanceEntry(

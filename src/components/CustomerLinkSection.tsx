@@ -1,5 +1,6 @@
 "use client";
 
+import { copyText } from "@/lib/copy-text";
 import { useEffect, useState } from "react";
 import { buildCustomerLinkUrl } from "@/lib/liff-urls";
 import { Icon } from "@/components/Icon";
@@ -36,7 +37,7 @@ export function CustomerLinkSection({
 
   const copy = async () => {
     if (!linkUrl) return;
-    await navigator.clipboard.writeText(linkUrl);
+    await copyText(linkUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

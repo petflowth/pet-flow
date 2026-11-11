@@ -1,5 +1,6 @@
 "use client";
 
+import { copyText } from "@/lib/copy-text";
 import { useCallback, useEffect, useState } from "react";
 import { useLiff } from "@/components/LiffProvider";
 import { toJpegDataUrl } from "@/lib/image-convert";
@@ -157,7 +158,7 @@ export function PackageShopSection() {
   const copyAccount = async () => {
     if (!payment?.accountNumber) return;
     try {
-      await navigator.clipboard.writeText(payment.accountNumber);
+      await copyText(payment.accountNumber);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {

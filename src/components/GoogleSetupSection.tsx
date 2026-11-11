@@ -1,5 +1,6 @@
 "use client";
 
+import { copyText } from "@/lib/copy-text";
 import { Icon } from "@/components/Icon";
 import { useCallback, useEffect, useState } from "react";
 
@@ -96,7 +97,7 @@ export function GoogleSetupSection({ adminCode }: { adminCode: string }) {
             <button
               type="button"
               onClick={async () => {
-                await navigator.clipboard.writeText(robotEmail);
+                await copyText(robotEmail);
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
               }}

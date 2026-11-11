@@ -1,5 +1,6 @@
 "use client";
 
+import { copyText } from "@/lib/copy-text";
 import { useCallback, useEffect, useState } from "react";
 
 type Item = { id: string; tenantId: string; shopName: string; text: string; createdAt: string; updatedAt: string };
@@ -55,7 +56,7 @@ export default function ShopQuestions({ tenants }: { tenants: ShopRef[] }) {
 
   const copy = async (text: string, done: string) => {
     try {
-      await navigator.clipboard.writeText(text);
+      await copyText(text);
       setMsg(done);
     } catch {
       setMsg("คัดลอกไม่ได้ — กดค้างที่ข้อความแล้วคัดลอกเอง");

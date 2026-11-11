@@ -1,5 +1,6 @@
 "use client";
 
+import { copyText } from "@/lib/copy-text";
 import { useCallback, useEffect, useState } from "react";
 import { adminJson } from "@/lib/admin-fetch";
 import { GoogleSetupSection } from "@/components/GoogleSetupSection";
@@ -63,7 +64,7 @@ export default function SetupPage() {
   const copySchema = async () => {
     const res = await fetch("/api/setup?action=schema");
     const text = await res.text();
-    await navigator.clipboard.writeText(text);
+    await copyText(text);
     setMsg("คัดลอก SQL แล้ว — วางใน Supabase SQL Editor");
   };
 

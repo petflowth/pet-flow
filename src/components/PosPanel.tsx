@@ -810,8 +810,15 @@ function CloseView() {
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const [loadError, setLoadError] = useState("");
   const load = useCallback(async () => {
     const d = await fetch("/api/pos/close").then((r) => r.json()).catch(() => null);
+    // เซิร์ฟเวอร์ตอบ error (เช่น ช้า/กดถี่) — เมื่อก่อนเอา {error} มาใช้เป็นยอดตรง ๆ แล้วหน้าพังทั้งหน้า
+    if (!d?.totals) {
+      setLoadError(d?.message || d?.error || "โหลดยอดไม่สำเร็จ");
+      return;
+    }
+    setLoadError("");
     setData(d);
     if (d?.closing) {
       setOpening(String(d.closing.openingCash || ""));
@@ -823,7 +830,18 @@ function CloseView() {
     load();
   }, [load]);
 
-  if (!data) return <p className="py-6 text-center text-xs text-brown-soft">กำลังโหลด…</p>;
+  if (!data) {
+    return loadError ? (
+      <div className="py-6 text-center text-xs text-brown-soft">
+        <p>{loadError}</p>
+        <button type="button" onClick={load} className="mt-2 rounded-full border px-4 py-1.5 font-bold">
+          ลองอีกครั้ง
+        </button>
+      </div>
+    ) : (
+      <p className="py-6 text-center text-xs text-brown-soft">กำลังโหลด…</p>
+    );
+  }
   const t = data.totals;
   const cashIn = t.pos.cash + t.services.cash;
   const expected = (Number(opening) || 0) + cashIn;

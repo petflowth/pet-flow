@@ -1,5 +1,6 @@
 "use client";
 
+import { copyText } from "@/lib/copy-text";
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -139,7 +140,7 @@ export default function InvoiceDocPage({ params }: { params: Promise<{ id: strin
     }
     setData((cur) => (cur ? { ...cur, doc: d.doc } : cur));
     try {
-      await navigator.clipboard.writeText(d.url);
+      await copyText(d.url);
       toast("คัดลอกลิงก์เอกสารแล้ว ส่งให้ลูกค้าได้เลย", "success");
     } catch {
       window.prompt("คัดลอกลิงก์นี้ไปส่งให้ลูกค้า", d.url);

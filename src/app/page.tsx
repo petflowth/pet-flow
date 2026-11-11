@@ -50,7 +50,7 @@ export const metadata: Metadata = {
       "รับฝากแมวห้องแอร์ CCTV 24 ชม. รายงานเช้า-เย็น + อาบน้ำแมว ย่านบางนา เทพารักษ์ ใกล้เมกาบางนา เริ่มคืนละ 350.-",
     images: [{ url: "/info/welcome.jpg", width: 1200, height: 1200, alt: "PetFlow โรงแรมแมว บางนา" }],
   },
-  robots: { index: true, follow: true },
+  robots: { index: false, follow: true }, // หน้าตัวอย่างโรงแรมแมวเก่า ไม่ใช่เว็บขายระบบ PetFlow — ไม่ให้ Google เข้าใจผิดว่า petflow.online เป็นโรงแรมแมว (และไม่ซ้ำเนื้อหากับ CatCha)
 };
 
 const AREAS = [

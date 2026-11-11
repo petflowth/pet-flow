@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     title: "บทความน่ารู้เรื่องแมว — PetFlow",
     description: "เคล็ดลับฝากแมว อาบน้ำแมว และดูแลน้องแมว จากพี่เลี้ยงตัวจริง",
   },
-  robots: { index: true, follow: true },
+  robots: { index: false, follow: true }, // หน้าตัวอย่างโรงแรมแมวเก่า ไม่ใช่เว็บขายระบบ PetFlow — ไม่ให้ Google เข้าใจผิดว่า petflow.online เป็นโรงแรมแมว (และไม่ซ้ำเนื้อหากับ CatCha)
 };
 
 export default async function BlogIndexPage() {

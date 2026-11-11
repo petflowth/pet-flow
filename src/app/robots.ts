@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
-
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://petflow.example.com";
+import { SITE_URL } from "@/lib/seo-software-pages";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -9,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: "/",
         // หน้าแอปสมาชิก/หลังบ้าน ไม่ต้อง index — ให้บอทโฟกัสหน้าเว็บหลัก
-        disallow: ["/admin", "/api", "/app", "/doc"],
+        disallow: ["/admin", "/api", "/app", "/doc", "/platform"],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,

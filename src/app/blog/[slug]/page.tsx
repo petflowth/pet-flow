@@ -75,7 +75,7 @@ export async function generateMetadata({
         ? { images: [{ url: post.cover, width: 1200, height: 800, alt: post.title }] }
         : {}),
     },
-    robots: { index: true, follow: true },
+    robots: { index: false, follow: true }, // หน้าตัวอย่างโรงแรมแมวเก่า ไม่ใช่เว็บขายระบบ PetFlow — ไม่ให้ Google เข้าใจผิดว่า petflow.online เป็นโรงแรมแมว (และไม่ซ้ำเนื้อหากับ CatCha)
   };
 }
 

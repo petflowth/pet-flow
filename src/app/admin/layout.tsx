@@ -84,6 +84,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [impersonating, setImpersonating] = useState(false);
   const [dueDate, setDueDate] = useState<string | null>(null);
+  const [connFail, setConnFail] = useState(false);
   // ชื่อร้านมาจาก config ของแต่ละร้าน (multi-tenant) — ไม่ hardcode
   const { config, loading: configLoading } = useConfig();
   const shopName = config.business?.name || "";
@@ -107,16 +108,30 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     // ว่ายังล็อกอินอยู่ไหม แล้วซิงก์บทบาท/เมนูให้ตรงกับของจริง
     let alive = true;
     (async () => {
-      const res = await fetch("/api/auth/login").catch(() => null);
+      // เน็ตกระตุก/เซิร์ฟเวอร์ตอบช้า ≠ หมดเวลาล็อกอิน — ลองใหม่ก่อน (เมื่อก่อนเด้งไปหน้าล็อกอิน
+      // หรือค้างจอว่างจนต้องรีเฟรช) เด้งออกเฉพาะเมื่อเซิร์ฟเวอร์ตอบชัด ๆ ว่า 401
+      let res: Response | null = null;
+      for (let attempt = 0; attempt < 3 && alive; attempt++) {
+        if (attempt) await new Promise((r) => setTimeout(r, 1500 * attempt));
+        res = await fetch("/api/auth/login", { cache: "no-store" }).catch(() => null);
+        if (res && (res.ok || res.status === 401)) break;
+      }
       if (!alive) return;
-      if (!res || !res.ok) {
+      if (res?.status === 401) {
         sessionStorage.removeItem("petflow-role");
         sessionStorage.removeItem("petflow-menus");
         router.replace(`${shopPrefix()}/admin/login?next=${encodeURIComponent(fullPath)}`);
         return;
       }
-      const me = await res.json().catch(() => null);
-      if (!alive || !me?.ok) return;
+      const me = res?.ok ? await res.json().catch(() => null) : null;
+      if (!alive) return;
+      if (!me?.ok) {
+        // เช็คกับเซิร์ฟเวอร์ไม่ได้ แต่ด่าน middleware ตรวจคุกกี้ให้แล้วตอนเปิดหน้า — แสดงหน้าไปก่อน
+        // ด้วยสิทธิ์ที่จำไว้ ดีกว่าค้างจอว่าง (คำขอข้อมูลของหน้ายังถูกตรวจสิทธิ์ที่เซิร์ฟเวอร์ทุกครั้ง)
+        if (sessionStorage.getItem("petflow-role") && isPathAllowed(pathname, getAllowedMenus())) setOk(true);
+        else setConnFail(true);
+        return;
+      }
       sessionStorage.setItem("petflow-role", me.role);
       sessionStorage.setItem("petflow-staff-name", me.name || "พนักงาน");
       setImpersonating(Boolean(me.impersonating));
@@ -153,6 +168,22 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     };
   }, [pathname, fullPath, router]);
 
+  if (connFail && !ok) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <div className="w-full max-w-sm rounded-petflow bg-card p-6 text-center shadow-petflow">
+          <p className="text-sm font-bold text-petflow-chocolate">เชื่อมต่อระบบไม่ได้ชั่วคราว — ตรวจสอบเน็ตแล้วลองใหม่</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-4 w-full rounded-petflow-sm bg-latte-deep py-2.5 text-sm font-extrabold text-white"
+          >
+            🔄 โหลดใหม่
+          </button>
+        </div>
+      </div>
+    );
+  }
   if (!ok || featureBlocked) return null;
 
   if (pathname === "/admin/login") {

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { AppHealth } from "@/components/AppHealth";
 
 export const metadata: Metadata = {
   title: "PetFlow",
@@ -19,7 +20,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="th">
-      <body className="min-h-screen antialiased">{children}</body>
+      <body className="min-h-screen antialiased">
+        <AppHealth />
+        {children}
+      </body>
     </html>
   );
 }

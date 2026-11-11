@@ -2,6 +2,22 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let client: SupabaseClient | null = null;
 
+/**
+ * fetch ที่มีเพดานเวลา — supabase-js ไม่ตัดเวลาให้เอง ถ้าฐานข้อมูล/เน็ตค้าง คำขอจะรอไปจน Vercel ตัดที่
+ * 300 วินาที หน้าร้านเลยหมุนค้างจนต้องรีเฟรช ตัดที่ 20 วิ (อ่าน) / 60 วิ (เขียน-อัปโหลด) แล้วให้หน้าจอบอก error แทน
+ */
+const timedFetch: typeof fetch = (input, init) => {
+  const method = (init?.method || "GET").toUpperCase();
+  const ms = method === "GET" || method === "HEAD" ? 20_000 : 60_000;
+  if (typeof AbortSignal.timeout !== "function") return fetch(input, init);
+  const timeout = AbortSignal.timeout(ms);
+  const signal =
+    init?.signal && typeof AbortSignal.any === "function"
+      ? AbortSignal.any([init.signal, timeout])
+      : init?.signal || timeout;
+  return fetch(input, { ...init, signal });
+};
+
 /** รองรับค่าที่ใส่แค่ project ref หรือลืม https:// */
 export function normalizeSupabaseUrl(raw?: string): string | null {
   if (!raw) return null;
@@ -101,6 +117,7 @@ export function getDirectoryDb() {
   if (!client) {
     client = createClient(url, key, {
       auth: { persistSession: false, autoRefreshToken: false },
+      global: { fetch: timedFetch },
     });
   }
   return client;
@@ -138,6 +155,7 @@ export function getTenantDb(tenantId: string): SupabaseClient | null {
   if (!url || !key) return null;
   const c = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: timedFetch },
   });
   tenantClients.set(tenantId, c);
   return c;

@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // รุ่นของโค้ดฝังไว้ในหน้าเว็บ — AppHealth เทียบกับ /api/version เพื่อรู้ว่ามีอัปเดตใหม่หลังเปิดหน้าค้างไว้
+  env: {
+    NEXT_PUBLIC_APP_VERSION: process.env.VERCEL_GIT_COMMIT_SHA || "dev",
+  },
   // schema.sql ถูกอ่านตอนรัน (ปุ่ม "สร้างตารางอัตโนมัติ" / "Copy SQL" ในหน้าติดตั้ง)
   // ถ้าไม่บอกไว้ตรงนี้ ไฟล์จะไม่ถูก deploy ไปด้วย แล้วปุ่มจะพังบนเครื่องจริง
   outputFileTracingIncludes: {

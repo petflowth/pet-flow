@@ -31,8 +31,13 @@ type Record = {
 const TODAY = () => new Date().toISOString().slice(0, 10);
 const EMPTY_FORM = { type: "income", amount: "", category: "", description: "", date: TODAY() };
 
+/** บิลที่ปิดด้วยตัดเครดิต Member — โชว์ให้เห็นแต่ไม่นับเป็นรายรับ */
+type CreditUse = { invoiceId: string; date: string; amount: number; customerName?: string; catName?: string };
+
 export default function FinancePage() {
   const [records, setRecords] = useState<Record[]>([]);
+  const [creditUses, setCreditUses] = useState<CreditUse[]>([]);
+  const [showCredit, setShowCredit] = useState(false);
   /** ช่วงเวลาที่กำลังดู — ยอดสรุปและรายการคิดจากช่วงนี้เท่านั้น */
   const [rangeId, setRangeId] = useState<RangeId>("month");
   const [customRange, setCustomRange] = useState({ from: TODAY(), to: TODAY() });
@@ -70,6 +75,7 @@ export default function FinancePage() {
       const listData = await list.json();
       if (!list.ok || !Array.isArray(listData.records)) throw new Error(listData?.error || String(list.status));
       setRecords(listData.records);
+      setCreditUses(Array.isArray(listData.creditUses) ? listData.creditUses : []);
     } catch {
       toast("โหลดรายรับ-รายจ่ายไม่สำเร็จ ลองรีเฟรชหน้านี้อีกครั้งนะคะ", "error");
     }
@@ -87,6 +93,11 @@ export default function FinancePage() {
     () => records.filter((r) => inRange(r.date, range)),
     [records, range]
   );
+  const creditShown = useMemo(
+    () => creditUses.filter((u) => inRange(u.date, range)).sort((a, b) => b.date.localeCompare(a.date)),
+    [creditUses, range]
+  );
+  const creditTotal = creditShown.reduce((s, u) => s + u.amount, 0);
   const summary = useMemo(() => {
     // รายการที่ติ๊ก "ไม่นับเป็นรายได้" ยังโชว์ในลิสต์ แต่ไม่เข้ายอดสรุป
     const counted = shown.filter((r) => !r.excluded);
@@ -252,6 +263,33 @@ export default function FinancePage() {
             <p className="font-extrabold text-wait">-{summary.expense.toLocaleString()}</p>
           </div>
         </div>
+        {creditShown.length > 0 && (
+          <div className="mt-2 rounded-petflow-sm bg-paper/70 px-3 py-2 text-[11px]">
+            <button
+              type="button"
+              onClick={() => setShowCredit((v) => !v)}
+              className="flex w-full items-center justify-between gap-2 text-left font-bold text-latte-deep"
+            >
+              <span>
+                ตัดเครดิต Member {creditShown.length} บิล · {creditTotal.toLocaleString()} ฿
+                <span className="font-normal text-brown-soft"> (ไม่นับเป็นรายรับ — เงินเข้าแล้วตอนเติมเครดิต)</span>
+              </span>
+              <span className={`inline-block transition-transform ${showCredit ? "-rotate-90" : "rotate-90"}`}><Icon name="chevron" size={14} /></span>
+            </button>
+            {showCredit && (
+              <ul className="mt-1.5 space-y-1 text-brown-soft">
+                {creditShown.map((u) => (
+                  <li key={u.invoiceId} className="flex justify-between gap-2">
+                    <Link href={`/admin/billing?bill=${u.invoiceId}`} className="truncate underline">
+                      {u.date.split("-").reverse().join("/")} · {[u.catName, u.customerName].filter(Boolean).join(" · ")}
+                    </Link>
+                    <span className="shrink-0 font-bold">{u.amount.toLocaleString()} ฿</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
 
       {formOpen && (

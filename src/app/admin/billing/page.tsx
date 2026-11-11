@@ -122,6 +122,10 @@ type Invoice = {
   bookingId?: string;
   depositReceivedAt?: string;
   createdAt?: string;
+  /** วิธีปิดบิล — member_credit = ตัดเครดิต Member, package = หักคอร์ส */
+  paymentMethod?: "transfer" | "member_credit" | "cash" | "package";
+  /** เงินที่เข้าร้านจริงของบิลนี้ (รายรับในหน้าการเงินที่ผูกบิล) */
+  moneyIn?: number;
   items?: {
     label: string;
     amount: number;
@@ -4315,6 +4319,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
                 )}
               </div>
             )}
+            {paid && <PaidHow inv={inv} />}
             {(!inv.items || inv.items.length === 0) && hasDep && (
               <p className="mt-2 text-[11px] font-bold text-ok">
                 มัดจำ{inv.depositReceivedAt || paid ? " (รับแล้ว) " : " (รอรับ) "}
@@ -4591,5 +4596,46 @@ export default function BillingPage() {
     <Suspense fallback={null}>
       <BillingTabs />
     </Suspense>
+  );
+}
+
+/**
+ * บิลที่ปิดแล้ว: บอกให้ชัดว่าจ่ายด้วยอะไร และยอดไหนขึ้นเป็นรายรับในหน้าการเงิน
+ * ตัดเครดิต Member / หักคอร์ส ไม่นับเป็นรายรับ (เงินเข้าไปแล้วตอนเติมเครดิต/ซื้อคอร์ส) —
+ * ถ้าไม่บอก ร้านจะงงว่าบิลรับครบแล้วทำไมหน้าการเงินไม่มียอด
+ */
+function PaidHow({ inv }: { inv: Invoice }) {
+  if (inv.moneyIn === undefined) return null;
+  const moneyIn = Math.max(0, inv.moneyIn);
+  const rest = Math.max(0, inv.total - moneyIn);
+  const method =
+    inv.paymentMethod === "member_credit"
+      ? "ตัดเครดิต Member"
+      : inv.paymentMethod === "package"
+        ? "หักคอร์ส"
+        : inv.paymentMethod === "cash"
+          ? "เงินสด"
+          : "โอน";
+  const viaCredit = inv.paymentMethod === "member_credit" || inv.paymentMethod === "package";
+  return (
+    <div className="mt-2 space-y-0.5 rounded-petflow-sm bg-paper/60 px-3 py-2 text-[11px]">
+      <div className="flex justify-between font-bold text-brown">
+        <span>ปิดบิลด้วย</span>
+        <span>{method}</span>
+      </div>
+      <div className="flex justify-between text-brown-soft">
+        <span>ขึ้นเป็นรายรับในหน้าการเงิน</span>
+        <span className="font-bold">{moneyIn.toLocaleString()} ฿</span>
+      </div>
+      {rest > 0 && viaCredit && (
+        <p className="font-bold text-latte-deep">
+          {method} {rest.toLocaleString()} ฿ — ไม่นับเป็นรายรับ เพราะเงินเข้าไปแล้วตอน
+          {inv.paymentMethod === "package" ? "ซื้อคอร์ส" : "เติมเครดิต"}
+        </p>
+      )}
+      {rest > 0 && !viaCredit && (
+        <p className="font-bold text-wait">ยังไม่มีรายรับอีก {rest.toLocaleString()} ฿ ในหน้าการเงิน</p>
+      )}
+    </div>
   );
 }

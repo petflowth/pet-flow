@@ -163,7 +163,7 @@ function rowToPromo(r: PromoRow): PromoRecord {
     discountAmount: r.discount_amount ?? undefined,
     imageUrl: r.image_url ?? undefined,
     startDate: r.start_date,
-    until: r.until,
+    until: r.until === NO_EXPIRY ? "" : r.until,
     active: r.active,
     kind: (r.kind as PromoKind) || "display",
     restriction: (r.restriction as PromoRestriction) || "none",
@@ -177,6 +177,12 @@ function rowToPromo(r: PromoRow): PromoRecord {
   };
 }
 
+/**
+ * โปร "ไม่หมดอายุ" — คอลัมน์ until ในฐานข้อมูลเป็น date not null เก็บ "" ไม่ได้
+ * (เดิมบันทึกไม่ผ่านทั้งหน้าโปรและตอนย้ายโปรจากตั้งค่า) เลยเก็บเป็นวันไกลๆ แล้วแปลงกลับเป็น "" ตอนอ่าน
+ */
+const NO_EXPIRY = "9999-12-31";
+
 function promoToRow(p: PromoRecord) {
   return {
     id: p.id,
@@ -189,7 +195,7 @@ function promoToRow(p: PromoRecord) {
     discount_amount: p.discountAmount ?? null,
     image_url: p.imageUrl ?? null,
     start_date: p.startDate,
-    until: p.until,
+    until: p.until || NO_EXPIRY,
     active: p.active,
     kind: p.kind,
     restriction: p.restriction,

@@ -182,7 +182,7 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
     const data = await fetchAccount(profile.lineUserId, profile.displayName, customer?.id);
     if (!data) return;
     setProfile((p) => (p ? { ...p, points: data.points } : p));
-    setHistory(data.history);
+    setHistory(Array.isArray(data.history) ? data.history : []);
   }, [profile?.lineUserId, profile?.displayName, customer?.id]);
 
   const setPoints = useCallback((points: number) => {
@@ -224,7 +224,7 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
         const data = await fetchAccount(base.lineUserId, base.displayName, sync?.customer?.id);
         if (data) {
           setProfile({ ...base, points: data.points });
-          setHistory(data.history);
+          setHistory(Array.isArray(data.history) ? data.history : []);
         } else {
           setProfile(base);
         }

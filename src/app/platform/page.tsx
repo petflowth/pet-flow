@@ -1,5 +1,6 @@
 "use client";
 
+import { copyText } from "@/lib/copy-text";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import MigrateOldDb from "./MigrateOldDb";
@@ -80,7 +81,7 @@ export default function PlatformDashboard() {
   const copyLink = async (text: string, key: string) => {
     let ok = false;
     try {
-      await navigator.clipboard.writeText(text);
+      await copyText(text);
       ok = true;
     } catch {
       const ta = document.createElement("textarea");
@@ -481,7 +482,7 @@ export default function PlatformDashboard() {
             <button
               type="button"
               onClick={() =>
-                navigator.clipboard.writeText(
+                copyText(
                   `ลิงก์: ${loginLinkFor(ownerLogin.slug)}\nusername: ${ownerLogin.username}\npassword: ${ownerLogin.password}`
                 )
               }

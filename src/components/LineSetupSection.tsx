@@ -1,5 +1,6 @@
 "use client";
 
+import { copyText } from "@/lib/copy-text";
 import { Icon } from "@/components/Icon";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { TIER_LABELS, type CustomerTier } from "@/lib/customer-tier";
@@ -43,7 +44,7 @@ export function RegistrationQrSection({ compact }: { compact?: boolean }) {
 
   const copy = async () => {
     if (!registerUrl) return;
-    await navigator.clipboard.writeText(registerUrl);
+    await copyText(registerUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -130,7 +131,7 @@ export function LiffSetupSection({ adminCode }: { adminCode?: string }) {
   }, [load]);
 
   const copyEndpoint = async () => {
-    await navigator.clipboard.writeText(endpointUrl);
+    await copyText(endpointUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

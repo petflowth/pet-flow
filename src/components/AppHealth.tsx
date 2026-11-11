@@ -34,25 +34,50 @@ function installFetchTimeout() {
   w.__petflowFetchPatched = true;
   const original = window.fetch.bind(window);
   window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-    // Request object / มี signal ของตัวเองอยู่แล้ว (เช่น adminJson) — ไม่ยุ่ง
-    if (input instanceof Request || init?.signal) return original(input, init);
     let url: URL;
     try {
-      url = new URL(String(input), window.location.href);
+      url = new URL(input instanceof Request ? input.url : String(input), window.location.href);
     } catch {
       return original(input, init);
     }
     if (!isOwnApi(url) || url.pathname.endsWith("/api/version")) return original(input, init);
+    // มี signal ของตัวเองอยู่แล้ว (เช่น adminJson) — ไม่ตั้งเวลาซ้อน
+    if (input instanceof Request || init?.signal) return original(input, init).then(jsonErrors);
     const method = (init?.method || "GET").toUpperCase();
     const ms = method === "GET" || method === "HEAD" ? 30_000 : 120_000;
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), ms);
-    return original(input, { ...init, signal: ctrl.signal }).finally(() => clearTimeout(timer));
+    return original(input, { ...init, signal: ctrl.signal })
+      .then(jsonErrors)
+      .finally(() => clearTimeout(timer));
   };
+}
+
+/**
+ * เซิร์ฟเวอร์ล่ม/ช้าเกิน Vercel ตอบเป็นหน้า HTML ("Bad gateway", 504) ไม่ใช่ JSON — โค้ดหน้าเกือบทุกหน้า
+ * เรียก res.json() ตรง ๆ แล้ว error หลุด ปุ่ม/หน้าหมุนค้างจนต้องรีเฟรช
+ * แปลงเป็น JSON {error} ที่สถานะเดิม หน้าจอจะแสดงข้อความ error ตามปกติแทน
+ */
+function jsonErrors(res: Response): Response {
+  if (res.ok) return res;
+  const type = res.headers.get("content-type") || "";
+  if (type.includes("json")) return res;
+  const message =
+    res.status === 504 || res.status === 502 || res.status === 503
+      ? "เซิร์ฟเวอร์ตอบช้าหรือไม่ว่างชั่วคราว ลองใหม่อีกครั้งนะคะ"
+      : `เซิร์ฟเวอร์ตอบผิดพลาด (HTTP ${res.status}) ลองใหม่อีกครั้งนะคะ`;
+  return new Response(JSON.stringify({ error: message, message }), {
+    status: res.status,
+    statusText: res.statusText,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 /** เปลี่ยนหน้าแล้ว = ฟอร์มของหน้าก่อนหายไปแล้ว นับใหม่ว่ายังไม่ได้พิมพ์อะไร */
 let dirty = false;
+
+// ติดตั้งทันทีที่โหลดไฟล์ (ก่อน useEffect ของหน้าลูก ๆ ที่ยิง fetch ตอนเปิดหน้า — effect ของลูกรันก่อนของแม่)
+if (typeof window !== "undefined") installFetchTimeout();
 
 export function AppHealth() {
   const pathname = usePathname();

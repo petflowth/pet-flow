@@ -1,5 +1,6 @@
 "use client";
 
+import { copyText } from "@/lib/copy-text";
 import Link from "next/link";
 import { askDepositReceive } from "@/lib/deposit-confirm";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
@@ -1269,7 +1270,7 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
 
   const copySummary = async (mode: "booking" | "deposit" | "full") => {
     try {
-      await navigator.clipboard.writeText(buildSummary(mode));
+      await copyText(buildSummary(mode));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {

@@ -44,6 +44,8 @@ import { dayEntries, dayMoveLabel, dayMoves, firstMoveTime, type DayMove } from 
 
 type CalendarDay = EditableBooking & {
   customerId?: string;
+  /** ร้านหลายสาขา: ชื่อสาขาของนัด — โชว์ตอนดู "ทุกสาขา" */
+  branchName?: string;
   /** ป้ายเตือนของแมวตัวนี้ — หลังบ้านเท่านั้น (API ไม่ส่งให้ฝั่งลูกค้า) */
   catMedical?: string;
   catStaffNote?: string;
@@ -251,6 +253,9 @@ function MiniEntry({
       )}
       {names}
       <span className="font-normal text-brown-faint"> · {b.customerName}</span>
+      {b.branchName && !readBranchCookie() && (
+        <span className="font-normal text-latte-deep"> · {b.branchName}</span>
+      )}
       {moveWord && !time && <span className="font-normal text-wait"> · ยังไม่แจ้งเวลา</span>}
     </button>
   );

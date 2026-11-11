@@ -205,7 +205,8 @@ async function handleGet(lineUserId?: string, customerApp = false, branchId: str
       depositSlipUrl: b.depositSlipUrl,
       depositStatus: b.depositStatus,
       roomSegments: b.roomSegments,
-      branchId: b.branchId,
+      // สาขาจริงของนัด (ห้องพักตามสาขาของห้อง) — ไม่ใช่ค่าดิบที่บันทึกไว้ ซึ่งนัดห้องพัก/นัดเก่าไม่มี
+      branchId: isMultiBranch(branchCfg) ? bookingBranchId(branchCfg, b) : b.branchId,
       branchName: branchNameOf(b),
       customerId: customer?.id,
       catMedical: cat?.medical || undefined,

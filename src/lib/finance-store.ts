@@ -222,6 +222,12 @@ export async function addFinanceEntry(
   // ยอดติดลบทำให้รายงานเพี้ยน (รายรับติดลบ = ยอดขายหายไปเฉยๆ) — บันทึกเป็นค่าสัมบูรณ์
   // ถ้าตั้งใจจะลงรายจ่าย ให้เลือกประเภท "รายจ่าย" ไม่ใช่ใส่เลขติดลบในรายรับ
   data = { ...data, amount: Math.abs(Math.round(Number(data.amount) || 0)) };
+  // ร้านหลายสาขา: รายการที่ไม่ได้ระบุสาขาและไม่ได้ผูกบิล (ขายคอร์ส เติมเครดิต ค่างวด)
+  // ลงเป็นของสาขาที่หลังบ้านกำลังเลือกดูอยู่ · ส่ง branchId: "" มา = ตั้งใจไม่ผูกสาขา
+  if (data.branchId === undefined && !data.invoiceId) {
+    const { requestBranchScope } = await import("./branch-scope");
+    data = { ...data, branchId: (await requestBranchScope()) || undefined };
+  }
 
   const rec: FinanceRecord = {
     ...data,

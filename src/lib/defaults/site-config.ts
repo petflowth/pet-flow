@@ -32,6 +32,12 @@ export function getBlankShopConfig(name: string, petKind: PetKind = "cat"): Site
   return applyPetFormat(config, petKind);
 }
 
+/**
+ * ข้อความตั้งต้นตอนทักลูกค้าที่หายไป — สั้น น่ารัก ไม่บอกว่าหายไปกี่วัน (ลูกค้าอ่านแล้วรู้สึกเหมือนโดนนับวัน)
+ * ร้านแก้เองได้ที่ ตั้งค่า › ตามลูกค้า หรือหน้าการ์ด "คิดถึงน้อง" · ยังใช้ {days} ได้ถ้าร้านอยากใส่เอง
+ */
+export const FOLLOW_UP_DEFAULT = "สวัสดีค่ะ {name} 🐾\nคิดถึงน้อง{pets} จังเลย 💛\n{shop} มีสิทธิพิเศษมามอบให้นะคะ 🎁";
+
 export function getDefaultSiteConfig(): SiteConfig {
   return JSON.parse(
     JSON.stringify({
@@ -41,7 +47,7 @@ export function getDefaultSiteConfig(): SiteConfig {
         inactiveDays: 60,
         followUpCooldownDays: 30,
         followUpMessage:
-          "สวัสดีค่ะ {name} จาก {shop} 🐾\nคิดถึงน้อง{pets} นะคะ มาไม่ได้นาน {days} วันแล้ว มีโปรพิเศษรออยู่ที่แอปนะคะ 💛",
+          FOLLOW_UP_DEFAULT,
         tierPresets: ["VIP", "Gold", "Silver"],
         tierRules: {
           regularMinVisits: 1,

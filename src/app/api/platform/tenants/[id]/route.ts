@@ -13,6 +13,8 @@ import { logAudit } from "@/lib/audit-log";
 import {
   clearTenantGateCache,
   ensureDueDateColumn,
+  ensureBranchLimitColumn,
+  isMissingBranchLimit,
   isMissingDueDate,
   extendDueDate,
 } from "@/lib/tenant-billing";
@@ -202,6 +204,26 @@ export async function PATCH(
       afterState: { dueDate, status: update.status || tenant.status },
     });
     return NextResponse.json({ ok: true, dueDate });
+  }
+
+  if (action === "set_branch_limit") {
+    // หลายสาขา = ฟังก์ชันจ่ายเพิ่ม · ตั้งเองได้ (เช่นร้านจ่ายนอกระบบ หรือให้ลองใช้) · 1 = ปิดฟังก์ชันสาขา
+    const limit = Math.min(20, Math.max(1, Math.floor(Number(body.limit) || 1)));
+    const write = () => sb.from("tenants").update({ branch_limit: limit }).eq("id", id);
+    let { error } = await write();
+    if (error && isMissingBranchLimit(error.message) && (await ensureBranchLimitColumn())) ({ error } = await write());
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    clearTenantGateCache();
+    await logAudit({
+      tenantId: id,
+      actorType: "platform",
+      actorId: "platform_owner",
+      action: "set_tenant_branch_limit",
+      resourceType: "tenant",
+      resourceId: id,
+      afterState: { branchLimit: limit },
+    });
+    return NextResponse.json({ ok: true, branchLimit: limit });
   }
 
   if (action === "set_domain") {

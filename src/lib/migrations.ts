@@ -753,6 +753,15 @@ where staff_note like '%🎁%';`,
   { name: "finance_records.branch_id", sql: "alter table finance_records add column if not exists branch_id text;" },
   // สาขาที่พนักงานเห็นได้ · ว่าง = ทุกสาขา
   { name: "staff_users.branches", sql: "alter table staff_users add column if not exists branches jsonb;" },
+  {
+    // หลายสาขาเป็นฟังก์ชันจ่ายเพิ่ม — tenants.branch_limit = จำนวนสาขาที่ร้านใช้ได้ (ว่าง = 1 สาขา)
+    // tenant_payments.branches = สลิปนี้จ่ายแพ็กเกจกี่สาขา (อนุมัติแล้วตั้ง branch_limit ตาม)
+    name: "tenants.branch_limit",
+    sql: `
+      alter table tenants add column if not exists branch_limit int;
+      alter table tenant_payments add column if not exists branches int;
+    `,
+  },
 ];
 
 export type MigrateResult = {

@@ -16,6 +16,7 @@ type Tenant = {
   trialEndsAt: string | null;
   /** วันครบกำหนดจ่ายค่าบริการ — ถึงวันนี้ยังไม่จ่าย ร้านปิดเองอัตโนมัติ */
   dueDate: string | null;
+  branchLimit?: number;
   /** โดเมนของร้านเอง (เช่น catcha.com) — ว่าง = ใช้ลิงก์ /s/<slug> อย่างเดียว */
   customDomain: string | null;
   createdAt: string;
@@ -557,6 +558,21 @@ export default function PlatformDashboard() {
                         onChange={(e) => billing(t, { action: "set_due_date", dueDate: e.target.value })}
                         className="rounded border border-white/15 bg-black/30 px-1.5 py-0.5 text-white [color-scheme:dark]"
                       />
+                    </label>
+                    <label className="flex items-center gap-1 text-white/60" title="หลายสาขาเป็นฟังก์ชันจ่ายเพิ่ม · 1 = ใช้ฟังก์ชันสาขาไม่ได้">
+                      🏬 สาขาที่ใช้ได้
+                      <select
+                        value={t.branchLimit || 1}
+                        disabled={busyId === t.id}
+                        onChange={(e) => billing(t, { action: "set_branch_limit", limit: Number(e.target.value) })}
+                        className="rounded border border-white/15 bg-black/30 px-1.5 py-0.5 text-white"
+                      >
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <option key={n} value={n}>
+                            {n}
+                          </option>
+                        ))}
+                      </select>
                     </label>
                     {t.dueDate && today >= t.dueDate && (
                       <span className="rounded-full bg-red-500/25 px-2 py-0.5 font-bold text-red-200">

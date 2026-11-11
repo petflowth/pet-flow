@@ -55,6 +55,7 @@ import {
   staffNoteTags,
 } from "@/lib/shop-rules";
 import {
+  branchLimitOf,
   branchHasOverride,
   clearBranchOverrides,
   configForBranch,
@@ -588,6 +589,10 @@ function BranchesTab({
   const update = (idx: number, patch: Partial<Branch>) =>
     setList((prev) => prev.map((b, i) => (i === idx ? { ...b, ...patch } : b)));
 
+  // หลายสาขาเป็นฟังก์ชันจ่ายเพิ่ม — แพ็กเกจให้กี่สาขา เพิ่มได้เท่านั้น
+  const limit = branchLimitOf(config);
+  const locked = limit < 2;
+
   const add = () =>
     setList((prev) => {
       // เพิ่มครั้งแรก: สร้างสาขาแรกจากข้อมูลร้านเดิมให้เลย แล้วตามด้วยสาขาใหม่ให้กรอก
@@ -648,8 +653,27 @@ function BranchesTab({
         <p className="mt-1">ข้อมูลเดิมทั้งหมดของร้านนับเป็นของสาขาแรก · ร้านสาขาเดียวไม่ต้องตั้งหน้านี้</p>
       </div>
 
+      {locked && (
+        <div className="rounded-petflow border border-honey bg-honey/10 p-4 text-xs leading-relaxed text-brown">
+          <p className="font-extrabold text-petflow-chocolate">ฟังก์ชันหลายสาขาอยู่ในแพ็กเกจ 2 สาขา</p>
+          <p className="mt-1">
+            ร้านใช้แพ็กเกจ 1 สาขาอยู่ จึงยังเพิ่มสาขาไม่ได้ ชำระแพ็กเกจ 2 สาขาแล้วระบบเปิดให้เอง
+            {list.length >= 2 ? " · สาขาที่เคยตั้งไว้ยังอยู่ครบ ตอนนี้ระบบนับรวมเป็นสาขาแรก" : ""}
+          </p>
+          <a
+            href="/admin/subscription"
+            className="mt-2 inline-flex h-10 items-center rounded-full bg-latte-deep px-4 text-xs font-extrabold text-white"
+          >
+            ดูแพ็กเกจ 2 สาขา
+          </a>
+        </div>
+      )}
+
       {list.map((b, idx) => (
-        <div key={b.id} className="space-y-2 rounded-petflow border border-petflow-line bg-card p-4">
+        <div
+          key={b.id}
+          className={`space-y-2 rounded-petflow border border-petflow-line bg-card p-4 ${idx >= limit ? "opacity-50" : ""}`}
+        >
           <div className="flex items-center justify-between gap-2">
             <p className="text-[11px] font-extrabold text-latte-deep">
               {idx === 0 ? "สาขาแรก (สาขาหลัก)" : `สาขาที่ ${idx + 1}`}
@@ -677,13 +701,16 @@ function BranchesTab({
         </div>
       ))}
 
-      <button
-        type="button"
-        onClick={add}
-        className="flex h-11 w-full items-center justify-center gap-1.5 rounded-full border border-dashed border-latte-deep text-xs font-extrabold text-latte-deep"
-      >
-        + เพิ่มสาขา
-      </button>
+      {!locked && (
+        <button
+          type="button"
+          onClick={add}
+          disabled={list.length >= limit}
+          className="flex h-11 w-full items-center justify-center gap-1.5 rounded-full border border-dashed border-latte-deep text-xs font-extrabold text-latte-deep disabled:opacity-40"
+        >
+          {list.length >= limit ? `แพ็กเกจนี้ใช้ได้ ${limit} สาขา` : "+ เพิ่มสาขา"}
+        </button>
+      )}
       {list.length === 1 && (
         <p className="text-center text-[11px] text-brown-faint">มีสาขาเดียว = ระบบทำงานแบบร้านสาขาเดียวเหมือนเดิม</p>
       )}

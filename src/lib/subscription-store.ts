@@ -1,6 +1,12 @@
 import { getDirectoryDb } from "./supabase/server";
 import { ensureMigration } from "./migrations";
-import { clearTenantGateCache, extendDueDate, isMissingDueDate } from "./tenant-billing";
+import {
+  clearTenantGateCache,
+  ensureBranchLimitColumn,
+  extendDueDate,
+  isMissingBranchLimit,
+  isMissingDueDate,
+} from "./tenant-billing";
 
 /**
  * ค่าบริการ PetFlow ที่ร้านจ่ายให้แพลตฟอร์ม (ไม่ใช่บิลลูกค้าของร้าน)
@@ -15,9 +21,21 @@ export type Plan = "month" | "year";
 export const PLAN_MONTHS: Record<Plan, number> = { month: 1, year: 12 };
 export const PLAN_LABEL: Record<Plan, string> = { month: "รายเดือน", year: "รายปี" };
 
+/** แพ็กเกจตามจำนวนสาขา — 1 = ร้านสาขาเดียว · 2 = ใช้ฟังก์ชันหลายสาขาได้ (จ่ายเพิ่ม) */
+export type PlanBranches = 1 | 2;
+
+/** ราคาของแพ็กเกจนั้น (0 = ผู้ดูแลระบบยังไม่ตั้งราคา ร้านเลือกไม่ได้) */
+export function planPrice(s: BillingSettings, plan: Plan, branches: PlanBranches): number {
+  if (branches === 2) return plan === "year" ? s.yearly2 : s.monthly2;
+  return plan === "year" ? s.yearly : s.monthly;
+}
+
 export type BillingSettings = {
   monthly: number;
   yearly: number;
+  /** ราคาแพ็กเกจ 2 สาขา (0 = ยังไม่เปิดขาย) */
+  monthly2: number;
+  yearly2: number;
   bankName: string;
   accountName: string;
   accountNo: string;
@@ -28,6 +46,8 @@ export type BillingSettings = {
 export const DEFAULT_BILLING: BillingSettings = {
   monthly: 0,
   yearly: 0,
+  monthly2: 0,
+  yearly2: 0,
   bankName: "",
   accountName: "",
   accountNo: "",
@@ -39,6 +59,7 @@ export type TenantPayment = {
   id: string;
   tenantId: string;
   plan: Plan;
+  branches: PlanBranches;
   amount: number;
   slipUrl: string;
   note: string;
@@ -54,6 +75,7 @@ type PaymentRow = {
   id: string;
   tenant_id: string;
   plan: string;
+  branches?: number | null;
   amount: number | string;
   slip_url: string | null;
   note: string | null;
@@ -70,6 +92,7 @@ function rowToPayment(r: PaymentRow): TenantPayment {
     id: r.id,
     tenantId: r.tenant_id,
     plan: r.plan === "year" ? "year" : "month",
+    branches: Number(r.branches) >= 2 ? 2 : 1,
     amount: Number(r.amount) || 0,
     slipUrl: r.slip_url || "",
     note: r.note || "",
@@ -119,6 +142,8 @@ export async function saveBillingSettings(input: Partial<BillingSettings>): Prom
   const value: BillingSettings = {
     monthly: Math.max(0, Number(input.monthly) || 0),
     yearly: Math.max(0, Number(input.yearly) || 0),
+    monthly2: Math.max(0, Number(input.monthly2) || 0),
+    yearly2: Math.max(0, Number(input.yearly2) || 0),
     bankName: String(input.bankName || "").slice(0, 100),
     accountName: String(input.accountName || "").slice(0, 100),
     accountNo: String(input.accountNo || "").slice(0, 50),
@@ -136,7 +161,7 @@ export async function saveBillingSettings(input: Partial<BillingSettings>): Prom
 /** วันครบกำหนด + สถานะของร้าน (อ่านตรง ไม่ผ่าน cache) */
 export async function getTenantBilling(
   tenantId: string
-): Promise<{ name: string; status: string; dueDate: string | null } | null> {
+): Promise<{ name: string; status: string; dueDate: string | null; branchLimit: number } | null> {
   const sb = getDirectoryDb();
   if (!sb) return null;
   const q = (cols: string) => sb.from("tenants").select(cols).eq("id", tenantId).maybeSingle();
@@ -144,7 +169,10 @@ export async function getTenantBilling(
   if (error && isMissingDueDate(error.message)) ({ data, error } = await q("name, status"));
   if (error || !data) return null;
   const row = data as unknown as { name: string; status: string; due_date?: string | null };
-  return { name: row.name, status: row.status, dueDate: row.due_date || null };
+  // อ่านแยก — ฐานที่ยังไม่มีคอลัมน์ branch_limit ต้องไม่ทำให้หน้าค่าบริการพัง
+  const { data: lim } = await sb.from("tenants").select("branch_limit").eq("id", tenantId).maybeSingle();
+  const branchLimit = Math.max(1, Math.floor(Number((lim as { branch_limit?: number | null } | null)?.branch_limit) || 1));
+  return { name: row.name, status: row.status, dueDate: row.due_date || null, branchLimit };
 }
 
 export async function listPayments(filter: { tenantId?: string; limit?: number } = {}): Promise<TenantPayment[]> {
@@ -173,22 +201,28 @@ export async function createPayment(input: {
   id: string;
   tenantId: string;
   plan: Plan;
+  branches: PlanBranches;
   amount: number;
   slipUrl: string;
   note: string;
 }): Promise<void> {
   const sb = db();
-  const { error } = await withSchema(() =>
-    sb.from("tenant_payments").insert({
-      id: input.id,
-      tenant_id: input.tenantId,
-      plan: input.plan,
-      amount: input.amount,
-      slip_url: input.slipUrl,
-      note: input.note,
-      status: "pending",
-    })
-  );
+  const insert = () =>
+    withSchema(() =>
+      sb.from("tenant_payments").insert({
+        id: input.id,
+        tenant_id: input.tenantId,
+        plan: input.plan,
+        branches: input.branches,
+        amount: input.amount,
+        slip_url: input.slipUrl,
+        note: input.note,
+        status: "pending",
+      })
+    );
+  let { error } = await insert();
+  // ยังไม่มีคอลัมน์ branches — สร้างให้แล้วลองใหม่ (สลิปแพ็กเกจ 2 สาขาห้ามบันทึกเป็น 1 สาขาเงียบ ๆ)
+  if (error && isMissingBranchLimit(error.message) && (await ensureBranchLimitColumn())) ({ error } = await insert());
   if (error) throw new Error(error.message);
 }
 
@@ -230,9 +264,12 @@ export async function decidePayment(
   if (claimErr) throw new Error(claimErr.message);
   if (!claimed?.length) throw new Error("รายการนี้ตัดสินไปแล้ว");
 
-  const update: Record<string, unknown> = { due_date: dueAfter };
+  // แพ็กเกจที่จ่าย = จำนวนสาขาที่ใช้ได้ (จ่าย 1 สาขา = ฟังก์ชันหลายสาขาปิด · จ่าย 2 สาขา = เปิด)
+  const update: Record<string, unknown> = { due_date: dueAfter, branch_limit: p.branches };
   if (t.status === "trial") update.status = "active";
-  const { error } = await sb.from("tenants").update(update).eq("id", p.tenantId);
+  const write = () => sb.from("tenants").update(update).eq("id", p.tenantId);
+  let { error } = await write();
+  if (error && isMissingBranchLimit(error.message) && (await ensureBranchLimitColumn())) ({ error } = await write());
   if (error) throw new Error(error.message);
   clearTenantGateCache();
   return { ...p, status: "approved", decidedNote, decidedAt: now, dueBefore: t.dueDate, dueAfter };

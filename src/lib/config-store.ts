@@ -9,6 +9,7 @@ import { latestShopIntakeAnswers } from "./shop-intake-store";
 import { petKindFromIntake, speciesOfBreed, type PetKind } from "./pet-kind";
 import { withDogShopDefaults } from "./defaults/pet-format";
 import { forgetInRequest, memoInRequest } from "./request-memo";
+import { tenantBranchLimit } from "./tenant-billing";
 
 /**
  * ร้านที่ยังไม่ได้ตั้ง business.petKind แต่เคยตอบแบบสอบถามเปิดร้านว่าเป็นร้านหมา (เช่น ร้านที่ตอบก่อนมีค่านี้)
@@ -186,7 +187,18 @@ export async function getSiteConfig(): Promise<SiteConfig> {
   const cfg = await memoInRequest(siteConfigMemoKey, async () =>
     applyBrandCardDefaults(await getRawSiteConfig())
   );
-  return structuredClone(cfg);
+  const out = structuredClone(cfg);
+  // หลายสาขา = ฟังก์ชันจ่ายเพิ่ม · เติมจำนวนสาขาที่แพ็กเกจใช้ได้ ให้ shopBranches() ทั้งฝั่งหน้าเว็บและ server ตัดตามนี้
+  return withBranchLimit(out);
+}
+
+async function withBranchLimit(config: SiteConfig): Promise<SiteConfig> {
+  const tenant = requireTenantId();
+  config.branchLimit = await memoInRequest(
+    () => `branch_limit:${tenant}`,
+    () => tenantBranchLimit(tenant)
+  );
+  return config;
 }
 
 function siteConfigMemoKey() {
@@ -242,11 +254,12 @@ async function getRawSiteConfig(): Promise<SiteConfig> {
 
 export async function replaceSiteConfig(config: SiteConfig) {
   forgetInRequest(siteConfigMemoKey);
-  const next = {
+  const next: SiteConfig = {
     ...(await offloadDataUrls(stripBrandCardDefaults(config), `config/${requireTenantId()}`)),
     updatedAt: new Date().toISOString(),
     version: (config.version || 0) + 1,
   };
+  delete next.branchLimit;
   const sb = getSupabase();
   if (sb) {
     await sb.from("site_config").upsert({
@@ -259,7 +272,7 @@ export async function replaceSiteConfig(config: SiteConfig) {
     memConfig = next;
   }
   forgetInRequest(siteConfigMemoKey);
-  return applyBrandCardDefaults(next);
+  return withBranchLimit(applyBrandCardDefaults(next));
 }
 
 export async function updateSiteConfig(patch: Partial<SiteConfig>) {
@@ -270,6 +283,7 @@ export async function updateSiteConfig(patch: Partial<SiteConfig>) {
   );
   next.updatedAt = new Date().toISOString();
   next.version = (current.version || 0) + 1;
+  delete next.branchLimit;
 
   const sb = getSupabase();
   if (sb) {
@@ -284,7 +298,7 @@ export async function updateSiteConfig(patch: Partial<SiteConfig>) {
   }
 
   forgetInRequest(siteConfigMemoKey);
-  return applyBrandCardDefaults(next);
+  return withBranchLimit(applyBrandCardDefaults(next));
 }
 
 export function getRoomFromConfig(config: SiteConfig, id: string) {

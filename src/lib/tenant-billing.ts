@@ -95,4 +95,41 @@ export function tenantGateById(id: string) {
 /** ล้าง cache หลังผู้ดูแลระบบเปลี่ยนสถานะ/วันจ่าย (มีผลทันทีในเครื่องนี้ เครื่องอื่นตาม TTL) */
 export function clearTenantGateCache() {
   cache.clear();
+  limitCache.clear();
+}
+
+/**
+ * หลายสาขาเป็นฟังก์ชันจ่ายเพิ่ม — tenants.branch_limit = จำนวนสาขาที่ร้านใช้ได้
+ * ว่าง/ยังไม่มีคอลัมน์ = 1 สาขา (แพ็กเกจปกติ) · ไม่ได้ต่อฐานข้อมูล (โหมดทดลองในเครื่อง) = ไม่จำกัด
+ * ตั้งได้ 2 ทาง: อนุมัติสลิปแพ็กเกจหลายสาขา หรือผู้ดูแลระบบตั้งเองที่หน้า /platform
+ */
+export const NO_BRANCH_LIMIT = 99;
+
+export function isMissingBranchLimit(msg: string) {
+  return /(branch_limit|branches)/i.test(msg) && /(does not exist|could not find|schema cache|PGRST204|42703)/i.test(msg);
+}
+
+export async function ensureBranchLimitColumn() {
+  const { ensureMigration } = await import("./migrations");
+  return ensureMigration("tenants.branch_limit");
+}
+
+const limitCache = new Map<string, { limit: number; at: number }>();
+
+export async function tenantBranchLimit(tenantId: string): Promise<number> {
+  const sb = getDirectoryDb();
+  if (!sb) return NO_BRANCH_LIMIT;
+  const hit = limitCache.get(tenantId);
+  if (hit && Date.now() - hit.at < TTL_MS) return hit.limit;
+  let limit = 1;
+  try {
+    const { data, error } = await sb.from("tenants").select("branch_limit").eq("id", tenantId).maybeSingle();
+    // อ่านไม่ได้เพราะเหตุอื่น (เน็ตสะดุด) อย่าจำค่า 1 ไว้ — ร้านที่จ่ายแล้วจะเห็นสาขาหายไป 1 นาที
+    if (error && !isMissingBranchLimit(error.message)) return hit?.limit ?? 1;
+    limit = Math.max(1, Math.floor(Number((data as { branch_limit?: number | null } | null)?.branch_limit) || 1));
+  } catch {
+    return hit?.limit ?? 1;
+  }
+  limitCache.set(tenantId, { limit, at: Date.now() });
+  return limit;
 }

@@ -8,6 +8,8 @@ type Plan = "month" | "year";
 type Settings = {
   monthly: number;
   yearly: number;
+  monthly2: number;
+  yearly2: number;
   bankName: string;
   accountName: string;
   accountNo: string;
@@ -17,6 +19,7 @@ type Settings = {
 type Payment = {
   id: string;
   plan: Plan;
+  branches?: number;
   amount: number;
   slipUrl: string;
   status: "pending" | "approved" | "rejected";
@@ -24,7 +27,14 @@ type Payment = {
   decidedNote: string;
   createdAt: string;
 };
-type Data = { status: string; dueDate: string | null; overdue: boolean; settings: Settings; payments: Payment[] };
+type Data = {
+  status: string;
+  dueDate: string | null;
+  overdue: boolean;
+  branchLimit: number;
+  settings: Settings;
+  payments: Payment[];
+};
 
 const PLAN_LABEL: Record<Plan, string> = { month: "รายเดือน", year: "รายปี" };
 const STATUS_LABEL = { pending: "⏳ รออนุมัติ", approved: "✅ อนุมัติแล้ว", rejected: "❌ ไม่อนุมัติ" };
@@ -64,6 +74,8 @@ function shrinkImage(file: File): Promise<string> {
 export default function SubscriptionPage() {
   const [data, setData] = useState<Data | null>(null);
   const [plan, setPlan] = useState<Plan>("month");
+  // แพ็กเกจกี่สาขา — ยังไม่เลือกเอง = ตามแพ็กเกจที่ร้านใช้อยู่ (ร้าน 2 สาขาต่ออายุแล้วไม่หลุดเป็น 1 สาขาเอง)
+  const [tierPick, setTierPick] = useState<1 | 2 | null>(null);
   const [slip, setSlip] = useState("");
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
@@ -87,6 +99,9 @@ export default function SubscriptionPage() {
     }
   };
 
+  const has2 = !!data && (data.settings.monthly2 > 0 || data.settings.yearly2 > 0);
+  const tier: 1 | 2 = has2 ? tierPick ?? (data && data.branchLimit >= 2 ? 2 : 1) : 1;
+
   const send = async () => {
     if (!slip) return toast("แนบรูปสลิปก่อนนะคะ", "error");
     setSending(true);
@@ -94,7 +109,7 @@ export default function SubscriptionPage() {
       const res = await fetch("/api/subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, slip, note }),
+        body: JSON.stringify({ plan, branches: tier, slip, note }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) return toast(d.error || "ส่งไม่สำเร็จ", "error");
@@ -109,7 +124,8 @@ export default function SubscriptionPage() {
 
   if (!data) return <p className="py-10 text-center text-sm text-brown-soft">กำลังโหลด…</p>;
   const s = data.settings;
-  const price = plan === "year" ? s.yearly : s.monthly;
+  const priceOf = (p: Plan) => (tier === 2 ? (p === "year" ? s.yearly2 : s.monthly2) : p === "year" ? s.yearly : s.monthly);
+  const price = priceOf(plan);
   const pending = data.payments.some((p) => p.status === "pending");
 
   return (
@@ -135,6 +151,9 @@ export default function SubscriptionPage() {
         ) : (
           <p className="text-sm font-bold">ยังไม่มีรอบชำระ — ชำระครั้งแรกแล้วระบบนับรอบให้เอง</p>
         )}
+        <p className="mt-2 text-xs font-bold">
+          แพ็กเกจตอนนี้: {data.branchLimit >= 2 ? `${data.branchLimit} สาขา (ใช้ฟังก์ชันหลายสาขาได้)` : "1 สาขา"}
+        </p>
         {pending && <p className="mt-2 text-xs font-bold">⏳ มีสลิปรอผู้ดูแลระบบอนุมัติอยู่</p>}
       </div>
 
@@ -142,9 +161,37 @@ export default function SubscriptionPage() {
         <section>
           <SectionLabel>ชำระค่าบริการ</SectionLabel>
           <div className="space-y-4 rounded-petflow bg-card p-4 shadow-petflow-sm">
+            {has2 && (
+              <div>
+                <p className="mb-1.5 text-xs font-bold text-brown-soft">ร้านมีกี่สาขา</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {([1, 2] as const).map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setTierPick(n)}
+                      className={`rounded-petflow-sm border-2 p-3 text-left ${
+                        tier === n ? "border-latte-deep bg-latte/10" : "border-petflow-line"
+                      }`}
+                    >
+                      <p className="text-sm font-extrabold text-petflow-chocolate">{n} สาขา</p>
+                      <p className="text-xs text-brown-soft">
+                        {n === 1 ? "ร้านสาขาเดียว" : "เปิดฟังก์ชันหลายสาขา แยกห้อง คิว บิล และยอดตามสาขา"}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+                {tier === 1 && data.branchLimit >= 2 && (
+                  <p className="mt-1.5 text-[11px] font-bold text-wait">
+                    ถ้าต่ออายุแบบ 1 สาขา ฟังก์ชันหลายสาขาจะปิด ข้อมูลทุกสาขาจะนับรวมเป็นสาขาแรก
+                  </p>
+                )}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-2">
               {(["month", "year"] as Plan[]).map((p) => {
-                const amount = p === "year" ? s.yearly : s.monthly;
+                const amount = priceOf(p);
+                const monthAmount = priceOf("month");
                 return (
                   <button
                     key={p}
@@ -157,8 +204,8 @@ export default function SubscriptionPage() {
                     <p className="text-sm font-extrabold text-petflow-chocolate">{PLAN_LABEL[p]}</p>
                     <p className="text-xs text-brown-soft">
                       {amount ? `${amount.toLocaleString()} บาท` : "สอบถามราคา"}
-                      {p === "year" && s.monthly > 0 && s.yearly > 0 && s.yearly < s.monthly * 12
-                        ? ` · ประหยัด ${(s.monthly * 12 - s.yearly).toLocaleString()} บาท`
+                      {p === "year" && monthAmount > 0 && amount > 0 && amount < monthAmount * 12
+                        ? ` · ประหยัด ${(monthAmount * 12 - amount).toLocaleString()} บาท`
                         : ""}
                     </p>
                   </button>
@@ -219,7 +266,8 @@ export default function SubscriptionPage() {
               <li key={p.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
                 <div className="min-w-0">
                   <p className="font-bold text-brown">
-                    {PLAN_LABEL[p.plan]} · {p.amount.toLocaleString()} บาท
+                    {PLAN_LABEL[p.plan]}
+                    {(p.branches || 1) >= 2 ? ` ${p.branches} สาขา` : ""} · {p.amount.toLocaleString()} บาท
                   </p>
                   <p className="text-[11px] text-brown-soft">
                     ส่งเมื่อ {thaiDate(p.createdAt)}

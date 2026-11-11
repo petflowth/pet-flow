@@ -585,7 +585,10 @@ where staff_note like '%🎁%';`,
       create table if not exists pos_sales (id text primary key, tenant_id text not null, no text not null, date date not null, items jsonb not null default '[]'::jsonb, subtotal numeric not null default 0, discount numeric not null default 0, total numeric not null default 0, method text not null, cash_received numeric, change numeric, customer_id text, customer_name text, note text, status text not null default 'paid', created_at timestamptz not null default now(), voided_at timestamptz);
       create index if not exists pos_sales_date_idx on pos_sales (tenant_id, date, created_at desc);
       create table if not exists pos_closings (id text primary key, tenant_id text not null, date date not null, expected_cash numeric not null default 0, counted_cash numeric not null default 0, diff numeric not null default 0, opening_cash numeric not null default 0, totals jsonb, note text, created_at timestamptz not null default now());
-      create unique index if not exists pos_closings_tenant_date_idx on pos_closings (tenant_id, date);
+      -- ปิดยอดแยกลิ้นชักตามสาขา: วันละ 1 รายการต่อสาขา ('' = ร้านสาขาเดียว / ของเดิมก่อนมีสาขา = สาขาแรก)
+      alter table pos_closings add column if not exists branch_id text not null default '';
+      drop index if exists pos_closings_tenant_date_idx;
+      create unique index if not exists pos_closings_tenant_date_branch_idx on pos_closings (tenant_id, date, branch_id);
       alter table pos_products enable row level security;
       alter table pos_stock_moves enable row level security;
       alter table pos_sales enable row level security;

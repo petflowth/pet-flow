@@ -312,12 +312,13 @@ export async function middleware(req: NextRequest) {
     });
   }
 
-  // หน้าเว็บโฆษณา (หน้าแรก/ห้องพัก/อาบน้ำ/บทความ) เขียนไว้เฉพาะร้านตัวอย่าง PetFlow —
+  // หน้าเว็บโฆษณา (หน้าแรก/ห้องพัก/อาบน้ำ/บทความ + หน้า SEO ขายระบบ PetFlow) เขียนไว้เฉพาะร้านตัวอย่าง PetFlow —
   // ร้านอื่นเปิด /s/<slug>/ แล้วต้องไม่เห็นชื่อ/รูป/ราคาของ PetFlow → ส่งไปหน้าแอปของร้านตัวเองแทน
   if (
     tenantSlug &&
     tenantSlug !== "petflow" &&
-    (pathname === "/" || /^\/(cat-bath|cat-hotel|blog)(\/|$)/.test(pathname))
+    (pathname === "/" ||
+      /^\/(cat-bath|cat-hotel|blog|pet-grooming-software|pet-hotel-software|pet-booking-system|pet-shop-pos|pet-shop-crm)(\/|$)/.test(pathname))
   ) {
     const url = req.nextUrl.clone();
     url.pathname = shopPath(tenantSlug, "/app");

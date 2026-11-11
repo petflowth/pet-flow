@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     description: "ห้องแอร์ส่วนตัวทุกห้อง มีห้องเดี่ยว ห้องคู่ ห้องวิวหน้าต่าง CCTV ดูน้องได้",
     images: [{ url: "/catalog/rooms/cat-hotel-bangna-catflix.jpg", width: 800, height: 800, alt: "ห้องพักแมว PetFlow" }],
   },
-  robots: { index: true, follow: true },
+  robots: { index: false, follow: true }, // หน้าตัวอย่างโรงแรมแมวเก่า ไม่ใช่เว็บขายระบบ PetFlow — ไม่ให้ Google เข้าใจผิดว่า petflow.online เป็นโรงแรมแมว (และไม่ซ้ำเนื้อหากับ CatCha)
 };
 
 function jsonLd() {

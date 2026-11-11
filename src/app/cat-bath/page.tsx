@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     description: "แชมพูพรีเมียม พี่เลี้ยงใจเย็น บริการ Private รับน้องแมวทีละบ้าน",
     images: [{ url: "/catalog/grooming/grooming-menu.jpg", width: 853, height: 1280, alt: "เมนูอาบน้ำแมว PetFlow" }],
   },
-  robots: { index: true, follow: true },
+  robots: { index: false, follow: true }, // หน้าตัวอย่างโรงแรมแมวเก่า ไม่ใช่เว็บขายระบบ PetFlow — ไม่ให้ Google เข้าใจผิดว่า petflow.online เป็นโรงแรมแมว (และไม่ซ้ำเนื้อหากับ CatCha)
 };
 
 const PRICE_ROWS = [

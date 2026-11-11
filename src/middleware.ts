@@ -167,9 +167,37 @@ function notFound(message: string, status = 404) {
   });
 }
 
+/** ลิงก์เดิมของแพลตฟอร์ม — เปิดหน้าเว็บแล้วพาไปโดเมนหลัก (NEXT_PUBLIC_APP_URL) */
+const LEGACY_PLATFORM_HOST = "pet-flow-1.vercel.app";
+
+/**
+ * pet-flow-1.vercel.app → petflow.online (หน้าเว็บเท่านั้น)
+ * ไม่ย้าย: /api (webhook LINE/Telegram, cron — redirect แล้ว POST หลุด)
+ * และหน้าลูกค้า /app, /s/<slug>/app (LIFF ของแต่ละร้านยังตั้ง Endpoint ไว้ที่ลิงก์เดิม
+ * ถ้าพาไปโดเมนอื่น liff.init/ล็อกอิน LINE จะพัง — ย้ายได้หลังร้านเปลี่ยน Endpoint ใน LINE Developers แล้ว)
+ */
+function legacyHostRedirect(req: NextRequest, host: string): NextResponse | null {
+  if (host.replace(/:\d+$/, "") !== LEGACY_PLATFORM_HOST) return null;
+  if (req.method !== "GET" && req.method !== "HEAD") return null;
+  const path = req.nextUrl.pathname;
+  if (path.startsWith("/api/") || /^(\/s\/[a-z0-9-]+)?\/app(\/|$)/i.test(path)) return null;
+  let target: URL;
+  try {
+    target = new URL(process.env.NEXT_PUBLIC_APP_URL?.trim() || "");
+  } catch {
+    return null;
+  }
+  const targetHost = target.hostname.toLowerCase();
+  if (!targetHost || targetHost === LEGACY_PLATFORM_HOST || targetHost.endsWith(".vercel.app")) return null;
+  const to = new URL(path + req.nextUrl.search, target.origin);
+  return NextResponse.redirect(to, 308);
+}
+
 export async function middleware(req: NextRequest) {
   // ── โดเมนของร้านเอง → ร้านนั้นร้านเดียว ───────────────────────────────────
   const host = (req.headers.get("host") || req.nextUrl.host || "").toLowerCase();
+  const moved = legacyHostRedirect(req, host);
+  if (moved) return moved;
   let domainSlug: string | null = null;
   if (!isPlatformHost(host)) {
     try {

@@ -1,4 +1,4 @@
-import { getDefaultSiteConfig } from "./defaults/site-config";
+import { FOLLOW_UP_DEFAULT, getDefaultSiteConfig } from "./defaults/site-config";
 import type { SiteConfig } from "./config-types";
 import { getSupabase } from "./supabase/server";
 import { isEnvOwnerTenant, requireTenantId } from "./tenant-context";
@@ -180,6 +180,22 @@ function withShopNameInTexts(config: SiteConfig): SiteConfig {
   return walk(config) as SiteConfig;
 }
 
+/**
+ * ข้อความทักลูกค้าที่หายไปแบบตั้งต้นรุ่นเก่า ("...มาไม่ได้นาน {days} วันแล้ว มีโปรพิเศษรออยู่ที่แอปนะคะ")
+ * ร้านที่ยังใช้ข้อความนั้นอยู่ (ไม่ได้แก้เอง) เปลี่ยนเป็นข้อความใหม่ที่ไม่บอกจำนวนวัน
+ * คงน้ำเสียงครับ และบรรทัดที่เติมต่อท้าย (เช่น ส่วนลดจากแบบสอบถามเปิดร้าน) ไว้ตามเดิม
+ */
+const OLD_FOLLOW_UP =
+  /^สวัสดี(ค่ะ|ครับ) \{name\} จาก [^\n]*\nคิดถึงน้อง\{(?:pets|cats)\} นะ(?:คะ|ครับ) มาไม่ได้นาน \{days\} วันแล้ว มีโปรพิเศษรออยู่ที่แอปนะ(?:คะ|ครับ) 💛/;
+
+export function softenFollowUpMessage(text: string | undefined): string | undefined {
+  if (!text) return text;
+  const m = text.match(OLD_FOLLOW_UP);
+  if (!m) return text;
+  const fresh = m[1] === "ครับ" ? FOLLOW_UP_DEFAULT.replace("สวัสดีค่ะ", "สวัสดีครับ").replace("นะคะ", "นะครับ") : FOLLOW_UP_DEFAULT;
+  return fresh + text.slice(m[0].length);
+}
+
 /** การ์ด LINE ที่ยังไม่ได้ตั้งสีเอง ใช้สีร้าน — ทุกที่ที่อ่าน config (ส่งการ์ด/หน้าหลังบ้าน) เห็นเหมือนกัน */
 export async function getSiteConfig(): Promise<SiteConfig> {
   // อ่าน DB ครั้งเดียวต่อ request (เดิม route เดียวอ่านซ้ำ 5-8 รอบ) — ส่งสำเนาให้ผู้เรียกแต่ละคน
@@ -235,6 +251,9 @@ async function getRawSiteConfig(): Promise<SiteConfig> {
             await sb.from("site_config").update({ data: slim }).eq("id", configId());
           }
         })().catch(() => {});
+      }
+      if (stored.crm?.followUpMessage) {
+        stored.crm = { ...stored.crm, followUpMessage: softenFollowUpMessage(stored.crm.followUpMessage)! };
       }
       const merged = mergeConfig(defaults, {
         ...dropCopiedShopValues(stored, envOwner),

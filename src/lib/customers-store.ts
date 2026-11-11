@@ -3109,3 +3109,62 @@ export async function setCatStayInfo(customerId: string, catId: string, infoJson
   await touchCustomer(customerId);
   return { ok: true as const };
 }
+
+/** หนึ่งบรรทัดในประวัติเครดิตที่ลูกค้าเห็นเอง (หน้าแอปใน LINE) */
+export type MemberCreditLedgerEntry = {
+  id: string;
+  kind: "topup" | "refund" | "legacy" | "usage";
+  /** วันที่ YYYY-MM-DD */
+  date: string;
+  at: string;
+  /** บวก = เครดิตเข้า · ลบ = ตัดเครดิต */
+  amount: number;
+  /** ใช้กับอะไร (เฉพาะ usage) เช่น "ส้มโอ · อาบน้ำ" */
+  description?: string;
+  /** แถมเท่าไร (เฉพาะ topup) */
+  bonusAmount?: number;
+  /** เครดิตคงเหลือหลังรายการนี้ */
+  balanceAfter: number;
+};
+
+/**
+ * ประวัติเติม/ตัดเครดิต Member ของลูกค้าหนึ่งคน เรียงใหม่สุดก่อน — สำหรับฝั่งลูกค้า
+ * ไม่ส่งโน้ตร้าน/รายรับจริงออกไป
+ *
+ * บิลที่จ่ายด้วยเครดิตไม่ได้เก็บยอดคงเหลือไว้ จึงคำนวณย้อนจากยอดคงเหลือปัจจุบัน
+ * (ยอดล่าสุด = ยอดตอนนี้ แล้วถอยทีละรายการ)
+ */
+export async function getMemberCreditLedger(
+  customerId: string,
+  currentBalance: number
+): Promise<MemberCreditLedgerEntry[]> {
+  const [topups, usage] = await Promise.all([
+    listMemberTopups(customerId),
+    listMemberCreditUsage(customerId),
+  ]);
+  const rows: Omit<MemberCreditLedgerEntry, "balanceAfter">[] = [
+    ...topups.map((t) => ({
+      id: t.id,
+      kind: (t.isCancelCredit ? "refund" : t.isLegacy ? "legacy" : "topup") as MemberCreditLedgerEntry["kind"],
+      date: t.createdAt.slice(0, 10),
+      at: t.createdAt,
+      amount: t.creditAdded,
+      bonusAmount: t.isCancelCredit || t.isLegacy ? undefined : t.bonusAmount || undefined,
+    })),
+    ...usage.map((u) => ({
+      id: u.id,
+      kind: "usage" as const,
+      date: u.date,
+      at: u.at,
+      amount: -u.amount,
+      description: u.description,
+    })),
+  ].sort((a, b) => b.at.localeCompare(a.at));
+
+  let balance = currentBalance;
+  return rows.map((r) => {
+    const entry = { ...r, balanceAfter: Math.max(0, Math.round(balance * 100) / 100) };
+    balance -= r.amount;
+    return entry;
+  });
+}

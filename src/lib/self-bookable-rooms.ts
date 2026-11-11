@@ -12,3 +12,13 @@ export const SELF_BOOKABLE_ROOM_INVENTORY_KEY: Record<string, "miniMeow" | "midC
 };
 
 export const SELF_BOOKABLE_ROOM_IDS = Object.keys(SELF_BOOKABLE_ROOM_INVENTORY_KEY);
+
+/**
+ * ห้องนี้ลูกค้าจองเองได้ไหม — ห้องเดี่ยวที่ร้านตั้ง "จำนวนห้องจริง" ไว้ (รวมห้องที่ร้านเพิ่มเอง
+ * เช่นห้องของสาขาที่ 2) · ห้องเชื่อมยังจองเองไม่ได้ เพราะกินยูนิตของห้องเดี่ยวร่วมกัน
+ */
+export function isSelfBookableRoom(room: { id: string; count?: number; composedOf?: unknown[] } | undefined): boolean {
+  if (!room) return false;
+  if (room.composedOf?.length) return false;
+  return room.id in SELF_BOOKABLE_ROOM_INVENTORY_KEY || Number(room.count) > 0;
+}

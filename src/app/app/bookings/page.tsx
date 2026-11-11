@@ -24,6 +24,8 @@ type BookingRow = Booking & {
   checkout?: string;
   arrivalTime?: string;
   room?: string;
+  /** ชื่อสาขาของนัด (ร้านหลายสาขาเท่านั้น) */
+  branchName?: string;
   /** เรื่องที่ยังต้องทำก่อนวันนัด (เซิร์ฟเวอร์คิดให้ — ชุดเดียวกับการ์ดขอข้อมูล) */
   todo?: { info?: "stay" | "groom"; vaccine?: boolean; idcard?: boolean; consent?: boolean };
 };
@@ -174,6 +176,9 @@ function BookingsContent() {
                           : ""}
                       {primary.time && !mixedTime ? ` · ${primary.time}` : ""}
                     </p>
+                    {primary.branchName && (
+                      <p className="mt-0.5 text-xs font-bold text-latte-deep">📍 {primary.branchName}</p>
+                    )}
                     {mixedTime && (
                       <ul className="mt-0.5 space-y-0.5 text-xs text-brown-soft">
                         {[...group]

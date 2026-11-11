@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { branchById, isMultiBranch, knownBranchId, mainBranchId, roomBranchId } from "@/lib/branches";
 import { featureOff } from "@/lib/features-server";
 import { withResolvedTenant } from "@/lib/tenant-context";
 import { withServerTiming } from "@/lib/server-timing";
@@ -115,7 +116,12 @@ async function handlePost(req: NextRequest) {
     ) {
       return NextResponse.json({ error: "duplicate_booking" }, { status: 409 });
     }
-    const { closed, slots, mode } = await getGroomAvailability(date, catNames.length, massage);
+    // ร้านหลายสาขา: ลูกค้าเลือกสาขาตอนจอง (ไม่ส่งมา/ไม่ใช่สาขาของร้าน = สาขาแรก)
+    const branchId = isMultiBranch(siteCfg)
+      ? knownBranchId(siteCfg, String(body.branchId || "")) || mainBranchId(siteCfg)
+      : undefined;
+    const branchName = branchById(siteCfg, branchId)?.name;
+    const { closed, slots, mode } = await getGroomAvailability(date, catNames.length, massage, branchId);
     if (closed) {
       return NextResponse.json({ error: "shop_closed" }, { status: 409 });
     }
@@ -157,6 +163,7 @@ async function handlePost(req: NextRequest) {
           time: assignedTimes[i],
           lineUserId,
           selfBooked: true,
+          branchId,
           groomProgram: programOf(catNames[i]),
           // ทั้งบ้านที่จองพร้อมกันได้ยอด/สลิป/สถานะเดียวกันทุกแถว (ยอดของทั้งกลุ่ม ไม่ใช่ต่อตัว)
           ...deposit,
@@ -175,6 +182,7 @@ async function handlePost(req: NextRequest) {
         ลูกค้า: customer.name,
         น้อง: scheduleText,
         วันที่: date,
+        ...(branchName ? { สาขา: branchName } : {}),
         ...depositTelegramLine(deposit),
       })
     );
@@ -242,6 +250,7 @@ async function handlePost(req: NextRequest) {
       น้อง: catNames.join(", "),
       เข้าพัก: `${checkin} → ${checkout}`,
       ห้อง: roomsNeeded > 1 ? `${roomCfg?.name || room} × ${roomsNeeded}` : roomCfg?.name || room,
+      ...(roomBranchId(siteCfg, room) ? { สาขา: branchById(siteCfg, roomBranchId(siteCfg, room))?.name || "" } : {}),
       ...depositTelegramLine(deposit),
     })
   );

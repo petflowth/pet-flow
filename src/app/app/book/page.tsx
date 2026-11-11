@@ -5,9 +5,13 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLiff } from "@/components/LiffProvider";
 import { useConfig } from "@/components/ConfigProvider";
+import { knownBranchId, mainBranchId, roomsOfBranch, shopBranches } from "@/lib/branches";
+
+/** จำสาขาที่ลูกค้าเลือกล่าสุด (ในเครื่องลูกค้า) */
+const LAST_BRANCH_KEY = "pf-last-branch";
 import { isFeatureOn } from "@/lib/features";
 import { PageHeader } from "@/components/PageHeader";
-import { SELF_BOOKABLE_ROOM_IDS } from "@/lib/self-bookable-rooms";
+import { isSelfBookableRoom } from "@/lib/self-bookable-rooms";
 import { bathPrograms, resolveGroomPrograms, resolveMassagePrograms } from "@/lib/grooming-prices";
 import { extraCatChargePerNight } from "@/lib/business";
 import { roomPricing } from "@/lib/room-board";
@@ -81,12 +85,34 @@ function BookPageInner() {
   const { customer, profile, ready } = useLiff();
   const { config } = useConfig();
   const pw = petWords(config);
+  // ร้านหลายสาขา: ลูกค้าเลือกสาขาก่อน แล้วเห็นคิวว่าง/ห้องของสาขานั้น · จำสาขาที่ใช้ล่าสุดไว้ในเครื่อง
+  const branches = useMemo(() => shopBranches(config), [config]);
+  const multiBranch = branches.length >= 2;
+  const [branch, setBranch] = useState("");
+  useEffect(() => {
+    if (!multiBranch) return;
+    let saved = "";
+    try {
+      saved = localStorage.getItem(LAST_BRANCH_KEY) || "";
+    } catch {
+      /* เปิดในโหมดที่ใช้ localStorage ไม่ได้ — เริ่มที่สาขาแรก */
+    }
+    setBranch((cur) => knownBranchId(config, cur) || knownBranchId(config, saved) || mainBranchId(config));
+  }, [config, multiBranch]);
+  const pickBranch = (id: string) => {
+    setBranch(id);
+    try {
+      localStorage.setItem(LAST_BRANCH_KEY, id);
+    } catch {
+      /* จำไม่ได้ก็ไม่เป็นไร */
+    }
+  };
   // ชื่อ/รายการห้องดึงจากตั้งค่าของร้านนี้ ไม่ใช่ค่าเริ่มต้นของ CatCha —
   // ร้านที่เปลี่ยนชื่อห้องหรือลบห้องประเภทใดออกจะเห็นรายการที่ตรงกับร้านตัวเอง
   const roomTypes = useMemo(
     () =>
-      config.rooms
-        .filter((r) => SELF_BOOKABLE_ROOM_IDS.includes(r.id))
+      roomsOfBranch(config, config.rooms, multiBranch ? branch : null)
+        .filter((r) => isSelfBookableRoom(r))
         .map((r) => ({
           id: r.id,
           name: r.name,
@@ -97,7 +123,7 @@ function BookPageInner() {
           cats: r.cats,
           extra: r.extra,
         })),
-    [config.rooms]
+    [config, multiBranch, branch]
   );
   // แท็บ นวด = จองคิวแบบ groom ที่เลือกโปรแกรมนวด (คิวแยกจากอาบน้ำ)
   const [tab, setTab] = useState<Service | "massage">(() => {
@@ -284,7 +310,9 @@ function BookPageInner() {
     setLoadingSlots(true);
     // ส่งจำนวนน้องไปด้วย — โหมดคิดเวลา รอบที่ว่างขึ้นกับว่ามากี่ตัว (ใช้เวลานานแค่ไหน)
     fetch(
-      `/api/bookings/availability?service=${massage ? "massage" : "groom"}&date=${date}&cats=${Math.max(1, catNames.length)}`
+      `/api/bookings/availability?service=${massage ? "massage" : "groom"}&date=${date}&cats=${Math.max(1, catNames.length)}${
+        multiBranch && branch ? `&branch=${encodeURIComponent(branch)}` : ""
+      }`
     )
       .then((r) => r.json())
       .then((d) => {
@@ -298,7 +326,7 @@ function BookPageInner() {
     return () => {
       alive = false;
     };
-  }, [service, massage, date, catNames.length]);
+  }, [service, massage, date, catNames.length, multiBranch, branch]);
 
   // เปลี่ยนวัน = รอบเดิมอาจไม่มี/เต็มแล้ว ให้เลือกใหม่
   useEffect(() => {
@@ -371,6 +399,7 @@ function BookPageInner() {
               service: massage ? "massage" : service,
               date,
               time,
+              branchId: multiBranch ? branch || undefined : undefined,
               groomProgram: groomProgram || undefined,
               petPrograms: Object.fromEntries(
                 catNames.map((n) => [n, (petPrograms[n] ?? groomProgram) || ""])
@@ -563,6 +592,32 @@ function BookPageInner() {
           </button>
         ))}
       </div>
+      )}
+
+      {multiBranch && (
+        <div className="mb-4">
+          <p className="mb-1.5 text-xs font-bold text-brown-soft">📍 เลือกสาขา</p>
+          <div className="grid gap-2">
+            {branches.map((b) => (
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => pickBranch(b.id)}
+                className={`rounded-petflow-sm border px-3 py-2.5 text-left transition ${
+                  branch === b.id
+                    ? "border-latte-deep bg-latte-deep/10"
+                    : "border-petflow-line bg-card"
+                }`}
+              >
+                <span className="block text-sm font-extrabold text-petflow-chocolate">
+                  {branch === b.id ? "✓ " : ""}
+                  {b.name}
+                </span>
+                {b.address ? <span className="block text-[11px] text-brown-soft">{b.address}</span> : null}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {!customer?.cats?.length ? (

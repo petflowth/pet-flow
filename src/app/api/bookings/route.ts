@@ -65,7 +65,7 @@ import {
 } from "@/lib/customers-store";
 import { getSiteConfig } from "@/lib/config-store";
 import { adminBranchScope, branchFilter } from "@/lib/branch-scope";
-import { isMultiBranch, knownBranchId, roomBranchId } from "@/lib/branches";
+import { bookingBranchId, branchById, isMultiBranch, knownBranchId, roomBranchId } from "@/lib/branches";
 import { getLineCredentials } from "@/lib/line-config";
 import { cleanRoomSegments } from "@/lib/room-segments";
 import { cardOn, cardsOff, CARD_FEATURE, featureLabel } from "@/lib/features";
@@ -172,6 +172,10 @@ async function handleGet(lineUserId?: string, customerApp = false, branchId: str
     deletedAt ? list.filter((b) => b.createdAt > deletedAt) : list;
   let rows = visible(await listBookings(lineUserId));
   if (branchId) rows = (await branchFilter(branchId)).bookings(rows);
+  // ร้านหลายสาขา: แนบชื่อสาขาของแต่ละนัด (ลูกค้าเห็นใน "คิวของฉัน" · หลังบ้านเห็นตอนดูทุกสาขา)
+  const branchCfg = await getSiteConfig();
+  const branchNameOf = (b: StoredBooking) =>
+    isMultiBranch(branchCfg) ? branchById(branchCfg, bookingBranchId(branchCfg, b))?.name : undefined;
   const items = rows.map((b) => {
     const customer = allCustomers.find((c) => bookingMatchesCustomer(b, c));
     // ป้ายเตือนที่พนักงานต้องเห็นก่อนจับน้อง — โน้ตลับร้านอยู่ในนี้ด้วย
@@ -202,6 +206,7 @@ async function handleGet(lineUserId?: string, customerApp = false, branchId: str
       depositStatus: b.depositStatus,
       roomSegments: b.roomSegments,
       branchId: b.branchId,
+      branchName: branchNameOf(b),
       customerId: customer?.id,
       catMedical: cat?.medical || undefined,
       catStaffNote: cat?.staffNote || undefined,
@@ -520,6 +525,7 @@ async function handlePatch(req: NextRequest, admin: boolean) {
         notes: b.notes,
         groomProgram: b.groomProgram,
         transport: b.transport,
+        branchId: b.branchId,
       }, group);
 
       if (preview) return NextResponse.json({ ok: true, preview: [flex] });
@@ -886,6 +892,7 @@ function groomInfoCardFor(
             groomProgram: b.groomProgram,
             transport: b.transport,
             timeUrl: reminderTimeUrl || undefined,
+            branchId: b.branchId,
           }, household)
         );
       } else if (part === "consent") {

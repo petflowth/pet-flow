@@ -1,7 +1,8 @@
 import { getSiteConfig } from "./config-store";
+import { bookingBranchId, isMultiBranch, knownBranchId, mainBranchId } from "./branches";
 import type { SiteConfig } from "./config-types";
 import { listGroomBookingsOn, listRoomBookingsOverlapping } from "./bookings-store";
-import { SELF_BOOKABLE_ROOM_INVENTORY_KEY } from "./self-bookable-rooms";
+import { SELF_BOOKABLE_ROOM_INVENTORY_KEY, isSelfBookableRoom } from "./self-bookable-rooms";
 import { isMassageBooking, resolveGroomPrograms } from "./grooming-prices";
 
 /**
@@ -47,7 +48,9 @@ export async function getGroomAvailability(
   date: string,
   catCount = 1,
   /** true = คิวนวด (รอบ/จำนวนรับของนวด นับเฉพาะนัดนวด) · false = คิวอาบน้ำ (ไม่นับนัดนวด) */
-  massage = false
+  massage = false,
+  /** ร้านหลายสาขา: นับคิวเฉพาะสาขานี้ (ไม่ส่ง = สาขาแรก) · ร้านสาขาเดียวไม่มีผล */
+  branchId?: string
 ): Promise<{
   closed: boolean;
   slots: GroomSlotAvailability[];
@@ -57,8 +60,10 @@ export async function getGroomAvailability(
 }> {
   const config = await getSiteConfig();
   const programs = resolveGroomPrograms(config.groomPricePrograms);
-  const sameQueue = (b: { service?: string; groomProgram?: string }) =>
-    isMassageBooking(b, programs) === massage;
+  // ร้านหลายสาขา: แต่ละสาขามีคิวของตัวเอง (รอบเวลา/จำนวนรับต่อรอบใช้ค่าเดียวกันทุกสาขา)
+  const branch = isMultiBranch(config) ? knownBranchId(config, branchId) || mainBranchId(config) : "";
+  const sameQueue = (b: { service?: string; groomProgram?: string; branchId?: string; room?: string }) =>
+    isMassageBooking(b, programs) === massage && (!branch || bookingBranchId(config, b) === branch);
   const minutes = massage ? 0 : groomMinutesFor(config, Math.max(1, catCount));
   if (minutes > 0) return groomAvailabilityByDuration(config, date, Math.max(1, catCount), sameQueue);
   const slots = massage ? config.massageSlots?.length ? config.massageSlots : config.groomSlots || [] : config.groomSlots || [];
@@ -106,7 +111,7 @@ async function groomAvailabilityByDuration(
   config: SiteConfig,
   date: string,
   catCount: number,
-  sameQueue: (b: { service?: string; groomProgram?: string }) => boolean
+  sameQueue: (b: { service?: string; groomProgram?: string; branchId?: string; room?: string }) => boolean
 ) {
   const slots = config.groomSlots || [];
   const defaultCap = config.groomSlotDefaultCapacity ?? 1;
@@ -197,14 +202,16 @@ export async function getRoomAvailability(
   checkin: string,
   checkout: string
 ): Promise<RoomAvailability | null> {
-  const invKey = SELF_BOOKABLE_ROOM_INVENTORY_KEY[roomTypeId];
-  if (!invKey) return null;
   const config = await getSiteConfig();
+  const invKey = SELF_BOOKABLE_ROOM_INVENTORY_KEY[roomTypeId] as
+    | (typeof SELF_BOOKABLE_ROOM_INVENTORY_KEY)[string]
+    | undefined;
+  if (!isSelfBookableRoom(config.rooms.find((r) => r.id === roomTypeId))) return null;
   // ใช้จำนวนห้องจริงของร้านนี้ (ตั้งได้ในหลังบ้าน) ไม่ใช่ค่าเริ่มต้นของ CatCha —
   // ไม่งั้นร้านที่มีจำนวนห้องต่างจากค่าเริ่มต้นจะเช็คความว่างผิด เสี่ยง overbook หรือปิดขายทั้งที่ห้องว่าง
   // "จำนวนห้องจริง" ที่ร้านแก้ในตั้งค่าห้องพักมาก่อน (roomInventory ไม่ได้อัปเดตตามตอนแก้ห้อง)
   const ownCount = config.rooms.find((r) => r.id === roomTypeId)?.count;
-  const capacity = typeof ownCount === "number" ? ownCount : (config.roomInventory?.[invKey] ?? 0);
+  const capacity = typeof ownCount === "number" ? ownCount : invKey ? (config.roomInventory?.[invKey] ?? 0) : 0;
   // แมวที่เข้าพักอยู่แล้วไม่กระทบวันปิด — แค่ปิดรับเช็คอิน/เช็คเอาท์ใหม่ในวันนั้น
   // (พนักงานยังดูแลน้องตามปกติ แค่ไม่มีใครอยู่หน้าร้านรับ-ส่งของใหม่)
   const closed = isShopClosedOn(config, checkin) || isShopClosedOn(config, checkout);

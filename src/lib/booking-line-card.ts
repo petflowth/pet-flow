@@ -1,4 +1,5 @@
 import { getSiteConfig } from "./config-store";
+import { bookingBranchId, branchById, isMultiBranch } from "./branches";
 import { bookingConfirmUrl as buildConfirmUrl, bookingTransportUrl, shopAppBase } from "./line-config";
 import { hasTransport, type BookingTransport } from "./transport";
 import { getLineCredentials } from "./line-config";
@@ -30,16 +31,19 @@ export async function buildBookingConfirmFlex(
     transport?: BookingTransport;
     /** ปุ่มเลือกเวลาส่งน้องในการ์ดนี้ (แทนการ์ดเลือกเวลาเช็คอินแยกอีกใบ) */
     timeUrl?: string;
+    branchId?: string;
   },
   /** น้องทุกตัวในบ้านที่จองมาด้วยกัน (นัดละตัว) — อาบคนละโปรแกรม/คนละเวลา จะแยกบอกรายตัวในการ์ด */
   pets?: { catName: string; groomProgram?: string; time?: string }[]
 ) {
   const config = await getSiteConfig();
-  const location =
-    config.business.location.th;
-  const mapsUrl = config.business.maps;
+  // ร้านหลายสาขา: การ์ดบอกชื่อ ที่อยู่ และแผนที่ของสาขาที่นัดไว้ (สาขาไม่ได้กรอก = ใช้ของร้าน)
+  const branch = isMultiBranch(config) ? branchById(config, bookingBranchId(config, booking)) : undefined;
+  const location = [branch?.name, branch?.address || config.business.location.th].filter(Boolean).join(" · ");
+  const mapsUrl = branch?.mapsUrl || config.business.maps;
 
-  const { groomProgram: groomProgramId, ...rest } = booking;
+  const { groomProgram: groomProgramId, branchId: _branchId, ...rest } = booking;
+  void _branchId;
   const programs = resolveGroomPrograms(config.groomPricePrograms);
   const nameOf = (id?: string) => groomProgramName(id, programs) || undefined;
 

@@ -1,6 +1,6 @@
 import { buildReferralRewardCard } from "@/lib/notice-cards";
 import { NextRequest, NextResponse } from "next/server";
-import { adminBranchScope, branchFilter, setRecordBranch } from "@/lib/branch-scope";
+import { adminBranchScope, branchFilter, invoiceBranchOf, otherBranchDenied, setRecordBranch } from "@/lib/branch-scope";
 import {
   createInvoice,
   getInvoice,
@@ -401,6 +401,9 @@ async function handlePatch(req: NextRequest) {
   const preview = body.preview === true;
   const inv = await getInvoice(id);
   if (!inv) return NextResponse.json({ error: "not found" }, { status: 404 });
+  // พนักงานที่ถูกจำกัดสาขา แก้/เก็บเงิน/ลบบิลของสาขาอื่นไม่ได้
+  const denied = await otherBranchDenied(req, (cfg) => invoiceBranchOf(cfg, inv));
+  if (denied) return NextResponse.json({ error: denied }, { status: 403 });
 
   // ลิงก์ในการ์ดต้องมีชื่อร้าน (/s/<slug>) — /app เปล่า ๆ คือร้าน PetFlow
   const base = await shopAppBase();

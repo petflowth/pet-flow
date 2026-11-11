@@ -64,7 +64,7 @@ import {
   copyBookingDocsToCustomer,
 } from "@/lib/customers-store";
 import { getSiteConfig } from "@/lib/config-store";
-import { adminBranchScope, branchFilter, staffAllowedBranches } from "@/lib/branch-scope";
+import { adminBranchScope, branchFilter, otherBranchDenied, staffAllowedBranches } from "@/lib/branch-scope";
 import { bookingBranchId, branchById, isMultiBranch, knownBranchId, roomBranchId } from "@/lib/branches";
 import { getLineCredentials } from "@/lib/line-config";
 import { cleanRoomSegments } from "@/lib/room-segments";
@@ -381,6 +381,12 @@ async function handlePatch(req: NextRequest, admin: boolean) {
   const preview = body.preview === true;
   const b = await getBooking(id);
   if (!b) return NextResponse.json({ error: "not found" }, { status: 404 });
+
+  // พนักงานที่ถูกจำกัดสาขา แตะนัดของสาขาอื่นไม่ได้ (ดูตัวอย่างการ์ดก็ไม่ได้ เพราะเห็นข้อมูลลูกค้า)
+  if (admin) {
+    const denied = await otherBranchDenied(req, (cfg) => bookingBranchId(cfg, b));
+    if (denied) return NextResponse.json({ error: "branch_forbidden", message: denied }, { status: 403 });
+  }
 
   // ลูกค้าใน LINE ทำได้อย่างเดียวคือกดยืนยันนัด "ของตัวเอง"
   // การกระทำอื่นทั้งหมด (ยกเลิก แก้ไข ส่งการ์ด เรียกเก็บเงิน) ต้องล็อกอินหลังบ้าน

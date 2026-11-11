@@ -64,6 +64,8 @@ import {
   copyBookingDocsToCustomer,
 } from "@/lib/customers-store";
 import { getSiteConfig } from "@/lib/config-store";
+import { adminBranchScope, branchFilter } from "@/lib/branch-scope";
+import { isMultiBranch, knownBranchId, roomBranchId } from "@/lib/branches";
 import { getLineCredentials } from "@/lib/line-config";
 import { cleanRoomSegments } from "@/lib/room-segments";
 import { cardOn, cardsOff, CARD_FEATURE, featureLabel } from "@/lib/features";
@@ -138,7 +140,11 @@ export async function GET(req: NextRequest) {
 
   // หลังบ้าน: ใช้ค่าที่ส่งมาตามเดิม (พนักงานอาจดูนัดของลูกค้ารายใดรายหนึ่ง)
   // และต้องไม่หยิบคุกกี้ลูกค้าที่อาจค้างอยู่ในเบราว์เซอร์เดียวกันมาใช้
-  if (session) return withTenant(session.tenantId, () => handleGet(claimed));
+  // ดูนัดของลูกค้ารายใดรายหนึ่ง (การ์ดลูกค้า) = ทุกสาขาเสมอ · รายการรวมของหลังบ้าน = ตามสาขาที่เลือกดู
+  if (session)
+    return withTenant(session.tenantId, async () =>
+      handleGet(claimed, false, claimed ? null : await adminBranchScope(req))
+    );
 
   // แอปลูกค้า: ยึดตัวตนจากคุกกี้ที่ตรวจกับ LINE แล้ว ไม่ใช่ค่าที่ client ส่งมา
   // ไม่งั้นใครรู้ lineUserId ของคนอื่นก็ดึงนัดทั้งหมดของเขาได้
@@ -154,7 +160,7 @@ export async function GET(req: NextRequest) {
   });
 }
 
-async function handleGet(lineUserId?: string, customerApp = false) {
+async function handleGet(lineUserId?: string, customerApp = false, branchId: string | null = null) {
   const allCustomers = lineUserId ? [] : await listCustomers();
   // ร้านลบลูกค้าแล้ว = ตัดการเชื่อม: ยังไม่สมัครใหม่ไม่เห็นนัดเลย สมัครใหม่แล้วเห็นเฉพาะนัดหลังวันลบ
   let deletedAt: string | undefined;
@@ -164,7 +170,9 @@ async function handleGet(lineUserId?: string, customerApp = false) {
   }
   const visible = (list: StoredBooking[]) =>
     deletedAt ? list.filter((b) => b.createdAt > deletedAt) : list;
-  const items = visible(await listBookings(lineUserId)).map((b) => {
+  let rows = visible(await listBookings(lineUserId));
+  if (branchId) rows = (await branchFilter(branchId)).bookings(rows);
+  const items = rows.map((b) => {
     const customer = allCustomers.find((c) => bookingMatchesCustomer(b, c));
     // ป้ายเตือนที่พนักงานต้องเห็นก่อนจับน้อง — โน้ตลับร้านอยู่ในนี้ด้วย
     // จึงแนบเฉพาะฝั่งหลังบ้าน (allCustomers ว่างเสมอเมื่อเป็นแอปลูกค้า)
@@ -193,6 +201,7 @@ async function handleGet(lineUserId?: string, customerApp = false) {
       depositSlipUrl: b.depositSlipUrl,
       depositStatus: b.depositStatus,
       roomSegments: b.roomSegments,
+      branchId: b.branchId,
       customerId: customer?.id,
       catMedical: cat?.medical || undefined,
       catStaffNote: cat?.staffNote || undefined,
@@ -265,7 +274,16 @@ async function handlePost(req: NextRequest) {
 
   const transport = cleanTransport(body.transport);
   const isRoom = body.service === "room";
+  // ร้านหลายสาขา: ห้องพักตามสาขาของห้อง · อาบน้ำ/นวดตามสาขาที่ส่งมา หรือสาขาที่หลังบ้านเลือกดูอยู่
+  const branchConfig = await getSiteConfig();
+  const branchId = isMultiBranch(branchConfig)
+    ? (isRoom ? roomBranchId(branchConfig, body.room) : undefined) ||
+      knownBranchId(branchConfig, body.branchId ? String(body.branchId) : undefined) ||
+      (await adminBranchScope(req)) ||
+      undefined
+    : undefined;
   const booking = await addBooking({
+    branchId,
     customerName: customer.name,
     catName: body.catName,
     service: body.service,

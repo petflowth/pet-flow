@@ -14,6 +14,7 @@ import { uploadPrivateDataUrl } from "@/lib/supabase/storage";
 import { logAudit } from "@/lib/audit-log";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { requireTenantId } from "@/lib/tenant-context";
+import { adminBranchScope, branchFilter } from "@/lib/branch-scope";
 
 /** ใครกดปุ่มนี้ — ไว้ลงบันทึกว่าใครแตะบัญชี */
 async function actorName(req: NextRequest): Promise<string> {
@@ -48,11 +49,18 @@ async function handleGet(req: NextRequest) {
   const to = req.nextUrl.searchParams.get("to") || undefined;
   const summary = req.nextUrl.searchParams.get("summary") === "1";
 
+  // ร้านหลายสาขา: เลือกดูสาขาไหนอยู่ก็เห็นเฉพาะรายการของสาขานั้น (ไม่เลือก = ทุกสาขา)
+  const branchId = await adminBranchScope(req);
   if (summary) {
-    return NextResponse.json({ summary: await financeSummary(from, to) });
+    if (!branchId) return NextResponse.json({ summary: await financeSummary(from, to) });
+    const list = (await (await branchFilter(branchId)).finance(await listFinance(from, to))).filter((r) => !r.excluded);
+    const income = list.filter((r) => r.type === "income").reduce((s, r) => s + r.amount, 0);
+    const expense = list.filter((r) => r.type === "expense").reduce((s, r) => s + r.amount, 0);
+    return NextResponse.json({ summary: { income, expense, net: income - expense, count: list.length } });
   }
 
-  return NextResponse.json({ records: await listFinanceEnriched(from, to) });
+  const records = await listFinanceEnriched(from, to);
+  return NextResponse.json({ records: branchId ? await (await branchFilter(branchId)).finance(records) : records });
 }
 
 export async function POST(req: NextRequest) {
@@ -74,6 +82,8 @@ async function handlePost(req: NextRequest) {
     customerId: body.customerId,
     invoiceId: body.invoiceId,
     receiptUrl,
+    // รายการที่ผูกบิลตามสาขาของบิลเอง · รายการที่กรอกเอง = สาขาที่หลังบ้านเลือกดูอยู่
+    branchId: body.invoiceId ? undefined : (await adminBranchScope(req)) || undefined,
   });
   return NextResponse.json({ ok: true, record: rec });
 }

@@ -79,6 +79,8 @@ export type RoomType = {
   image: string;
   /** สีประจำห้องในปฏิทินเดือน (#rrggbb) — ไม่ตั้ง = ไล่ตามลำดับ (ดู room-colors.ts) */
   color?: string;
+  /** ห้องนี้อยู่สาขาไหน (id ใน config.branches) — ไม่ตั้ง/สาขาถูกลบ = สาขาแรก */
+  branchId?: string;
   amenities: { th: string[]; en: string[] };
 };
 

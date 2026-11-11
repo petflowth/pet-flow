@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
+import { roomsInView } from "@/lib/branches";
 import { EmptyState } from "@/components/ui";
 import { toast } from "@/components/Toast";
 import { bookingOnDate } from "@/lib/booking-customer-match";
@@ -97,7 +98,7 @@ export default function CareChecklistPage() {
       .then((r) => r.json())
       .then((d) => {
         setTasks(resolveCareTasks(d.config?.careTasks, petKindOf(d.config)));
-        setRooms(d.config?.rooms || []);
+        setRooms(d.config ? roomsInView(d.config, d.config.rooms || []) : []);
       })
       .catch(() => {});
   }, []);

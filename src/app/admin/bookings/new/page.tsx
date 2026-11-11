@@ -24,6 +24,7 @@ import { pastPriceList, type PastInvoice, type PastPrice } from "@/lib/special-p
 import type { BookingTransport } from "@/lib/transport";
 import { Avatar, SearchField, Segmented } from "@/components/ui";
 import { useConfig, usePetWords } from "@/components/ConfigProvider";
+import { isMultiBranch, knownBranchId, mainBranchId, readBranchCookie, roomBranchId, roomsInView, shopBranches } from "@/lib/branches";
 import { petWords } from "@/lib/pet-kind";
 import { isFeatureOn } from "@/lib/features";
 import { GroomClashNote, confirmClashes, useGroomClashes } from "@/components/GroomClashNote";
@@ -413,6 +414,12 @@ export default function NewBookingPage() {
   const massage = tab === "massage";
   // ร้านที่ปิดอาบน้ำหรือรับฝากไว้ในตั้งค่า — เหลือแค่บริการที่เปิด
   const { config: siteConfig } = useConfig();
+  // ร้านหลายสาขา: นัดอาบน้ำ/นวดต้องรู้ว่าสาขาไหน (ห้องพักรู้จากห้องอยู่แล้ว) — เริ่มจากสาขาที่กำลังดูอยู่
+  const multiBranch = isMultiBranch(siteConfig);
+  const [branchPick, setBranchPick] = useState("");
+  useEffect(() => {
+    setBranchPick(knownBranchId(siteConfig, readBranchCookie()) || mainBranchId(siteConfig));
+  }, [siteConfig]);
   const pw = petWords(siteConfig);
   const groomOn = isFeatureOn(siteConfig, "grooming");
   const hotelOn = isFeatureOn(siteConfig, "hotel");
@@ -491,7 +498,7 @@ export default function NewBookingPage() {
     fetch("/api/config")
       .then((r) => r.json())
       .then((d) => {
-        if (d.config?.rooms) setRooms(attachClosures(d.config.rooms as RoomType[], d.config.roomClosures));
+        if (d.config?.rooms) setRooms(attachClosures(roomsInView(d.config, d.config.rooms as RoomType[]), d.config.roomClosures));
         if (d.config?.groomSlots) setGroomSlots(d.config.groomSlots);
         if (d.config?.options?.freebies?.length) setFreebies_(d.config.options.freebies);
         setGroomPrograms(bathPrograms(resolveGroomPrograms(d.config?.groomPricePrograms)));
@@ -812,6 +819,7 @@ export default function NewBookingPage() {
           ...(!inRoom2 && liveMoves.length ? { roomSegments: liveMoves } : {}),
           ...(service === "groom"
             ? {
+                branchId: multiBranch ? branchPick || undefined : undefined,
                 // นัดนวดต้องมีโปรแกรมนวดเสมอ (ใช้แยกคิวนวดออกจากอาบน้ำ) — ไม่เลือก = โปรแกรมแรก
                 groomProgram:
                   (petPrograms[cat] ?? groomProgram) || (massage ? massagePrograms[0]?.id : undefined) || undefined,
@@ -851,6 +859,8 @@ export default function NewBookingPage() {
             date: addGroomDate,
             time: addGroomTime,
             groomProgram: (addPetPrograms[stay.catName] ?? addGroomProgram) || undefined,
+            // อาบน้ำระหว่างเข้าพัก = สาขาเดียวกับห้องที่พัก
+            branchId: roomBranchId(siteConfig, basePayload.room) || undefined,
             catName: stay.catName,
           }),
         });
@@ -1086,6 +1096,22 @@ export default function NewBookingPage() {
           </p>
         )}
 
+        {service === "groom" && multiBranch && (
+          <label className="block text-xs font-bold text-brown-soft">
+            สาขา
+            <select
+              value={branchPick}
+              onChange={(e) => setBranchPick(e.target.value)}
+              className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm"
+            >
+              {shopBranches(siteConfig).map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         {service === "groom" ? (
           <>
             <Field

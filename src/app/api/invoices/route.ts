@@ -1,5 +1,6 @@
 import { buildReferralRewardCard } from "@/lib/notice-cards";
 import { NextRequest, NextResponse } from "next/server";
+import { adminBranchScope, branchFilter, setRecordBranch } from "@/lib/branch-scope";
 import {
   createInvoice,
   getInvoice,
@@ -163,7 +164,10 @@ async function handleGet(req: NextRequest, id: string | null) {
     return NextResponse.json({ invoice: inv || null });
   }
 
-  return NextResponse.json({ invoices: await listInvoices(customerId) });
+  // บิลของลูกค้ารายเดียว = ทุกสาขา · รายการบิลรวมหลังบ้าน = ตามสาขาที่เลือกดู
+  const list = await listInvoices(customerId);
+  const branchId = customerId ? null : await adminBranchScope(req);
+  return NextResponse.json({ invoices: branchId ? await (await branchFilter(branchId)).invoices(list) : list });
 }
 
 const CONVERTED_MSG =
@@ -273,6 +277,8 @@ async function handlePost(req: NextRequest) {
         { status: 400 }
       );
     }
+    // บิลที่ไม่ผูกนัด (ขายคอร์ส/บิลเปล่า) = สาขาที่หลังบ้านเลือกดูอยู่ · บิลผูกนัดตามสาขาของนัดเอง
+    if (!body.bookingId) await setRecordBranch("invoices", invoice.id, await adminBranchScope(req));
     if (invoice.autoAppliedCredit > 0) {
       await sendTelegram(
         formatBookingTelegram("💰 หักมัดจำล่วงหน้าเข้าบิลอัตโนมัติ", {

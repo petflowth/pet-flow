@@ -17,6 +17,8 @@ import {
 import { Toaster } from "@/components/Toast";
 import { Icon } from "@/components/Icon";
 import { disabledFeatureForAdminPath } from "@/lib/features";
+import { isMultiBranch, knownBranchId, readBranchCookie, shopBranches, writeBranchCookie } from "@/lib/branches";
+import type { SiteConfig } from "@/lib/config-types";
 
 function greeting() {
   const h = new Date().getHours();
@@ -64,6 +66,48 @@ function DueBanner({ dueDate, pathname }: { dueDate: string | null; pathname: st
           ชำระค่าบริการ
         </a>
       )}
+    </div>
+  );
+}
+
+/**
+ * ร้านหลายสาขา: เลือกว่าจะดูสาขาไหน — คิว ห้อง บิล ขายหน้าร้าน รายรับรายจ่าย กรองตามนี้ทั้งหลังบ้าน
+ * ร้านสาขาเดียวไม่เห็นแถบนี้เลย
+ */
+function BranchBar({ config, inHeader }: { config: SiteConfig; inHeader?: boolean }) {
+  const [current, setCurrent] = useState("");
+  useEffect(() => {
+    setCurrent(knownBranchId(config, readBranchCookie()) || "");
+  }, [config]);
+  if (!isMultiBranch(config)) return null;
+  const pick = (id: string) => {
+    if (id === current) return;
+    writeBranchCookie(id);
+    window.location.reload();
+  };
+  const pill = (id: string, label: string) => (
+    <button
+      key={id || "all"}
+      type="button"
+      onClick={() => pick(id)}
+      className={`h-9 shrink-0 rounded-full px-3.5 text-xs font-bold ${
+        current === id ? "bg-petflow-chocolate text-card" : "bg-card text-petflow-chocolate shadow-petflow-sm"
+      }`}
+    >
+      {label}
+    </button>
+  );
+  return (
+    <div className={inHeader ? "print:hidden" : "border-b border-petflow-line/70 bg-cream/85 print:hidden"}>
+      <div
+        className={`mx-auto flex items-center gap-2 overflow-x-auto px-4 py-2 lg:px-6 ${
+          inHeader ? "max-w-3xl lg:max-w-6xl" : "max-w-[1600px]"
+        }`}
+      >
+        <span className="shrink-0 text-[11px] font-bold text-brown-soft">สาขา</span>
+        {pill("", "ทุกสาขา")}
+        {shopBranches(config).map((b) => pill(b.id, b.name))}
+      </div>
     </div>
   );
 }
@@ -245,6 +289,8 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               </div>
               <LogoutButton onClick={logout} />
             </div>
+            {/* แดชบอร์ด: การ์ดสรุปเกยขึ้นมาทับใต้แถบหัว จึงวางแถบสาขาไว้ในแถบหัวเลย */}
+            <BranchBar config={config} inHeader />
           </HeaderBand>
         </header>
       ) : (
@@ -261,6 +307,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
         </header>
       )}
       <DueBanner dueDate={dueDate} pathname={pathname} />
+      {!isDashboard && <BranchBar config={config} />}
       <AdminNav menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
       <div className={`mx-auto ${maxW} ${isDashboard ? "-mt-8" : "mt-4 lg:mt-6"} px-4 lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6 lg:px-6`}>
         <aside className="print:hidden">

@@ -14,6 +14,13 @@ export type BookingDepositConfig = {
   groomAmount?: number;
   /** ยอดมัดจำห้องพัก (บาท) — 0/ไม่ตั้ง = ไม่เก็บมัดจำห้องพัก */
   roomAmount?: number;
+  /**
+   * มัดจำเป็น % ของค่าบริการ (แทนยอดบาท) — ตั้ง > 0 = ใช้ % ของบริการนั้น
+   * ตอนออกบิลปุ่ม % นี้ขึ้นเป็นค่าของร้าน · จองเองในแอปยังไม่รู้ยอดจริง เลยไม่เรียกมัดจำตอนจอง
+   * (ร้านส่งการ์ดเรียกมัดจำตามบิลหลังยืนยันคิว)
+   */
+  groomPercent?: number;
+  roomPercent?: number;
 };
 
 export type BoardingRuleBlock = {

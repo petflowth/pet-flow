@@ -1,5 +1,6 @@
 import type { RoomType } from "./business";
-import type { SiteConfig } from "./config-types";
+import type { BoardingRuleBlock, PointsRewardConfig, SiteConfig } from "./config-types";
+import type { LinePromo } from "./line-discount";
 import type { GroomProgram, GroomSize } from "./grooming-prices";
 import { featureLabel, isFeatureOn, type FeatureKey } from "./features";
 import { petKindFromIntake, petKindOf, withDefaultBreeds } from "./pet-kind";
@@ -53,7 +54,8 @@ function reader(ans: IntakeAnswers) {
   const pets = String(a.pets || "");
   const petWord = pets === "แมว" ? "แมว" : pets === PETS_BOTH ? "หมา/แมว" : "หมา";
   const T = (s: string) => s.replace(/\{p\}/g, petWord);
-  const raw = (k: string) => String(a[k] ?? "").trim();
+  // พิมพ์ "แ" เป็น "เ" สองตัว (เเ) บ่อยมาก — ทำให้เหมือนกันก่อน ไม่งั้นหาคำว่า "แต้ม"/"แมว" ไม่เจอ
+  const raw = (k: string) => String(a[k] ?? "").trim().replace(/เเ/g, "แ");
   /** ข้อเลือก 1 ข้อ — เลือก "อื่นๆ" = เอาข้อความที่พิมพ์ */
   const one = (id: string) => {
     const v = raw(id);
@@ -68,7 +70,8 @@ function reader(ans: IntakeAnswers) {
     return out;
   };
   const fol = (id: string, opt: string) => raw(`${id}~${opt}`);
-  return { a, pets, T, raw, one, many, fol };
+  const note = ans.note || {};
+  return { a, pets, T, raw, one, many, fol, note };
 }
 
 function splitList(s: string): string[] {
@@ -251,25 +254,35 @@ function buildDrafts(ans: IntakeAnswers, cfg: SiteConfig): Draft[] {
 
   const deposit = r.many("deposit");
   if (deposit?.length) {
-    // มัดจำเป็น % หรือ "เต็มจำนวน" ระบบยังตั้งไม่ได้ (ตั้งได้แค่บาท) — ข้ามไว้ให้ตั้งเอง
+    // มัดจำตอบได้ทั้งบาท ("500 บาท") และ % ("50 %") — แยกเก็บคนละช่อง ห้องพัก/อาบน้ำตั้งต่างหน่วยกันได้
     const amt = (opt: string) => {
-      if (!deposit.includes(opt)) return 0;
+      if (!deposit.includes(opt)) return { baht: 0, pct: 0 };
       const f = r.fol("deposit", opt);
-      return /%/.test(f) ? null : firstNum(f);
+      const n = firstNum(f) || 0;
+      return /%|เปอร์เซ็น/.test(f) ? { baht: 0, pct: Math.min(100, n) } : { baht: n, pct: 0 };
     };
     const room = amt("เก็บมัดจำห้องพัก");
     const groom = amt("เก็บมัดจำคิวอาบน้ำ");
-    if (room !== null && groom !== null) {
-      const enabled = room > 0 || groom > 0;
-      const cur = cfg.bookingDeposit || {};
-      add({
-        key: "bookingDeposit",
-        label: "มัดจำตอนลูกค้าจอง",
-        before: cur.enabled ? `ห้องพัก ${cur.roomAmount || 0} บาท · อาบน้ำ ${cur.groomAmount || 0} บาท` : "ไม่เก็บ",
-        after: enabled ? `ห้องพัก ${room} บาท · อาบน้ำ ${groom} บาท` : "ไม่เก็บ",
-        patch: () => ({ bookingDeposit: { enabled, roomAmount: room, groomAmount: groom } }),
-      });
-    }
+    const enabled = room.baht + room.pct + groom.baht + groom.pct > 0;
+    const cur = cfg.bookingDeposit || {};
+    const one = (baht?: number, pct?: number) => (pct ? `${pct}%` : `${baht || 0} บาท`);
+    add({
+      key: "bookingDeposit",
+      label: "มัดจำตอนลูกค้าจอง",
+      before: cur.enabled
+        ? `ห้องพัก ${one(cur.roomAmount, cur.roomPercent)} · อาบน้ำ ${one(cur.groomAmount, cur.groomPercent)}`
+        : "ไม่เก็บ",
+      after: enabled ? `ห้องพัก ${one(room.baht, room.pct)} · อาบน้ำ ${one(groom.baht, groom.pct)}` : "ไม่เก็บ",
+      patch: () => ({
+        bookingDeposit: {
+          enabled,
+          roomAmount: room.baht,
+          groomAmount: groom.baht,
+          roomPercent: room.pct,
+          groomPercent: groom.pct,
+        },
+      }),
+    });
   }
 
   const tax = r.raw("tax");
@@ -356,22 +369,30 @@ function buildDrafts(ans: IntakeAnswers, cfg: SiteConfig): Draft[] {
   // ── อาบน้ำตัดขน ──
   const sizeCount = Math.min(8, firstNum(r.one("sizeCount")) || 0);
   const services = (r.many("services") || []).filter(Boolean);
-  // ระบบแบ่งราคาอาบน้ำได้ 3 ไซส์ — ร้านที่แบ่งมากกว่านั้นต้องตั้งเอง
-  if (sizeCount === 3 && services.length) {
+  // ตารางราคามี 3 ช่องไซส์ (kitten/m/l) — ร้านที่แบ่ง 3 ไซส์ใส่ตรงช่อง
+  // ร้านที่แบ่งจำนวนอื่น (2, 4, 5, 6 …) ใส่ไซส์เป็น "แถว" ของโปรแกรม (ชื่อไซส์ + น้ำหนัก) ราคาเท่ากันทุกช่อง
+  // ร้านไม่ต้องแก้อะไร: ตอนออกบิลเลือกแถวตามไซส์ได้ราคาถูกเลย
+  const sizeName = (i: number) => {
+    const n = r.raw(`sizes.${i}.name`);
+    const kg = r.raw(`sizes.${i}.kg`);
+    return [n || `ไซส์ ${i + 1}`, kg && `(${kg})`].filter(Boolean).join(" ");
+  };
+  if (sizeCount > 0 && services.length) {
+    const asColumns = sizeCount === 3;
     const programs: GroomProgram[] = [];
     services.forEach((svc, ri) => {
-      const prices = GROOM_KEYS.map((_, ci) => firstNum(r.raw(`prices.${ri}.${ci}`)));
+      const prices = Array.from({ length: sizeCount }, (_, ci) => firstNum(r.raw(`prices.${ri}.${ci}`)));
       if (prices.every((p) => p == null)) return;
       const old = cfg.groomPricePrograms?.find((p) => p.name === svc);
+      const breeds = asColumns
+        ? [{ breed: "ทุกสายพันธุ์", prices: { kitten: prices[0] || 0, m: prices[1] || 0, l: prices[2] || 0 } }]
+        : prices
+            .map((p, ci) => ({ breed: sizeName(ci), prices: { kitten: p || 0, m: p || 0, l: p || 0 } }))
+            .filter((b) => b.prices.m > 0);
       programs.push({
         id: old?.id || slugId("groom", svc, ri),
         name: r.T(svc),
-        breeds: [
-          {
-            breed: "ทุกสายพันธุ์",
-            prices: { kitten: prices[0] || 0, m: prices[1] || 0, l: prices[2] || 0 },
-          },
-        ],
+        breeds,
         ...(old?.includes ? { includes: old.includes } : {}),
       });
     });
@@ -379,35 +400,54 @@ function buildDrafts(ans: IntakeAnswers, cfg: SiteConfig): Draft[] {
     if (includes.length) programs.forEach((p) => (p.includes = includes));
     if (programs.length) {
       const desc = (list?: GroomProgram[]) =>
-        (list || []).map((p) => `${p.name} ${GROOM_KEYS.map((k) => p.breeds[0]?.prices[k] ?? 0).join("/")}`).join(" · ");
+        (list || [])
+          .map((p) => `${p.name} ${p.breeds.length > 1 ? p.breeds.map((b) => b.prices.m).join("/") : GROOM_KEYS.map((k) => p.breeds[0]?.prices[k] ?? 0).join("/")}`)
+          .join(" · ");
       add({
         key: "groomPricePrograms",
-        label: "ราคาอาบน้ำตัดขน (3 ไซส์)",
+        label: `ราคาอาบน้ำตัดขน (${sizeCount} ไซส์)`,
         before: desc(cfg.groomPricePrograms) || "ราคาตัวอย่างของระบบ",
         after: desc(programs),
         patch: () => ({ groomPricePrograms: programs }),
       });
     }
-    const labels: Partial<Record<GroomSize, string>> = {};
-    GROOM_KEYS.forEach((k, i) => {
-      const n = r.raw(`sizes.${i}.name`);
-      const kg = r.raw(`sizes.${i}.kg`);
-      const l = [n, kg && `(${kg})`].filter(Boolean).join(" ");
-      if (l) labels[k] = l;
-    });
-    if (Object.keys(labels).length)
-      add({
-        key: "groomSizeLabels",
-        label: "ชื่อไซส์อาบน้ำ",
-        before: show(GROOM_KEYS.map((k) => cfg.groomSizeLabels?.[k]).filter(Boolean)),
-        after: show(GROOM_KEYS.map((k) => labels[k]).filter(Boolean)),
-        patch: (c) => ({ groomSizeLabels: { ...c.groomSizeLabels, ...labels } }),
+    if (asColumns) {
+      const labels: Partial<Record<GroomSize, string>> = {};
+      GROOM_KEYS.forEach((k, i) => {
+        const n = r.raw(`sizes.${i}.name`);
+        const kg = r.raw(`sizes.${i}.kg`);
+        const l = [n, kg && `(${kg})`].filter(Boolean).join(" ");
+        if (l) labels[k] = l;
       });
+      if (Object.keys(labels).length)
+        add({
+          key: "groomSizeLabels",
+          label: "ชื่อไซส์อาบน้ำ",
+          before: show(GROOM_KEYS.map((k) => cfg.groomSizeLabels?.[k]).filter(Boolean)),
+          after: show(GROOM_KEYS.map((k) => labels[k]).filter(Boolean)),
+          patch: (c) => ({ groomSizeLabels: { ...c.groomSizeLabels, ...labels } }),
+        });
+    }
   }
 
   const addons = (r.many("addons") || [])
     .map((v) => ({ label: r.T(v), amount: firstNum(r.fol("addons", v)) || 0 }))
     .filter((x) => x.label);
+  // ค่าบริการที่ตอบไว้ในข้ออื่น — เป็นปุ่มกดเพิ่มในหน้าคิดเงินเหมือนบริการเสริม ไม่ต้องจำ/พิมพ์เอง
+  const extraFee = (id: string, opt: string, label: string) => {
+    if (r.raw(id) !== opt) return;
+    const f = r.fol(id, opt);
+    const n = firstNum(f);
+    addons.push({ label: n != null && /^\D*\d+(?:\.\d+)?\s*(บาท)?\s*$/.test(f) ? label : f ? `${label} (${f})` : label, amount: n || 0 });
+  };
+  extraFee("meds", "ป้อนให้ คิดเพิ่ม", "ป้อนยา ต่อวัน");
+  extraFee("flea", "ร้านหยดให้ คิดเงินเพิ่ม", "หยดยาเห็บหมัด");
+  extraFee("food", "ร้านมีให้ คิดเงินเพิ่ม", "อาหารระหว่างฝาก ต่อวัน");
+  extraFee("earlyIn", "คิดเพิ่ม", "มาส่งก่อนเวลาเช็คอิน");
+  extraFee("waitPickup", "รับช้าคิดเพิ่ม", "รับช้าหลังอาบน้ำเสร็จ");
+  extraFee("lateFee", "คิดเพิ่มเป็นชั่วโมง", "รับช้ากว่าเวลาเช็คเอาท์ ต่อชั่วโมง");
+  extraFee("lateFee", "คิดเพิ่มครึ่งวัน", "รับช้า คิดครึ่งวัน");
+  // ช้าเกินเวลาที่ตั้ง = คิดเพิ่ม 1 คืน (ราคาตามห้อง — ไม่ใส่ยอดตายตัว ให้เลือกห้องเพิ่ม 1 คืนในบิล)
   if (addons.length)
     add({
       key: "options.servicePresets",
@@ -416,6 +456,46 @@ function buildDrafts(ans: IntakeAnswers, cfg: SiteConfig): Draft[] {
       after: show(addons.map((x) => `${x.label} ${x.amount}`)),
       patch: () => ({ options: { servicePresets: addons } as SiteConfig["options"] }),
     });
+
+  // ── โปรพักยาว / VIP — เป็นโปรลดเฉพาะรายการ กดเลือกตอนออกบิล ──
+  const promos: LinePromo[] = [];
+  for (const opt of r.many("longStay") || []) {
+    const nights = firstNum(opt);
+    const f = r.fol("longStay", opt);
+    const n = firstNum(f);
+    if (!nights || !n) continue;
+    if (/บาท/.test(f) && !/%/.test(f)) continue; // ลดเป็นบาท — โปรรายการลดได้แค่ %
+    promos.push({ id: `stay${nights}`, name: `พัก ${nights} คืนขึ้นไป ลด ${n}%`, percent: n, kinds: ["stay"], minNights: nights });
+  }
+  if (r.raw("vipPerk") === "ส่วนลด") {
+    const n = firstNum(r.fol("vipPerk", "ส่วนลด"));
+    if (n) promos.push({ id: "vip", name: `ลูกค้า VIP ลด ${n}%`, percent: n, kinds: ["stay", "daycare", "grooming", "service"] });
+  }
+  if (promos.length) {
+    const keep = (cfg.linePromos || []).filter((p) => !promos.some((x) => x.id === p.id));
+    add({
+      key: "linePromos",
+      label: "โปรพักยาว / ส่วนลด VIP (เลือกตอนออกบิล)",
+      before: show((cfg.linePromos || []).map((p) => p.name)),
+      after: show([...keep, ...promos].map((p) => p.name)),
+      patch: (c) => ({ linePromos: [...(c.linePromos || []).filter((p) => !promos.some((x) => x.id === p.id)), ...promos] }),
+    });
+  }
+
+  // แพ็กห้องรายเดือน ("30 คืน ลด 30%")
+  if ((r.many("courses") || []).includes("แพ็กห้องพัก")) {
+    const f = r.fol("courses", "แพ็กห้องพัก");
+    const nights = f.match(/(\d+)\s*คืน/)?.[1];
+    const pct = f.match(/(\d+)\s*%/)?.[1];
+    if (nights && pct)
+      add({
+        key: "business.roomPlan",
+        label: "แพ็กห้องพัก",
+        before: `${cfg.business.roomPlanMinNights ?? 30} คืน ลด ${cfg.business.roomPlanDiscountPct ?? 30}%`,
+        after: `${nights} คืน ลด ${pct}%`,
+        patch: () => ({ business: { roomPlanMinNights: Number(nights), roomPlanDiscountPct: Number(pct) } as SiteConfig["business"] }),
+      });
+  }
 
   const freebies = r.many("freebies");
   if (freebies) {
@@ -529,6 +609,108 @@ function buildDrafts(ans: IntakeAnswers, cfg: SiteConfig): Draft[] {
       before: show(cfg.options.referralOptions),
       after: show(referral),
       patch: () => ({ options: { referralOptions: referral } as SiteConfig["options"] }),
+    });
+
+  // แต้มแลกรางวัล — "5 แต้ม = ลด 100 บาท อาบน้ำ, 10 แต้ม = ลด 200 บาท"
+  const rewardText = r.raw("rewards");
+  if (r.raw("points") === "มี" && rewardText) {
+    const rewards: PointsRewardConfig[] = [];
+    const re = /(\d+)\s*แต้ม\s*[=:：]?\s*([^\d\n,/]*?\d[^\n,/]*?)(?=\s*\d+\s*แต้ม|[\n,/]|$)/g;
+    for (const m of rewardText.matchAll(re)) {
+      const points = Number(m[1]);
+      const label = m[2].trim();
+      if (!points || !label) continue;
+      const baht = /บาท/.test(label) ? firstNum(label) : null;
+      rewards.push({ id: `reward-${points}`, points, reward: { th: label, en: "" }, ...(baht ? { discount: baht } : {}) });
+    }
+    if (rewards.length)
+      add({
+        key: "pointsRewards",
+        label: "แต้มแลกรางวัล",
+        before: show(cfg.pointsRewards.map((x) => `${x.points} แต้ม = ${x.reward.th}`)),
+        after: show(rewards.map((x) => `${x.points} แต้ม = ${x.reward.th}`)),
+        patch: () => ({ pointsRewards: rewards }),
+      });
+  }
+
+  if (r.raw("referBonus") === "มี") {
+    const n = firstNum(r.fol("referBonus", "มี"));
+    if (n && /บาท/.test(r.fol("referBonus", "มี")))
+      add({
+        key: "referral.amount",
+        label: "ชวนเพื่อน ได้คูปองคนละ",
+        before: `${cfg.referral?.amount ?? 100} บาท`,
+        after: `${n} บาท`,
+        patch: (c) => ({ referral: { ...c.referral, amount: n } }),
+      });
+  }
+
+  // ── กฎการรับฝาก → หน้ากฎในแอป + ของที่ต้องเตรียม + เงื่อนไขมัดจำ ──
+  const rules: string[] = [];
+  const vacc = (r.many("vaccines") || []).filter((v) => v !== "ไม่บังคับ").map((v) => v.replace(/^(หมา|แมว):\s*/, ""));
+  if (vacc.length) {
+    const age = r.raw("vaccineAge");
+    rules.push(`💉 วัคซีนที่ต้องฉีด: ${vacc.join(", ")}${age && age !== "ไม่กำหนด" ? ` (ฉีดมา${age})` : ""}`);
+  }
+  const proof = r.raw("vaccineProof");
+  if (proof && proof !== "ไม่ต้อง") rules.push(`📖 ส่งรูปสมุดวัคซีน${proof === "ต้องส่งทุกครั้ง" ? "ทุกครั้งที่เข้าพัก" : "ครั้งแรก"}`);
+  if (r.raw("flea") === "ต้องหยด") {
+    const d = firstNum(r.fol("flea", "ต้องหยด"));
+    rules.push(`🐛 หยดยาป้องกันเห็บหมัดมาก่อนเข้าพัก${d ? `ไม่เกิน ${d} วัน` : ""}`);
+  }
+  const notAccept = (r.many("notAccept") || []).filter((v) => v !== "รับหมด").map((v) => {
+    const f = r.fol("notAccept", v);
+    return r.T(v) + (f ? ` (${f})` : "");
+  });
+  if (notAccept.length) rules.push(`🚫 ไม่รับฝาก: ${notAccept.join(", ")}`);
+  const bring = (r.many("bring") || []).map(r.T);
+  if (bring.length) rules.push(`🧳 สิ่งที่ต้องเตรียมมา: ${bring.join(", ")}`);
+  const food = r.raw("food");
+  if (food) rules.push(`🍽️ อาหารระหว่างฝาก: ${food}${firstNum(r.fol("food", food)) ? ` ${firstNum(r.fol("food", food))} บาท/วัน` : ""}${r.note.food ? ` · ${r.note.food}` : ""}`);
+  const cin = r.raw("checkin") || r.note.checkin;
+  const cout = r.raw("checkout");
+  if (cin || cout) rules.push(`🕐 เช็คอิน ${cin || "-"} · เช็คเอาท์ ${cout || "-"}`);
+  const late = r.raw("lateFee");
+  if (late) rules.push(`⏰ มารับช้ากว่าเวลาเช็คเอาท์: ${late}${r.fol("lateFee", late) ? ` (${r.fol("lateFee", late)})` : ""}`);
+  const meds = r.raw("meds");
+  if (meds) rules.push(`💊 ${meds}${firstNum(r.fol("meds", meds)) ? ` วันละ ${firstNum(r.fol("meds", meds))} บาท` : ""}`);
+  const sick = r.raw("sick");
+  const vet = r.raw("vetCost");
+  if (sick || vet) rules.push(`🏥 น้องป่วยระหว่างฝาก: ${[sick, vet && `ค่ารักษา${vet}`].filter(Boolean).join(" · ")}`);
+  const depTerms: string[] = [];
+  const payFull = r.raw("payFull");
+  if (payFull) depTerms.push(`ห้องพักชำระส่วนที่เหลือ${payFull.replace(/^จ่าย/, "")}${r.fol("payFull", payFull) ? ` ${r.fol("payFull", payFull)} วัน` : ""}`);
+  const refund = r.raw("refund");
+  if (refund) depTerms.push(`ยกเลิก: ${refund}${r.fol("refund", refund) ? ` (${r.fol("refund", refund)})` : ""}`);
+  if (depTerms.length) rules.push(`💰 ${depTerms.join(" · ")}`);
+  const extra = r.raw("rulesExtra");
+  if (extra) rules.push(extra);
+  if (rules.length) {
+    const block: BoardingRuleBlock = { id: "intake-rules", text: rules.join("\n\n") };
+    add({
+      key: "boardingRules",
+      label: "หน้ากฎการรับฝาก (ข้อความ)",
+      before: (cfg.boardingRules || []).length ? `${cfg.boardingRules?.length} บล็อก` : "ยังไม่มี",
+      after: `${rules.length} ข้อ จากคำตอบ`,
+      // แทนเฉพาะบล็อกที่สร้างจากคำตอบ — รูป/ข้อความที่ร้านใส่เองยังอยู่
+      patch: (c) => ({ boardingRules: [block, ...(c.boardingRules || []).filter((b) => b.id !== block.id)] }),
+    });
+  }
+  if (bring.length)
+    add({
+      key: "messages.prestayPrepItems",
+      label: "ของที่ต้องเตรียมก่อนเข้าพัก (การ์ด LINE)",
+      before: show(cfg.messages.prestayPrepItems),
+      after: show(bring),
+      patch: () => ({ messages: { prestayPrepItems: bring } as unknown as SiteConfig["messages"] }),
+    });
+  if (depTerms.length)
+    add({
+      key: "messages.depositTerms",
+      label: "เงื่อนไขมัดจำในการ์ด",
+      before: show(cfg.messages.depositTerms),
+      after: show(depTerms),
+      patch: () => ({ messages: { depositTerms: depTerms } as unknown as SiteConfig["messages"] }),
     });
 
   // ── ข้อความ LINE อัตโนมัติ ──
@@ -674,13 +856,13 @@ export function manualItems(ans: IntakeAnswers): string[] {
     return Array.isArray(v) ? v.length > 0 : String(v ?? "").trim() !== "";
   };
   const sizeCount = firstNum(r.one("sizeCount")) || 0;
-  if (sizeCount && sizeCount !== 3) items.push(`ราคาอาบน้ำ (ร้านแบ่ง ${sizeCount} ไซส์ ระบบตั้งอัตโนมัติได้แค่ 3 ไซส์)`);
   const deposits = r.many("deposit") || [];
-  if (["เก็บมัดจำห้องพัก", "เก็บมัดจำคิวอาบน้ำ"].some((o) => deposits.includes(o) && (/%/.test(r.fol("deposit", o)) || firstNum(r.fol("deposit", o)) == null)))
-    items.push("มัดจำ (ระบบตั้งได้เป็นจำนวนบาท)");
+  if (["เก็บมัดจำห้องพัก", "เก็บมัดจำคิวอาบน้ำ"].some((o) => deposits.includes(o) && firstNum(r.fol("deposit", o)) == null))
+    items.push("มัดจำ (คำตอบไม่มีตัวเลข)");
   if (answered("roomTypes") && !(firstNum(r.one("roomTypes")) && r.raw("rooms.0.price"))) items.push("ห้องพักและราคาห้อง");
   if (answered("services") && !sizeCount) items.push("ราคาอาบน้ำตัดขน");
-  if (answered("courses") && r.raw("courses") !== "ยังไม่มี") items.push("คอร์ส / เติมเงินสมาชิก");
+  const courses = (r.many("courses") || []).filter((c) => c !== "ยังไม่มี" && c !== "แพ็กห้องพัก");
+  if (courses.length) items.push(`สร้างรายการขายในเมนูคอร์ส: ${courses.map((c) => `${c} (${r.fol("courses", c)})`).join(" · ")}`);
   if (r.raw("products") === "ขาย") items.push("สินค้าหน้าร้าน");
   if (r.raw("moveData") === "อยาก") items.push("ย้ายข้อมูลลูกค้าเก่า");
   if (answered("sheetLink")) items.push(`กรอกข้อมูลจากชีทของร้าน: ${r.raw("sheetLink")}`);
@@ -688,12 +870,11 @@ export function manualItems(ans: IntakeAnswers): string[] {
   if (r.raw("lineReady") === "ยังไม่มี") items.push("สร้าง LINE OA ให้ร้าน แล้วเชื่อม LINE");
   else if (r.raw("lineAdmin") === "เพิ่มแล้ว") items.push("เชื่อม LINE ของร้าน (Token, LIFF, Webhook)");
   else if (r.raw("lineReady")) items.push("เชื่อม LINE ของร้าน (ร้านยังไม่ได้เพิ่มทีมเป็นผู้ดูแล)");
-  if (answered("rewards")) items.push("แต้มแลกรางวัล");
+  if (answered("rewards") && !/\d+\s*แต้ม/.test(r.raw("rewards"))) items.push("แต้มแลกรางวัล (อ่านคำตอบเป็นตัวเลขไม่ได้)");
   if (answered("staffCount") && r.raw("staffCount") !== "0") items.push("รหัสพนักงาน");
-  if (["vaccines", "flea", "notAccept", "food", "bring", "meds", "sick", "vetCost", "rulesExtra"].some(answered))
-    items.push("หน้ากฎการรับฝาก");
+  if (answered("pics")) items.push(`ใส่รูปที่ร้านส่งมา: ${(r.many("pics") || []).join(", ")}`);
   if (answered("holidays")) items.push(`วันปิดยาว (${r.raw("holidays")})`);
-  if (["lateFee", "earlyIn", "longStay", "peak", "minNights", "refund", "payFull"].some(answered))
-    items.push("ค่าเช็คเอาท์ช้า ส่วนลดพักยาว ราคาเทศกาล และเงื่อนไขยกเลิก");
+  if (r.raw("peak") === "เพิ่ม") items.push(`ราคาเทศกาล: ${r.fol("peak", "เพิ่ม")} (ตั้งช่วงวันใน ตั้งค่า › ห้องพัก › Low/High season)`);
+  if (r.raw("lateFee") === "คิดเพิ่ม 1 คืน") items.push(`มารับช้า (${r.fol("lateFee", "คิดเพิ่ม 1 คืน") || "ตามเวลาที่ร้านกำหนด"}) = เพิ่มห้อง 1 คืนในบิลเอง (เขียนไว้ในหน้ากฎแล้ว)`);
   return items;
 }

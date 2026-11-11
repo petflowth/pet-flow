@@ -831,6 +831,7 @@ function PaymentTab({
   const [form, setForm] = useState(config.payment);
   useEffect(() => setForm(config.payment), [config.payment]);
   const [dep, setDep] = useState(config.bookingDeposit || {});
+  const [depUnit, setDepUnit] = useState<Record<"groom" | "room", "baht" | "percent">>({ groom: "baht", room: "baht" });
   useEffect(() => setDep(config.bookingDeposit || {}), [config.bookingDeposit]);
   const hasPromptpay = /^(0\d{9}|\d{13})$/.test(form.promptpayId || "");
 
@@ -845,6 +846,8 @@ function PaymentTab({
             enabled: !!dep.enabled,
             groomAmount: Math.max(0, Math.round(Number(dep.groomAmount) || 0)),
             roomAmount: Math.max(0, Math.round(Number(dep.roomAmount) || 0)),
+            groomPercent: Math.min(100, Math.max(0, Math.round(Number(dep.groomPercent) || 0))),
+            roomPercent: Math.min(100, Math.max(0, Math.round(Number(dep.roomPercent) || 0))),
           },
         });
       }}
@@ -884,22 +887,56 @@ function PaymentTab({
           </span>
         </label>
         {dep.enabled && (
+          <>
           <div className="mt-2.5 grid grid-cols-2 gap-2">
-            <Field
-              label="มัดจำอาบน้ำ (บาท)"
-              type="number"
-              value={dep.groomAmount ? String(dep.groomAmount) : ""}
-              placeholder="0 = ไม่เก็บ"
-              onChange={(v) => setDep({ ...dep, groomAmount: Number(v) || 0 })}
-            />
-            <Field
-              label="มัดจำห้องพัก (บาท)"
-              type="number"
-              value={dep.roomAmount ? String(dep.roomAmount) : ""}
-              placeholder="0 = ไม่เก็บ"
-              onChange={(v) => setDep({ ...dep, roomAmount: Number(v) || 0 })}
-            />
+            {(
+              [
+                ["groom", "มัดจำอาบน้ำ"],
+                ["room", "มัดจำห้องพัก"],
+              ] as const
+            ).map(([svc, label]) => {
+              const amountKey = svc === "room" ? "roomAmount" : "groomAmount";
+              const pctKey = svc === "room" ? "roomPercent" : "groomPercent";
+              const isPct = Number(dep[pctKey]) > 0 || depUnit[svc] === "percent";
+              return (
+                <div key={svc}>
+                  <div className="mb-1 flex gap-1">
+                    {(["baht", "percent"] as const).map((u) => (
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => {
+                          setDepUnit({ ...depUnit, [svc]: u });
+                          setDep(u === "percent" ? { ...dep, [amountKey]: 0 } : { ...dep, [pctKey]: 0 });
+                        }}
+                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                          (u === "percent") === isPct ? "bg-latte-deep text-white" : "bg-card text-brown-soft"
+                        }`}
+                      >
+                        {u === "baht" ? "บาท" : "% ของยอด"}
+                      </button>
+                    ))}
+                  </div>
+                  <Field
+                    label={`${label} (${isPct ? "%" : "บาท"})`}
+                    type="number"
+                    value={isPct ? (dep[pctKey] ? String(dep[pctKey]) : "") : dep[amountKey] ? String(dep[amountKey]) : ""}
+                    placeholder="0 = ไม่เก็บ"
+                    onChange={(v) =>
+                      setDep(isPct ? { ...dep, [pctKey]: Number(v) || 0 } : { ...dep, [amountKey]: Number(v) || 0 })
+                    }
+                  />
+                </div>
+              );
+            })}
           </div>
+          {(Number(dep.groomPercent) > 0 || Number(dep.roomPercent) > 0) && (
+            <p className="mt-2 text-[10px] text-brown-faint">
+              แบบ % : ตอนออกบิลจะมีปุ่ม % ของร้านให้กดทันที · ลูกค้าที่จองเองในแอปยังไม่รู้ยอดจริง ระบบจะไม่เรียกมัดจำตอนจอง
+              ร้านส่งการ์ดเรียกมัดจำตามบิลหลังยืนยันคิว
+            </p>
+          )}
+          </>
         )}
         {dep.enabled && !hasPromptpay && (
           <p className="mt-2 rounded bg-honey/20 px-2 py-1 text-[10px] font-bold text-wait">

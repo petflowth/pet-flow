@@ -8,7 +8,7 @@ import { BookingOnlyNotice, LineBookingCta, PageHeader } from "@/components/Page
 import { ContentBlocks } from "@/components/ContentBlocks";
 import { petKindOf } from "@/lib/pet-kind";
 import { isFeatureOn } from "@/lib/features";
-import { bathPrograms, resolveGroomPrograms, resolveMassagePrograms, resolveGroomSizes } from "@/lib/grooming-prices";
+import { bathPrograms, GROOM_PROGRAMS, resolveGroomPrograms, resolveMassagePrograms, resolveGroomSizes } from "@/lib/grooming-prices";
 
 const GROOMING_MENU_POSTER = "/catalog/grooming/grooming-menu.jpg";
 // รูปที่ติดมากับระบบ (ของร้านตัวอย่าง PetFlow) — ถ้าค่าที่บันทึกไว้เป็นรูปพวกนี้ ถือว่าร้านยังไม่ได้อัปเอง
@@ -35,7 +35,10 @@ export default function GroomingPage() {
     (p): p is string => !!p && !LEGACY_POSTERS.has(p)
   );
   // รูปเมนูที่ติดมากับระบบเป็นเมนูร้านแมว — ร้านหมา / หมาและแมวที่ยังไม่อัปรูปเอง โชว์ตารางราคาจากหน้าตั้งค่าแทน
-  const showTable = !custom.length && petKindOf(config) !== "cat";
+  // ร้านแมวที่ตั้งราคาอาบน้ำของตัวเองแล้ว (ไม่ใช่ชุดตัวอย่างของระบบ) — โชว์ตารางราคาของร้าน ไม่ใช่โปสเตอร์ตัวอย่าง
+  const defaultIds = new Set(GROOM_PROGRAMS.map((p) => p.id));
+  const ownPrices = (config.groomPricePrograms || []).some((p) => !defaultIds.has(p.id));
+  const showTable = !custom.length && (petKindOf(config) !== "cat" || ownPrices);
   const posters = custom.length ? custom : showTable ? [] : [GROOMING_MENU_POSTER];
   const sizes = resolveGroomSizes(config.groomSizeLabels);
 
@@ -67,14 +70,18 @@ export default function GroomingPage() {
             ...bathPrograms(resolveGroomPrograms(config.groomPricePrograms)),
             // ร้านเปิดบริการนวด — โชว์ราคานวดต่อท้ายในหน้าเดียวกัน
             ...(isFeatureOn(config, "massage") ? resolveMassagePrograms(config.groomPricePrograms) : []),
-          ].map((p) => (
+          ].map((p) => {
+            // ราคาเท่ากันทุกไซส์ (ร้านที่ใส่ไซส์เป็นแถว หรือบริการราคาเดียว) — โชว์คอลัมน์เดียว
+            const flat = p.breeds.every((b) => b.prices.kitten === b.prices.m && b.prices.m === b.prices.l);
+            const cols = flat ? [{ id: "m" as const, label: locale === "th" ? "ราคา" : "Price" }] : sizes;
+            return (
             <div key={p.id} className="overflow-hidden rounded-petflow border border-petflow-line bg-card shadow-petflow-sm">
               <p className="bg-honey/25 px-4 py-2.5 text-sm font-extrabold text-petflow-chocolate">{p.name}</p>
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-brown-soft">
                     <th className="px-3 py-2 text-left font-bold" />
-                    {sizes.map((s) => (
+                    {cols.map((s) => (
                       <th key={s.id} className="px-2 py-2 text-right font-bold">{s.label}</th>
                     ))}
                   </tr>
@@ -83,7 +90,7 @@ export default function GroomingPage() {
                   {p.breeds.map((b) => (
                     <tr key={b.breed} className="border-t border-petflow-line">
                       <td className="px-3 py-2 font-bold text-brown">{b.breed}</td>
-                      {sizes.map((s) => (
+                      {cols.map((s) => (
                         <td key={s.id} className="px-2 py-2 text-right text-brown">
                           {b.prices[s.id] ? b.prices[s.id].toLocaleString() : "–"}
                         </td>
@@ -96,7 +103,8 @@ export default function GroomingPage() {
                 <p className="border-t border-petflow-line px-4 py-2 text-[11px] text-brown-soft">รวม: {p.includes.join(" · ")}</p>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

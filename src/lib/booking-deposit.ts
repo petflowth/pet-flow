@@ -24,12 +24,28 @@ export function cleanDepositStatus(v: unknown): DepositStatus {
   return v === "pending_review" || v === "paid" ? v : "none";
 }
 
-/** ยอดมัดจำที่ต้องเก็บของบริการนี้ — 0 = ไม่เก็บ (ปิดอยู่/ไม่ได้ตั้งยอด) */
-export function depositAmountFor(
+/** มัดจำของบริการนี้เป็น % ของค่าบริการ — 0 = ไม่ได้ตั้งแบบ % (ใช้ยอดบาท หรือไม่เก็บ) */
+export function depositPercentFor(
   cfg: BookingDepositConfig | undefined,
   service: "groom" | "room"
 ): number {
   if (!cfg?.enabled) return 0;
+  const raw = Number(service === "room" ? cfg.roomPercent : cfg.groomPercent) || 0;
+  return raw > 0 ? Math.min(100, Math.round(raw)) : 0;
+}
+
+/**
+ * ยอดมัดจำที่ต้องเก็บของบริการนี้ — 0 = ไม่เก็บ (ปิดอยู่/ไม่ได้ตั้งยอด)
+ * ร้านที่ตั้งเป็น % : ต้องรู้ยอดค่าบริการ (estimate) ถึงคิดได้ ไม่รู้ = 0 (ไม่เรียกเก็บตอนจอง)
+ */
+export function depositAmountFor(
+  cfg: BookingDepositConfig | undefined,
+  service: "groom" | "room",
+  estimate?: number
+): number {
+  if (!cfg?.enabled) return 0;
+  const pct = depositPercentFor(cfg, service);
+  if (pct) return estimate && estimate > 0 ? Math.round((estimate * pct) / 100) : 0;
   const raw = service === "room" ? cfg.roomAmount : cfg.groomAmount;
   const n = Math.round(Number(raw) || 0);
   return n > 0 ? n : 0;

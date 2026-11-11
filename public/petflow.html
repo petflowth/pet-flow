@@ -121,7 +121,7 @@
   .pf-phone-caption b { color: var(--aqua-dim); }
 
   /* ═══ SECTIONS ═══ */
-  .pf-section { padding: clamp(52px, 8vw, 92px) 0; position: relative; }
+  .pf-section { padding: clamp(40px, 6vw, 72px) 0; position: relative; }
   .pf-section:nth-of-type(even) { background: linear-gradient(180deg, var(--bg-2), #fffdf6); }
   .pf-section + .pf-section { border-top: 1px solid var(--line); }
   .pf-kicker { font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--pink); }
@@ -365,6 +365,16 @@
   .pf-intake-points { display:grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin-top: 22px; }
   .pf-intake-points div { background: var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 16px; font-size:13px; color: var(--text-dim); }
   .pf-intake-points b { display:block; color: var(--text); font-size:14px; margin-bottom:2px; }
+  /* ═══ แถบเลื่อนดูภาพ: ปุ่มลูกศรบนคอม + การ์ด LINE ═══ */
+  .pf-strip-wrap { position:relative; }
+  .pf-strip-btn { position:absolute; top: calc(50% - 40px); z-index:2; width:44px; height:44px; border-radius:50%; border:1px solid var(--line); background:#fff; color:var(--text); font-size:20px; font-weight:800; cursor:pointer; box-shadow: 0 10px 24px -12px rgba(35,37,92,0.5); display:none; }
+  .pf-strip-btn.prev { left:-18px; } .pf-strip-btn.next { right:-18px; }
+  @media (hover:hover) and (min-width: 700px) { .pf-strip-btn { display:grid; place-items:center; } }
+  .pf-card-item { flex-basis: min(250px, 72vw); }
+  .pf-card-item .cardph { height: 360px; display:flex; align-items:flex-start; justify-content:center; background: linear-gradient(180deg, #eef3fb, #f7f2fb); border-radius:20px; padding:14px; overflow:hidden; border:1px solid var(--line); }
+  .pf-card-item .cardph img { width:100%; height:auto; border-radius:12px; box-shadow: 0 12px 26px -18px rgba(35,37,92,0.5); }
+  .pf-card-item .auto { display:inline-block; margin-top:4px; font-size:10px; font-weight:800; color:var(--good); background:#e8f8ee; padding:2px 8px; border-radius:99px; }
+  .pf-card-item .auto.hand { color:var(--violet); background:#f1ecff; }
   /* ═══ SEO: คำค้นหลักใน H1 + การ์ดลิงก์ไปหน้าเฉพาะประเภทร้าน ═══ */
   .pf-h1-kw { display:block; font-size: clamp(14px, 1.7vw, 17px); font-weight: 800; letter-spacing: 0; color: var(--text-dim); margin-bottom: 6px; -webkit-text-fill-color: currentColor; }
   .pf-sol { display:grid; grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); gap: 14px; margin-top: clamp(24px, 4vw, 36px); }
@@ -441,197 +451,84 @@
     </div>
   </section>
 
-  <!-- ═══════════ SCREEN GALLERY — ภาพหน้าจอจริงฝั่งร้าน ═══════════ -->
+  <!-- ═══════════ SOLUTIONS (ลิงก์ไปหน้า SEO แต่ละประเภทร้าน) ═══════════ -->
+  <section class="pf-section">
+    <div class="pf-wrap">
+      <p class="pf-kicker">PetFlow สำหรับร้านแบบไหน</p>
+      <h2 class="pf-h2">ระบบเดียว ใช้ได้ทั้ง<span class="glow">ร้านอาบน้ำ กรูมมิ่ง และโรงแรมสัตว์เลี้ยง</span></h2>
+      <div class="pf-sol">
+        <a href="/pet-grooming-software"><span class="em">🛁</span><b>โปรแกรมร้านกรูมมิ่ง ระบบจัดการร้านอาบน้ำสัตว์</b><span>จองคิว บอร์ดคิวช่าง ฟอร์มก่อนอาบน้ำ ค่าคอมช่าง</span></a>
+        <a href="/pet-hotel-software"><span class="em">🏨</span><b>ระบบจัดการโรงแรมสัตว์เลี้ยง รับฝากหมาแมว</b><span>ห้องพัก เช็คอิน-เอาท์ ข้อตกลงเข้าพัก มัดจำ</span></a>
+        <a href="/pet-booking-system"><span class="em">📅</span><b>ระบบจองคิวร้านสัตว์เลี้ยงผ่าน LINE</b><span>ลูกค้าจองเอง 24 ชม. ยืนยันและเตือนนัดอัตโนมัติ</span></a>
+        <a href="/pet-shop-pos"><span class="em">🧾</span><b>โปรแกรมออกบิล ใบเสร็จ ขายหน้าร้านสัตว์เลี้ยง</b><span>ออกบิล ใบเสร็จ คอร์สเหมา บัญชีรายรับรายจ่าย</span></a>
+        <a href="/pet-shop-crm"><span class="em">💎</span><b>ระบบสมาชิก สะสมแต้ม ร้านสัตว์เลี้ยง</b><span>แต้มสะสม คูปองวันเกิด ตามลูกค้าที่หายไป</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ ฝั่งร้าน: ภาพหน้าจอจริง (เลื่อนดูได้) ═══════════ -->
   <section class="pf-section" id="screens">
     <div class="pf-wrap">
-      <p class="pf-kicker">หน้าจอจริงของระบบ — ฝั่งเจ้าของร้าน</p>
-      <h2 class="pf-h2">หน้าที่จะกลายเป็น<span class="glow">เครื่องมือประจำวัน</span>ของคุณ</h2>
-      <p class="pf-lead">ทุกภาพด้านล่างคือหน้าจอจริงของ PetFlow เปิดจากมือถือ — ไม่ใช่ภาพวาดหรือภาพจำลอง ไม่ต้องลงโปรแกรม</p>
-      <span class="pf-real-note">📸 ภาพหน้าจอจริง · ชื่อลูกค้าและตัวเลขเป็นข้อมูลตัวอย่าง</span>
-
-      <div class="pf-reals">
-        <article class="pf-real">
-          <div class="pf-shot-head"><span class="t">🏠 หน้าแรกหลังบ้าน</span><span class="k">Dashboard</span></div>
-          <figure><img src="/home/own-dashboard.webp" alt="🏠 หน้าแรกหลังบ้าน — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
-          <p class="pf-shot-caption">เปิดมาเห็นทั้งวันในหน้าเดียว — <b>นัดวันนี้ น้องที่พักอยู่ ลูกค้าใหม่ งานที่ต้องตาม</b></p>
-        </article>
-        <article class="pf-real">
-          <div class="pf-shot-head"><span class="t">🗓️ ตารางนัดทั้งเดือน</span><span class="k">Calendar</span></div>
-          <figure><img src="/home/own-schedule.webp" alt="🗓️ ตารางนัดทั้งเดือน — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
-          <p class="pf-shot-caption">อาบน้ำ เข้าพัก เช็คอิน-เอาท์ ในปฏิทินเดียว — <b>แตะวันไหนก็เห็นงานวันนั้น</b></p>
-        </article>
-        <article class="pf-real">
-          <div class="pf-shot-head"><span class="t">🏨 เช็คห้องว่าง</span><span class="k">Rooms</span></div>
-          <figure><img src="/home/own-roomsMonth.webp" alt="🏨 ตารางเช็คห้องว่างทั้งเดือน — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
-          <p class="pf-shot-caption">ปฏิทินบอกห้องว่างทุกวัน เลือกช่วงเข้า-ออกเช็คว่างได้ทันที — <b>ดูผังรายห้องว่าห้องไหนมีน้องพักวันไหน</b></p>
-        </article>
-        <article class="pf-real">
-          <div class="pf-shot-head"><span class="t">🧾 คิดเงิน · ออกบิล</span><span class="k">Billing</span></div>
-          <figure><img src="/home/own-billing.webp" alt="🧾 คิดเงิน · ออกบิล — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
-          <p class="pf-shot-caption">เลือกลูกค้าแล้วออกบิล ส่งการ์ดเก็บเงินทาง LINE — <b>จ่ายแล้วออกใบเสร็จ + แต้มให้เอง</b></p>
-        </article>
-        <article class="pf-real">
-          <div class="pf-shot-head"><span class="t">🐾 รายชื่อลูกค้า + น้อง</span><span class="k">CRM</span></div>
-          <figure><img src="/home/own-customers.webp" alt="🐾 รายชื่อลูกค้า + น้อง — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
-          <p class="pf-shot-caption">ค้นจากชื่อ ชื่อน้อง หรือเบอร์ — <b>รู้ทันทีว่าใครผูก LINE แล้ว มากี่ครั้ง</b></p>
-        </article>
-        <article class="pf-real">
-          <div class="pf-shot-head"><span class="t">💰 รายรับ-รายจ่าย</span><span class="k">Finance</span></div>
-          <figure><img src="/home/own-finance.webp" alt="💰 รายรับ-รายจ่าย — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
-          <p class="pf-shot-caption">บิลที่จ่ายแล้วลงบัญชีเอง — <b>ดูยอดรายวัน รายสัปดาห์ รายเดือน</b></p>
-        </article>
-        <article class="pf-real">
-          <div class="pf-shot-head"><span class="t">🎯 โปรโมชั่น + ส่งหา LINE</span><span class="k">Marketing</span></div>
-          <figure><img src="/home/own-promos.webp" alt="🎯 โปรโมชั่น + ส่งหา LINE — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
-          <p class="pf-shot-caption">ตั้งโปรเอง เลือกกลุ่มลูกค้า แล้วส่งการ์ดตรงถึง LINE — <b>ไม่ต้องพิมพ์ทีละคน</b></p>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════ NEW — ร้านที่มีทีมงาน ═══════════ -->
-  <section class="pf-section">
-    <div class="pf-wrap">
-      <p class="pf-kicker">ร้านที่มีทีมงาน</p>
-      <h2 class="pf-h2">ร้านโตขึ้น มีทีมงานหลายคน — <span class="glow">ระบบก็ดูแลทีมให้ด้วย</span></h2>
-      <p class="pf-lead">หน้าจริงสำหรับหน้าร้านและเจ้าของ: คิวงานวันนี้ เช็คลิสต์ดูแลน้อง เงินเดือนช่าง และสรุปข้อมูลร้าน</p>
-
-      <div class="pf-reals">
-        <article class="pf-real">
-          <div class="pf-shot-head"><span class="t">🛁 บอร์ดคิวอาบน้ำวันนี้</span><span class="k">Queue</span></div>
-          <figure><img src="/home/own-queue.webp" alt="🛁 บอร์ดคิวอาบน้ำวันนี้ — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
-          <p class="pf-shot-caption">ช่างกด "เริ่มทำ" → "เสร็จ" ทีละตัว — <b>ลูกค้าได้ LINE แจ้งให้มารับเอง</b></p>
-        </article>
-        <article class="pf-real">
-          <div class="pf-shot-head"><span class="t">✅ เช็คลิสต์ดูแลรายวัน</span><span class="k">Daily Care</span></div>
-          <figure><img src="/home/own-care.webp" alt="✅ เช็คลิสต์ดูแลรายวัน — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
-          <p class="pf-shot-caption">น้องที่พักอยู่มีรายการให้ติ๊ก อาหาร ยา เปลี่ยนน้ำ — <b>ใครทำ ทำเมื่อไหร่ บันทึกให้หมด</b></p>
-        </article>
-        <article class="pf-real">
-          <div class="pf-shot-head"><span class="t">💵 เงินเดือน &amp; ค่าคอม</span><span class="k">Payroll</span></div>
-          <figure><img src="/home/own-payroll.webp" alt="💵 เงินเดือน &amp; ค่าคอม — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
-          <p class="pf-shot-caption">ทุกตัวที่ช่างอาบเสร็จ <b>นับเป็นค่าคอมให้เอง</b> สิ้นเดือนไม่ต้องนั่งนับ</p>
-        </article>
-        <article class="pf-real">
-          <div class="pf-shot-head"><span class="t">🏅 ผลงานพนักงาน</span><span class="k">Team</span></div>
-          <figure><img src="/home/own-staff.webp" alt="🏅 ผลงานพนักงาน — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
-          <p class="pf-shot-caption">ใครอาบไปกี่ตัว ยอดเท่าไหร่ เทียบเดือนก่อน — <b>เห็นชัดไม่ต้องเดา</b></p>
-        </article>
-        <article class="pf-real">
-          <div class="pf-shot-head"><span class="t">📊 สรุปข้อมูลร้าน</span><span class="k">Insights</span></div>
-          <figure><img src="/home/own-insights.webp" alt="📊 สรุปข้อมูลร้าน — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></figure>
-          <p class="pf-shot-caption">บริการไหนขายดี ห้องไหนเต็ม จำนวนน้องต่อเดือน — <b>รู้ว่าควรทำโปรอะไรต่อ</b></p>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══════════ CUSTOMER SIDE — หน้าแอปลูกค้าจริง ═══════════ -->
-  <section class="pf-section">
-    <div class="pf-wrap">
-      <p class="pf-kicker">ฝั่งลูกค้า</p>
-      <h2 class="pf-h2">ลูกค้าเห็นอะไรบ้าง — <span class="glow">หน้าแอปจริงในมือถือลูกค้า</span></h2>
-      <p class="pf-lead">ลูกค้าเปิดจากเมนูในแชท LINE ของร้าน ไม่ต้องโหลดแอป — สมัคร จองคิว ดูนัด เก็บแต้ม ได้เองหมด และขึ้นชื่อ-สีของร้านคุณเอง</p>
-      <span class="pf-real-note">📸 ภาพหน้าจอจริง · ข้อมูลตัวอย่าง</span>
-
+      <p class="pf-kicker">หลังบ้านร้าน</p>
+      <h2 class="pf-h2">ทุกงานของร้าน <span class="glow">อยู่ในมือถือเครื่องเดียว</span></h2>
+      <p class="pf-lead">ภาพหน้าจอจริงของระบบ (ข้อมูลตัวอย่าง) — เลื่อนดูได้เลย</p>
       <div class="pf-strip">
-        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-home.webp" alt="หน้าแรกของลูกค้า — หน้าแอปลูกค้า (ภาพจริง)" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>หน้าแรกของลูกค้า</b>จองคิว ดูคูปอง ดูนัด และน้องของฉันในหน้าเดียว</p></div>
-        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-register.webp" alt="สมัครครั้งเดียว — หน้าแอปลูกค้า (ภาพจริง)" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>สมัครครั้งเดียว</b>กรอกข้อมูลเจ้าของ + น้อง เข้าการ์ดลูกค้าของร้านทันที</p></div>
-        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-grooming.webp" alt="เมนูอาบน้ำ + ราคา — หน้าแอปลูกค้า (ภาพจริง)" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>เมนูอาบน้ำ + ราคา</b>ร้านใส่รูปเมนู/ราคาเองได้ ลูกค้ากดจองต่อได้เลย</p></div>
-        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-rooms.webp" alt="ห้องพักน้อง — หน้าแอปลูกค้า (ภาพจริง)" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>ห้องพักน้อง</b>รูปห้อง ราคา สิ่งที่ได้ — ร้านตั้งเองจากหลังบ้าน</p></div>
-        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-bookings.webp" alt="คิวของฉัน — หน้าแอปลูกค้า (ภาพจริง)" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>คิวของฉัน</b>เห็นนัดทุกนัด และรู้ว่ายังต้องทำอะไรก่อนวันนัด</p></div>
-        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-points.webp" alt="แต้มสะสม — หน้าแอปลูกค้า (ภาพจริง)" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>แต้มสะสม</b>ลูกค้าเห็นแต้มตัวเองและกดแลกของรางวัลเอง</p></div>
-        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-coupons.webp" alt="กระเป๋าคูปอง — หน้าแอปลูกค้า (ภาพจริง)" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>กระเป๋าคูปอง</b>คูปองชวนเพื่อน คูปองวันเกิด เก็บไว้ที่เดียว</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/own-dashboard.webp" alt="🏠 หน้าแรกหลังบ้าน — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>🏠 หน้าแรกหลังบ้าน</b>เปิดมาเห็นทั้งวันในหน้าเดียว</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/own-schedule.webp" alt="🗓️ ตารางนัดทั้งเดือน — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>🗓️ ตารางนัดทั้งเดือน</b>อาบน้ำ เข้าพัก เช็คอิน-เอาท์ ในปฏิทินเดียว</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/own-roomsMonth.webp" alt="🏨 เช็คห้องว่าง — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>🏨 เช็คห้องว่าง</b>ปฏิทินบอกห้องว่างทุกวัน เลือกช่วงเข้า-ออกเช็คว่างได้ทันที</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/own-billing.webp" alt="🧾 คิดเงิน · ออกบิล — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>🧾 คิดเงิน · ออกบิล</b>เลือกลูกค้าแล้วออกบิล ส่งการ์ดเก็บเงินทาง LINE</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/own-customers.webp" alt="🐾 รายชื่อลูกค้า + น้อง — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>🐾 รายชื่อลูกค้า + น้อง</b>ค้นจากชื่อ ชื่อน้อง หรือเบอร์</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/own-finance.webp" alt="💰 รายรับ-รายจ่าย — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>💰 รายรับ-รายจ่าย</b>บิลที่จ่ายแล้วลงบัญชีเอง</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/own-promos.webp" alt="🎯 โปรโมชั่น + ส่งหา LINE — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>🎯 โปรโมชั่น + ส่งหา LINE</b>ตั้งโปรเอง เลือกกลุ่มลูกค้า แล้วส่งการ์ดตรงถึง LINE</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/own-queue.webp" alt="🛁 บอร์ดคิวอาบน้ำวันนี้ — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>🛁 บอร์ดคิวอาบน้ำวันนี้</b>ช่างกด "เริ่มทำ" → "เสร็จ" ทีละตัว</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/own-care.webp" alt="✅ เช็คลิสต์ดูแลรายวัน — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>✅ เช็คลิสต์ดูแลรายวัน</b>น้องที่พักอยู่มีรายการให้ติ๊ก อาหาร ยา เปลี่ยนน้ำ</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/own-payroll.webp" alt="💵 เงินเดือน &amp;amp; ค่าคอม — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>💵 เงินเดือน &amp; ค่าคอม</b>ทุกตัวที่ช่างอาบเสร็จ นับเป็นค่าคอมให้เอง สิ้นเดือนไม่ต้องนั่งนับ</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/own-staff.webp" alt="🏅 ผลงานพนักงาน — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>🏅 ผลงานพนักงาน</b>ใครอาบไปกี่ตัว ยอดเท่าไหร่ เทียบเดือนก่อน</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/own-insights.webp" alt="📊 สรุปข้อมูลร้าน — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>📊 สรุปข้อมูลร้าน</b>บริการไหนขายดี ห้องไหนเต็ม จำนวนน้องต่อเดือน</p></div>
       </div>
-      <p class="pf-strip-hint">← เลื่อนดูหน้าจออื่น →</p>
     </div>
   </section>
 
-  <!-- ═══════════ INTAKE: ฟอร์มก่อนอาบน้ำ/ก่อนเข้าพัก + สมุดวัคซีน ═══════════ -->
+  <!-- ═══════════ ฝั่งลูกค้า: แอปใน LINE + ฟอร์มก่อนวันนัด ═══════════ -->
   <section class="pf-section" id="intake">
     <div class="pf-wrap">
-      <p class="pf-kicker">ก่อนวันนัด — ลูกค้ากรอกเองจากมือถือ</p>
-      <h2 class="pf-h2">แนบสมุดวัคซีน ตอบคำถามก่อนอาบน้ำ ก่อนเข้าพัก — <span class="glow">ครบก่อนน้องมาถึงร้าน</span></h2>
-      <p class="pf-lead">ระบบส่งการ์ดใน LINE ให้ลูกค้าทำทีละขั้นเองก่อนวันนัด ไม่ต้องโทรถาม ไม่ต้องรอเอกสารกระดาษ ร้านเปิดดูคำตอบได้ทันที</p>
-      <div class="pf-intake">
-        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-groomForm.webp" alt="ฟอร์มประวัติน้องก่อนอาบน้ำ — หน้าแอปลูกค้าใน LINE (ภาพจริง ข้อมูลตัวอย่าง)" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>ฟอร์มประวัติน้องก่อนอาบน้ำ</b>นิสัย สุขภาพ โรคประจำตัว แตะเลือกได้เลย ไม่ต้องพิมพ์</p></div>
-        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-vaccine.webp" alt="แนบสมุดวัคซีน — หน้าแอปลูกค้าใน LINE (ภาพจริง ข้อมูลตัวอย่าง)" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>แนบสมุดวัคซีน</b>ถ่ายรูปสมุดวัคซีนจากมือถือ ส่งถึงร้านทันที แยกรายตัว</p></div>
-        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-stayForm.webp" alt="ข้อมูลน้องก่อนเข้าพัก — หน้าแอปลูกค้าใน LINE (ภาพจริง ข้อมูลตัวอย่าง)" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>ข้อมูลน้องก่อนเข้าพัก</b>อาหาร ยา นิสัย สิ่งที่ต้องระวัง กรอกก่อนวันเข้าพัก</p></div>
-        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-consent.webp" alt="อ่านกฎ + กดยินยอมเข้าพัก — หน้าแอปลูกค้าใน LINE (ภาพจริง ข้อมูลตัวอย่าง)" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>อ่านกฎ + กดยินยอมเข้าพัก</b>ข้อตกลงของร้าน เซ็นจากมือถือ ร้านเก็บเป็นหลักฐาน</p></div>
-      </div>
-      <div class="pf-intake-points">
-        <div><b>📝 คำถามก่อนอาบน้ำ / ก่อนเข้าพัก</b>ร้านตั้งคำถามเองได้ทุกข้อ เลือกได้ว่าข้อไหนบังคับตอบ คำตอบเก็บในโปรไฟล์น้อง รอบหน้าไม่ถามซ้ำ</div>
-        <div><b>💉 สมุดวัคซีน + บัตรประชาชน</b>ลูกค้าถ่ายรูปแนบจากมือถือ น้องหลายตัวแนบแยกรายตัว ร้านเห็นในการ์ดลูกค้าทันที</div>
-        <div><b>✍️ ข้อตกลงเข้าพักออนไลน์</b>ลูกค้าอ่านกฎของร้านแล้วกดยินยอม ระบบบันทึกวันเวลาเป็นหลักฐาน แยกทุกรอบที่มาพัก</div>
-        <div><b>📲 สรุปถึงทีมเช้าวันนัด</b>คำตอบทุกฟอร์มส่งเข้า Telegram ของร้านตอน 08:00 ช่างอ่านก่อนรับน้องได้เลย</div>
+      <p class="pf-kicker">ฝั่งลูกค้า</p>
+      <h2 class="pf-h2">ลูกค้าจอง กรอกข้อมูล แนบวัคซีน <span class="glow">เองใน LINE</span></h2>
+      <p class="pf-lead">ไม่ต้องโหลดแอป เปิดจากเมนูแชทของร้าน — ข้อมูลครบก่อนน้องมาถึงร้าน</p>
+      <div class="pf-strip">
+        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-home.webp" alt="หน้าแรกของลูกค้า — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>หน้าแรกของลูกค้า</b>จองคิว ดูคูปอง ดูนัด และน้องของฉันในหน้าเดียว</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-register.webp" alt="สมัครครั้งเดียว — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>สมัครครั้งเดียว</b>กรอกข้อมูลเจ้าของ + น้อง เข้าการ์ดลูกค้าของร้านทันที</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-grooming.webp" alt="เมนูอาบน้ำ + ราคา — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>เมนูอาบน้ำ + ราคา</b>ร้านใส่รูปเมนู/ราคาเองได้ ลูกค้ากดจองต่อได้เลย</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-rooms.webp" alt="ห้องพักน้อง — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>ห้องพักน้อง</b>รูปห้อง ราคา สิ่งที่ได้</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-bookings.webp" alt="คิวของฉัน — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>คิวของฉัน</b>เห็นนัดทุกนัด และรู้ว่ายังต้องทำอะไรก่อนวันนัด</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-points.webp" alt="แต้มสะสม — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>แต้มสะสม</b>ลูกค้าเห็นแต้มตัวเองและกดแลกของรางวัลเอง</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-coupons.webp" alt="กระเป๋าคูปอง — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>กระเป๋าคูปอง</b>คูปองชวนเพื่อน คูปองวันเกิด เก็บไว้ที่เดียว</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-groomForm.webp" alt="ฟอร์มประวัติน้องก่อนอาบน้ำ — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>ฟอร์มประวัติน้องก่อนอาบน้ำ</b>นิสัย สุขภาพ โรคประจำตัว แตะเลือกได้เลย ไม่ต้องพิมพ์</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-vaccine.webp" alt="แนบสมุดวัคซีน — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>แนบสมุดวัคซีน</b>ถ่ายรูปสมุดวัคซีนจากมือถือ ส่งถึงร้านทันที แยกรายตัว</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-stayForm.webp" alt="ข้อมูลน้องก่อนเข้าพัก — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>ข้อมูลน้องก่อนเข้าพัก</b>อาหาร ยา นิสัย สิ่งที่ต้องระวัง กรอกก่อนวันเข้าพัก</p></div>
+        <div class="pf-strip-item"><div class="ph"><img src="/home/cus-consent.webp" alt="อ่านกฎ + กดยินยอมเข้าพัก — ภาพหน้าจอจริง" width="585" height="1140" loading="lazy" /></div><p class="cap"><b>อ่านกฎ + กดยินยอมเข้าพัก</b>ข้อตกลงของร้าน เซ็นจากมือถือ ร้านเก็บเป็นหลักฐาน</p></div>
       </div>
     </div>
   </section>
 
-  <!-- ═══════════ LINE CARDS — ข้อความที่ลูกค้าได้รับจริง ═══════════ -->
+  <!-- ═══════════ การ์ด LINE ที่ลูกค้าได้รับ ═══════════ -->
   <section class="pf-section">
     <div class="pf-wrap">
-      <p class="pf-kicker">ลูกค้าได้รับอะไรทาง LINE</p>
-      <h2 class="pf-h2">ตั้งแต่จองจนน้องกลับบ้าน — <span class="glow">ลูกค้าได้การ์ดแบบนี้</span></h2>
-      <p class="pf-lead">นี่คือการ์ดจริงที่ระบบส่งเข้าแชท LINE ของลูกค้า ร้านเปลี่ยนสี ข้อความ และเลือกส่วนที่จะโชว์ได้เองจากหลังบ้าน</p>
-      <span class="pf-real-note">📸 การ์ดจริงจากระบบ · ชื่อและเลขบัญชีเป็นข้อมูลตัวอย่าง</span>
-
-      <div class="pf-linecards">
-        <div class="pf-lc">
-          <div class="when"><span class="n">1</span>ยืนยันนัด<span class="auto">ส่งอัตโนมัติ</span></div>
-          <img src="/home/card-bookingConfirm.webp" alt="การ์ด LINE: ยืนยันนัด (ภาพจริง)" width="560" height="576" loading="lazy" />
-          <p>ส่งก่อนวันนัด ลูกค้ากด "ยืนยันนัด" ได้ในแชท ร้านเห็นสถานะเปลี่ยนเอง</p>
-        </div>
-        <div class="pf-lc">
-          <div class="when"><span class="n">2</span>เตรียมตัวก่อนเข้าพัก<span class="auto">ส่งอัตโนมัติ</span></div>
-          <img src="/home/card-intake.webp" alt="การ์ด LINE: เตรียมตัวก่อนเข้าพัก (ภาพจริง)" width="560" height="595" loading="lazy" />
-          <p>รวมทุกอย่างที่ต้องทำไว้ในการ์ดเดียว: กรอกข้อมูลน้อง แนบวัคซีน แนบบัตร เซ็นยินยอม</p>
-        </div>
-        <div class="pf-lc">
-          <div class="when"><span class="n">3</span>เลือกเวลามาส่งน้อง<span class="auto">ส่งอัตโนมัติ</span></div>
-          <img src="/home/card-timePicker.webp" alt="การ์ด LINE: เลือกเวลามาส่งน้อง (ภาพจริง)" width="560" height="273" loading="lazy" />
-          <p>ลูกค้ากดเลือกเวลาเอง ไม่ต้องพิมพ์ถามกันไปมา</p>
-        </div>
-        <div class="pf-lc">
-          <div class="when"><span class="n">4</span>แจ้งมัดจำ<span class="auto hand">ร้านกดส่ง 1 คลิก</span></div>
-          <img src="/home/card-depositRequest.webp" alt="การ์ด LINE: แจ้งมัดจำ (ภาพจริง)" width="560" height="622" loading="lazy" />
-          <p>ยอดมัดจำ + เลขบัญชีพร้อมปุ่มคัดลอก มัดจำผูกกับบิลให้เอง</p>
-        </div>
-        <div class="pf-lc">
-          <div class="when"><span class="n">5</span>แจ้งยอดชำระ<span class="auto hand">ร้านกดส่ง 1 คลิก</span></div>
-          <img src="/home/card-billSummary.webp" alt="การ์ด LINE: แจ้งยอดชำระ (ภาพจริง)" width="560" height="610" loading="lazy" />
-          <p>รายการ ส่วนลด ของแถม ยอดสุทธิ ครบในการ์ดเดียว</p>
-        </div>
-        <div class="pf-lc">
-          <div class="when"><span class="n">6</span>น้องพร้อมกลับบ้าน<span class="auto">ส่งอัตโนมัติ</span></div>
-          <img src="/home/card-readyForPickup.webp" alt="การ์ด LINE: น้องพร้อมกลับบ้าน (ภาพจริง)" width="560" height="333" loading="lazy" />
-          <p>ช่างกด "เสร็จ" ในบอร์ดคิว ลูกค้าได้ข้อความนี้ทันที</p>
-        </div>
-        <div class="pf-lc">
-          <div class="when"><span class="n">7</span>ใบเสร็จรับเงิน<span class="auto hand">ร้านกดส่ง 1 คลิก</span></div>
-          <img src="/home/card-receipt.webp" alt="การ์ด LINE: ใบเสร็จรับเงิน (ภาพจริง)" width="560" height="636" loading="lazy" />
-          <p>รับเงินแล้วกดส่งใบเสร็จ ในการ์ดมีแต้มที่ได้และคอร์สคงเหลือ</p>
-        </div>
-        <div class="pf-lc">
-          <div class="when"><span class="n">8</span>ได้แต้มสะสม<span class="auto hand">ร้านกดส่ง 1 คลิก</span></div>
-          <img src="/home/card-pointsAward.webp" alt="การ์ด LINE: ได้แต้มสะสม (ภาพจริง)" width="560" height="353" loading="lazy" />
-          <p>ให้แต้มพิเศษ เช่น ลูกค้ารีวิวร้าน ลูกค้าได้การ์ดแจ้งแต้มรวมทันที</p>
-        </div>
-        <div class="pf-lc">
-          <div class="when"><span class="n">9</span>ขอรีวิว<span class="auto">ส่งอัตโนมัติ</span></div>
-          <img src="/home/card-review.webp" alt="การ์ด LINE: ขอรีวิว (ภาพจริง)" width="560" height="423" loading="lazy" />
-          <p>ขอรีวิวหลังใช้บริการ (ลูกค้าเข้าพักได้อัตโนมัติวันถัดจากเช็คเอาท์) พาไปรีวิวร้านใน Google</p>
-        </div>
-        <div class="pf-lc">
-          <div class="when"><span class="n">10</span>คิดถึงน้อง<span class="auto hand">ร้านกดส่ง 1 คลิก</span></div>
-          <img src="/home/card-missYou.webp" alt="การ์ด LINE: คิดถึงน้อง (ภาพจริง)" width="560" height="397" loading="lazy" />
-          <p>ลูกค้าที่หายไปนาน ระบบกรองให้ ส่งการ์ดพร้อมปุ่มจองได้ในคลิกเดียว</p>
-        </div>
-        <div class="pf-lc">
-          <div class="when"><span class="n">11</span>สุขสันต์วันเกิดน้อง<span class="auto">ส่งอัตโนมัติ</span></div>
-          <img src="/home/card-birthday.webp" alt="การ์ด LINE: สุขสันต์วันเกิดน้อง (ภาพจริง)" width="560" height="356" loading="lazy" />
-          <p>วันเกิดน้อง ระบบอวยพรและแจกคูปองเอง</p>
-        </div>
+      <p class="pf-kicker">ข้อความ LINE อัตโนมัติ</p>
+      <h2 class="pf-h2">ตั้งแต่จองจนน้องกลับบ้าน <span class="glow">ระบบส่งให้เอง</span></h2>
+      <p class="pf-lead">การ์ดจริงที่ลูกค้าได้รับ ร้านแก้สีและข้อความได้ทุกใบ</p>
+      <div class="pf-strip">
+        <div class="pf-strip-item pf-card-item"><div class="cardph"><img src="/home/card-bookingConfirm.webp" alt="การ์ด LINE: ยืนยันนัด (ภาพจริง)" width="560" height="576" loading="lazy" /></div><p class="cap"><b>ยืนยันนัด</b><span class="auto">ส่งอัตโนมัติ</span></p></div>
+        <div class="pf-strip-item pf-card-item"><div class="cardph"><img src="/home/card-intake.webp" alt="การ์ด LINE: เตรียมตัวก่อนเข้าพัก (ภาพจริง)" width="560" height="595" loading="lazy" /></div><p class="cap"><b>เตรียมตัวก่อนเข้าพัก</b><span class="auto">ส่งอัตโนมัติ</span></p></div>
+        <div class="pf-strip-item pf-card-item"><div class="cardph"><img src="/home/card-timePicker.webp" alt="การ์ด LINE: เลือกเวลามาส่งน้อง (ภาพจริง)" width="560" height="273" loading="lazy" /></div><p class="cap"><b>เลือกเวลามาส่งน้อง</b><span class="auto">ส่งอัตโนมัติ</span></p></div>
+        <div class="pf-strip-item pf-card-item"><div class="cardph"><img src="/home/card-depositRequest.webp" alt="การ์ด LINE: แจ้งมัดจำ (ภาพจริง)" width="560" height="622" loading="lazy" /></div><p class="cap"><b>แจ้งมัดจำ</b><span class="auto hand">ร้านกดส่ง 1 คลิก</span></p></div>
+        <div class="pf-strip-item pf-card-item"><div class="cardph"><img src="/home/card-billSummary.webp" alt="การ์ด LINE: แจ้งยอดชำระ (ภาพจริง)" width="560" height="610" loading="lazy" /></div><p class="cap"><b>แจ้งยอดชำระ</b><span class="auto hand">ร้านกดส่ง 1 คลิก</span></p></div>
+        <div class="pf-strip-item pf-card-item"><div class="cardph"><img src="/home/card-readyForPickup.webp" alt="การ์ด LINE: น้องพร้อมกลับบ้าน (ภาพจริง)" width="560" height="333" loading="lazy" /></div><p class="cap"><b>น้องพร้อมกลับบ้าน</b><span class="auto">ส่งอัตโนมัติ</span></p></div>
+        <div class="pf-strip-item pf-card-item"><div class="cardph"><img src="/home/card-receipt.webp" alt="การ์ด LINE: ใบเสร็จรับเงิน (ภาพจริง)" width="560" height="636" loading="lazy" /></div><p class="cap"><b>ใบเสร็จรับเงิน</b><span class="auto hand">ร้านกดส่ง 1 คลิก</span></p></div>
+        <div class="pf-strip-item pf-card-item"><div class="cardph"><img src="/home/card-pointsAward.webp" alt="การ์ด LINE: ได้แต้มสะสม (ภาพจริง)" width="560" height="353" loading="lazy" /></div><p class="cap"><b>ได้แต้มสะสม</b><span class="auto hand">ร้านกดส่ง 1 คลิก</span></p></div>
+        <div class="pf-strip-item pf-card-item"><div class="cardph"><img src="/home/card-review.webp" alt="การ์ด LINE: ขอรีวิว (ภาพจริง)" width="560" height="423" loading="lazy" /></div><p class="cap"><b>ขอรีวิว</b><span class="auto">ส่งอัตโนมัติ</span></p></div>
+        <div class="pf-strip-item pf-card-item"><div class="cardph"><img src="/home/card-missYou.webp" alt="การ์ด LINE: คิดถึงน้อง (ภาพจริง)" width="560" height="397" loading="lazy" /></div><p class="cap"><b>คิดถึงน้อง</b><span class="auto hand">ร้านกดส่ง 1 คลิก</span></p></div>
+        <div class="pf-strip-item pf-card-item"><div class="cardph"><img src="/home/card-birthday.webp" alt="การ์ด LINE: สุขสันต์วันเกิดน้อง (ภาพจริง)" width="560" height="356" loading="lazy" /></div><p class="cap"><b>สุขสันต์วันเกิดน้อง</b><span class="auto">ส่งอัตโนมัติ</span></p></div>
       </div>
     </div>
   </section>
@@ -865,21 +762,6 @@
     </div>
   </section>
 
-  <!-- ═══════════ SOLUTIONS (ลิงก์ไปหน้า SEO แต่ละประเภทร้าน) ═══════════ -->
-  <section class="pf-section">
-    <div class="pf-wrap">
-      <p class="pf-kicker">PetFlow สำหรับร้านแบบไหน</p>
-      <h2 class="pf-h2">ระบบเดียว ใช้ได้ทั้ง<span class="glow">ร้านอาบน้ำ กรูมมิ่ง และโรงแรมสัตว์เลี้ยง</span></h2>
-      <div class="pf-sol">
-        <a href="/pet-grooming-software"><span class="em">🛁</span><b>โปรแกรมร้านกรูมมิ่ง ระบบจัดการร้านอาบน้ำสัตว์</b><span>จองคิว บอร์ดคิวช่าง ฟอร์มก่อนอาบน้ำ ค่าคอมช่าง</span></a>
-        <a href="/pet-hotel-software"><span class="em">🏨</span><b>ระบบจัดการโรงแรมสัตว์เลี้ยง รับฝากหมาแมว</b><span>ห้องพัก เช็คอิน-เอาท์ ข้อตกลงเข้าพัก มัดจำ</span></a>
-        <a href="/pet-booking-system"><span class="em">📅</span><b>ระบบจองคิวร้านสัตว์เลี้ยงผ่าน LINE</b><span>ลูกค้าจองเอง 24 ชม. ยืนยันและเตือนนัดอัตโนมัติ</span></a>
-        <a href="/pet-shop-pos"><span class="em">🧾</span><b>โปรแกรมออกบิล ใบเสร็จ ขายหน้าร้านสัตว์เลี้ยง</b><span>ออกบิล ใบเสร็จ คอร์สเหมา บัญชีรายรับรายจ่าย</span></a>
-        <a href="/pet-shop-crm"><span class="em">💎</span><b>ระบบสมาชิก สะสมแต้ม ร้านสัตว์เลี้ยง</b><span>แต้มสะสม คูปองวันเกิด ตามลูกค้าที่หายไป</span></a>
-      </div>
-    </div>
-  </section>
-
   <!-- ═══════════ EVIDENCE ═══════════ -->
   <section class="pf-section">
     <div class="pf-wrap">
@@ -915,5 +797,18 @@
 
 </div>
 
+<script>
+/* ปุ่มเลื่อนซ้าย-ขวาให้แถบภาพ (คอมที่ใช้เมาส์) — มือถือปัดนิ้วได้อยู่แล้ว */
+document.querySelectorAll('.pf-strip').forEach(function (strip) {
+  var wrap = document.createElement('div'); wrap.className = 'pf-strip-wrap';
+  strip.parentNode.insertBefore(wrap, strip); wrap.appendChild(strip);
+  [['prev', '‹', -1], ['next', '›', 1]].forEach(function (b) {
+    var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'pf-strip-btn ' + b[0];
+    btn.setAttribute('aria-label', b[2] < 0 ? 'เลื่อนซ้าย' : 'เลื่อนขวา'); btn.textContent = b[1];
+    btn.onclick = function () { strip.scrollBy({ left: b[2] * strip.clientWidth * 0.8, behavior: 'smooth' }); };
+    wrap.appendChild(btn);
+  });
+});
+</script>
 </body>
 </html>

@@ -1,3 +1,4 @@
+import type { SpeciesDef } from "@/lib/pet-kind";
 import { NextRequest, NextResponse } from "next/server";
 import { getPlatformSessionFrom } from "@/lib/platform-auth";
 import { getDirectoryDb, getSupabase } from "@/lib/supabase/server";
@@ -88,6 +89,8 @@ export async function PATCH(
             freebies: f.options.freebies,
             servicePresets: f.options.servicePresets,
             catBreeds: f.options.catBreeds,
+            // รายการชนิดที่ร้านตั้งเอง (กระต่าย ฯลฯ) จะทับแบบร้าน — เปลี่ยนแบบร้านจากหน้านี้ = ล้างรายการนั้น
+            petSpecies: [] as SpeciesDef[],
           } as typeof cfg.options,
           pointsRewards: f.pointsRewards,
           cards: {
@@ -100,7 +103,10 @@ export async function PATCH(
           },
         });
       } else {
-        await updateSiteConfig({ business: { petKind } as typeof cfg.business });
+        await updateSiteConfig({
+          business: { petKind } as typeof cfg.business,
+          options: { petSpecies: [] } as unknown as typeof cfg.options,
+        });
       }
       return prev;
     });

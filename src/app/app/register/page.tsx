@@ -53,7 +53,7 @@ type CatInput = {
 
 import { OTHER_BREED } from "@/lib/cat-breeds";
 import { REFERRAL_OPTIONS } from "@/lib/referral-options";
-import { asksSpecies, breedOptionsForSpecies, petKindOf, petWords, speciesWords, type PetSpecies } from "@/lib/pet-kind";
+import { asksSpecies, speciesName, breedOptionsForSpecies, formKindOf, petWords, speciesWords, type PetSpecies } from "@/lib/pet-kind";
 import { registerHistoryFields, type IntakeAnswers } from "@/lib/intake-rules";
 import { IntakeFieldsInput, intakeAnswerEmpty } from "@/components/IntakeFieldsInput";
 import { SpeciesPicker } from "@/components/SpeciesPicker";
@@ -135,7 +135,7 @@ export default function RegisterPage() {
   const askNickname = rf.ownerNickname.enabled && !useCompanyContact;
   const [cats, setCats] = useState<CatInput[]>([emptyCat()]);
   /** ประวัติที่ร้านให้ถามตอนสมัคร — ตามชนิดของน้องแต่ละตัว (ร้านแมวไม่มีฟอร์มนี้ = ไม่ถาม) */
-  const historyFor = (c: CatInput) => registerHistoryFields(c.species || petKindOf(config), config);
+  const historyFor = (c: CatInput) => registerHistoryFields(formKindOf(c.species, config), config);
   /** ร้านใช้ฟอร์มประวัติตอนสมัคร (เช่น Back Home) — ป้ายชื่อจริง/เบอร์หลัก ไม่ขออีเมล ตามลิสต์ของร้าน */
   const historyStyle = cats.some((c) => historyFor(c) !== null);
   /** เบอร์ติดต่อฉุกเฉิน — ถามที่หน้านี้ที่เดียว (ร้านปิด/เลิกบังคับได้ในหลังบ้าน › การ์ด › ฟอร์มสมัครสมาชิก) */
@@ -198,7 +198,7 @@ export default function RegisterPage() {
 
     // บังคับเฉพาะช่องที่ร้านตั้งว่าบังคับ (ค่าเริ่มต้น: ทุกช่อง ยกเว้นรูป/สี/อายุ/โรคประจำตัว/ชัก/แพ้)
     const catProblem = (c: CatInput, n: string): string => {
-      if (askSpecies && !c.species) return `เลือกว่าน้อง${n}เป็นหมาหรือแมวด้วยนะคะ`;
+      if (askSpecies && !c.species) return `เลือกชนิดของน้อง${n}ด้วยนะคะ`;
       const pw = speciesWords(c.species || undefined, config);
       if (!c.name.trim()) return `กรอกชื่อน้อง${pw.th}${n}ด้วยนะคะ`;
       if (rf.gender.required && !c.gender) return `เลือกเพศน้อง${pw.th}${n}ด้วยนะคะ ${pw.emoji}`;
@@ -325,7 +325,7 @@ export default function RegisterPage() {
         title: `น้อง${speciesWords(c.species || undefined, config).th}${arr.length > 1 ? `ตัวที่ ${i + 1}` : ""} · ${c.name.trim()}`,
         icon: "paw",
         rows: [
-          ...(asksSpecies(config) ? [{ label: "ชนิด", value: c.species === "dog" ? "หมา" : c.species === "cat" ? "แมว" : "" }] : []),
+          ...(asksSpecies(config) ? [{ label: "ชนิด", value: speciesName(config, c.species) }] : []),
           ...(rf.gender.enabled
             ? [{ label: rf.gender.label, value: c.gender === "male" ? "♂ ผู้" : c.gender === "female" ? "♀ เมีย" : "" }]
             : []),

@@ -18,7 +18,7 @@ import { isFeatureOn } from "@/lib/features";
 import { intakeFields, ownerHistoryKeys, sanitizeIntakeInfo } from "@/lib/intake-rules";
 import { LEGACY_EMERGENCY_KEYS } from "@/lib/emergency-contact";
 import { requireCustomerSession, noCustomerSessionResponse } from "@/lib/customer-session";
-import { petKindOf, speciesOf } from "@/lib/pet-kind";
+import { formKindOf, speciesOf } from "@/lib/pet-kind";
 import { BATH_SHARED_WITH_STAY } from "@/lib/stay-form";
 import { catNameKey } from "@/lib/cat-name-replace";
 
@@ -147,7 +147,7 @@ async function postHandler(req: NextRequest) {
     if (fresh) t.me = fresh;
   }
   // ชุดคำถามตามชนิดของน้องตัวนี้ — ต้องตรงกับที่หน้าฟอร์มถาม ไม่งั้นคำตอบข้อของหมาจะหาย
-  const kind = speciesOf(t.cat, cfg) ?? petKindOf(cfg);
+  const kind = formKindOf(speciesOf(t.cat, cfg), cfg);
   const fields = intakeFields(t.kind, kind, cfg);
   const payload = sanitizeIntakeInfo(fields, info);
   // ฟอร์มรวม เข้าพัก + อาบก่อนกลับ — ส่วนอาบน้ำเก็บเป็นประวัติอาบน้ำของน้องด้วย

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import { useConfig } from "@/components/ConfigProvider";
+import { SpeciesPicker } from "@/components/SpeciesPicker";
 import { BirthdayPicker } from "@/components/BirthdayPicker";
 import { StaffNoteTagPicker } from "@/components/StaffNoteTagPicker";
 import { OTHER_BREED } from "@/lib/cat-breeds";
@@ -361,7 +362,7 @@ export function AddCustomerModal({
                     {pets.length > 1 ? ` ตัวที่ ${idx + 1}` : ""}
                   </legend>
                   {askSpecies && (
-                    <Toggle
+                    <SpeciesPicker
                       value={pet.species}
                       onChange={(species) =>
                         updatePet(idx, {
@@ -373,10 +374,6 @@ export function AddCustomerModal({
                               : "",
                         })
                       }
-                      options={[
-                        ["dog", "🐶 หมา"],
-                        ["cat", "🐱 แมว"],
-                      ]}
                     />
                   )}
                   <label className={labelCls}>

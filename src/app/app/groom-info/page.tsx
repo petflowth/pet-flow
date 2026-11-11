@@ -9,7 +9,7 @@ import { useLiff } from "@/components/LiffProvider";
 import { useConfig } from "@/components/ConfigProvider";
 import { otherKey, type GroomField } from "@/lib/groom-form";
 import { intakeFields } from "@/lib/intake-rules";
-import { normalizeSpecies, petKindOf, petWords, speciesWords } from "@/lib/pet-kind";
+import { formKindOf, normalizeSpecies, petKindOf, petWords, speciesWords } from "@/lib/pet-kind";
 import { BATH_SHARED_WITH_STAY } from "@/lib/stay-form";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { BTN_PRIMARY, PageHeader } from "@/components/PageHeader";
@@ -158,7 +158,7 @@ function GroomInfoContent() {
           if (!d?.found) return;
           const info = d.info || null;
           const species = normalizeSpecies(d.species);
-          const kind = species ?? petKind;
+          const kind = species ? formKindOf(species, config) : petKind;
           const own = intakeFields(stay ? "stay" : "groom", kind, { groomForm, stayForm, intakeRules: rules });
           // เข้าพัก + อาบก่อนกลับ — ถามเรื่องอาบน้ำต่อท้าย ข้อที่ซ้ำกับฟอร์มเข้าพักถามครั้งเดียว
           const bath = stay && !!d.withBath;

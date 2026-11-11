@@ -20,7 +20,7 @@ import { pushLineMessage } from "@/lib/line";
 import { buildReferralRewardCard } from "@/lib/notice-cards";
 import { setCatStayInfo } from "@/lib/customers-store";
 import { REGISTER_HISTORY_SOURCE, registerHistoryFields, sanitizeIntakeInfo, stayInfoDone } from "@/lib/intake-rules";
-import { petKindOf } from "@/lib/pet-kind";
+import { formKindOf, speciesName } from "@/lib/pet-kind";
 import { runAfterResponse } from "@/lib/after-response";
 import { emergencyOf, emergencyText, parseEmergencyContact } from "@/lib/emergency-contact";
 import { groomInfoSummary } from "@/lib/groom-info";
@@ -127,7 +127,7 @@ async function handlePost(req: NextRequest) {
     const match = [...customer.cats].reverse().find((c) => !usedCats.has(c.id) && cleanPetName(c.name) === catName);
     if (!match) continue;
     usedCats.add(match.id);
-    const h = registerHistoryFields(match.species || petKindOf(siteCfg), siteCfg);
+    const h = registerHistoryFields(formKindOf(match.species, siteCfg), siteCfg);
     if (!h) continue;
     let prev: Record<string, unknown> = {};
     try {
@@ -164,7 +164,7 @@ async function handlePost(req: NextRequest) {
     const catNames =
       customer.cats
         .filter((c) => c.name)
-        .map((c) => (c.species ? `${c.name} (${c.species === "dog" ? "หมา" : "แมว"})` : c.name))
+        .map((c) => (c.species ? `${c.name} (${speciesName(siteCfg, c.species) || c.species})` : c.name))
         .join(", ") || "-";
     sendTelegramLater(
       formatBookingTelegram("🆕 ลูกค้าสมัครสมาชิกใหม่", {

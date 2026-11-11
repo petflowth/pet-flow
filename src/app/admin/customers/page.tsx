@@ -36,11 +36,12 @@ import { ExportSheetsButton } from "@/components/ExportSheetsButton";
 import { BookingEditModal, type EditableBooking } from "@/components/BookingEditModal";
 import { RoomPlanSection } from "@/components/RoomPlanSection";
 import { OTHER_BREED } from "@/lib/cat-breeds";
-import { asksSpecies, breedOptionsForSpecies, petKindOf, speciesOf, speciesWords, type PetSpecies } from "@/lib/pet-kind";
+import { asksSpecies, breedOptionsForSpecies, formKindOf, speciesOf, speciesWords, type PetSpecies } from "@/lib/pet-kind";
 import { BirthdayPicker } from "@/components/BirthdayPicker";
 import { StaffNoteTagPicker } from "@/components/StaffNoteTagPicker";
 import { Icon } from "@/components/Icon";
 import { useConfig, usePetWords } from "@/components/ConfigProvider";
+import { SpeciesPicker } from "@/components/SpeciesPicker";
 import { isFeatureOn } from "@/lib/features";
 import { GroomProgramPicker, useGroomPrograms } from "@/components/GroomProgramPicker";
 import { RoomTypePicker, useRoomOptions } from "@/components/RoomTypePicker";
@@ -3054,14 +3055,7 @@ function AddCatForm({ customerId, onAdded }: { customerId: string; onAdded: () =
             </div>
             <form onSubmit={submit} className="space-y-3">
               {asksSpecies(config) && (
-                <Segmented
-                  value={species}
-                  onChange={(v) => v && setSpecies(v)}
-                  options={[
-                    { id: "dog", label: "🐶 หมา" },
-                    { id: "cat", label: "🐱 แมว" },
-                  ]}
-                />
+                <SpeciesPicker value={species} onChange={(v) => v && setSpecies(v)} />
               )}
               <label className="block text-xs font-bold text-brown-soft">
                 ชื่อน้อง{speciesWords(species || undefined, config).th} *
@@ -3458,15 +3452,11 @@ export default function CustomersPage() {
 
               <div className="space-y-3 border-t border-petflow-line p-4">
                 {asksSpecies(config) && (
-                  <Segmented
+                  <SpeciesPicker
                     value={speciesOf(cat, config) ?? ""}
                     onChange={(v) => {
                       if (v) saveCat(cat.id, { species: v });
                     }}
-                    options={[
-                      { id: "dog", label: "🐶 หมา" },
-                      { id: "cat", label: "🐱 แมว" },
-                    ]}
                   />
                 )}
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -3654,7 +3644,7 @@ export default function CustomersPage() {
                         </div>
                       );
                     }
-                    const s = groomInfoSummary(gi, summaryFields("groom", speciesOf(cat, config) ?? petKindOf(config), config, gi));
+                    const s = groomInfoSummary(gi, summaryFields("groom", formKindOf(speciesOf(cat, config), config), config, gi));
                     return (
                       <div className="rounded-petflow-sm border border-sage/40 bg-sage/10 px-3 py-2.5">
                         <div className="flex items-center justify-between gap-2">
@@ -3689,7 +3679,7 @@ export default function CustomersPage() {
                     const si = parseGroomInfo(cat.stayInfo);
                     if (!si) return null;
                     const fromRegister = !stayInfoDone(cat.stayInfo);
-                    const sf = summaryFields("stay", speciesOf(cat, config) ?? petKindOf(config), config, si);
+                    const sf = summaryFields("stay", formKindOf(speciesOf(cat, config), config), config, si);
                     const s = groomInfoSummary(si, sf);
                     const entries = Object.entries(s);
                     // ข้อบังคับตอบของฟอร์มก่อนเข้าพัก (ตามที่ร้านตั้ง) — ทำเครื่องหมาย * ร้านจะได้รู้ว่าลูกค้าเว้นข้อนี้ไม่ได้

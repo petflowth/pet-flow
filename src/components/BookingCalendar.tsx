@@ -10,6 +10,7 @@ import { Avatar, EmptyState, MoreMenu, Segmented } from "@/components/ui";
 import { BookingEditModal, type EditableBooking } from "@/components/BookingEditModal";
 import { CustomerSendButtons } from "@/components/CustomerSendButtons";
 import { VaccinePhotosAdmin } from "@/components/VaccinePhotosAdmin";
+import { IntakeAnswers } from "@/components/IntakeAnswers";
 import { InvoiceActionButtons } from "@/components/InvoiceActionButtons";
 import { bookingOnDate } from "@/lib/booking-customer-match";
 import { toast } from "@/components/Toast";
@@ -2570,6 +2571,8 @@ export function BookingCalendar() {
                       </span>
                     </p>
                   ))}
+                {/* คำตอบทุกข้อที่ลูกค้ากรอกไว้ (ก่อนอาบน้ำ/ก่อนเข้าพัก) — กดเปิดดูได้ตรงนี้ ไม่ต้องย้อนหาใน Telegram */}
+                <IntakeAnswers key={group.map((x) => x.id).join(",")} ids={group.map((x) => x.id)} />
 
                 {/* แถวปุ่ม: ปุ่มหลัก 1 ปุ่ม · สถานะบิล · เมนู ⋯ รวมปุ่มรองทั้งหมด */}
                 <div className="mt-3 flex items-center gap-2">

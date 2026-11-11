@@ -13,6 +13,7 @@ export type FeatureKey =
   | "stayInfo"
   | "idCard"
   | "prestay"
+  | "intakeDaySummary"
   | "checkinTime"
   | "grooming"
   | "massage"
@@ -172,6 +173,12 @@ export const FEATURES: FeatureDef[] = [
     hint: "การ์ดบอกของที่ต้องเตรียมมา (ใช้เมื่อเปิดรับฝาก)",
     group: "ข้อมูลก่อนรับน้อง",
     requires: "hotel",
+  },
+  {
+    key: "intakeDaySummary",
+    label: "สรุปคำตอบลูกค้าเข้า Telegram เช้าวันนัด",
+    hint: "ทุกเช้า 08:00 ส่งคำตอบทุกข้อของฟอร์มก่อนอาบน้ำ/ก่อนเข้าพัก แยกข้อความละ 1 นัด (นัดอาบน้ำวันนี้ + เข้าพักวันนี้)",
+    group: "ข้อมูลก่อนรับน้อง",
   },
   // ── ลูกค้าในแอป ──
   {

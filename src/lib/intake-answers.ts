@@ -13,7 +13,7 @@ import {
 import { isFeatureOn } from "@/lib/features";
 import { groomInfoSummary, parseGroomInfo } from "@/lib/groom-info";
 import { stayInfoDone, summaryFields } from "@/lib/intake-rules";
-import { petKindOf, speciesOf } from "@/lib/pet-kind";
+import { formKindOf, speciesOf } from "@/lib/pet-kind";
 import { escapeHtml } from "@/lib/telegram";
 
 /**
@@ -64,7 +64,7 @@ function formSection(
 ): IntakeSection {
   const info = parseGroomInfo(raw);
   if (!info) return { form, title, empty: true, rows: [] };
-  const kind = speciesOf(cat, cfg) ?? petKindOf(cfg);
+  const kind = formKindOf(speciesOf(cat, cfg), cfg);
   const fields = summaryFields(form, kind, cfg, info as Record<string, unknown>);
   const required = new Set((fields ?? []).filter((f) => f.required).map((f) => f.label));
   const rows = Object.entries(groomInfoSummary(info, fields)).map(([label, v]) => ({

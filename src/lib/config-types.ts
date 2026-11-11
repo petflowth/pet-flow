@@ -1,3 +1,4 @@
+import type { SpeciesDef } from "./pet-kind";
 import type { IntakeRules } from "./intake-rules";
 import type { RoomType } from "./business";
 import type { GroomFormConfig } from "./groom-form";
@@ -350,8 +351,13 @@ export type SiteConfig = {
     billCategories?: BillCategory[];
     /** เทมเพลตบรอดแคสต์ที่ร้านบันทึกไว้เอง (หน้าโปร) — โชว์ก่อนตัวอย่างของระบบ */
     broadcastTemplates?: { label: string; title: string; body: string; suggestedActions?: string[] }[];
-    /** สายพันธุ์แมว (หน้าลงทะเบียน + ตัวกรอง broadcast) */
+    /** สายพันธุ์หมา/แมว (หน้าลงทะเบียน + ตัวกรอง broadcast) */
     catBreeds: string[];
+    /**
+     * ชนิดสัตว์ที่ร้านรับ + ชื่อ/อีโมจิ/สายพันธุ์ของแต่ละชนิด (เช่น แมว · กระต่าย · แกสบี้)
+     * ไม่ได้ตั้ง/ว่าง = ตาม business.petKind — ดู speciesListOf ใน src/lib/pet-kind.ts
+     */
+    petSpecies?: SpeciesDef[];
     /** รู้จักร้านจากไหน (referral) — หน้าลงทะเบียน */
     referralOptions: string[];
   };

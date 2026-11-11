@@ -27,7 +27,20 @@ import { useConfig } from "@/components/ConfigProvider";
 import { FEATURES, FEATURE_GROUPS, isFeatureOn, type FeatureKey } from "@/lib/features";
 import { GROOM_EXTRA_CARDS, groomUsesCard, type IntakeRules } from "@/lib/intake-rules";
 import { REFERRAL_DEFAULT, referralReward } from "@/lib/referral";
-import { breedOptionsFor, petKindOf, petWords, usesLitter, withDefaultBreeds, type PetKind } from "@/lib/pet-kind";
+import {
+  BUILTIN_SPECIES,
+  SPECIES_SUGGESTIONS,
+  breedOptionsFor,
+  cleanSpeciesList,
+  newSpeciesId,
+  petKindFromSpecies,
+  petWords,
+  speciesListOf,
+  usesLitter,
+  withDefaultBreeds,
+  type PetKind,
+  type SpeciesDef,
+} from "@/lib/pet-kind";
 import { NumInput } from "@/components/NumInput";
 import { consentTextFor } from "@/lib/messages";
 import { RoomSeasonsEditor } from "@/components/RoomSeasonsEditor";
@@ -3600,21 +3613,48 @@ function ListsTab({
     catBreeds: breedOptionsFor(config),
   });
   const [form, setForm] = useState(initForm);
-  const [petKind, setPetKind] = useState<PetKind>(petKindOf(config));
+  // ชนิดสัตว์ที่ร้านรับ — ร้านที่ไม่เคยตั้งเห็นตามแบบร้านเดิม (แมว / หมา / หมาและแมว)
+  const [species, setSpecies] = useState<SpeciesDef[]>(() => speciesListOf(config));
   useEffect(() => {
     setForm(initForm());
-    setPetKind(petKindOf(config));
+    setSpecies(speciesListOf(config));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config.options, config.business?.petKind]);
   const presets = form.servicePresets;
-  const pickPetKind = (kind: PetKind) => {
-    setPetKind(kind);
-    // ยังใช้รายชื่อเริ่มต้นอยู่ → เปลี่ยนเป็นสายพันธุ์ของชนิดใหม่ให้เลย · ร้านแก้รายชื่อเองแล้วไม่แตะ
-    setForm((f) =>
-      f.catBreeds.join("\n") === breedOptionsFor({ business: { petKind } }).join("\n")
-        ? { ...f, catBreeds: breedOptionsFor({ business: { petKind: kind } }) }
-        : f
-    );
+  /** หมา/แมวที่อยู่ในรายการ — ใช้เลือกรายชื่อสายพันธุ์หมา/แมว · ไม่มีทั้งคู่ = null */
+  const catDogKind = (list: SpeciesDef[]): PetKind | null => {
+    const cat = list.some((x) => x.id === "cat");
+    const dog = list.some((x) => x.id === "dog");
+    return cat && dog ? "both" : dog ? "dog" : cat ? "cat" : null;
+  };
+  const petKind = catDogKind(species);
+  const changeSpecies = (next: SpeciesDef[]) => {
+    const before = catDogKind(species);
+    const after = catDogKind(next);
+    setSpecies(next);
+    // ยังใช้รายชื่อสายพันธุ์เริ่มต้นอยู่ → เปลี่ยนเป็นของหมา/แมวชุดใหม่ให้เลย · ร้านแก้รายชื่อเองแล้วไม่แตะ
+    if (before && after && before !== after) {
+      setForm((f) =>
+        f.catBreeds.join("\n") === breedOptionsFor({ business: { petKind: before } }).join("\n")
+          ? { ...f, catBreeds: breedOptionsFor({ business: { petKind: after } }) }
+          : f
+      );
+    }
+  };
+  const setSpeciesAt = (i: number, patch: Partial<SpeciesDef>) =>
+    changeSpecies(species.map((x, k) => (k === i ? { ...x, ...patch } : x)));
+  const addSpecies = (d: SpeciesDef) => changeSpecies([...species, { ...d, breeds: d.breeds ? [...d.breeds] : undefined }]);
+  /** บันทึก: หมา/แมวล้วนแบบค่าเริ่มต้น = ไม่ต้องเก็บรายการ (ร้านเดิมเก็บเหมือนเดิมทุกอย่าง) */
+  const speciesToSave = (): { petKind: PetKind; petSpecies: SpeciesDef[] } => {
+    const list = cleanSpeciesList(species);
+    const safe = list.length ? list : [BUILTIN_SPECIES.cat];
+    const plain = safe.every((x) => {
+      const b = BUILTIN_SPECIES[x.id as "cat" | "dog"];
+      return b && x.name === b.name && x.emoji === b.emoji && !x.breeds?.length;
+    });
+    // หมาและแมวแบบเดิมเรียง หมา → แมว — เรียงอย่างอื่นต้องเก็บรายการไว้ ไม่งั้นลำดับปุ่มจะกลับ
+    const plainOrder = safe.length < 2 || safe[0].id === "dog";
+    return { petKind: petKindFromSpecies(safe), petSpecies: plain && plainOrder ? [] : safe };
   };
 
   const setCat = (ci: number, fn: (c: BillCategory) => BillCategory) =>
@@ -3631,10 +3671,12 @@ function ListsTab({
       className="space-y-3 rounded-petflow bg-card p-4 shadow-petflow-sm"
       onSubmit={(e) => {
         e.preventDefault();
+        const sp = speciesToSave();
         onSave({
-          business: { petKind } as SiteConfig["business"],
+          ...(billing ? {} : { business: { petKind: sp.petKind } as SiteConfig["business"] }),
           options: {
             ...form,
+            ...(billing ? {} : { petSpecies: sp.petSpecies }),
             servicePresets: form.servicePresets.filter((p) => p.label.trim()),
             // หัวข้อไม่มีชื่อ = ทิ้ง · รายการไม่มีชื่อ = ทิ้ง (หัวข้อที่ยังไม่มีรายการเก็บไว้ได้)
             billCategories: form.billCategories
@@ -3646,33 +3688,78 @@ function ListsTab({
     >
       {!billing && (
         <>
-      <p className="text-xs font-extrabold text-petflow-chocolate">ร้านดูแลน้องอะไร</p>
-      <div className="flex gap-1 rounded-full bg-paper p-1">
-        {(
-          [
-            ["cat", "🐱 แมว"],
-            ["dog", "🐶 หมา"],
-            ["both", "🐾 ทั้งหมาและแมว"],
-          ] as const
-        ).map(([k, label]) => (
-          <button
-            key={k}
-            type="button"
-            aria-pressed={petKind === k}
-            onClick={() => pickPetKind(k)}
-            className={`min-h-[40px] flex-1 rounded-full text-xs font-bold transition ${
-              petKind === k ? "bg-card text-petflow-chocolate shadow-petflow-sm" : "text-brown-soft"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      <p className="text-[10px] text-brown-soft">
-        ใช้เปลี่ยนคำในแอปลูกค้าและหลังบ้าน (น้องแมว / น้องหมา) และรายชื่อสายพันธุ์ด้านล่าง
-        {petKind === "both" &&
-          " · รับทั้งสองแบบ: ตอนสมัคร/เพิ่มน้อง จะมีปุ่มให้เลือกว่าน้องแต่ละตัวเป็นหมาหรือแมว แล้วรายชื่อสายพันธุ์จะโชว์เฉพาะของชนิดนั้น"}
+      <p className="text-xs font-extrabold text-petflow-chocolate">ร้านรับน้องชนิดไหนบ้าง</p>
+      <p className="-mt-2 text-[10px] text-brown-soft">
+        ใช้เปลี่ยนคำในแอปลูกค้าและหลังบ้าน (น้องแมว / น้องกระต่าย) · รับมากกว่า 1 ชนิด ตอนสมัคร/เพิ่มน้องจะมีปุ่มให้เลือกชนิด
+        แล้วโชว์สายพันธุ์เฉพาะของชนิดนั้น
       </p>
+      <div className="space-y-2">
+        {species.map((sp, i) => {
+          const builtin = sp.id === "cat" || sp.id === "dog";
+          return (
+            <div key={sp.id} className="space-y-2 rounded-petflow-sm border border-petflow-line bg-paper/60 p-2.5">
+              <div className="flex gap-2">
+                <input
+                  value={sp.emoji}
+                  onChange={(e) => setSpeciesAt(i, { emoji: e.target.value })}
+                  aria-label="อีโมจิ"
+                  className="w-12 shrink-0 rounded-petflow-sm border border-petflow-line bg-card px-1 py-2 text-center text-lg"
+                />
+                <input
+                  value={sp.name}
+                  onChange={(e) => setSpeciesAt(i, { name: e.target.value })}
+                  placeholder="ชื่อ เช่น กระต่าย"
+                  aria-label="ชื่อชนิด"
+                  className="min-w-0 flex-1 rounded-petflow-sm border border-petflow-line bg-card px-3 py-2 text-sm font-bold"
+                />
+                <button
+                  type="button"
+                  disabled={species.length < 2}
+                  onClick={() => {
+                    if (!confirm(`เลิกรับ "${sp.name || "ชนิดนี้"}"? น้องที่สมัครไว้แล้วยังอยู่ครบ แค่ลูกค้าใหม่จะเลือกชนิดนี้ไม่ได้`)) return;
+                    changeSpecies(species.filter((_, k) => k !== i));
+                  }}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-wait disabled:opacity-30"
+                  aria-label="ลบชนิดนี้"
+                >
+                  <Icon name="trash" size={16} />
+                </button>
+              </div>
+              {builtin ? (
+                <p className="px-1 text-[10px] text-brown-soft">สายพันธุ์{sp.name}ตั้งในช่อง &quot;สายพันธุ์&quot; ด้านล่าง</p>
+              ) : (
+                <TextAreaField
+                  label={`สายพันธุ์${sp.name || ""} — 1 บรรทัด = 1 พันธุ์ (ว่างได้)`}
+                  value={(sp.breeds || []).join("\n")}
+                  onChange={(v) => setSpeciesAt(i, { breeds: v.split("\n").map((x) => x.trim()).filter(Boolean) })}
+                  rows={3}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {[BUILTIN_SPECIES.cat, BUILTIN_SPECIES.dog, ...SPECIES_SUGGESTIONS]
+          .filter((d) => !species.some((x) => x.id === d.id))
+          .map((d) => (
+            <button
+              key={d.id}
+              type="button"
+              onClick={() => addSpecies(d)}
+              className="min-h-[36px] rounded-full border border-petflow-line bg-paper px-3 text-xs font-bold text-petflow-chocolate"
+            >
+              + {d.emoji} {d.name}
+            </button>
+          ))}
+        <button
+          type="button"
+          onClick={() => addSpecies({ id: newSpeciesId(species.map((x) => x.id)), name: "", emoji: "🐾" })}
+          className="min-h-[36px] rounded-full border border-dashed border-latte/60 bg-latte/10 px-3 text-xs font-extrabold text-latte-deep"
+        >
+          + ชนิดอื่น (ตั้งชื่อเอง)
+        </button>
+      </div>
 
         </>
       )}
@@ -3831,8 +3918,10 @@ function ListsTab({
 
       {!billing && (
         <>
+      {petKind && (
+        <>
       <TextAreaField
-        label={`สายพันธุ์${petWords({ business: { petKind } }).th} (หน้าลงทะเบียน) — 1 บรรทัด = 1 พันธุ์`}
+        label={`สายพันธุ์${petKind === "both" ? "หมาและแมว" : petWords({ business: { petKind } }).th} (หน้าลงทะเบียน) — 1 บรรทัด = 1 พันธุ์`}
         value={form.catBreeds.join("\n")}
         onChange={(v) =>
           setForm((f) => ({ ...f, catBreeds: v.split("\n").map((s) => s.trim()).filter(Boolean) }))
@@ -3848,6 +3937,8 @@ function ListsTab({
       >
         + เติมสายพันธุ์ยอดนิยมให้ครบ (ของร้านอยู่บนสุดเหมือนเดิม)
       </button>
+        </>
+      )}
       <TextAreaField
         label="รู้จักร้านจากไหน (referral) — 1 บรรทัด = 1 ตัวเลือก"
         value={form.referralOptions.join("\n")}

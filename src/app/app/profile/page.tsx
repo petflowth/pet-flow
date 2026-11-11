@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useLiff } from "@/components/LiffProvider";
 import { useConfig } from "@/components/ConfigProvider";
 import { OTHER_BREED } from "@/lib/cat-breeds";
-import { asksSpecies, breedOptionsFor, breedOptionsForSpecies, petWords, speciesOf, speciesWords, type PetSpecies } from "@/lib/pet-kind";
+import { asksSpecies, speciesName, breedOptionsFor, breedOptionsForSpecies, petWords, speciesOf, speciesWords, type PetSpecies } from "@/lib/pet-kind";
 import { SpeciesPicker } from "@/components/SpeciesPicker";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { StaffNoteTagPicker } from "@/components/StaffNoteTagPicker";
@@ -257,7 +257,7 @@ export default function ProfilePage() {
         title: c.id.startsWith("new-") ? `น้อง${c.name.trim()} (เพิ่มใหม่)` : `น้อง${c.name.trim()}`,
         icon: "paw",
         rows: [
-          ...(asksSpecies(config) ? [{ label: "ชนิด", value: c.species === "dog" ? "หมา" : c.species === "cat" ? "แมว" : "" }] : []),
+          ...(asksSpecies(config) ? [{ label: "ชนิด", value: speciesName(config, c.species) }] : []),
           { label: "เพศ", value: c.gender === "male" ? "♂ ผู้" : c.gender === "female" ? "♀ เมีย" : "" },
           { label: "สายพันธุ์", value: c.breed === OTHER_BREED ? c.breedOther : c.breed },
           { label: "ทำหมัน", value: c.neutered === "yes" ? "ทำหมันแล้ว" : c.neutered === "no" ? "ยังไม่ทำ" : "" },
@@ -290,7 +290,7 @@ export default function ProfilePage() {
   const review = () => {
     if (!profile?.lineUserId || !name.trim()) return;
     if (asksSpecies(config) && cats.some((c) => c.name.trim() && !c.species)) {
-      setSaveError("เลือกว่าน้องแต่ละตัวเป็นหมาหรือแมวด้วยนะคะ");
+      setSaveError("เลือกชนิดของน้องแต่ละตัวด้วยนะคะ");
       return;
     }
     if (emergency.phone.trim() && emergency.phone.replace(/\D/g, "").length < 9) {

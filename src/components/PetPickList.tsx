@@ -117,7 +117,12 @@ export function PetPickList({
                   />
                 ) : (
                   <div className="h-full w-full p-1.5">
-                    <CutePetPlaceholder dog={species === "dog"} />
+                    {species && species !== "cat" && species !== "dog" ? (
+                      // ชนิดที่ร้านเพิ่มเอง (กระต่าย ฯลฯ) ใช้อีโมจิของชนิดนั้น
+                      <span className="flex h-full w-full items-center justify-center text-3xl">{pw.emoji}</span>
+                    ) : (
+                      <CutePetPlaceholder dog={species === "dog"} />
+                    )}
                   </div>
                 )}
               </div>

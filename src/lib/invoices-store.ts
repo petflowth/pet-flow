@@ -17,6 +17,7 @@ import {
   deleteInvoicePaymentIncome,
   listFinance,
   attachAdvanceIncomeToInvoice,
+  alignInvoiceIncomeDates,
 } from "./finance-store";
 import { calcPromoDiscount, recordAdminPromoClaim } from "./promos-store";
 import { getCoupon, redeemCoupon, unredeemCoupon, findCouponsByInvoice } from "./coupons-store";
@@ -533,8 +534,8 @@ export function invoiceIssueDate(inv: Pick<InvoiceRecord, "createdAt">): string 
 
 /**
  * เปลี่ยนวันที่ออกบิล — ใช้ได้ทั้งบิลค้างและบิลปิดแล้ว
- * บิลปิดแล้ว: วันรับเงิน (ใบเสร็จ) + รายรับ/ประวัติบริการที่ลงไว้วันเดียวกันขยับตามด้วย
- * (มัดจำที่รับไว้คนละวันไม่แตะ — นั่นคือวันที่เงินเข้าจริง)
+ * บิลปิดแล้ว: วันรับเงิน (ใบเสร็จ) + รายรับทุกก้อนของบิล (รวมมัดจำ) + ประวัติบริการขยับตามด้วย
+ * (ยกเว้นงวด "รับเงินบางส่วน" ที่ลงตามวันรับเงินจริงแต่ละงวด)
  */
 export async function setInvoiceIssueDate(id: string, issueDate: string) {
   if (!isValidDay(issueDate)) return { ok: false as const, error: "bad_date" };
@@ -552,14 +553,9 @@ export async function setInvoiceIssueDate(id: string, issueDate: string) {
       .eq("id", id)
       .eq("tenant_id", tenantId);
     if (error) return { ok: false as const, error: "save_failed", message: error.message };
+    // รายรับทุกก้อนของบิล (รวมมัดจำที่รับไว้คนละวัน) ย้ายไปวันที่บิลใหม่ — ยอดหน้าการเงินตรงกับหน้าบิล
+    if (inv.status === "paid") await alignInvoiceIncomeDates(inv);
     if (inv.status === "paid" && oldPaidDay && oldPaidDay !== issueDate) {
-      await sb
-        .from("finance_records")
-        .update({ date: issueDate })
-        .eq("tenant_id", tenantId)
-        .eq("invoice_id", id)
-        .eq("type", "income")
-        .eq("date", oldPaidDay);
       await sb
         .from("service_records")
         .update({ date: issueDate })
@@ -1168,6 +1164,10 @@ async function markInvoicePaidInner(
       invoiceId: inv.id,
     });
   }
+
+  // มัดจำที่รับไว้ก่อน (คนละวัน/คนละเดือน) ย้ายมานับในวันที่บิลด้วย — ไม่งั้นบิลที่มัดจำครบยอด
+  // ไม่มีรายรับในวันที่บิลเลย หน้าการเงินของเดือนนั้นขึ้น 0 ทั้งที่หน้าบิลบอกว่ารับครบแล้ว
+  await alignInvoiceIncomeDates(inv);
 
   await addServiceRecord({
     customerId: inv.customerId,

@@ -64,9 +64,15 @@ export default function FinancePage() {
   const load = useCallback(async () => {
     // ดึงทั้งหมดครั้งเดียวแล้วกรองในหน้า — ยอดสรุปกับรายการจะตรงกันเสมอ
     // (เมื่อก่อนยอดสรุปมาจาก API คนละรอบกับรายการ มีโอกาสไม่ตรงกัน)
-    const list = await fetch("/api/finance");
-    const listData = await list.json();
-    setRecords(listData.records || []);
+    // โหลดไม่สำเร็จต้องบอก — เดิมเงียบแล้วโชว์ 0 ฿ ดูเหมือนไม่มีรายรับจริงๆ
+    try {
+      const list = await fetch("/api/finance");
+      const listData = await list.json();
+      if (!list.ok || !Array.isArray(listData.records)) throw new Error(listData?.error || String(list.status));
+      setRecords(listData.records);
+    } catch {
+      toast("โหลดรายรับ-รายจ่ายไม่สำเร็จ ลองรีเฟรชหน้านี้อีกครั้งนะคะ", "error");
+    }
   }, []);
 
   useEffect(() => {

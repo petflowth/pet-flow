@@ -630,6 +630,60 @@ function buildDrafts(ans: IntakeAnswers, cfg: SiteConfig): Draft[] {
       patch: () => ({ groomSlotDefaultCapacity: perSlot }),
     });
 
+  // ── บริการนอกสถานที่ (ช่างไปที่บ้านลูกค้า) ──
+  const home = r.raw("homeService");
+  if (home && home !== "ไม่มี") {
+    const feeText = r.fol("homeService", home);
+    const zones = /โซน|ระยะ/.test(home)
+      ? feeText
+          .split(/[\/\n]+/)
+          .map((part, i) => {
+            const t = part.trim();
+            const nums = t.replace(/,/g, "").match(/\d+(?:\.\d+)?/g);
+            const fee = nums ? Number(nums[nums.length - 1]) : 0;
+            const name = t.replace(/\s*\d[\d,.]*\s*(บาท|฿)?\s*$/, "").trim();
+            return { id: `zone-q${i + 1}`, name: name || t, fee };
+          })
+          .filter((z) => z.name)
+      : [];
+    const flatFee = zones.length ? 0 : firstNum(feeText) || 0;
+    const homeSlots = [...new Set(r.many("homeSlots") || [])]
+      .map((t) => (/^\d:\d{2}$/.test(t) ? `0${t}` : t))
+      .filter((t) => /^\d{2}:\d{2}$/.test(t))
+      .sort();
+    const teams = firstNum(r.one("homeTeams")) || 1;
+    const area = r.raw("homeArea").trim();
+    const next: NonNullable<SiteConfig["homeService"]> = {
+      ...(cfg.homeService || {}),
+      ...(area ? { note: area } : {}),
+      zones,
+      fee: flatFee,
+      ...(homeSlots.length ? { slots: homeSlots } : {}),
+      capacity: teams,
+    };
+    const desc = (h?: SiteConfig["homeService"]) =>
+      !h
+        ? "ยังไม่ตั้ง"
+        : [
+            h.zones?.length
+              ? h.zones.map((z) => `${z.name} ${z.fee}`).join(" / ")
+              : h.fee
+                ? `ค่าเดินทาง ${h.fee}`
+                : "",
+            h.slots?.length ? `รอบ ${h.slots.join(", ")}` : "",
+            h.capacity ? `${h.capacity} ทีม` : "",
+          ]
+            .filter(Boolean)
+            .join(" · ") || "ยังไม่ตั้ง";
+    add({
+      key: "homeService",
+      label: "บริการนอกสถานที่ (โซน ค่าเดินทาง รอบ ทีม)",
+      before: desc(cfg.homeService),
+      after: desc(next),
+      patch: () => ({ homeService: next }),
+    });
+  }
+
   // ── แต้มและลูกค้าประจำ ──
   if (r.raw("points") === "มี") {
     const rate = firstNum(r.one("pointRate"));
@@ -870,6 +924,7 @@ function buildDrafts(ans: IntakeAnswers, cfg: SiteConfig): Draft[] {
     return v ? v !== no : null;
   };
   feature("transport", yesNo("pickup", "ไม่มี"));
+  feature("homeService", yesNo("homeService", "ไม่มี"));
   feature("pos", yesNo("products", "ไม่ขาย"));
   feature("points", yesNo("points", "ไม่มี"));
   feature("payroll", yesNo("payroll", "ไม่ใช้"));

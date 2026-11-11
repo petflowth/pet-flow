@@ -21,6 +21,8 @@ type Bk = {
   checkout?: string;
   pickup: boolean;
   dropoff: boolean;
+  /** บริการที่บ้าน — ช่างไปหา (ไม่ใช่รับ-ส่ง) */
+  atHome?: boolean;
   pickupTime?: string;
   dropoffTime?: string;
   mapUrl?: string;
@@ -33,7 +35,9 @@ const field =
 
 /** ลูกค้ากรอกจุดรับ-ส่งน้องก่อนวันนัด — วางลิงก์ Google Maps หรือกดใช้ตำแหน่งปัจจุบัน */
 function BookingTransportContent() {
-  const id = useSearchParams().get("id") || "";
+  const sp = useSearchParams();
+  const id = sp.get("id") || "";
+  const kindHome = sp.get("kind") === "home";
   const { profile } = useLiff();
 
   const [bk, setBk] = useState<Bk | null>(null);
@@ -46,6 +50,9 @@ function BookingTransportContent() {
   const [done, setDone] = useState(false);
   // ป๊อปอัปสรุปให้เช็คก่อนส่งจริง
   const [reviewing, setReviewing] = useState(false);
+  // บริการที่บ้าน: หน้าเดียวกัน แต่ถามเป็น "ที่อยู่บ้าน" แทน "จุดรับ-ส่ง"
+  const home = bk ? !!bk.atHome : kindHome;
+  const spot = home ? "ที่อยู่บ้าน" : "จุดรับ-ส่ง";
 
   useEffect(() => {
     if (!id) {
@@ -114,7 +121,7 @@ function BookingTransportContent() {
       if (res.ok) {
         setReviewing(false);
         setDone(true);
-        savedPopup("ส่งตำแหน่งสำเร็จ", ["ร้านได้รับที่อยู่รับ-ส่งแล้วค่ะ"]);
+        savedPopup("ส่งตำแหน่งสำเร็จ", [home ? "ร้านได้รับที่อยู่บ้านแล้วค่ะ" : "ร้านได้รับที่อยู่รับ-ส่งแล้วค่ะ"]);
       } else {
         setError(
           d.error === "bad_url"
@@ -145,7 +152,7 @@ function BookingTransportContent() {
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-sage/25 text-ok">
             <Icon name="check" size={28} strokeWidth={2.4} />
           </span>
-          <h1 className="mt-4 text-lg font-extrabold text-petflow-chocolate">ได้รับจุดรับ-ส่งแล้วค่ะ</h1>
+          <h1 className="mt-4 text-lg font-extrabold text-petflow-chocolate">ได้รับ{spot}แล้วค่ะ</h1>
           <p className="mt-2 text-sm leading-relaxed text-brown-soft">
             พี่เลี้ยงจะติดต่อก่อนออกเดินทางนะคะ
             <br />
@@ -172,14 +179,19 @@ function BookingTransportContent() {
           date: isRoom ? bk.checkout : bk.date,
           time: bk.dropoffTime,
         },
+        bk.atHome && {
+          label: "ช่างไปบริการที่บ้าน",
+          date: bk.date,
+          time: bk.time,
+        },
       ].filter((x): x is { label: string; date: string | undefined; time: string | undefined } => !!x)
     : [];
 
   return (
     <div className="px-4 pb-6 pt-5">
       <PageHeader
-        eyebrow="Pick-up & drop-off"
-        title="จุดรับ-ส่งน้อง"
+        eyebrow={home ? "Home service" : "Pick-up & drop-off"}
+        title={home ? "ที่อยู่บ้านสำหรับบริการที่บ้าน" : "จุดรับ-ส่งน้อง"}
         back="/app"
         backLabel="กลับหน้าแรก"
         showLang={false}
@@ -191,7 +203,7 @@ function BookingTransportContent() {
         <div className="rounded-petflow border border-petflow-line bg-card shadow-petflow-sm">
           <EmptyState icon="calendar" title="ไม่พบข้อมูลการจอง" />
         </div>
-      ) : !bk.pickup && !bk.dropoff ? (
+      ) : !bk.pickup && !bk.dropoff && !bk.atHome ? (
         <div className="rounded-petflow border border-petflow-line bg-card shadow-petflow-sm">
           <EmptyState icon="car" title="นัดนี้ไม่ได้ใช้บริการรับ-ส่ง" sub="ถ้าต้องการรับ-ส่ง ทักแชท LINE ได้เลยค่ะ" />
         </div>
@@ -206,7 +218,7 @@ function BookingTransportContent() {
               {legs.map((l) => (
                 <li key={l.label} className="flex items-center gap-2.5 rounded-xl bg-paper px-3 py-2.5">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-honey/30 text-petflow-chocolate">
-                    <Icon name="car" size={16} />
+                    <Icon name={home ? "home" : "car"} size={16} />
                   </span>
                   <span className="min-w-0 flex-1 text-sm font-bold text-brown">{l.label}</span>
                   <span className="shrink-0 text-xs text-brown-soft">
@@ -219,7 +231,7 @@ function BookingTransportContent() {
           </div>
 
           <section className="mt-5">
-            <SectionLabel>Location · จุดรับ-ส่ง</SectionLabel>
+            <SectionLabel>Location · {spot}</SectionLabel>
             <div className="space-y-3 rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm">
               <button
                 type="button"
@@ -272,13 +284,13 @@ function BookingTransportContent() {
               )}
 
               <button type="button" disabled={saving} onClick={review} className={BTN_PRIMARY}>
-                {saving ? "กำลังบันทึก…" : bk.saved ? "บันทึกการแก้ไข" : "ส่งจุดรับ-ส่ง"}
+                {saving ? "กำลังบันทึก…" : bk.saved ? "บันทึกการแก้ไข" : `ส่ง${spot}`}
               </button>
               <ReviewSheet
                 open={reviewing}
                 sections={[
                   {
-                    title: `จุดรับ-ส่ง${bk.catName ? ` · ${bk.catName}` : ""}`,
+                    title: `${spot}${bk.catName ? ` · ${bk.catName}` : ""}`,
                     icon: "car",
                     rows: [
                       ...legs.map((l) => ({
@@ -292,7 +304,7 @@ function BookingTransportContent() {
                 ]}
                 saving={saving}
                 error={error}
-                confirmLabel={bk.saved ? "ยืนยัน บันทึกการแก้ไข" : "ยืนยัน ส่งจุดรับ-ส่ง"}
+                confirmLabel={bk.saved ? "ยืนยัน บันทึกการแก้ไข" : `ยืนยัน ส่ง${spot}`}
                 onEdit={() => {
                   setReviewing(false);
                   setError("");

@@ -4,7 +4,7 @@ import { featureOff } from "@/lib/features-server";
 import { withResolvedTenant } from "@/lib/tenant-context";
 import { withServerTiming } from "@/lib/server-timing";
 import { addBooking, listBookings, type StoredBooking } from "@/lib/bookings-store";
-import { findCustomerByLine } from "@/lib/customers-store";
+import { findCustomerByLine, updateCustomer } from "@/lib/customers-store";
 import { assignGroomSlots, getGroomAvailability, getRoomAvailability } from "@/lib/availability";
 import { sendTelegramLater, formatBookingTelegram } from "@/lib/telegram";
 import {
@@ -18,6 +18,8 @@ import { requireCustomerSession, noCustomerSessionResponse } from "@/lib/custome
 import { getSiteConfig } from "@/lib/config-store";
 import { depositAmountFor, type DepositStatus } from "@/lib/booking-deposit";
 import { saveDepositSlip, depositTelegramLine } from "@/lib/booking-deposit-server";
+import { homeMassageAllowed, homeServiceLabel, homeServiceOn, resolveHomeZone } from "@/lib/home-service";
+import { cleanMapUrl, type BookingTransport } from "@/lib/transport";
 
 export const dynamic = "force-dynamic";
 
@@ -121,7 +123,33 @@ async function handlePost(req: NextRequest) {
       ? knownBranchId(siteCfg, String(body.branchId || "")) || mainBranchId(siteCfg)
       : undefined;
     const branchName = branchById(siteCfg, branchId)?.name;
-    const { closed, slots, mode } = await getGroomAvailability(date, catNames.length, massage, branchId);
+    // บริการนอกสถานที่ — ช่างไปที่บ้านลูกค้า: ต้องเปิดฟีเจอร์ มีที่อยู่ และเลือกโซน (ถ้าร้านแยกโซน)
+    // ค่าเดินทางคิดจากตั้งค่าของสาขาฝั่งเซิร์ฟเวอร์เสมอ ไม่เชื่อยอดที่ client ส่งมา
+    let homeTransport: BookingTransport | undefined;
+    if (body.home && typeof body.home === "object") {
+      const homeCfg = configForBranch(siteCfg, branchId);
+      if (!homeServiceOn(siteCfg) || (massage && !homeMassageAllowed(homeCfg))) {
+        return NextResponse.json({ error: "feature_disabled", feature: "homeService" }, { status: 403 });
+      }
+      const h = body.home as Record<string, unknown>;
+      const address = String(h.address || "").trim().slice(0, 300);
+      const rawUrl = String(h.mapUrl || "").trim();
+      const mapUrl = cleanMapUrl(rawUrl);
+      if (rawUrl && !mapUrl) return NextResponse.json({ error: "bad_url" }, { status: 400 });
+      if (!address && !mapUrl) return NextResponse.json({ error: "address_required" }, { status: 400 });
+      const zone = resolveHomeZone(homeCfg, String(h.zoneId || ""));
+      if (!zone) return NextResponse.json({ error: "zone_required" }, { status: 400 });
+      homeTransport = {
+        atHome: true,
+        address: address || undefined,
+        mapUrl,
+        homeZoneId: zone.zoneId,
+        homeZone: zone.zone,
+        homeFee: zone.fee,
+      };
+    }
+    const atHome = !!homeTransport;
+    const { closed, slots, mode } = await getGroomAvailability(date, catNames.length, massage, branchId, atHome);
     if (closed) {
       return NextResponse.json({ error: "shop_closed" }, { status: 409 });
     }
@@ -166,11 +194,19 @@ async function handlePost(req: NextRequest) {
           selfBooked: true,
           branchId,
           groomProgram: programOf(catNames[i]),
+          transport: homeTransport,
           // ทั้งบ้านที่จองพร้อมกันได้ยอด/สลิป/สถานะเดียวกันทุกแถว (ยอดของทั้งกลุ่ม ไม่ใช่ต่อตัว)
           ...deposit,
         })
       )
     );
+    // ครั้งแรกที่ให้ที่อยู่สำหรับบริการที่บ้าน — จำไว้ในโปรไฟล์ ครั้งหน้าเติมให้เอง (ไม่เขียนทับของเดิม)
+    if (homeTransport && !customer.address && !customer.addressMapUrl) {
+      await updateCustomer(customer.id, {
+        ...(homeTransport.address ? { address: homeTransport.address } : {}),
+        ...(homeTransport.mapUrl ? { addressMapUrl: homeTransport.mapUrl } : {}),
+      }).catch(() => undefined);
+    }
     const programName = (pid?: string) => (pid ? groomProgram(pid, programs)?.name || pid : "");
     const scheduleText = catNames
       .map((name, i) => {
@@ -184,6 +220,18 @@ async function handlePost(req: NextRequest) {
         น้อง: scheduleText,
         วันที่: date,
         ...(branchName ? { สาขา: branchName } : {}),
+        ...(homeTransport
+          ? {
+              [`🏠 ${homeServiceLabel(siteCfg)}`]: [
+                homeTransport.homeZone,
+                homeTransport.homeFee ? `ค่าเดินทาง ฿${homeTransport.homeFee.toLocaleString("th-TH")}` : "",
+              ]
+                .filter(Boolean)
+                .join(" · ") || "ที่บ้านลูกค้า",
+              ที่อยู่: (homeTransport.address || "-").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"),
+              ...(homeTransport.mapUrl ? { แผนที่: homeTransport.mapUrl } : {}),
+            }
+          : {}),
         ...depositTelegramLine(deposit),
       }),
       { branchId }

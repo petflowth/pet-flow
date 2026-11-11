@@ -49,6 +49,7 @@ async function handleGet(req: NextRequest) {
       checkout: b.checkout,
       pickup: !!t?.pickup,
       dropoff: !!t?.dropoff,
+      atHome: !!t?.atHome,
       pickupTime: t?.pickupTime || (b.service === "room" ? b.arrivalTime : undefined),
       dropoffTime: t?.dropoffTime || (b.service === "room" ? b.pickupTime : undefined),
       mapUrl: owner ? mapUrl : undefined,
@@ -60,7 +61,8 @@ async function handleGet(req: NextRequest) {
 
 /** ลูกค้าส่งจุดรับ-ส่ง (ลิงก์ Google Maps + ที่อยู่/จุดสังเกต) */
 async function handlePost(req: NextRequest) {
-  const blocked = await featureOff("transport");
+  // จุดรับ-ส่ง หรือที่อยู่บ้านสำหรับบริการนอกสถานที่ — ปิดทั้งสองอย่าง = ใช้หน้านี้ไม่ได้
+  const blocked = (await featureOff("transport")) && (await featureOff("homeService"));
   if (blocked) return blocked;
   const body = await req.json().catch(() => ({}));
   const bookingId = String(body.bookingId || "").trim();
@@ -91,7 +93,7 @@ async function handlePost(req: NextRequest) {
 
   const b = res.booking;
   sendTelegramLater(
-    formatBookingTelegram("📍 ลูกค้าส่งจุดรับ-ส่ง", {
+    formatBookingTelegram(b.transport?.atHome ? "📍 ลูกค้าส่งที่อยู่บ้าน (บริการที่บ้าน)" : "📍 ลูกค้าส่งจุดรับ-ส่ง", {
       ลูกค้า: b.customerName,
       น้อง: b.catName,
       บริการ: transportLabel(b.transport),

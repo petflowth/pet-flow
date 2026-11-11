@@ -15,6 +15,16 @@ export type BookingTransport = {
   pickupTime?: string;
   /** เวลาไปส่งน้องกลับบ้าน (HH:MM) */
   dropoffTime?: string;
+  /**
+   * บริการนอกสถานที่ — ช่างไปอาบน้ำ/นวดให้ที่บ้านลูกค้า (ไม่ใช่รับ-ส่ง) ใช้ที่อยู่/แผนที่ชุดเดียวกัน
+   * เก็บรวมในคอลัมน์ transport เดิม ไม่ต้องเพิ่มคอลัมน์ · ดู home-service.ts
+   */
+  atHome?: boolean;
+  /** โซนที่ลูกค้าเลือก (id + ชื่อ ณ ตอนจอง) */
+  homeZoneId?: string;
+  homeZone?: string;
+  /** ค่าเดินทางที่ตกลง ณ ตอนจอง (ต่อบ้าน) — ใช้เติมในบิล ร้านแก้ราคาภายหลังได้ */
+  homeFee?: number;
 };
 
 /** รับเฉพาะเวลา HH:MM — ค่าอื่นทิ้ง */
@@ -39,25 +49,47 @@ export function cleanMapUrl(v: unknown): string | undefined {
 export function cleanTransport(v: unknown): BookingTransport | undefined {
   if (!v || typeof v !== "object") return undefined;
   const o = v as Record<string, unknown>;
+  // บริการที่บ้าน: ช่างไปหาเอง ไม่มีรับ-ส่ง
+  const atHome = o.atHome === true;
+  const fee = Number(o.homeFee);
   const t: BookingTransport = {
-    pickup: o.pickup === true,
-    dropoff: o.dropoff === true,
+    pickup: !atHome && o.pickup === true,
+    dropoff: !atHome && o.dropoff === true,
     mapUrl: cleanMapUrl(o.mapUrl),
     address: String(o.address ?? "").trim().slice(0, 300) || undefined,
-    pickupTime: o.pickup === true ? cleanClockTime(o.pickupTime) : undefined,
-    dropoffTime: o.dropoff === true ? cleanClockTime(o.dropoffTime) : undefined,
+    pickupTime: !atHome && o.pickup === true ? cleanClockTime(o.pickupTime) : undefined,
+    dropoffTime: !atHome && o.dropoff === true ? cleanClockTime(o.dropoffTime) : undefined,
   };
-  if (!t.pickup && !t.dropoff) return undefined;
+  if (atHome) {
+    t.atHome = true;
+    t.homeZoneId = String(o.homeZoneId ?? "").trim().slice(0, 60) || undefined;
+    t.homeZone = String(o.homeZone ?? "").trim().slice(0, 100) || undefined;
+    t.homeFee = Number.isFinite(fee) && fee >= 0 ? Math.round(fee) : undefined;
+  }
+  if (!t.pickup && !t.dropoff && !t.atHome) return undefined;
   return t;
 }
 
+/** นัดนี้ต้องใช้ที่อยู่ลูกค้า — มีรับ-ส่ง หรือเป็นบริการที่บ้าน */
 export function hasTransport(t?: BookingTransport | null): t is BookingTransport {
-  return !!t && (!!t.pickup || !!t.dropoff);
+  return !!t && (!!t.pickup || !!t.dropoff || !!t.atHome);
+}
+
+/** ไอคอนสั้นต่อท้ายชื่อนัด (ปฏิทิน) — บริการที่บ้าน 🏡 · รับ-ส่ง 🚗 */
+export function transportEmoji(t?: BookingTransport | null): string {
+  if (!hasTransport(t)) return "";
+  return t.atHome ? "🏡" : "🚗";
+}
+
+/** นัดนี้ช่างไปบริการที่บ้านลูกค้า */
+export function isAtHome(t?: BookingTransport | null): t is BookingTransport {
+  return !!t && !!t.atHome;
 }
 
 /** ข้อความสั้นสำหรับโชว์ เช่น "รับ + ส่ง" หรือ "รับ 09:00 + ส่ง 15:30" ถ้าร้านใส่เวลาไว้ */
 export function transportLabel(t?: BookingTransport | null): string {
   if (!hasTransport(t)) return "";
+  if (t.atHome) return `บริการที่บ้านลูกค้า${t.homeZone ? ` (${t.homeZone})` : ""}`;
   const at = (time?: string) => (time ? ` ${time}` : "");
   if (t.pickup && t.dropoff) {
     return t.pickupTime || t.dropoffTime

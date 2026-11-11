@@ -21,6 +21,7 @@ export type FeatureKey =
   | "vaccine"
   | "consent"
   | "transport"
+  | "homeService"
   | "points"
   | "pointsRedeem"
   | "memberCredit"
@@ -127,6 +128,15 @@ export const FEATURES: FeatureDef[] = [
     hint: "ลูกค้าเลือกให้ร้านไปรับ-ส่งน้องได้",
     group: "บริการของร้าน",
     appPaths: ["/app/booking-transport"],
+  },
+  {
+    key: "homeService",
+    label: "บริการนอกสถานที่ (ไปอาบน้ำที่บ้านลูกค้า)",
+    hint: "ลูกค้าเลือก “ที่บ้าน” ตอนจองอาบน้ำ/นวด กรอกที่อยู่ + เลือกโซน คิดค่าเดินทาง คิวแยกจากหน้าร้าน ตั้งค่าที่ ตั้งค่า › บริการนอกสถานที่",
+    group: "บริการของร้าน",
+    requires: "grooming",
+    defaultOff: true,
+    appQueries: [{ path: "/app/booking-transport", param: "kind", value: "home" }],
   },
   // ── ข้อมูลก่อนรับน้อง (การ์ด LINE ที่ร้านขอจากลูกค้า) ──
   {

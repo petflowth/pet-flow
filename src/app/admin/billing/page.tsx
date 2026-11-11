@@ -50,7 +50,9 @@ import {
   transportTrips,
   tripLabel,
   type BookingTransport,
+  isAtHome,
 } from "@/lib/transport";
+import { homeFeeLabel, resolveHomeZone } from "@/lib/home-service";
 import { dayCareLabel, dayCarePrice, isDayCareLabel, isDayCareStay } from "@/lib/day-care";
 import {
   LINE_PROMO_KINDS,
@@ -1526,6 +1528,23 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
           label: preset.label,
           amount: last?.unitAmount ?? preset.amount,
           qty: trips,
+        },
+      ]);
+    }
+    // บริการนอกสถานที่ (ช่างไปที่บ้าน) → ใส่ค่าเดินทางตามที่ตกลงตอนจอง (บ้านละครั้ง ไม่ใช่ต่อตัว)
+    const homeT = group.map((g) => g.transport).find((t) => isAtHome(t));
+    if (homeT) {
+      const hc = configForBranch(siteConfig, (bk as { branchId?: string }).branchId);
+      const fee =
+        typeof homeT.homeFee === "number" ? homeT.homeFee : resolveHomeZone(hc, homeT.homeZoneId)?.fee ?? 0;
+      setItems((prev) => [
+        ...prev,
+        {
+          ...newGrooming(undefined, groomPrograms),
+          kind: "service" as const,
+          label: [homeFeeLabel(hc), homeT.homeZone].filter(Boolean).join(" · "),
+          amount: fee,
+          qty: 1,
         },
       ]);
     }

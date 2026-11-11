@@ -3,7 +3,18 @@ import type { BoardingRuleBlock, PointsRewardConfig, SiteConfig } from "./config
 import type { LinePromo } from "./line-discount";
 import type { GroomProgram, GroomSize } from "./grooming-prices";
 import { featureLabel, isFeatureOn, type FeatureKey } from "./features";
-import { petKindFromIntake, petKindOf, withDefaultBreeds } from "./pet-kind";
+import {
+  BUILTIN_SPECIES,
+  SPECIES_SUGGESTIONS,
+  petKindFromIntake,
+  petKindFromSpecies,
+  petKindOf,
+  speciesListOf,
+  withDefaultBreeds,
+  type PetKind,
+  type SpeciesDef,
+} from "./pet-kind";
+import { shopBranches, type Branch } from "./branches";
 
 /**
  * แปลงคำตอบแบบสอบถามเจ้าของร้าน (public/shop-questions.html) เป็นการตั้งค่าร้าน (SiteConfig)
@@ -33,6 +44,7 @@ type Draft = IntakeChange & { patch: (cfg: SiteConfig) => Partial<SiteConfig> };
 
 const OTHER = "อื่นๆ";
 const PETS_BOTH = "ทั้งหมาและแมว";
+const NO_OTHER_PETS = "ไม่รับสัตว์อื่น";
 const WEEKDAYS: Record<string, number> = { อาทิตย์: 0, จันทร์: 1, อังคาร: 2, พุธ: 3, พฤหัส: 4, ศุกร์: 5, เสาร์: 6 };
 const WEEKDAY_NAME = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
 const GROOM_KEYS: GroomSize[] = ["kitten", "m", "l"];
@@ -52,10 +64,16 @@ function reader(ans: IntakeAnswers) {
   const a = ans.a || {};
   const other = ans.other || {};
   const pets = String(a.pets || "");
-  const petWord = pets === "แมว" ? "แมว" : pets === PETS_BOTH ? "หมา/แมว" : "หมา";
-  const T = (s: string) => s.replace(/\{p\}/g, petWord);
   // พิมพ์ "แ" เป็น "เ" สองตัว (เเ) บ่อยมาก — ทำให้เหมือนกันก่อน ไม่งั้นหาคำว่า "แต้ม"/"แมว" ไม่เจอ
   const raw = (k: string) => String(a[k] ?? "").trim().replace(/เเ/g, "แ");
+  // สัตว์อื่นที่รับเพิ่ม (ข้อ otherPets) — "อื่นๆ" แตกตามจุลภาค/บรรทัด
+  const op = a.otherPets;
+  const otherPets = (Array.isArray(op) ? op.map(String) : [])
+    .flatMap((v) => (v === OTHER ? splitList(String(other.otherPets || "")) : [v]))
+    .map((v) => v.trim().replace(/เเ/g, "แ"))
+    .filter((v) => v && v !== NO_OTHER_PETS);
+  const petWord = [pets === "แมว" ? "แมว" : pets === PETS_BOTH ? "หมา/แมว" : "หมา", ...otherPets].join("/");
+  const T = (s: string) => s.replace(/\{p\}/g, petWord);
   /** ข้อเลือก 1 ข้อ — เลือก "อื่นๆ" = เอาข้อความที่พิมพ์ */
   const one = (id: string) => {
     const v = raw(id);
@@ -71,7 +89,7 @@ function reader(ans: IntakeAnswers) {
   };
   const fol = (id: string, opt: string) => raw(`${id}~${opt}`);
   const note = ans.note || {};
-  return { a, pets, T, raw, one, many, fol, note };
+  return { a, pets, otherPets, T, raw, one, many, fol, note };
 }
 
 function splitList(s: string): string[] {
@@ -139,6 +157,71 @@ function buildDrafts(ans: IntakeAnswers, cfg: SiteConfig): Draft[] {
       after: KIND_LABEL[petKind],
       patch: () => ({ business: { petKind } as SiteConfig["business"] }),
     });
+  // สัตว์อื่นนอกจากหมา/แมว → รายการชนิดสัตว์ของร้าน (ตั้งค่า › รายการ) · ชื่อที่ตรงกับตัวช่วยกรอกได้สายพันธุ์เริ่มต้นไปด้วย
+  if (r.otherPets.length) {
+    const baseKind: PetKind = petKind || petKindOf(cfg);
+    const list: SpeciesDef[] =
+      baseKind === "both" ? [BUILTIN_SPECIES.dog, BUILTIN_SPECIES.cat] : [BUILTIN_SPECIES[baseKind]];
+    r.otherPets.forEach((name, i) => {
+      const sug = SPECIES_SUGGESTIONS.find((x) => x.name === name);
+      const def: SpeciesDef = sug
+        ? { ...sug, breeds: sug.breeds ? [...sug.breeds] : undefined }
+        : { id: `sp-q${i + 1}`, name, emoji: "🐾" };
+      if (!list.some((x) => x.id === def.id || x.name === def.name)) list.push(def);
+    });
+    const desc = (l: SpeciesDef[]) => l.map((x) => `${x.emoji} ${x.name}`).join(", ");
+    add({
+      key: "options.petSpecies",
+      label: "ชนิดสัตว์ที่ร้านรับ (ปุ่มเลือกตอนสมัคร)",
+      before: desc(speciesListOf(cfg)),
+      after: desc(list),
+      patch: () => ({
+        business: { petKind: petKindFromSpecies(list) } as SiteConfig["business"],
+        options: { petSpecies: list } as unknown as SiteConfig["options"],
+      }),
+    });
+  }
+
+  // หลายสาขา → ตั้งค่า › สาขา · สาขาเดิมของร้านคง id ไว้ตามลำดับ (ห้อง/นัดเดิมยังชี้สาขาเดิม)
+  const branchCount = Math.min(10, firstNum(r.one("branchCount")) || 0);
+  const oldBranches = shopBranches(cfg);
+  const branches: Branch[] = [];
+  if (branchCount > 1) {
+    for (let i = 0; i < branchCount; i++) {
+      const f = (k: string) => r.raw(`branches.${i}.${k}`);
+      const base = oldBranches[i];
+      branches.push({
+        ...base,
+        id: base?.id || `br-q${i + 1}`,
+        name: f("name") || base?.name || `สาขา ${i + 1}`,
+        ...(f("address") ? { address: f("address") } : {}),
+        ...(f("phone") ? { phone: f("phone") } : {}),
+        ...(f("maps") ? { mapsUrl: f("maps") } : {}),
+      });
+    }
+    const desc = (l: Branch[]) => l.map((b) => b.name).join(", ");
+    add({
+      key: "branches",
+      label: "สาขา (ตั้งค่า › สาขา)",
+      before: desc(oldBranches) || "—",
+      after: desc(branches),
+      patch: () => ({ branches }),
+    });
+  }
+  /** ช่อง "อยู่สาขาไหน" ของห้อง → id สาขา (พิมพ์ชื่อสาขา หรือเลขสาขา) · ไม่ตรง = สาขาแรก */
+  const branchOfRoom = (text: string): string | undefined => {
+    if (!branches.length || !text) return undefined;
+    if (/^\d+$/.test(text.trim())) return branches[Number(text.trim()) - 1]?.id;
+    const t = text.replace(/\s+/g, "").toLowerCase();
+    const byName = branches.find((b) => {
+      const n = b.name.replace(/\s+/g, "").toLowerCase();
+      return n && (n.includes(t) || t.includes(n));
+    });
+    if (byName) return byName.id;
+    const n = firstNum(text);
+    return n && n >= 1 && n <= branches.length ? branches[n - 1].id : undefined;
+  };
+
   const tagline = r.raw("tagline");
   if (tagline)
     add({
@@ -336,7 +419,9 @@ function buildDrafts(ans: IntakeAnswers, cfg: SiteConfig): Draft[] {
       };
       const dims = f("size");
       const note = f("note");
+      const branchId = branchOfRoom(f("branch"));
       rooms.push({
+        ...(branchId ? { branchId } : {}),
         id: base?.id || slugId("room", name, i),
         name: name || `ห้องแบบที่ ${i + 1}`,
         size: "S",

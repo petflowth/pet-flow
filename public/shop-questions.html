@@ -68,6 +68,12 @@ textarea.field{min-height:84px;resize:vertical}
 .sum dd{margin:0 0 4px;white-space:pre-wrap;overflow-wrap:anywhere}
 .empty{color:var(--muted);font-style:italic}
 .msg{border-radius:12px;padding:12px 14px;background:var(--pick);margin:0 0 16px}
+.price{border:1.5px solid var(--pick);border-radius:12px;padding:12px 14px;margin:0 0 16px}
+.price b{display:block;margin-bottom:6px}
+.price table{width:100%;border-collapse:collapse;font-size:14px}
+.price th,.price td{padding:6px 4px;text-align:left;border-top:1px solid var(--pick)}
+.price td{text-align:right;white-space:nowrap}
+.price small{display:block;margin-top:6px;color:var(--muted)}
 .msg.err{background:transparent;border:1.5px solid var(--danger);color:var(--danger)}
 .actions{display:grid;gap:10px;margin:18px 0}
 .import{border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 20px}
@@ -118,14 +124,36 @@ const has = (id, v) => { const x = A(id); return Array.isArray(x) ? x.includes(v
 const PETS_BOTH = "ทั้งหมาและแมว";
 const isCat = () => A("pets") === "แมว" || A("pets") === PETS_BOTH;
 const isDog = () => A("pets") !== "แมว";
-const PET = () => A("pets") === "แมว" ? "แมว" : A("pets") === PETS_BOTH ? "หมา/แมว" : "หมา";
+// สัตว์อื่นที่ร้านรับเพิ่ม (กระต่าย แกสบี้ ...) — ข้อ otherPets · "ไม่รับ" = ไม่มี
+const NO_OTHER_PETS = "ไม่รับสัตว์อื่น";
+const otherPets = () => { const x = A("otherPets"); return (Array.isArray(x) ? x : []).flatMap(v => v === OTHER ? String(state.other.otherPets || "").split(/[,\n]+/) : [v]).map(v => v.trim()).filter(v => v && v !== NO_OTHER_PETS); };
+const PET = () => [A("pets") === "แมว" ? "แมว" : A("pets") === PETS_BOTH ? "หมา/แมว" : "หมา", ...otherPets()].join("/");
 const T = x => String(x == null ? "" : x).replace(/\{p\}/g, PET());
-const okFor = x => !x || typeof x === "string" || !x.only || (x.only === "dog" ? isDog() : isCat());
+// หลายสาขา — ช่องที่ใส่ only:"multi" ขึ้นเฉพาะร้านที่มีตั้งแต่ 2 สาขา
+const isMulti = () => countOf("branchCount", 10) > 1;
+const okFor = x => !x || typeof x === "string" || !x.only || (x.only === "multi" ? isMulti() : x.only === "dog" ? isDog() : isCat());
 const countOf = (id, max) => { const x = A(id); if (!x) return 0; const n = parseInt(x === OTHER ? (state.other[id] || "") : x, 10); return Math.max(0, Math.min(max, n || 0)); };
+
+// ราคาโปรโมชั่นค่าบริการ PetFlow (เจ้าของระบบ 2026-11-11) — แก้ราคาที่นี่ที่เดียว
+const PRICES = [
+  {who:"ร้านสาขาเดียว", month:790, year:7900},
+  {who:"ร้าน 2 สาขา", month:990, year:9900},
+];
+const baht = n => n.toLocaleString("th-TH");
+const PRICE_BOX = `<div class="price"><b>ค่าบริการ PetFlow (ราคาโปรโมชั่น)</b><table><tr><th></th><td>รายเดือน</td><td>รายปี</td></tr>`
+  + PRICES.map(p => `<tr><th>${p.who}</th><td>${baht(p.month)} บาท</td><td>${baht(p.year)} บาท</td></tr>`).join("")
+  + `</table><small>จ่ายรายปี = แถมฟรี 2 เดือน (จ่าย 10 เดือน ใช้ 12 เดือน)</small></div>`;
 
 const SECTIONS = [
  {title:"ข้อมูลร้าน", lead:"ข้อมูลที่ลูกค้าจะเห็นในแอปและใน LINE", qs:[
   {id:"pets",t:"one",q:"ร้านรับดูแลน้องอะไรบ้าง",o:["หมา","แมว",PETS_BOTH],hint:"เลือกก่อน คำถามข้อต่อๆ ไปจะเปลี่ยนให้ตรงกับร้าน"},
+  {id:"otherPets",t:"many",q:"รับสัตว์อื่นนอกจากหมา/แมวด้วยไหม",o:[NO_OTHER_PETS,"กระต่าย","แกสบี้","แฮมสเตอร์","นก","เม่นแคระ","เต่า","เฟอร์เร็ต"],hint:"ตอนลูกค้าสมัคร จะมีปุ่มให้เลือกว่าน้องเป็นสัตว์อะไร"},
+  {id:"branchCount",t:"one",q:"ร้านมีกี่สาขา",o:["1","2","3","4"],hint:`หลายสาขาใช้ LINE OA และรายชื่อลูกค้าชุดเดียวกัน แยกห้องพักและคิวตามสาขา · 2 สาขา ${baht(PRICES[1].month)} บาท/เดือน หรือ ${baht(PRICES[1].year)} บาท/ปี`},
+  {id:"branches",t:"repeat",q:"ข้อมูลแต่ละสาขา",item:"สาขาที่",show:isMulti,n:()=>countOf("branchCount",10),fields:[
+    {k:"name",l:"ชื่อสาขา",ph:"เช่น สาขานิมมาน"},
+    {k:"address",l:"ที่อยู่สาขา"},
+    {k:"phone",l:"เบอร์โทรสาขา"},
+    {k:"maps",l:"ลิงก์ Google Maps ของสาขา"}]},
   {id:"shopName",t:"text",q:"ชื่อร้าน"},
   {id:"shopNameEn",t:"text",q:"ชื่อร้านภาษาอังกฤษ (ถ้ามี)"},
   {id:"tagline",t:"text",q:"คำโปรยใต้ชื่อร้าน",hint:"เช่น โรงแรมน้อง{p} · อาบน้ำตัดขน"},
@@ -176,6 +204,7 @@ const SECTIONS = [
   {id:"roomTypes",t:"one",q:"มีห้องกี่แบบ",o:["1","2","3","4","5","6"],hint:"เลือกแล้วจะมีช่องให้กรอกของแต่ละแบบ"},
   {id:"rooms",t:"repeat",q:"ห้องแต่ละแบบ",item:"ห้องแบบที่",n:()=>countOf("roomTypes",10),fields:[
     {k:"name",l:"ชื่อห้อง",ph:"เช่น ห้องเล็ก"},
+    {k:"branch",l:"อยู่สาขาไหน",ph:"ชื่อสาขา หรือเลขสาขา เช่น 1",only:"multi"},
     {k:"count",l:"มีกี่ห้อง",u:"ห้อง",num:1},
     {k:"price",l:"ราคาต่อคืน",u:"บาท",num:1},
     {k:"dogSize",l:"เหมาะกับหมาหนักไม่เกิน",u:"กก.",num:1,only:"dog"},
@@ -396,7 +425,7 @@ function renderQ(q){
       if (typeof o === "string" || !o.f || !okFor(o) || !has(q.id, ov)) return;
       h += `<div class="follow"><label class="f-label" for="fu-${q.id}-${i}">${esc(T(ov))}: ${esc(T(o.f))}</label>${fieldBox(`fu-${q.id}-${i}`, fKey(q.id, ov), A(fKey(q.id, ov)), o.u, o.ph, !!o.u)}</div>`;
     });
-    if (has(q.id, OTHER)) h += `<div class="follow"><label class="f-label" for="other-${q.id}">${["roomTypes","sizeCount","staffCount"].includes(q.id) ? "พิมพ์จำนวน" : "อื่นๆ พิมพ์เพิ่ม"}</label><input class="field" id="other-${q.id}" data-other="${q.id}" value="${esc(state.other[q.id] || "")}"></div>`;
+    if (has(q.id, OTHER)) h += `<div class="follow"><label class="f-label" for="other-${q.id}">${["roomTypes","sizeCount","staffCount","branchCount"].includes(q.id) ? "พิมพ์จำนวน" : "อื่นๆ พิมพ์เพิ่ม"}</label><input class="field" id="other-${q.id}" data-other="${q.id}" value="${esc(state.other[q.id] || "")}"></div>`;
   } else if (q.t === "repeat") {
     const n = q.n();
     if (!n) h += `<div class="q-hint">เลือกจำนวนในข้อด้านบนก่อน</div>`;
@@ -556,6 +585,7 @@ function render(){
   if (step < TOTAL) {
     const s = SECTIONS[step];
     main.innerHTML = (step === 0 ? `<p class="msg">ตอบเท่าที่รู้ ข้ามข้อที่ยังไม่แน่ใจได้เลย ถ้าไม่มีตัวเลือกที่ตรง กด "อื่นๆ" แล้วพิมพ์เองได้ทุกข้อ คำตอบจะจำไว้ในเครื่องนี้ ปิดแล้วกลับมาทำต่อได้</p>
+${PRICE_BOX}
 ${importBox(false)}` : "")
       + `<h1>${esc(T(s.title))}</h1>` + (s.lead ? `<p class="lead">${esc(s.lead)}</p>` : "") + s.qs.map(renderQ).join("");
     next.hidden = false; next.textContent = step === TOTAL - 1 ? "ดูสรุปคำตอบ" : "ถัดไป";
@@ -630,7 +660,7 @@ main.addEventListener("click", async e => {
 });
 // ช่องที่ทำให้ตาราง/การ์ดเปลี่ยน (จำนวน, ชื่อไซส์, บริการอื่นๆ) วาดหน้าใหม่ตอนออกจากช่อง
 const RERENDER = /^(sizes\.\d+\.name)$/;
-const RERENDER_OTHER = ["roomTypes","sizeCount","staffCount","services"];
+const RERENDER_OTHER = ["roomTypes","sizeCount","staffCount","services","branchCount","otherPets"];
 main.addEventListener("input", e => {
   const t = e.target;
   if (t.dataset.f) { state.a[t.dataset.f] = t.value; save(); }

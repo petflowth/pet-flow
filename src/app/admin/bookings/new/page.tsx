@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { RoomType } from "@/lib/business";
+import type { SiteConfig } from "@/lib/config-types";
 import type { CustomerRecord } from "@/lib/customers-store";
 import {
   GROOM_PROGRAMS,
@@ -24,7 +25,7 @@ import { pastPriceList, type PastInvoice, type PastPrice } from "@/lib/special-p
 import type { BookingTransport } from "@/lib/transport";
 import { Avatar, SearchField, Segmented } from "@/components/ui";
 import { useConfig, usePetWords } from "@/components/ConfigProvider";
-import { isMultiBranch, knownBranchId, mainBranchId, readBranchCookie, roomBranchId, roomsInView, shopBranches } from "@/lib/branches";
+import { branchesForUser, configForBranch, isMultiBranch, knownBranchId, mainBranchId, readBranchCookie, roomBranchId, roomsInView } from "@/lib/branches";
 import { petWords } from "@/lib/pet-kind";
 import { isFeatureOn } from "@/lib/features";
 import { GroomClashNote, confirmClashes, useGroomClashes } from "@/components/GroomClashNote";
@@ -499,12 +500,19 @@ export default function NewBookingPage() {
       .then((r) => r.json())
       .then((d) => {
         if (d.config?.rooms) setRooms(attachClosures(roomsInView(d.config, d.config.rooms as RoomType[]), d.config.roomClosures));
-        if (d.config?.groomSlots) setGroomSlots(d.config.groomSlots);
         if (d.config?.options?.freebies?.length) setFreebies_(d.config.options.freebies);
-        setGroomPrograms(bathPrograms(resolveGroomPrograms(d.config?.groomPricePrograms)));
-        setMassagePrograms(resolveMassagePrograms(d.config?.groomPricePrograms));
+        setLoadedCfg(d.config || null);
       });
   }, []);
+  // รอบเวลาและโปรแกรม/ราคา = ของสาขาที่เลือกในฟอร์ม (สาขาไม่ได้ตั้งเอง = ค่ากลางของร้าน)
+  const [loadedCfg, setLoadedCfg] = useState<SiteConfig | null>(null);
+  useEffect(() => {
+    if (!loadedCfg) return;
+    const c = configForBranch(loadedCfg, branchPick);
+    if (c.groomSlots) setGroomSlots(c.groomSlots);
+    setGroomPrograms(bathPrograms(resolveGroomPrograms(c.groomPricePrograms)));
+    setMassagePrograms(resolveMassagePrograms(c.groomPricePrograms));
+  }, [loadedCfg, branchPick]);
 
   // นัดที่มีอยู่ — ใช้คำนวณว่าห้องแต่ละแบบเหลือจริงกี่ห้องในช่วงวันที่เลือก
   const [existing, setExisting] = useState<BoardBooking[]>([]);
@@ -1106,7 +1114,7 @@ export default function NewBookingPage() {
               onChange={(e) => setBranchPick(e.target.value)}
               className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2.5 text-sm"
             >
-              {shopBranches(siteConfig).map((b) => (
+              {branchesForUser(siteConfig).map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}
                 </option>

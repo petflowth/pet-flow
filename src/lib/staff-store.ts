@@ -1,5 +1,6 @@
 import { getDirectoryDb, getSupabase } from "./supabase/server";
 import { ensureMigration } from "./migrations";
+import { healWrite } from "./heal-write";
 import { requireTenantId } from "./tenant-context";
 import { generateSalt, getBootstrapTenantId, hashPassword } from "./auth";
 
@@ -14,6 +15,8 @@ export type StaffUser = {
   name: string;
   username: string;
   menus: string[];
+  /** สาขาที่พนักงานคนนี้เห็นได้ (id สาขา) — ไม่ตั้ง/ว่าง = เห็นทุกสาขา */
+  branches?: string[];
   active: boolean;
   createdAt: string;
 };
@@ -25,6 +28,7 @@ type StaffRow = {
   password_hash: string;
   password_salt: string;
   menus: string[] | null;
+  branches?: string[] | null;
   active: boolean;
   created_at: string;
   tenant_id?: string;
@@ -38,6 +42,7 @@ function rowToStaff(r: StaffRow): StaffUser {
     name: r.name,
     username: r.username,
     menus: Array.isArray(r.menus) ? r.menus : [],
+    branches: Array.isArray(r.branches) && r.branches.length ? r.branches.map(String) : undefined,
     active: r.active !== false,
     createdAt: r.created_at,
   };
@@ -115,6 +120,7 @@ export async function addStaff(data: {
   username: string;
   password: string;
   menus: string[];
+  branches?: string[];
 }): Promise<{ ok: true; staff: StaffUser } | { ok: false; error: string }> {
   const name = data.name.trim();
   const username = normUsername(data.username);
@@ -135,6 +141,7 @@ export async function addStaff(data: {
     name,
     username,
     menus: data.menus,
+    branches: data.branches?.length ? data.branches : undefined,
     active: true,
     createdAt: new Date().toISOString(),
   };
@@ -162,6 +169,7 @@ export async function addStaff(data: {
     } catch {
       return { ok: false, error: "need_sql" };
     }
+    if (staff.branches) await writeStaffBranches(staff.id, staff.branches);
   } else {
     mem.push({ ...staff, passwordHash, passwordSalt: salt });
   }
@@ -170,7 +178,7 @@ export async function addStaff(data: {
 
 export async function updateStaff(
   id: string,
-  patch: Partial<Pick<StaffUser, "name" | "username" | "menus" | "active">> & {
+  patch: Partial<Pick<StaffUser, "name" | "username" | "menus" | "active" | "branches">> & {
     password?: string;
   }
 ) {
@@ -199,14 +207,20 @@ export async function updateStaff(
         row.password_hash = await hashPassword(patch.password, salt);
       }
       const tenantId = requireTenantId();
-      const { error } = await withPerShopUsernames(() =>
-        sb.from("staff_users").update(row).eq("id", id).eq("tenant_id", tenantId)
-      );
-      if (error) {
-        return {
-          ok: false as const,
-          error: error.code === "23505" ? "username_in_use" : "need_sql",
-        };
+      if (Object.keys(row).length > 0) {
+        const { error } = await withPerShopUsernames(() =>
+          sb.from("staff_users").update(row).eq("id", id).eq("tenant_id", tenantId)
+        );
+        if (error) {
+          return {
+            ok: false as const,
+            error: error.code === "23505" ? "username_in_use" : "need_sql",
+          };
+        }
+      }
+      // คอลัมน์ที่เพิ่มทีหลัง — เขียนแยก ถ้าฐานยังไม่มีคอลัมน์จะซ่อมเองแล้วเขียนใหม่
+      if (patch.branches !== undefined && !(await writeStaffBranches(id, patch.branches))) {
+        return { ok: false as const, error: "need_sql" };
       }
     } catch {
       return { ok: false as const, error: "need_sql" };
@@ -217,6 +231,7 @@ export async function updateStaff(
     if (patch.name !== undefined) s.name = patch.name.trim();
     if (patch.username !== undefined) s.username = patch.username;
     if (patch.menus !== undefined) s.menus = patch.menus;
+    if (patch.branches !== undefined) s.branches = patch.branches.length ? patch.branches : undefined;
     if (patch.active !== undefined) s.active = patch.active;
     if (patch.password !== undefined) {
       s.passwordSalt = generateSalt();
@@ -224,6 +239,19 @@ export async function updateStaff(
     }
   }
   return { ok: true as const };
+}
+
+async function writeStaffBranches(id: string, branches: string[]): Promise<boolean> {
+  const sb = getSupabase();
+  if (!sb) return true;
+  const tenantId = requireTenantId();
+  return healWrite("staff_users", ["branches"], () =>
+    sb
+      .from("staff_users")
+      .update({ branches: branches.length ? branches : null })
+      .eq("id", id)
+      .eq("tenant_id", tenantId)
+  );
 }
 
 export async function deleteStaff(id: string) {

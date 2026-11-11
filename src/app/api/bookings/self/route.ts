@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { branchById, isMultiBranch, knownBranchId, mainBranchId, roomBranchId } from "@/lib/branches";
+import { branchById, configForBranch, isMultiBranch, knownBranchId, mainBranchId, roomBranchId } from "@/lib/branches";
 import { featureOff } from "@/lib/features-server";
 import { withResolvedTenant } from "@/lib/tenant-context";
 import { withServerTiming } from "@/lib/server-timing";
@@ -12,7 +12,7 @@ import {
   groomProgram,
   isMassageBooking,
   isMassageProgram,
-  resolveGroomPrograms,
+  lookupGroomPrograms,
 } from "@/lib/grooming-prices";
 import { requireCustomerSession, noCustomerSessionResponse } from "@/lib/customer-session";
 import { getSiteConfig } from "@/lib/config-store";
@@ -104,7 +104,7 @@ async function handlePost(req: NextRequest) {
       return NextResponse.json({ error: "past_date" }, { status: 400 });
     }
     // อาบน้ำกับนวดวันเดียวกันได้ — ซ้ำ = บริการเดียวกัน วันเดียวกัน ตัวเดียวกัน
-    const cfgPrograms = resolveGroomPrograms(siteCfg.groomPricePrograms);
+    const cfgPrograms = lookupGroomPrograms(siteCfg);
     if (
       myBookings.some(
         (x) =>
@@ -139,7 +139,8 @@ async function handlePost(req: NextRequest) {
     // โปรแกรมรายตัว (จองหลายตัว อาบคนละโปรแกรมได้) — รับเฉพาะ id ที่ร้านมีจริง
     // ไม่ส่งรายตัวมา (แอปเวอร์ชันเก่า) = ทุกตัวใช้โปรแกรมเดียวกันแบบเดิม
     // นวดต้องเป็นโปรแกรมนวด อาบน้ำต้องไม่ใช่โปรแกรมนวด (กันนัดไปลงผิดคิว)
-    const programs = allServicePrograms(siteCfg.groomPricePrograms);
+    // โปรแกรมที่จองได้ = ของสาขาที่เลือก (สาขาตั้งราคา/โปรแกรมเองได้)
+    const programs = allServicePrograms(configForBranch(siteCfg, branchId).groomPricePrograms);
     const validProgram = (v: unknown) => {
       const pid = String(v || "").trim();
       const p = pid ? groomProgram(pid, programs) : undefined;

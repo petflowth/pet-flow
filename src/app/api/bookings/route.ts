@@ -27,7 +27,7 @@ import { splitVaccinePhotos } from "@/lib/vaccine-photos";
 import { AUTO_MESSAGE_TOPICS } from "@/lib/auto-messages";
 import { rescheduleGroup, type DatePatch } from "@/lib/stay-sync";
 import { bookingMatchesCustomer } from "@/lib/booking-customer-match";
-import { groomProgram, isMassageProgram, resolveGroomPrograms } from "@/lib/grooming-prices";
+import { groomProgram, isMassageProgram, lookupGroomPrograms } from "@/lib/grooming-prices";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { withResolvedTenant, withTenant } from "@/lib/tenant-context";
 import { requireCustomerSession, noCustomerSessionResponse } from "@/lib/customer-session";
@@ -64,7 +64,7 @@ import {
   copyBookingDocsToCustomer,
 } from "@/lib/customers-store";
 import { getSiteConfig } from "@/lib/config-store";
-import { adminBranchScope, branchFilter } from "@/lib/branch-scope";
+import { adminBranchScope, branchFilter, staffAllowedBranches } from "@/lib/branch-scope";
 import { bookingBranchId, branchById, isMultiBranch, knownBranchId, roomBranchId } from "@/lib/branches";
 import { getLineCredentials } from "@/lib/line-config";
 import { cleanRoomSegments } from "@/lib/room-segments";
@@ -281,9 +281,12 @@ async function handlePost(req: NextRequest) {
   const isRoom = body.service === "room";
   // ร้านหลายสาขา: ห้องพักตามสาขาของห้อง · อาบน้ำ/นวดตามสาขาที่ส่งมา หรือสาขาที่หลังบ้านเลือกดูอยู่
   const branchConfig = await getSiteConfig();
+  // พนักงานที่ถูกจำกัดสาขา ลงนัดอาบน้ำ/นวดได้เฉพาะสาขาของตัวเอง (ส่งสาขาอื่นมา = ใช้สาขาที่ดูอยู่แทน)
+  const allowedBranches = isMultiBranch(branchConfig) ? await staffAllowedBranches(req, branchConfig) : null;
+  const askedBranch = knownBranchId(branchConfig, body.branchId ? String(body.branchId) : undefined);
   const branchId = isMultiBranch(branchConfig)
     ? (isRoom ? roomBranchId(branchConfig, body.room) : undefined) ||
-      knownBranchId(branchConfig, body.branchId ? String(body.branchId) : undefined) ||
+      (askedBranch && (!allowedBranches || allowedBranches.includes(askedBranch)) ? askedBranch : undefined) ||
       (await adminBranchScope(req)) ||
       undefined
     : undefined;
@@ -319,7 +322,7 @@ async function handlePost(req: NextRequest) {
   });
 
   const massage = body.service !== "room" && isMassageProgram(
-      groomProgram(String(body.groomProgram || ""), resolveGroomPrograms((await getSiteConfig()).groomPricePrograms))
+      groomProgram(String(body.groomProgram || ""), lookupGroomPrograms(await getSiteConfig()))
     );
   const serviceLabel =
     body.service === "room" ? (isDayCareStay(body) ? "Day Care" : "ห้องพัก") : massage ? "นวด" : "อาบน้ำ";
@@ -1419,7 +1422,7 @@ function groomInfoCardFor(
     // โปรแกรมอาบน้ำ — รับได้เฉพาะ id ที่มีจริง (รวมโปรแกรมที่ร้านเพิ่มเอง, ค่าว่าง = ล้างโปรแกรมออก)
     if (body.groomProgram != null) {
       const pid = String(body.groomProgram);
-      const programs = resolveGroomPrograms((await getSiteConfig()).groomPricePrograms);
+      const programs = lookupGroomPrograms(await getSiteConfig());
       patch.groomProgram = pid && groomProgram(pid, programs) ? pid : "";
     }
     // รับ-ส่ง — ส่ง null/{} มา = ยกเลิกบริการรับ-ส่งของนัดนี้

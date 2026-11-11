@@ -22,6 +22,7 @@ import { savedPopup, toast } from "@/components/Toast";
 import { Icon, type IconName } from "@/components/Icon";
 import { Avatar, EmptyState, MoreMenu, SearchField, Segmented, SectionLabel } from "@/components/ui";
 import { groupCatNames, groupForBilling } from "@/lib/booking-group";
+import { configForBranch, knownBranchId, readBranchCookie } from "@/lib/branches";
 import { formatThaiDateShort } from "@/lib/format-thai-date";
 import { bangkokToday, bangkokDateOf } from "@/lib/bangkok-date";
 import {
@@ -31,6 +32,7 @@ import {
   groomProgram,
   groomSizeLabel,
   resolveGroomPrograms,
+  lookupGroomPrograms,
   groomProgramName,
   type GroomSize,
   type GroomProgram,
@@ -757,6 +759,14 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
       b.json(),
     ]);
     const config = cfgj.config;
+    // ราคาอาบน้ำ/นวดของสาขา: เปิดบิลจากนัด = สาขาของนัดนั้น · ไม่งั้น = สาขาที่เลือกดูอยู่ (ทุกสาขา = ราคากลาง)
+    const urlBookingId = new URLSearchParams(window.location.search).get("bookingId");
+    const urlBooking = urlBookingId
+      ? ((bj.bookings || []) as { id: string; branchId?: string }[]).find((x) => x.id === urlBookingId)
+      : undefined;
+    const priceCfg = config
+      ? configForBranch(config, knownBranchId(config, urlBooking?.branchId || readBranchCookie()))
+      : config;
     setCustomers(cj.customers || []);
     setPromos(pj.promos || []);
     setInvoices(ij.invoices || []);
@@ -778,9 +788,12 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
     }));
     setRooms([...nightly, ...daily]);
     // เปิดบริการนวด = โปรแกรมนวดเลือกในบิลได้ด้วย (ร้านยังไม่ตั้งราคานวดเอง ใช้ราคาตัวอย่าง)
-    const progs = isFeatureOn(config, "massage")
-      ? allServicePrograms(config?.groomPricePrograms)
-      : resolveGroomPrograms(config?.groomPricePrograms);
+    const ownProgs = isFeatureOn(config, "massage")
+      ? allServicePrograms(priceCfg?.groomPricePrograms)
+      : resolveGroomPrograms(priceCfg?.groomPricePrograms);
+    // ต่อท้ายด้วยโปรแกรมที่มีเฉพาะสาขาอื่น — บิล/นัดเก่าของสาขานั้นยังหาชื่อและราคาเจอ
+    const ownIds = new Set(ownProgs.map((x) => x.id));
+    const progs = [...ownProgs, ...lookupGroomPrograms(config).filter((x) => !ownIds.has(x.id))];
     setGroomPrograms(progs);
     // รายการอาบน้ำที่สร้างไว้ก่อนโหลดค่าร้านเสร็จ ใช้โปรแกรม/พันธุ์ตั้งต้นของระบบ (ร้านแมว)
     // — ถ้าไม่ตรงกับของร้าน เปลี่ยนเป็นตัวแรกของร้าน (ร้านหมาเคยเห็น "แมวไทย" ในบิล)

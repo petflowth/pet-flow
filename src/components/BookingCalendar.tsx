@@ -1,6 +1,6 @@
 "use client";
 
-import { roomsInView } from "@/lib/branches";
+import { configInView, knownBranchId, patchForBranch, readBranchCookie, roomsInView } from "@/lib/branches";
 import { groomUsesCard } from "@/lib/intake-rules";
 import { isDayCareStay } from "@/lib/day-care";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -32,7 +32,7 @@ import { roomOn, roomSummary } from "@/lib/room-segments";
 import { RoomClosureSheet } from "@/components/RoomClosureSheet";
 import { BOOKING_STATUS_LABELS, type BookingStatus } from "@/lib/business";
 import { effectiveBookingStatus } from "@/lib/booking-status";
-import { GROOM_PROGRAMS, resolveGroomPrograms, type GroomProgram } from "@/lib/grooming-prices";
+import { GROOM_PROGRAMS, lookupGroomPrograms, type GroomProgram } from "@/lib/grooming-prices";
 import { hasTransport, transportLabel } from "@/lib/transport";
 import { DEPOSIT_STATUS_LABEL } from "@/lib/booking-deposit";
 import { GroomClashNote, confirmClashes, useGroomClashes } from "@/components/GroomClashNote";
@@ -985,10 +985,12 @@ export function BookingCalendar() {
     const d = await fetch("/api/config").then((r) => r.json());
     if (d.config?.rooms) setRooms(attachClosures(roomsInView(d.config, d.config.rooms), d.config.roomClosures));
     setRoomClosures(d.config?.roomClosures || []);
-    if (d.config?.groomSlots) setGroomSlots(d.config.groomSlots);
-    setGroomPrograms(resolveGroomPrograms(d.config?.groomPricePrograms));
-    setClosedDates(d.config?.closedDates || []);
-    setClosedWeekdays(d.config?.closedWeekdays || []);
+    // รอบเวลา/วันหยุด = ของสาขาที่เลือกดูอยู่ (ดูทุกสาขา หรือสาขาไม่ได้ตั้งเอง = ค่ากลางของร้าน)
+    const view = d.config ? configInView(d.config) : d.config;
+    if (view?.groomSlots) setGroomSlots(view.groomSlots);
+    setGroomPrograms(lookupGroomPrograms(d.config));
+    setClosedDates(view?.closedDates || []);
+    setClosedWeekdays(view?.closedWeekdays || []);
     setGroomVaccine(groomUsesCard(d.config, "vaccine"));
     setGroomConsent(groomUsesCard(d.config, "consent"));
   }, []);
@@ -1012,10 +1014,18 @@ export function BookingCalendar() {
     const nextClosedDates = closedByDate
       ? closedDates.filter((c) => c.date !== activeDate)
       : [...closedDates, { date: activeDate, note: "ปิดจากตารางนัด" }];
+    // เลือกดูสาขาเดียวอยู่ = ปิด/เปิดเฉพาะสาขานั้น (อ่านค่าล่าสุดก่อน กันทับการแก้สาขาจากเครื่องอื่น)
+    let patch: Record<string, unknown> = { closedDates: nextClosedDates };
+    const fresh = await fetch("/api/config")
+      .then((r) => r.json())
+      .then((d) => d.config)
+      .catch(() => null);
+    const viewBranch = fresh ? knownBranchId(fresh, readBranchCookie()) : undefined;
+    if (fresh && viewBranch) patch = patchForBranch(fresh, viewBranch, patch);
     const res = await fetch("/api/config", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ patch: { closedDates: nextClosedDates } }),
+      body: JSON.stringify({ patch }),
     });
     if (res.ok) {
       setClosedDates(nextClosedDates);

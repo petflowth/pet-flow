@@ -17,7 +17,7 @@ import {
 import { Toaster } from "@/components/Toast";
 import { Icon } from "@/components/Icon";
 import { disabledFeatureForAdminPath } from "@/lib/features";
-import { isMultiBranch, knownBranchId, readBranchCookie, shopBranches, writeBranchCookie } from "@/lib/branches";
+import { STAFF_BRANCHES_KEY, isMultiBranch, knownBranchId, readBranchCookie, shopBranches, staffBranchIds, writeBranchCookie } from "@/lib/branches";
 import type { SiteConfig } from "@/lib/config-types";
 
 function greeting() {
@@ -74,11 +74,31 @@ function DueBanner({ dueDate, pathname }: { dueDate: string | null; pathname: st
  * ร้านหลายสาขา: เลือกว่าจะดูสาขาไหน — คิว ห้อง บิล ขายหน้าร้าน รายรับรายจ่าย กรองตามนี้ทั้งหลังบ้าน
  * ร้านสาขาเดียวไม่เห็นแถบนี้เลย
  */
-function BranchBar({ config, inHeader }: { config: SiteConfig; inHeader?: boolean }) {
+function BranchBar({
+  config,
+  inHeader,
+  staffBranches,
+}: {
+  config: SiteConfig;
+  inHeader?: boolean;
+  /** สาขาที่พนักงานคนนี้เห็นได้ (จากเจ้าของตั้งไว้) — ว่าง = ทุกสาขา */
+  staffBranches?: string[];
+}) {
   const [current, setCurrent] = useState("");
+  // พนักงานที่ถูกจำกัดสาขา: ไม่มี "ทุกสาขา" และเห็นเฉพาะสาขาของตัวเอง
+  const allowed = staffBranchIds(config, staffBranches);
+  const allowedKey = allowed ? allowed.join("|") : "";
   useEffect(() => {
-    setCurrent(knownBranchId(config, readBranchCookie()) || "");
-  }, [config]);
+    const picked = knownBranchId(config, readBranchCookie()) || "";
+    const mine = allowedKey ? allowedKey.split("|") : null;
+    if (mine && !mine.includes(picked)) {
+      // เซิร์ฟเวอร์กรองเป็นสาขาแรกที่ได้รับอยู่แล้ว — ตั้งคุกกี้ให้ตรงกัน หน้าจอ (ผังห้อง/ฟอร์ม) จะได้ตรงด้วย
+      writeBranchCookie(mine[0]);
+      window.location.reload();
+      return;
+    }
+    setCurrent(picked);
+  }, [config, allowedKey]);
   if (!isMultiBranch(config)) return null;
   const pick = (id: string) => {
     if (id === current) return;
@@ -105,8 +125,10 @@ function BranchBar({ config, inHeader }: { config: SiteConfig; inHeader?: boolea
         }`}
       >
         <span className="shrink-0 text-[11px] font-bold text-brown-soft">สาขา</span>
-        {pill("", "ทุกสาขา")}
-        {shopBranches(config).map((b) => pill(b.id, b.name))}
+        {!allowed && pill("", "ทุกสาขา")}
+        {shopBranches(config)
+          .filter((b) => !allowed || allowed.includes(b.id))
+          .map((b) => pill(b.id, b.name))}
       </div>
     </div>
   );
@@ -127,6 +149,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const [ok, setOk] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [impersonating, setImpersonating] = useState(false);
+  const [staffBranches, setStaffBranches] = useState<string[]>([]);
   const [dueDate, setDueDate] = useState<string | null>(null);
   const [connFail, setConnFail] = useState(false);
   // ชื่อร้านมาจาก config ของแต่ละร้าน (multi-tenant) — ไม่ hardcode
@@ -179,6 +202,11 @@ function AdminShell({ children }: { children: React.ReactNode }) {
       sessionStorage.setItem("petflow-role", me.role);
       sessionStorage.setItem("petflow-staff-name", me.name || "พนักงาน");
       setImpersonating(Boolean(me.impersonating));
+      setStaffBranches(me.role === "staff" && Array.isArray(me.branches) ? me.branches : []);
+      sessionStorage.setItem(
+        STAFF_BRANCHES_KEY,
+        JSON.stringify(me.role === "staff" && Array.isArray(me.branches) ? me.branches : [])
+      );
       setDueDate(me.dueDate || null);
       // เลยวันครบกำหนดจ่ายค่าบริการ — ร้านถูกปิด เหลือหน้าค่าบริการไว้อัปสลิปหน้าเดียว
       if (me.overdue) {
@@ -290,7 +318,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               <LogoutButton onClick={logout} />
             </div>
             {/* แดชบอร์ด: การ์ดสรุปเกยขึ้นมาทับใต้แถบหัว จึงวางแถบสาขาไว้ในแถบหัวเลย */}
-            <BranchBar config={config} inHeader />
+            <BranchBar config={config} inHeader staffBranches={staffBranches} />
           </HeaderBand>
         </header>
       ) : (
@@ -307,7 +335,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
         </header>
       )}
       <DueBanner dueDate={dueDate} pathname={pathname} />
-      {!isDashboard && <BranchBar config={config} />}
+      {!isDashboard && <BranchBar config={config} staffBranches={staffBranches} />}
       <AdminNav menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
       <div className={`mx-auto ${maxW} ${isDashboard ? "-mt-8" : "mt-4 lg:mt-6"} px-4 lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6 lg:px-6`}>
         <aside className="print:hidden">

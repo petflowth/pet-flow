@@ -12,7 +12,7 @@ import { autoMuted } from "./auto-messages";
 import { isFeatureOn } from "./features";
 import { petWords, usesLitter } from "./pet-kind";
 import { stayForGroom } from "./booking-group";
-import { groomProgramName, resolveGroomPrograms } from "./grooming-prices";
+import { groomProgramName, lookupGroomPrograms } from "./grooming-prices";
 import { litterMinNightsRooms } from "./shop-rules";
 
 /**
@@ -405,9 +405,9 @@ export function buildPrestayFlexData(
 export function inStayBathText(
   stayIds: string[],
   all: StoredBooking[],
-  cfg: Pick<SiteConfig, "groomPricePrograms">
+  cfg: Pick<SiteConfig, "groomPricePrograms" | "branches">
 ): string {
-  const programs = resolveGroomPrograms(cfg.groomPricePrograms);
+  const programs = lookupGroomPrograms(cfg);
   const seen = new Set<string>();
   for (const g of all) {
     const stay = stayForGroom(g, all);

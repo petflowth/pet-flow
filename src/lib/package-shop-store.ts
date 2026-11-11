@@ -279,9 +279,9 @@ function bathName(program?: string | false): string {
 /** ชื่อโปรแกรมอาบน้ำตามตั้งค่า */
 async function groomProgramNames(): Promise<Map<string, string>> {
   const { getSiteConfig } = await import("./config-store");
-  const { resolveGroomPrograms } = await import("./grooming-prices");
+  const { lookupGroomPrograms } = await import("./grooming-prices");
   const cfg = await getSiteConfig();
-  return new Map(resolveGroomPrograms(cfg.groomPricePrograms).map((p) => [p.id, p.name]));
+  return new Map(lookupGroomPrograms(cfg).map((p) => [p.id, p.name]));
 }
 
 /** ชื่อห้องตามตั้งค่า แบบเดียวกับบรรทัดค่าห้องในบิล ("ห้อง Mid Cozy") — ตอนออกบิลจับคู่ด้วยชื่อนี้ */

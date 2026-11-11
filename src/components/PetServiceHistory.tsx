@@ -6,7 +6,7 @@ import { Icon } from "@/components/Icon";
 import { Avatar, EmptyState } from "@/components/ui";
 import { bangkokToday } from "@/lib/bangkok-date";
 import { formatThaiDateShort } from "@/lib/format-thai-date";
-import { GROOM_PROGRAMS, groomProgramName, resolveGroomPrograms, type GroomProgram } from "@/lib/grooming-prices";
+import { GROOM_PROGRAMS, groomProgramName, lookupGroomPrograms, type GroomProgram } from "@/lib/grooming-prices";
 import { ROOMS, type RoomType } from "@/lib/business";
 import type { CountBooking } from "@/lib/monthly-pet-counts";
 import { petKey, petServiceHistory, type PetHistory, type HistoryBill, type HistoryEntry } from "@/lib/pet-service-history";
@@ -185,7 +185,7 @@ export function PetServiceHistory({
       .then((r) => r.json())
       .then((d) => {
         if (!alive) return;
-        setPrograms(resolveGroomPrograms(d.config?.groomPricePrograms));
+        setPrograms(lookupGroomPrograms(d.config));
         if (d.config?.rooms?.length) setRooms(d.config.rooms);
       })
       .catch(() => {});

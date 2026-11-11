@@ -1,9 +1,9 @@
 import { getSiteConfig } from "./config-store";
-import { bookingBranchId, isMultiBranch, knownBranchId, mainBranchId } from "./branches";
+import { bookingBranchId, configForBranch, isMultiBranch, knownBranchId, mainBranchId, roomBranchId } from "./branches";
 import type { SiteConfig } from "./config-types";
 import { listGroomBookingsOn, listRoomBookingsOverlapping } from "./bookings-store";
 import { SELF_BOOKABLE_ROOM_INVENTORY_KEY, isSelfBookableRoom } from "./self-bookable-rooms";
-import { isMassageBooking, resolveGroomPrograms } from "./grooming-prices";
+import { isMassageBooking, lookupGroomPrograms } from "./grooming-prices";
 
 /**
  * ร้านปิดในวันที่ระบุไหม (วันหยุดประจำสัปดาห์ หรือวันหยุดเฉพาะวันที่ตั้งไว้ในหลังบ้าน)
@@ -58,10 +58,11 @@ export async function getGroomAvailability(
   mode: "together" | "per_cat";
   minutes?: number;
 }> {
-  const config = await getSiteConfig();
-  const programs = resolveGroomPrograms(config.groomPricePrograms);
-  // ร้านหลายสาขา: แต่ละสาขามีคิวของตัวเอง (รอบเวลา/จำนวนรับต่อรอบใช้ค่าเดียวกันทุกสาขา)
-  const branch = isMultiBranch(config) ? knownBranchId(config, branchId) || mainBranchId(config) : "";
+  const shopConfig = await getSiteConfig();
+  const programs = lookupGroomPrograms(shopConfig);
+  // ร้านหลายสาขา: แต่ละสาขามีคิวของตัวเอง และตั้งรอบเวลา/จำนวนรับ/วันหยุดต่างกันได้ (ไม่ตั้ง = ค่ากลางของร้าน)
+  const branch = isMultiBranch(shopConfig) ? knownBranchId(shopConfig, branchId) || mainBranchId(shopConfig) : "";
+  const config = configForBranch(shopConfig, branch);
   const sameQueue = (b: { service?: string; groomProgram?: string; branchId?: string; room?: string }) =>
     isMassageBooking(b, programs) === massage && (!branch || bookingBranchId(config, b) === branch);
   const minutes = massage ? 0 : groomMinutesFor(config, Math.max(1, catCount));
@@ -202,7 +203,9 @@ export async function getRoomAvailability(
   checkin: string,
   checkout: string
 ): Promise<RoomAvailability | null> {
-  const config = await getSiteConfig();
+  const shopConfig = await getSiteConfig();
+  // วันหยุดของห้อง = วันหยุดของสาขาที่ห้องนั้นอยู่
+  const config = configForBranch(shopConfig, roomBranchId(shopConfig, roomTypeId));
   const invKey = SELF_BOOKABLE_ROOM_INVENTORY_KEY[roomTypeId] as
     | (typeof SELF_BOOKABLE_ROOM_INVENTORY_KEY)[string]
     | undefined;

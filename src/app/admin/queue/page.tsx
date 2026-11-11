@@ -7,7 +7,7 @@ import { toast } from "@/components/Toast";
 import { bookingOnDate } from "@/lib/booking-customer-match";
 import { bangkokToday } from "@/lib/bangkok-date";
 import { formatThaiDateShort } from "@/lib/format-thai-date";
-import { resolveGroomPrograms, type GroomProgram } from "@/lib/grooming-prices";
+import { lookupGroomPrograms, type GroomProgram } from "@/lib/grooming-prices";
 import type { BookingStatus } from "@/lib/business";
 
 type QueueBooking = {
@@ -113,7 +113,7 @@ export default function GroomQueuePage() {
       .catch(() => {});
     fetch("/api/config")
       .then((r) => r.json())
-      .then((d) => setPrograms(resolveGroomPrograms(d.config?.groomPricePrograms)))
+      .then((d) => setPrograms(lookupGroomPrograms(d.config)))
       .catch(() => {});
   }, []);
 

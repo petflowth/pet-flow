@@ -44,6 +44,7 @@ import {
 import { NumInput } from "@/components/NumInput";
 import { consentTextFor } from "@/lib/messages";
 import { RoomSeasonsEditor } from "@/components/RoomSeasonsEditor";
+import { HomeServiceSettings } from "@/components/HomeServiceSettings";
 import { normalizeRoomSeasons, type RoomSeasonConfig } from "@/lib/room-seasons";
 import {
   clashWindowMin,
@@ -82,6 +83,7 @@ type Tab =
   | "rooms"
   | "groomPrograms"
   | "massagePrograms"
+  | "homeService"
   | "boardingRules"
   | "roomsPageBlocks"
   | "groomingPageBlocks"
@@ -128,6 +130,7 @@ const TAB_GROUPS: { title: string; items: { id: Tab; icon: string; hint?: string
       { id: "grooming", icon: "bath" },
       { id: "groomPrograms", icon: "sparkle", hint: "โปรแกรมและราคาอาบน้ำ" },
       { id: "massagePrograms", icon: "paw", hint: "โปรแกรม ราคา และรอบเวลานวด (เปิดบริการนวดที่ เปิด/ปิดฟีเจอร์)" },
+      { id: "homeService", icon: "car", hint: "ไปอาบน้ำ/นวดที่บ้านลูกค้า: โซน ค่าเดินทาง รอบเวลา จำนวนทีม" },
       { id: "groomingPageBlocks", icon: "grid", hint: "เนื้อหาท้ายหน้าอาบน้ำ" },
     ],
   },
@@ -154,6 +157,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "rooms", label: "ห้อง" },
   { id: "groomPrograms", label: "โปรแกรมอาบน้ำ" },
   { id: "massagePrograms", label: "ราคานวด" },
+  { id: "homeService", label: "บริการนอกสถานที่" },
   { id: "boardingRules", label: "กฎระเบียบ" },
   { id: "roomsPageBlocks", label: "เนื้อหาห้องพัก" },
   { id: "groomingPageBlocks", label: "เนื้อหาอาบน้ำ" },
@@ -397,6 +401,26 @@ export default function SettingsPage() {
           />
         </>
       )}
+      {tab === "homeService" && (
+        <>
+          <BranchSettingBar
+            config={config}
+            value={cfgBranch}
+            onChange={setCfgBranch}
+            keys={HOME_BRANCH_KEYS}
+            what="โซน ค่าเดินทาง รอบเวลา และจำนวนทีมของบริการนอกสถานที่"
+            saving={saving}
+            onSave={save}
+          />
+          <HomeServiceSettings
+            key={`home-${cfgBranch}-${branchHasOverride(config, cfgBranch, HOME_BRANCH_KEYS)}`}
+            config={branchConfig || config}
+            saving={saving}
+            onSave={saveForBranch}
+            onOpenFeatures={() => setTab("features")}
+          />
+        </>
+      )}
       {tab === "boardingRules" && (
         <div className="space-y-6">
           <ConsentRulesEditor config={config} saving={saving} onSave={save} />
@@ -506,6 +530,7 @@ const QUEUE_BRANCH_KEYS: BranchOverrideKey[] = [
 ];
 const PRICE_BRANCH_KEYS: BranchOverrideKey[] = ["groomPricePrograms"];
 const MASSAGE_BRANCH_KEYS: BranchOverrideKey[] = ["groomPricePrograms", "massageSlots", "massageSlotCapacity"];
+const HOME_BRANCH_KEYS: BranchOverrideKey[] = ["homeService"];
 
 /**
  * ร้านหลายสาขา: เลือกว่ากำลังตั้งค่าของ "ทุกสาขา (ค่ากลาง)" หรือของสาขาเดียว

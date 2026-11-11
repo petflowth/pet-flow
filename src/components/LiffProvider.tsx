@@ -358,7 +358,9 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
     }
     if (path === "booking-transport") {
       const bkId = params.get("id");
-      router.replace(`${shop}/app/booking-transport?id=${encodeURIComponent(bkId || "")}`);
+      router.replace(
+        `${shop}/app/booking-transport?id=${encodeURIComponent(bkId || "")}${params.get("kind") === "home" ? "&kind=home" : ""}`
+      );
       return;
     }
     if (path === "profile") {

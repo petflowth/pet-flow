@@ -4,6 +4,8 @@ import type { SiteConfig } from "./config-types";
 import { listGroomBookingsOn, listRoomBookingsOverlapping } from "./bookings-store";
 import { SELF_BOOKABLE_ROOM_INVENTORY_KEY, isSelfBookableRoom } from "./self-bookable-rooms";
 import { isMassageBooking, lookupGroomPrograms } from "./grooming-prices";
+import { homeCapacity, homeSlots } from "./home-service";
+import { isAtHome, type BookingTransport } from "./transport";
 
 /**
  * ร้านปิดในวันที่ระบุไหม (วันหยุดประจำสัปดาห์ หรือวันหยุดเฉพาะวันที่ตั้งไว้ในหลังบ้าน)
@@ -50,7 +52,9 @@ export async function getGroomAvailability(
   /** true = คิวนวด (รอบ/จำนวนรับของนวด นับเฉพาะนัดนวด) · false = คิวอาบน้ำ (ไม่นับนัดนวด) */
   massage = false,
   /** ร้านหลายสาขา: นับคิวเฉพาะสาขานี้ (ไม่ส่ง = สาขาแรก) · ร้านสาขาเดียวไม่มีผล */
-  branchId?: string
+  branchId?: string,
+  /** true = คิวบริการนอกสถานที่ (ทีมออกไปบ้านลูกค้า นับเป็นบ้านต่อรอบ ทั้งอาบน้ำและนวด) */
+  home = false
 ): Promise<{
   closed: boolean;
   slots: GroomSlotAvailability[];
@@ -63,8 +67,12 @@ export async function getGroomAvailability(
   // ร้านหลายสาขา: แต่ละสาขามีคิวของตัวเอง และตั้งรอบเวลา/จำนวนรับ/วันหยุดต่างกันได้ (ไม่ตั้ง = ค่ากลางของร้าน)
   const branch = isMultiBranch(shopConfig) ? knownBranchId(shopConfig, branchId) || mainBranchId(shopConfig) : "";
   const config = configForBranch(shopConfig, branch);
-  const sameQueue = (b: { service?: string; groomProgram?: string; branchId?: string; room?: string }) =>
-    isMassageBooking(b, programs) === massage && (!branch || bookingBranchId(config, b) === branch);
+  type QueueRow = { service?: string; groomProgram?: string; branchId?: string; room?: string; transport?: BookingTransport };
+  // นัดที่บ้านลูกค้าใช้คิวของทีมออกนอกสถานที่ ไม่กินคิวหน้าร้าน (และกลับกัน)
+  const sameQueue = (b: QueueRow) =>
+    (home ? isAtHome(b.transport) : !isAtHome(b.transport) && isMassageBooking(b, programs) === massage) &&
+    (!branch || bookingBranchId(config, b) === branch);
+  if (home) return homeAvailability(config, date, sameQueue);
   const minutes = massage ? 0 : groomMinutesFor(config, Math.max(1, catCount));
   if (minutes > 0) return groomAvailabilityByDuration(config, date, Math.max(1, catCount), sameQueue);
   const slots = massage ? config.massageSlots?.length ? config.massageSlots : config.groomSlots || [] : config.groomSlots || [];
@@ -112,7 +120,7 @@ async function groomAvailabilityByDuration(
   config: SiteConfig,
   date: string,
   catCount: number,
-  sameQueue: (b: { service?: string; groomProgram?: string; branchId?: string; room?: string }) => boolean
+  sameQueue: (b: { service?: string; groomProgram?: string; branchId?: string; room?: string; transport?: BookingTransport }) => boolean
 ) {
   const slots = config.groomSlots || [];
   const defaultCap = config.groomSlotDefaultCapacity ?? 1;
@@ -157,6 +165,37 @@ async function groomAvailabilityByDuration(
         endTime: toClock(end),
         remaining: closed || past(time) ? 0 : Math.max(0, capacity - busiest),
       };
+    }),
+  };
+}
+
+/**
+ * คิวบริการนอกสถานที่: แต่ละรอบรับได้ = จำนวนทีม (homeService.capacity) นับเป็น "บ้าน"
+ * บ้านเดียวกันมากี่ตัวก็ใช้ทีมเดียวรอบเดียว (ทั้งบ้านเริ่มเวลาเดียวกัน)
+ */
+async function homeAvailability(
+  config: SiteConfig,
+  date: string,
+  sameQueue: (b: { service?: string; groomProgram?: string; branchId?: string; room?: string; transport?: BookingTransport }) => boolean
+) {
+  const capacity = homeCapacity(config);
+  const closed = isShopClosedOn(config, date);
+  const houses = new Map<string, Set<string>>();
+  for (const b of await listGroomBookingsOn(date)) {
+    if (b.service !== "groom" || b.date !== date || b.status === "cancelled" || !b.time) continue;
+    if (!sameQueue(b)) continue;
+    const set = houses.get(b.time) || new Set<string>();
+    set.add(b.lineUserId || b.customerName);
+    houses.set(b.time, set);
+  }
+  const nowBkk = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString();
+  const past = (t: string) => date === nowBkk.slice(0, 10) && t <= nowBkk.slice(11, 16);
+  return {
+    closed,
+    mode: "together" as const,
+    slots: homeSlots(config).map((time): GroomSlotAvailability => {
+      const booked = houses.get(time)?.size || 0;
+      return { time, capacity, booked, remaining: closed || past(time) ? 0 : Math.max(0, capacity - booked) };
     }),
   };
 }

@@ -294,16 +294,31 @@ export function buildAppointmentConfirmFlex(booking: {
             : []),
           ...(hasTransport(booking.transport)
             ? [
-                flexDetailRow(
-                  "🚗",
-                  st.texts?.transportLabel || "รับ-ส่งน้อง",
-                  `${transportLabel(booking.transport)}\n${
-                    booking.transport.address ||
-                    (booking.transport.mapUrl
-                      ? "ได้รับแผนที่จุดรับ-ส่งแล้ว"
-                      : "ยังไม่ได้ส่งจุดรับ-ส่ง กดปุ่มด้านล่างได้เลยค่ะ")
-                  }`
-                ),
+                booking.transport.atHome
+                  ? flexDetailRow(
+                      "🏠",
+                      st.texts?.homeServiceLabel || "บริการที่บ้าน",
+                      `${transportLabel(booking.transport)}${
+                        typeof booking.transport.homeFee === "number" && booking.transport.homeFee > 0
+                          ? ` · ค่าเดินทาง ฿${booking.transport.homeFee.toLocaleString("th-TH")}`
+                          : ""
+                      }\n${
+                        booking.transport.address ||
+                        (booking.transport.mapUrl
+                          ? "ได้รับแผนที่บ้านแล้ว"
+                          : "ยังไม่ได้ส่งที่อยู่ กดปุ่มด้านล่างได้เลยค่ะ")
+                      }`
+                    )
+                  : flexDetailRow(
+                      "🚗",
+                      st.texts?.transportLabel || "รับ-ส่งน้อง",
+                      `${transportLabel(booking.transport)}\n${
+                        booking.transport.address ||
+                        (booking.transport.mapUrl
+                          ? "ได้รับแผนที่จุดรับ-ส่งแล้ว"
+                          : "ยังไม่ได้ส่งจุดรับ-ส่ง กดปุ่มด้านล่างได้เลยค่ะ")
+                      }`
+                    ),
               ]
             : []),
           // เฉพาะนัดอาบน้ำ — เตือนเรื่องขนมกับตะกร้า ให้เห็นเด่นแยกจากหมายเหตุทั่วไป
@@ -384,8 +399,11 @@ export function buildAppointmentConfirmFlex(booking: {
                   height: "sm",
                   action: {
                     type: "uri",
-                    label:
-                      booking.transport?.mapUrl || booking.transport?.address
+                    label: booking.transport?.atHome
+                      ? booking.transport?.mapUrl || booking.transport?.address
+                        ? "📍 แก้ที่อยู่บ้าน"
+                        : "📍 ส่งที่อยู่บ้าน (Google Maps)"
+                      : booking.transport?.mapUrl || booking.transport?.address
                         ? "📍 แก้จุดรับ-ส่ง"
                         : "📍 ส่งจุดรับ-ส่ง (Google Maps)",
                     uri: booking.transportUrl,

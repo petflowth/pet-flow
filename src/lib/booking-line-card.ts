@@ -1,7 +1,7 @@
 import { getSiteConfig } from "./config-store";
 import { bookingBranchId, branchById, isMultiBranch } from "./branches";
 import { bookingConfirmUrl as buildConfirmUrl, bookingTransportUrl, shopAppBase } from "./line-config";
-import { hasTransport, type BookingTransport } from "./transport";
+import { hasTransport, isAtHome, type BookingTransport } from "./transport";
 import { getLineCredentials } from "./line-config";
 import { buildAppointmentConfirmFlex } from "./line";
 import { groomProgramName, isMassageBooking, lookupGroomPrograms } from "./grooming-prices";
@@ -75,10 +75,13 @@ export async function buildBookingConfirmFlex(
     massage: isMassageBooking({ service: booking.service, groomProgram: group[0]?.groomProgram ?? groomProgramId }, programs),
     confirmUrl: await bookingConfirmUrl(booking.id),
     transportUrl: hasTransport(booking.transport)
-      ? bookingTransportUrl(booking.id, creds?.liffId, await shopAppBase())
+      ? bookingTransportUrl(booking.id, creds?.liffId, await shopAppBase(), isAtHome(booking.transport))
       : undefined,
-    mapsUrl,
-    location: [config.business.name, location].filter(Boolean).join(" · "),
+    // บริการที่บ้าน: สถานที่ = บ้านลูกค้า (ช่างไปหา) ไม่ใช่ที่ร้าน
+    mapsUrl: isAtHome(booking.transport) ? undefined : mapsUrl,
+    location: isAtHome(booking.transport)
+      ? "ที่บ้านของคุณ (ช่างเดินทางไปให้บริการ)"
+      : [config.business.name, location].filter(Boolean).join(" · "),
     businessName: config.business.name,
   }, config.cards?.bookingConfirm);
 }

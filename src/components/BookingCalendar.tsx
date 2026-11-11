@@ -2392,7 +2392,7 @@ export function BookingCalendar() {
                     <p className="mt-0.5 flex items-center gap-1 break-words text-xs text-brown-soft">
                       <Icon name={b.service === "room" ? "bed" : "bath"} size={13} />
                       {hasTransport(b.transport) && (
-                        <Icon name="car" size={13} className="text-petflow-chocolate" />
+                        <Icon name={b.transport.atHome ? "home" : "car"} size={13} className="text-petflow-chocolate" />
                       )}
                       <span className="min-w-0">
                         {b.service === "room"
@@ -2528,7 +2528,7 @@ export function BookingCalendar() {
                 </div>
                 {hasTransport(b.transport) && (
                   <div className="mt-1.5 flex items-start gap-2 rounded-petflow-sm bg-honey/15 px-2.5 py-1.5 text-[11px]">
-                    <Icon name="car" size={14} className="mt-px shrink-0 text-petflow-chocolate" />
+                    <Icon name={b.transport.atHome ? "home" : "car"} size={14} className="mt-px shrink-0 text-petflow-chocolate" />
                     <span className="min-w-0 flex-1 break-words">
                       <b className="text-petflow-chocolate">
                         {b.service === "room"
@@ -2544,7 +2544,9 @@ export function BookingCalendar() {
                         <span className="block text-brown-soft">{b.transport.address}</span>
                       )}
                       {!b.transport.mapUrl && !b.transport.address && (
-                        <span className="block font-bold text-wait">รอลูกค้าส่งจุดรับ-ส่ง</span>
+                        <span className="block font-bold text-wait">
+                          {b.transport.atHome ? "รอลูกค้าส่งที่อยู่" : "รอลูกค้าส่งจุดรับ-ส่ง"}
+                        </span>
                       )}
                     </span>
                     {b.transport.mapUrl && (

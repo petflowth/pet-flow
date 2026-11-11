@@ -22,7 +22,8 @@ import { RoomMovesEditor } from "@/components/RoomMovesEditor";
 import type { RoomSegment } from "@/lib/room-segments";
 import { PastPricesHint } from "@/components/PastPrices";
 import { pastPriceList, type PastInvoice, type PastPrice } from "@/lib/special-price";
-import type { BookingTransport } from "@/lib/transport";
+import { hasTransport, type BookingTransport } from "@/lib/transport";
+import { homeServiceOn } from "@/lib/home-service";
 import { Avatar, SearchField, Segmented } from "@/components/ui";
 import { useConfig, usePetWords } from "@/components/ConfigProvider";
 import { branchesForUser, configForBranch, isMultiBranch, knownBranchId, mainBranchId, readBranchCookie, roomBranchId, roomsInView } from "@/lib/branches";
@@ -577,7 +578,7 @@ export default function NewBookingPage() {
     fetch(
       `/api/bookings/availability?service=${massage ? "massage" : "groom"}&date=${appointmentDate}&cats=${Math.max(1, bookingCats.length)}${
         multiBranch && branchPick ? `&branch=${encodeURIComponent(branchPick)}` : ""
-      }`
+      }${transport.atHome ? "&home=1" : ""}`
     )
       .then((r) => r.json())
       .then((d) => {
@@ -589,7 +590,7 @@ export default function NewBookingPage() {
     return () => {
       alive = false;
     };
-  }, [service, massage, appointmentDate, availTick, bookingCats.length, multiBranch, branchPick]);
+  }, [service, massage, appointmentDate, availTick, bookingCats.length, multiBranch, branchPick, transport.atHome]);
   useEffect(() => {
     setCatTimes(
       groomMode === "together"
@@ -776,7 +777,7 @@ export default function NewBookingPage() {
             ? String(fd.get("checkin") || "")
             : String(fd.get("checkout") || ""),
       notes,
-      transport: transport.pickup || transport.dropoff ? transport : undefined,
+      transport: hasTransport(transport) ? transport : undefined,
     };
 
     const created: {
@@ -1674,7 +1675,15 @@ export default function NewBookingPage() {
         </div>
         )}
 
-        <TransportPicker value={transport} onChange={setTransport} />
+        <TransportPicker
+          value={transport}
+          onChange={setTransport}
+          homeConfig={
+            service === "groom" && homeServiceOn(siteConfig)
+              ? configForBranch(siteConfig, multiBranch ? branchPick : null)
+              : null
+          }
+        />
 
         <Field label="โน้ตนิสัยน้อง (ลูกค้าใหม่)" name="notes" textarea />
 

@@ -72,7 +72,7 @@ import { cardOn, cardsOff, CARD_FEATURE, featureLabel } from "@/lib/features";
 import { autoMuted } from "@/lib/auto-messages";
 import { stayForGroom } from "@/lib/booking-group";
 import { bangkokToday } from "@/lib/bangkok-date";
-import { cleanTransport, hasTransport, transportLabel } from "@/lib/transport";
+import { cleanTransport, hasTransport, transportEmoji, transportLabel } from "@/lib/transport";
 import { consentDates, consentTextFor, renderTemplate } from "@/lib/messages";
 import { listInvoices, getInvoice, updateInvoice, invoiceCatNames, findOpenInvoiceForBooking } from "@/lib/invoices-store";
 import { getPaymentConfig } from "@/lib/payment-config";
@@ -278,8 +278,10 @@ async function handlePost(req: NextRequest) {
     return NextResponse.json({ error: "cat_name_required" }, { status: 400 });
   }
 
-  const transport = cleanTransport(body.transport);
   const isRoom = body.service === "room";
+  // บริการที่บ้านใช้ได้เฉพาะนัดอาบน้ำ/นวด
+  const cleanedTransport = cleanTransport(body.transport);
+  const transport = isRoom && cleanedTransport?.atHome ? undefined : cleanedTransport;
   // ร้านหลายสาขา: ห้องพักตามสาขาของห้อง · อาบน้ำ/นวดตามสาขาที่ส่งมา หรือสาขาที่หลังบ้านเลือกดูอยู่
   const branchConfig = await getSiteConfig();
   // พนักงานที่ถูกจำกัดสาขา ลงนัดอาบน้ำ/นวดได้เฉพาะสาขาของตัวเอง (ส่งสาขาอื่นมา = ใช้สาขาที่ดูอยู่แทน)
@@ -328,7 +330,7 @@ async function handlePost(req: NextRequest) {
   const serviceLabel =
     body.service === "room" ? (isDayCareStay(body) ? "Day Care" : "ห้องพัก") : massage ? "นวด" : "อาบน้ำ";
   const cal = await createCalendarEvent({
-    summary: `${body.service === "room" ? "🏠" : massage ? "💆" : "🛁"}${hasTransport(booking.transport) ? "🚗" : ""} ${body.catName} (${customer.name})`,
+    summary: `${body.service === "room" ? "🏠" : massage ? "💆" : "🛁"}${transportEmoji(booking.transport)} ${body.catName} (${customer.name})`,
     description: `${serviceLabel} · ${body.notes || ""}${transportCalendarText(booking.transport)}`,
     start: body.date || body.checkin,
     end: body.checkout || body.date || body.checkin,
@@ -348,7 +350,11 @@ async function handlePost(req: NextRequest) {
       ลูกค้า: customer.name,
       น้อง: body.catName,
       บริการ: serviceLabel,
-      ...(hasTransport(booking.transport) ? { รับส่ง: transportLabel(booking.transport) } : {}),
+      ...(hasTransport(booking.transport)
+        ? booking.transport.atHome
+          ? { "🏠 ที่บ้านลูกค้า": [transportLabel(booking.transport), booking.transport.address].filter(Boolean).join(" · ") }
+          : { รับส่ง: transportLabel(booking.transport) }
+        : {}),
       วันที่: `${body.date || body.checkin}${body.time ? ` ${body.time}` : ""}`,
       ปฏิทิน: cal.googleUrl || icsUrl,
     }),

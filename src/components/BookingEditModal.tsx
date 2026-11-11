@@ -8,7 +8,9 @@ import { Icon } from "@/components/Icon";
 import { GroomClashNote, confirmClashes, useGroomClashes } from "@/components/GroomClashNote";
 import { Segmented } from "@/components/ui";
 import { TransportPicker } from "@/components/TransportPicker";
-import type { BookingTransport } from "@/lib/transport";
+import { hasTransport, type BookingTransport } from "@/lib/transport";
+import { configForBranch } from "@/lib/branches";
+import { homeServiceOn } from "@/lib/home-service";
 import { isUnknownCat, pickableCatNames } from "@/lib/unknown-cat";
 import { GROOM_PROGRAMS, type GroomProgram } from "@/lib/grooming-prices";
 import { freeUnitsForRange, turnoverUnitsForRange, turnoverLabel, roomCapacity, compositionOf, type BoardBooking, type RoomClosure } from "@/lib/room-board";
@@ -345,7 +347,7 @@ export function BookingEditModal({
     }
     setTransport(t);
   };
-  const transportPayload = transport.pickup || transport.dropoff ? transport : null;
+  const transportPayload = hasTransport(transport) ? transport : null;
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -789,7 +791,15 @@ export function BookingEditModal({
               </span>
             </label>
           )}
-          <TransportPicker value={transport} onChange={changeTransport} />
+          <TransportPicker
+            value={transport}
+            onChange={changeTransport}
+            homeConfig={
+              service === "groom" && (homeServiceOn(siteConfig) || transport.atHome)
+                ? configForBranch(siteConfig, (booking as { branchId?: string }).branchId)
+                : null
+            }
+          />
           {household ? (
             <div className="space-y-2">
               <p className="text-xs font-extrabold text-petflow-chocolate">

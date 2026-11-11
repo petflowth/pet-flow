@@ -13,7 +13,7 @@ import { hasTransport } from "./transport";
  */
 
 type Trip = {
-  kind: "pickup" | "dropoff";
+  kind: "pickup" | "dropoff" | "home";
   service: "groom" | "room";
   /** เวลาที่ใช้เรียงลำดับ (HH:MM) — ไม่มี = ไปท้ายรายการ */
   time?: string;
@@ -41,6 +41,17 @@ function tripsForDate(all: StoredBooking[], date: string): Trip[] {
     // เวลาที่ร้านใส่ไว้อาจอยู่แค่บางตัวในบ้าน — หยิบจากตัวไหนก็ได้ที่มี
     const pickupTime = g.find((b) => b.transport?.pickupTime)?.transport?.pickupTime;
     const dropoffTime = g.find((b) => b.transport?.dropoffTime)?.transport?.dropoffTime;
+    // บริการที่บ้าน: ทีมช่างออกไปหาลูกค้าตามเวลานัด
+    if (t?.atHome) {
+      trips.push({
+        kind: "home",
+        service: "groom",
+        time,
+        timeText: time ? `${time} (ไปบริการที่บ้าน)` : "ไปบริการที่บ้าน (ยังไม่ระบุเวลา)",
+        group: g,
+      });
+      continue;
+    }
     if (t?.pickup) {
       trips.push({
         kind: "pickup",
@@ -121,15 +132,17 @@ export async function buildTransportSummaryMessage(
     customers.find((c) => bookingMatchesCustomer(b, c))?.phone;
 
   const pickups = trips.filter((t) => t.kind === "pickup").length;
+  const homes = trips.filter((t) => t.kind === "home").length;
   const lines = [
     `<b>${esc(heading)}</b>`,
-    `รับ ${pickups} เที่ยว · ส่ง ${trips.length - pickups} เที่ยว`,
+    `รับ ${pickups} เที่ยว · ส่ง ${trips.length - pickups - homes} เที่ยว${homes ? ` · ไปบริการที่บ้าน ${homes} บ้าน` : ""}`,
   ];
 
   trips.forEach((trip, i) => {
     const first = trip.group[0];
     const t = trip.group.find((b) => b.transport?.mapUrl)?.transport ?? first.transport;
-    const label = trip.kind === "pickup" ? "⬆️ รับน้อง" : "⬇️ ส่งน้องกลับบ้าน";
+    const label =
+      trip.kind === "home" ? "🏠 ไปบริการที่บ้าน" : trip.kind === "pickup" ? "⬆️ รับน้อง" : "⬇️ ส่งน้องกลับบ้าน";
     const service = trip.service === "groom" ? "อาบน้ำ" : "ฝากพัก";
     const phone = phoneOf(first);
     const out = [

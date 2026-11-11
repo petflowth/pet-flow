@@ -39,6 +39,7 @@ export const BRANCH_OVERRIDE_KEYS = [
   "closedWeekdays",
   "closedDates",
   "groomPricePrograms",
+  "homeService",
 ] as const;
 export type BranchOverrideKey = (typeof BRANCH_OVERRIDE_KEYS)[number];
 

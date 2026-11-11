@@ -6,6 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { useLiff } from "@/components/LiffProvider";
 import { useConfig } from "@/components/ConfigProvider";
 import { configForBranch, knownBranchId, mainBranchId, roomsOfBranch, shopBranches } from "@/lib/branches";
+import { EMPTY_HOME_CHOICE, HomeServiceChooser, homeChoiceReady, type HomeChoice } from "@/components/HomeServiceChooser";
+import { homeMassageAllowed, homeServiceOn } from "@/lib/home-service";
 
 /** จำสาขาที่ลูกค้าเลือกล่าสุด (ในเครื่องลูกค้า) */
 const LAST_BRANCH_KEY = "pf-last-branch";
@@ -149,7 +151,12 @@ function BookPageInner() {
     if (next) setTab(next);
   }, [tab, groomOn, hotelOn, massageOn]);
   // สาขาตั้งราคา/โปรแกรมเองได้ — โชว์ของสาขาที่ลูกค้าเลือก
-  const branchPrograms = configForBranch(config, multiBranch ? branch : null).groomPricePrograms;
+  const branchCfg = configForBranch(config, multiBranch ? branch : null);
+  const branchPrograms = branchCfg.groomPricePrograms;
+  // บริการนอกสถานที่ (ช่างไปที่บ้าน) — ร้านเปิดฟีเจอร์ไว้ + นวดที่บ้านได้ถ้าร้านไม่ได้ปิด
+  const homeAvailable = homeServiceOn(config) && (!massage || homeMassageAllowed(branchCfg));
+  const [homeChoice, setHomeChoice] = useState<HomeChoice>(EMPTY_HOME_CHOICE);
+  const atHome = homeAvailable && homeChoice.on;
   const allTabPrograms = massage
     ? resolveMassagePrograms(branchPrograms)
     : bathPrograms(resolveGroomPrograms(branchPrograms));
@@ -340,7 +347,7 @@ function BookPageInner() {
     fetch(
       `/api/bookings/availability?service=${massage ? "massage" : "groom"}&date=${date}&cats=${Math.max(1, catNames.length)}${
         multiBranch && branch ? `&branch=${encodeURIComponent(branch)}` : ""
-      }`
+      }${atHome ? "&home=1" : ""}`
     )
       .then((r) => r.json())
       .then((d) => {
@@ -354,12 +361,12 @@ function BookPageInner() {
     return () => {
       alive = false;
     };
-  }, [service, massage, date, catNames.length, multiBranch, branch]);
+  }, [service, massage, date, catNames.length, multiBranch, branch, atHome]);
 
-  // เปลี่ยนวัน = รอบเดิมอาจไม่มี/เต็มแล้ว ให้เลือกใหม่
+  // เปลี่ยนวัน/สลับที่ร้าน-ที่บ้าน = รอบเดิมอาจไม่มี/เต็มแล้ว ให้เลือกใหม่
   useEffect(() => {
     setTime("");
-  }, [service, massage, date]);
+  }, [service, massage, date, atHome]);
 
   useEffect(() => {
     if (service !== "room") return;
@@ -407,12 +414,13 @@ function BookPageInner() {
     if (!catNames.length) return false;
     if (service === "groom") {
       if (!time) return false;
+      if (atHome && !homeChoiceReady(branchCfg, homeChoice)) return false;
       return Boolean(assignedPreview);
     }
     return Boolean(
       roomType && roomAvail && roomAvail.remaining >= roomsNeeded && checkout > checkin
     );
-  }, [catNames, service, time, assignedPreview, roomType, roomAvail, checkin, checkout, roomsNeeded]);
+  }, [catNames, service, time, assignedPreview, roomType, roomAvail, checkin, checkout, roomsNeeded, atHome, branchCfg, homeChoice]);
 
   const submit = async (withSlip = true) => {
     if (!profile?.lineUserId || !canSubmit) return;
@@ -428,6 +436,13 @@ function BookPageInner() {
               date,
               time,
               branchId: multiBranch ? branch || undefined : undefined,
+              home: atHome
+                ? {
+                    zoneId: homeChoice.zoneId || undefined,
+                    address: homeChoice.address.trim(),
+                    mapUrl: homeChoice.mapUrl.trim(),
+                  }
+                : undefined,
               groomProgram: groomProgram || undefined,
               petPrograms: Object.fromEntries(
                 catNames.map((n) => [n, (petPrograms[n] ?? groomProgram) || ""])
@@ -477,6 +492,10 @@ function BookPageInner() {
             ? "คิววันนี้ไม่พอสำหรับน้องที่เลือกไว้ทั้งหมด ลองเลือกวัน/เวลาอื่นนะคะ"
             : "ช่วงนี้เต็มไปแล้วพอดี ลองเลือกวัน/เวลาอื่นนะคะ"
         );
+      } else if (d.error === "address_required" || d.error === "bad_url") {
+        setSubmitErr("ใส่ที่อยู่ หรือลิงก์ Google Maps ที่ถูกต้องก่อนนะคะ");
+      } else if (d.error === "zone_required") {
+        setSubmitErr("เลือกโซนที่บ้านอยู่ก่อนนะคะ");
       } else if (d.error === "shop_closed") {
         setSubmitErr("ร้านปิดวันที่เลือกไว้พอดี ลองเลือกวันอื่นนะคะ");
       } else if (d.error === "duplicate_booking") {
@@ -714,6 +733,14 @@ function BookPageInner() {
                       </div>
                     ))}
                   </div>
+                )}
+                {homeAvailable && (
+                  <HomeServiceChooser
+                    config={branchCfg}
+                    value={homeChoice}
+                    onChange={setHomeChoice}
+                    lineUserId={profile?.lineUserId}
+                  />
                 )}
                 <label className="mb-3 block text-xs font-bold text-brown-soft">
                   📅 วันที่

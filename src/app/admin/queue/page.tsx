@@ -9,6 +9,7 @@ import { bangkokToday } from "@/lib/bangkok-date";
 import { formatThaiDateShort } from "@/lib/format-thai-date";
 import { lookupGroomPrograms, type GroomProgram } from "@/lib/grooming-prices";
 import type { BookingStatus } from "@/lib/business";
+import { isAtHome, type BookingTransport } from "@/lib/transport";
 
 type QueueBooking = {
   id: string;
@@ -25,6 +26,7 @@ type QueueBooking = {
   catMedical?: string;
   catPrivateNote?: string;
   notes?: string;
+  transport?: BookingTransport;
 };
 
 type Ops = { bookingId: string; groomStartedAt?: string; groomer?: string };
@@ -194,6 +196,19 @@ export default function GroomQueuePage() {
               {b.time ? `${b.time} · ` : ""}
               {prog?.name || "ยังไม่เลือกโปรแกรม"}
             </p>
+            {isAtHome(b.transport) && (
+              <p className="mt-1 flex items-start gap-1 text-[11px] font-bold text-petflow-chocolate">
+                <Icon name="home" size={12} className="mt-px shrink-0" />
+                <span className="min-w-0 break-words">
+                  ที่บ้านลูกค้า{b.transport.address ? ` · ${b.transport.address}` : ""}
+                  {b.transport.mapUrl && (
+                    <a href={b.transport.mapUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-latte-deep underline">
+                      แผนที่
+                    </a>
+                  )}
+                </span>
+              </p>
+            )}
             {prog?.includes?.length ? (
               <div className="mt-1 flex flex-wrap gap-1">
                 {prog.includes.map((t) => (

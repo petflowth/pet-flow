@@ -151,11 +151,13 @@ export function bookingConfirmUrl(bookingId: string, liffId?: string, shopBase?:
 }
 
 /** ลิงก์หน้ากรอกจุดรับ-ส่งน้อง — เปิดผ่าน LIFF ถ้ามี ไม่งั้นเปิดหน้าเว็บตรงๆ */
-export function bookingTransportUrl(bookingId: string, liffId?: string, shopBase?: string) {
+export function bookingTransportUrl(bookingId: string, liffId?: string, shopBase?: string, atHome = false) {
   const lid = liffId;
   const id = encodeURIComponent(bookingId);
-  if (lid) return `https://liff.line.me/${lid}?path=booking-transport&id=${id}`;
-  return `${shopBase || getAppUrlFromEnv()}/app/booking-transport?id=${id}`;
+  // บริการที่บ้าน: kind=home ให้หน้าเปิดได้ตามฟีเจอร์บริการนอกสถานที่ (แม้ร้านปิดรับ-ส่ง)
+  const kind = atHome ? "&kind=home" : "";
+  if (lid) return `https://liff.line.me/${lid}?path=booking-transport&id=${id}${kind}`;
+  return `${shopBase || getAppUrlFromEnv()}/app/booking-transport?id=${id}${kind}`;
 }
 
 /** ดู Webhook URL ปัจจุบันของ LINE (Messaging API) */

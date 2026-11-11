@@ -19,7 +19,15 @@ async function handleGet(req: NextRequest) {
     const date = sp.get("date")?.trim();
     if (!date) return NextResponse.json({ error: "date required" }, { status: 400 });
     const cats = Math.min(20, Math.max(1, Number(sp.get("cats")) || 1));
-    return NextResponse.json(await getGroomAvailability(date, cats, service === "massage", sp.get("branch")?.trim() || undefined));
+    return NextResponse.json(
+      await getGroomAvailability(
+        date,
+        cats,
+        service === "massage",
+        sp.get("branch")?.trim() || undefined,
+        sp.get("home") === "1"
+      )
+    );
   }
 
   if (service === "room") {

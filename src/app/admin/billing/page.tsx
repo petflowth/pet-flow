@@ -19,6 +19,7 @@ import { CustomerSendButtons } from "@/components/CustomerSendButtons";
 import { PreviewSendModal } from "@/components/PreviewSendModal";
 import { CancelToCreditButton } from "@/components/CancelToCreditButton";
 import { savedPopup, toast } from "@/components/Toast";
+import { askSendReceipt } from "@/lib/receipt-ask";
 import { Icon, type IconName } from "@/components/Icon";
 import { Avatar, EmptyState, MoreMenu, SearchField, Segmented, SectionLabel } from "@/components/ui";
 import { groupCatNames, groupForBilling } from "@/lib/booking-group";
@@ -2282,14 +2283,16 @@ function BillsView({ tabs }: { tabs: React.ReactNode }) {
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        // ปุ่มนี้เป็นแค่สถานะหลังบ้าน — ไม่ส่งอะไรหาลูกค้า ต้องบอกให้ร้านรู้ว่าใบเสร็จต้องกดส่งเอง
+        // ร้านเปิด "ถามว่าจะส่งใบเสร็จไหม" → ถามต่อ · ไม่งั้นบอกว่าใบเสร็จต้องกดส่งเอง
         toast(
           method === "package"
             ? "ปิดบิลแล้ว — หักจากคอร์ส ไม่มีเงินเข้า ✅"
-            : "รับเงินแล้ว — ลงบัญชี + แต้ม ✅ (ใบเสร็จกดส่งเองที่ปุ่ม ส่ง LINE)",
+            : "รับเงินแล้ว — ลงบัญชี + แต้ม ✅" +
+                (data.receiptAsk ? "" : " (ใบเสร็จกดส่งเองที่ปุ่ม ส่ง LINE)"),
           "success"
         );
         load();
+        await askSendReceipt(id, data);
       } else if (data.error === "package_not_covered") {
         toast("บิลนี้ยังมียอดต้องเก็บ หรือไม่ได้หักคอร์ส — ใช้รับเงินแบบปกติ", "error");
       } else if (data.error === "insufficient_credit") {

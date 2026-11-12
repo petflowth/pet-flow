@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/components/Icon";
 import { MoreMenu } from "@/components/ui";
 import { toast } from "@/components/Toast";
+import { askSendReceipt } from "@/lib/receipt-ask";
 import { CancelToCreditButton } from "@/components/CancelToCreditButton";
 import { askDepositReceive } from "@/lib/deposit-confirm";
 
@@ -71,6 +72,7 @@ export function InvoiceActionButtons({
         toast(okMsg, "success");
         reload();
         onDone?.();
+        if (body.action === "mark_paid") await askSendReceipt(inv.id, d);
       } else {
         toast(d.error ? `ไม่สำเร็จ: ${d.error}` : "ไม่สำเร็จ", "error");
       }

@@ -16,6 +16,7 @@ type Row = {
 
 /** ชื่อไทยของแต่ละการกระทำ — ให้อ่านออกโดยไม่ต้องรู้ชื่อ action ในโค้ด */
 const ACTION_LABEL: Record<string, string> = {
+  send_receipt: "ส่งใบเสร็จทาง LINE",
   mark_paid: "รับเงิน / ปิดบิล",
   delete_invoice: "ลบบิล",
   cancel_to_credit: "ยกเลิกนัด เก็บเป็นเครดิต",

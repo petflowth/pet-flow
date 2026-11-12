@@ -62,3 +62,25 @@ export async function listAudit(limit = 200): Promise<AuditRow[]> {
     return [];
   }
 }
+
+/**
+ * ร้านนี้เคยบันทึกการกระทำนี้กับรายการนี้แล้วหรือยัง — ใช้เตือนก่อนส่งการ์ดซ้ำ
+ * (เช่น ใบเสร็จของบิลเดิม ตอนยกเลิกการชำระแล้วกดรับเงินใหม่) อ่านไม่ได้ = ถือว่ายังไม่เคย
+ */
+export async function hasAudit(action: string, resourceId: string): Promise<boolean> {
+  const sb = getDirectoryDb();
+  if (!sb) return false;
+  try {
+    const { requireTenantId } = await import("./tenant-context");
+    const { data } = await sb
+      .from("audit_logs")
+      .select("id")
+      .eq("tenant_id", requireTenantId())
+      .eq("action", action)
+      .eq("resource_id", resourceId)
+      .limit(1);
+    return !!data && data.length > 0;
+  } catch {
+    return false;
+  }
+}

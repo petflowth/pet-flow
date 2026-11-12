@@ -123,7 +123,7 @@ function summaryFlexFromInvoice(
   }, cardStyle);
 }
 import { sendTelegram, formatBookingTelegram } from "@/lib/telegram";
-import { logAudit } from "@/lib/audit-log";
+import { hasAudit, logAudit } from "@/lib/audit-log";
 import { requireTenantId } from "@/lib/tenant-context";
 import { cancelAppointmentToCredit, creditableAmount } from "@/lib/cancel-to-credit";
 
@@ -587,6 +587,15 @@ async function handlePatch(req: NextRequest) {
     }, cfgR.cards?.receipt);
     if (preview) return NextResponse.json({ ok: true, preview: [receiptFlex] });
     await pushLineMessage(inv.lineUserId, [receiptFlex]);
+    await logAudit({
+      tenantId: requireTenantId(),
+      actorType: "tenant",
+      actorId: await actorName(req),
+      action: "send_receipt",
+      resourceType: "invoice",
+      resourceId: inv.id,
+      afterState: { ลูกค้า: inv.customerName, ยอด: inv.total },
+    }).catch(() => undefined);
     return NextResponse.json({ ok: true });
   }
 
@@ -831,10 +840,13 @@ async function handlePatch(req: NextRequest) {
         วิธีจ่าย: channel || body.paymentMethod || "transfer",
       },
     });
-    // "รับเงินแล้ว" = แค่ปิดบิล + ลงบัญชี + แต้ม (ภายในร้านเท่านั้น) — ไม่ยิงการ์ดหาลูกค้า
-    // เคสโรงแรมจ่ายก่อนเข้าพัก ใบเสร็จ/รีวิวต้องแยกกดส่งเอง (ปุ่ม "ส่งใบเสร็จ" / "ขอรีวิว")
-    // จะได้ไม่ส่งรีวิวตั้งแต่ยังไม่เข้าพัก
+    // "รับเงินแล้ว" = ปิดบิล + ลงบัญชี + แต้ม — เซิร์ฟเวอร์ไม่ยิงการ์ดเอง
+    // ร้านที่เปิด "ถามว่าจะส่งใบเสร็จไหม" (ค่าเริ่มต้น) → หน้าเว็บถามต่อ กดตกลงค่อยเรียก send_receipt
+    // ไม่ขอรีวิวพร้อมกัน (ลูกค้าจ่ายก่อนเข้าพักจะไม่ถูกขอรีวิวตอนจ่ายเงิน)
     const paidNotifyErr: string | undefined = undefined;
+    const receiptAsk =
+      (await getSiteConfig()).automation?.receiptAskOnPaid !== false && !!paid.lineUserId;
+    const receiptSentBefore = receiptAsk ? await hasAudit("send_receipt", paid.id) : false;
 
     const gotDeposit = (result.alreadyReceived || 0) > 0;
     await sendTelegram(
@@ -903,7 +915,13 @@ async function handlePatch(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true, invoice: paid, notifyError: paidNotifyErr });
+    return NextResponse.json({
+      ok: true,
+      invoice: paid,
+      receiptAsk,
+      receiptSentBefore,
+      notifyError: paidNotifyErr,
+    });
   }
 
   if (action === "send_member_balance") {

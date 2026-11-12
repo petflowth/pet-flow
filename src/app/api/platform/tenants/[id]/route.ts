@@ -180,7 +180,8 @@ export async function PATCH(
     const update: Record<string, unknown> = {};
     if (action === "set_due_date") {
       const v = String(body.dueDate || "").trim();
-      if (v && !/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+      const year = Number(v.slice(0, 4));
+      if (v && (!/^\d{4}-\d{2}-\d{2}$/.test(v) || year < 2000 || year > 2100)) {
         return NextResponse.json({ error: "วันที่ไม่ถูกต้อง" }, { status: 400 });
       }
       dueDate = v || null;

@@ -551,12 +551,11 @@ export default function PlatformDashboard() {
                   <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px]">
                     <label className="flex items-center gap-1 text-white/60">
                       📅 ครบกำหนดจ่าย
-                      <input
-                        type="date"
+                      <DueDateInput
+                        key={t.dueDate || ""}
                         value={t.dueDate || ""}
-                        disabled={busyId === t.id}
-                        onChange={(e) => billing(t, { action: "set_due_date", dueDate: e.target.value })}
-                        className="rounded border border-white/15 bg-black/30 px-1.5 py-0.5 text-white [color-scheme:dark]"
+                        busy={busyId === t.id}
+                        onSave={(dueDate) => billing(t, { action: "set_due_date", dueDate })}
                       />
                     </label>
                     <label className="flex items-center gap-1 text-white/60" title="หลายสาขาเป็นฟังก์ชันจ่ายเพิ่ม · 1 = ใช้ฟังก์ชันสาขาไม่ได้">
@@ -784,5 +783,38 @@ export default function PlatformDashboard() {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * ช่องวันครบกำหนดจ่าย — พิมพ์ปีทีละตัวได้ (เดิมบันทึกทุกครั้งที่กด ปีเลยค้างเป็น 0020)
+ * บันทึกตอนออกจากช่อง/กด Enter/เลือกจากปฏิทิน และรับเฉพาะปี 2000–2100 หรือช่องว่าง
+ */
+function DueDateInput({ value, busy, onSave }: { value: string; busy: boolean; onSave: (v: string) => void }) {
+  const [draft, setDraft] = useState(value);
+  const ok = (v: string) => v === "" || (/^\d{4}-\d{2}-\d{2}$/.test(v) && +v.slice(0, 4) >= 2000 && +v.slice(0, 4) <= 2100);
+  const commit = (v: string) => {
+    if (v === value) return;
+    if (!ok(v)) {
+      alert("วันที่ไม่ถูกต้อง — ปีต้องเป็น ค.ศ. เช่น 2026");
+      setDraft(value);
+      return;
+    }
+    onSave(v);
+  };
+  return (
+    <input
+      type="date"
+      value={draft}
+      min="2000-01-01"
+      max="2100-12-31"
+      disabled={busy}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={(e) => commit(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") commit(e.currentTarget.value);
+      }}
+      className="rounded border border-white/15 bg-black/30 px-1.5 py-0.5 text-white [color-scheme:dark]"
+    />
   );
 }

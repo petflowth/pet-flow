@@ -3404,7 +3404,7 @@ const AUTOMATION_DEFAULT = {
   checkoutReminderTime: "19:30",
   reviewRequestEnabled: true,
   reviewRequestDaysAfter: 1,
-  receiptAskOnPaid: true,
+  receiptAskOnPaid: false,
   groomInfoEnabled: true,
   intakeAutoEnabled: true,
   freeLitterMinNights: 3,
@@ -3936,7 +3936,7 @@ function AutomationTab({
             services: ["groom", "stay"],
             when: "ตอนร้านกดรับชำระเงิน",
             sends: "ขึ้นคำถาม \"ส่งใบเสร็จให้ลูกค้าทาง LINE เลยไหม?\" กดตกลง = ส่งการ์ดใบเสร็จ · ปิดไว้ = ไม่ถาม ส่งเองที่ปุ่ม ส่ง LINE",
-            on: form.receiptAskOnPaid !== false,
+            on: form.receiptAskOnPaid === true,
             onToggle: (v) => set({ receiptAskOnPaid: v }),
           })}
           {item({

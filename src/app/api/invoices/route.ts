@@ -841,11 +841,11 @@ async function handlePatch(req: NextRequest) {
       },
     });
     // "รับเงินแล้ว" = ปิดบิล + ลงบัญชี + แต้ม — เซิร์ฟเวอร์ไม่ยิงการ์ดเอง
-    // ร้านที่เปิด "ถามว่าจะส่งใบเสร็จไหม" (ค่าเริ่มต้น) → หน้าเว็บถามต่อ กดตกลงค่อยเรียก send_receipt
+    // ร้านที่เปิด "ถามว่าจะส่งใบเสร็จไหม" (ต้องเปิดเองรายร้าน ไม่เปิด = เหมือนเดิม) → หน้าเว็บถามต่อ กดตกลงค่อยเรียก send_receipt
     // ไม่ขอรีวิวพร้อมกัน (ลูกค้าจ่ายก่อนเข้าพักจะไม่ถูกขอรีวิวตอนจ่ายเงิน)
     const paidNotifyErr: string | undefined = undefined;
     const receiptAsk =
-      (await getSiteConfig()).automation?.receiptAskOnPaid !== false && !!paid.lineUserId;
+      (await getSiteConfig()).automation?.receiptAskOnPaid === true && !!paid.lineUserId;
     const receiptSentBefore = receiptAsk ? await hasAudit("send_receipt", paid.id) : false;
 
     const gotDeposit = (result.alreadyReceived || 0) > 0;

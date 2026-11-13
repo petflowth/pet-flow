@@ -12,14 +12,14 @@ export type EmergencyContact = {
 };
 
 /** ตัวเลือกความเกี่ยวข้อง — กดเลือก ไม่ต้องพิมพ์ (ไม่มีในตัวเลือก พิมพ์เองได้) */
-export const EMERGENCY_RELATIONS: { key: string; label: string; emoji: string }[] = [
-  { key: "father", label: "พ่อ", emoji: "👨" },
-  { key: "mother", label: "แม่", emoji: "👩" },
-  { key: "spouse", label: "สามี/ภรรยา/แฟน", emoji: "💑" },
-  { key: "sibling", label: "พี่น้อง", emoji: "👫" },
-  { key: "child", label: "ลูก", emoji: "🧒" },
-  { key: "relative", label: "ญาติ", emoji: "👪" },
-  { key: "friend", label: "เพื่อน", emoji: "🤝" },
+export const EMERGENCY_RELATIONS: { key: string; label: string; en: string; emoji: string }[] = [
+  { key: "father", label: "พ่อ", en: "Father", emoji: "👨" },
+  { key: "mother", label: "แม่", en: "Mother", emoji: "👩" },
+  { key: "spouse", label: "สามี/ภรรยา/แฟน", en: "Partner/spouse", emoji: "💑" },
+  { key: "sibling", label: "พี่น้อง", en: "Sibling", emoji: "👫" },
+  { key: "child", label: "ลูก", en: "Child", emoji: "🧒" },
+  { key: "relative", label: "ญาติ", en: "Relative", emoji: "👪" },
+  { key: "friend", label: "เพื่อน", en: "Friend", emoji: "🤝" },
 ];
 
 /** key ในฟอร์มทำประวัติเดิม — เก็บไว้ไม่ให้คำตอบเก่าหายตอนลูกค้าส่งฟอร์มใหม่ */

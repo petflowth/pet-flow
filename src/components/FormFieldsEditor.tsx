@@ -2,6 +2,13 @@
 
 import { Icon } from "@/components/Icon";
 import type { GroomField, GroomFieldConfig, GroomFormConfig } from "@/lib/groom-form";
+import { formTextEn } from "@/lib/form-en";
+
+/** ช่องภาษาอังกฤษ (ไม่บังคับ) — ว่างไว้ = ใช้คำแปลอัตโนมัติของระบบถ้ามี ไม่งั้นลูกค้า EN เห็นภาษาไทย */
+const enHint = (th: string | undefined) => {
+  const auto = formTextEn(th);
+  return auto ? `EN (ว่างไว้ = ${auto})` : "EN ภาษาอังกฤษ (ไม่บังคับ — ว่างไว้ลูกค้า EN เห็นภาษาไทย)";
+};
 
 /**
  * ตัวแก้คำถามฟอร์มลูกค้า (ก่อนอาบน้ำ / ก่อนเข้าพัก) — เปิด/ปิด บังคับตอบ แก้คำถาม เพิ่ม-ลบตัวเลือก
@@ -83,6 +90,14 @@ export function FormFieldsEditor({
               onChange={(e) => onPatch(def.key, { label: e.target.value })}
               className="w-full rounded-petflow-sm border border-petflow-line bg-card px-2.5 py-2 text-xs font-bold text-brown"
             />
+            <input
+              value={c.labelEn ?? ""}
+              disabled={!enabled}
+              onChange={(e) => onPatch(def.key, { labelEn: e.target.value })}
+              placeholder={enHint(c.label ?? def.label)}
+              aria-label="คำถามภาษาอังกฤษ"
+              className="mt-1 w-full rounded-petflow-sm border border-dashed border-petflow-line bg-card px-2.5 py-1.5 text-[11px] text-brown-soft"
+            />
 
             {!isChip && (
               <input
@@ -91,6 +106,16 @@ export function FormFieldsEditor({
                 onChange={(e) => onPatch(def.key, { placeholder: e.target.value })}
                 placeholder="ข้อความตัวอย่างในช่องพิมพ์"
                 className="mt-1.5 w-full rounded-petflow-sm border border-petflow-line bg-card px-2.5 py-1.5 text-[11px] text-brown-soft"
+              />
+            )}
+            {!isChip && (
+              <input
+                value={c.placeholderEn ?? ""}
+                disabled={!enabled}
+                onChange={(e) => onPatch(def.key, { placeholderEn: e.target.value })}
+                placeholder={enHint(c.placeholder ?? def.placeholder)}
+                aria-label="ข้อความตัวอย่างภาษาอังกฤษ"
+                className="mt-1 w-full rounded-petflow-sm border border-dashed border-petflow-line bg-card px-2.5 py-1.5 text-[11px] text-brown-soft"
               />
             )}
 
@@ -110,7 +135,19 @@ export function FormFieldsEditor({
                           );
                           onPatch(def.key, { options: next });
                         }}
-                        className="flex-1 rounded-petflow-sm border border-petflow-line bg-card px-2.5 py-1.5 text-[11px]"
+                        className="min-w-0 flex-1 rounded-petflow-sm border border-petflow-line bg-card px-2.5 py-1.5 text-[11px]"
+                      />
+                      <input
+                        value={o.labelEn ?? ""}
+                        onChange={(e) => {
+                          const next = options.map((x, j) =>
+                            j === i ? { ...x, labelEn: e.target.value } : x
+                          );
+                          onPatch(def.key, { options: next });
+                        }}
+                        placeholder={formTextEn(o.label) || "EN"}
+                        aria-label="ตัวเลือกภาษาอังกฤษ"
+                        className="min-w-0 flex-1 rounded-petflow-sm border border-dashed border-petflow-line bg-card px-2.5 py-1.5 text-[11px] text-brown-soft"
                       />
                       <button
                         type="button"

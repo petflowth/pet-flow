@@ -1,5 +1,6 @@
 "use client";
 
+import { useTr } from "@/components/LocaleProvider";
 import { useEffect } from "react";
 import { Icon } from "@/components/Icon";
 import { BTN_PRIMARY, BTN_SECONDARY } from "@/components/PageHeader";
@@ -12,11 +13,11 @@ export type ReviewRow = {
 export type ReviewSection = { title: string; icon?: string; rows: ReviewRow[] };
 
 /** "2020-05-01" → "1 พ.ค. 2563" (ว่าง = ว่าง) */
-export function reviewDate(iso: string): string {
+export function reviewDate(iso: string, locale: "th" | "en" = "th"): string {
   if (!iso) return "";
   const d = new Date(`${iso.slice(0, 10)}T00:00:00`);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric" });
+  return d.toLocaleDateString(locale === "en" ? "en-GB" : "th-TH", { day: "numeric", month: "short", year: "numeric" });
 }
 
 /** ทำค่าให้อ่านง่าย — อาเรย์ต่อด้วย "," ตัดช่องว่าง */
@@ -31,10 +32,10 @@ function show(v: ReviewRow["value"]): string {
  */
 export function ReviewSheet({
   open,
-  title = "เช็คข้อมูลอีกครั้งนะคะ",
-  subtitle = "ถ้าถูกต้องแล้วกดยืนยันได้เลย ถ้ามีจุดไหนผิดกดแก้ไขค่ะ",
+  title: titleProp,
+  subtitle: subtitleProp,
   sections,
-  confirmLabel = "ยืนยัน ส่งข้อมูล",
+  confirmLabel: confirmProp,
   saving = false,
   error,
   onEdit,
@@ -51,6 +52,10 @@ export function ReviewSheet({
   onEdit: () => void;
   onConfirm: () => void;
 }) {
+  const tr = useTr();
+  const title = titleProp ?? tr("เช็คข้อมูลอีกครั้งนะคะ", "Please check your details");
+  const subtitle = subtitleProp ?? tr("ถ้าถูกต้องแล้วกดยืนยันได้เลย ถ้ามีจุดไหนผิดกดแก้ไขค่ะ", "If everything looks right, tap confirm. Tap edit to fix anything.");
+  const confirmLabel = confirmProp ?? tr("ยืนยัน ส่งข้อมูล", "Confirm & send");
   // เปิดป๊อปอัปอยู่ — ล็อกหน้าข้างหลังไม่ให้เลื่อนตาม
   useEffect(() => {
     if (!open) return;
@@ -104,7 +109,7 @@ export function ReviewSheet({
                           v ? "text-petflow-chocolate" : "font-normal text-brown-faint"
                         }`}
                       >
-                        {v || "ไม่ได้ระบุ"}
+                        {v || tr("ไม่ได้ระบุ", "Not given")}
                       </dd>
                     </div>
                   );
@@ -123,11 +128,11 @@ export function ReviewSheet({
           )}
           <button type="button" onClick={onConfirm} disabled={saving} className={BTN_PRIMARY}>
             {!saving && <Icon name="check" size={18} strokeWidth={2.4} />}
-            {saving ? "กำลังบันทึก…" : confirmLabel}
+            {saving ? tr("กำลังบันทึก…", "Saving…") : confirmLabel}
           </button>
           <button type="button" onClick={onEdit} disabled={saving} className={BTN_SECONDARY}>
             <Icon name="edit" size={16} />
-            แก้ไขข้อมูล
+            {tr("แก้ไขข้อมูล", "Edit")}
           </button>
         </div>
       </div>

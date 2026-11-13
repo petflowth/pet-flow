@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import type { SiteConfig } from "@/lib/config-types";
 import { homeFeeText, homeServiceConfig, homeServiceLabel, homeZones } from "@/lib/home-service";
 import { customerFetch } from "@/lib/customer-fetch";
+import { useTr } from "@/components/LocaleProvider";
 
 export type HomeChoice = {
   on: boolean;
@@ -38,6 +39,7 @@ export function HomeServiceChooser({
   onChange: (v: HomeChoice) => void;
   lineUserId?: string;
 }) {
+  const tr = useTr();
   const label = homeServiceLabel(config);
   const note = String(homeServiceConfig(config).note || "").trim();
   const zones = homeZones(config);
@@ -69,14 +71,14 @@ export function HomeServiceChooser({
 
   return (
     <div className="mb-3">
-      <p className="mb-1.5 text-xs font-bold text-brown-soft">📍 รับบริการที่ไหน</p>
+      <p className="mb-1.5 text-xs font-bold text-brown-soft">{tr("📍 รับบริการที่ไหน", "📍 Where?")}</p>
       <div className="flex gap-2">
         <button type="button" aria-pressed={!value.on} onClick={() => onChange({ ...value, on: false })} className={chip(!value.on)}>
-          {!value.on ? "✓ " : ""}🏪 ที่ร้าน
+          {!value.on ? "✓ " : ""}🏪 {tr("ที่ร้าน", "At the shop")}
         </button>
         <button type="button" aria-pressed={value.on} onClick={() => onChange({ ...value, on: true })} className={chip(value.on)}>
           {value.on ? "✓ " : ""}🏠 {label}
-          {feeText ? <span className="block text-[10px] font-normal">ค่าเดินทาง {feeText}</span> : null}
+          {feeText ? <span className="block text-[10px] font-normal">{tr("ค่าเดินทาง", "Travel fee")} {feeText}</span> : null}
         </button>
       </div>
       {value.on && (
@@ -84,34 +86,34 @@ export function HomeServiceChooser({
           {note ? <p className="whitespace-pre-line text-[11px] text-brown">{note}</p> : null}
           {zones.length > 0 && (
             <label className="block text-[11px] font-bold text-brown-soft">
-              พื้นที่ / โซน
+              {tr("พื้นที่ / โซน", "Area / zone")}
               <select
                 value={value.zoneId}
                 onChange={(e) => onChange({ ...value, zoneId: e.target.value })}
                 className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-card px-3 py-2 text-sm"
               >
-                <option value="">— เลือกโซนที่บ้านอยู่ —</option>
+                <option value="">{tr("— เลือกโซนที่บ้านอยู่ —", "— Choose your zone —")}</option>
                 {zones.map((z) => (
                   <option key={z.id} value={z.id}>
                     {z.name}
-                    {Number(z.fee) > 0 ? ` (+฿${Number(z.fee).toLocaleString("th-TH")})` : " (ไม่มีค่าเดินทาง)"}
+                    {Number(z.fee) > 0 ? ` (+฿${Number(z.fee).toLocaleString("th-TH")})` : tr(" (ไม่มีค่าเดินทาง)", " (no travel fee)")}
                   </option>
                 ))}
               </select>
             </label>
           )}
           <label className="block text-[11px] font-bold text-brown-soft">
-            ที่อยู่ / จุดสังเกต
+            {tr("ที่อยู่ / จุดสังเกต", "Address / landmark")}
             <textarea
               value={value.address}
               onChange={(e) => onChange({ ...value, address: e.target.value })}
               rows={2}
-              placeholder="บ้านเลขที่ ซอย หมู่บ้าน จุดจอดรถ"
+              placeholder={tr("บ้านเลขที่ ซอย หมู่บ้าน จุดจอดรถ", "House no., street, village, parking spot")}
               className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-card px-3 py-2 text-sm"
             />
           </label>
           <label className="block text-[11px] font-bold text-brown-soft">
-            ลิงก์ Google Maps (ถ้ามี)
+            {tr("ลิงก์ Google Maps (ถ้ามี)", "Google Maps link (optional)")}
             <input
               value={value.mapUrl}
               onChange={(e) => onChange({ ...value, mapUrl: e.target.value })}
@@ -121,10 +123,10 @@ export function HomeServiceChooser({
             />
           </label>
           {!value.address.trim() && !value.mapUrl.trim() && (
-            <p className="text-[11px] font-bold text-wait">ใส่ที่อยู่หรือลิงก์แผนที่ก่อนนะคะ ช่างจะได้ไปถูก</p>
+            <p className="text-[11px] font-bold text-wait">{tr("ใส่ที่อยู่หรือลิงก์แผนที่ก่อนนะคะ ช่างจะได้ไปถูก", "Please add an address or map link so the groomer can find you.")}</p>
           )}
           {zones.length > 0 && !value.zoneId && (
-            <p className="text-[11px] font-bold text-wait">เลือกโซนก่อนนะคะ</p>
+            <p className="text-[11px] font-bold text-wait">{tr("เลือกโซนก่อนนะคะ", "Please choose a zone.")}</p>
           )}
         </div>
       )}

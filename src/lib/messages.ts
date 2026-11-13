@@ -15,6 +15,20 @@ export const DEEMED_GROOM_CONSENT_NOTICE =
   "ทางร้านถือว่าท่านได้รับทราบและยอมรับข้อตกลงและเงื่อนไขการใช้บริการอาบน้ำทั้งหมดแล้ว นับตั้งแต่วันที่ได้รับข้อความนี้ " +
   "และข้อความนี้ใช้เป็นหลักฐานการตกลงระหว่างท่านกับทางร้านได้ตามกฎหมาย";
 
+export const DEEMED_CONSENT_NOTICE_EN =
+  "If you do not reply, attach documents or accept the terms by your check-in date but still bring your pet for the stay, " +
+  "the shop will consider that you have received this message and acknowledge and accept all terms and conditions of the stay from the date you received it. " +
+  "This message is binding and may be used as legal evidence of the agreement between you and the shop.";
+
+export const DEEMED_GROOM_CONSENT_NOTICE_EN =
+  "If you do not reply or accept the terms by your grooming date but still bring your pet to the appointment, " +
+  "the shop will consider that you acknowledge and accept all grooming terms and conditions from the date you received this message, " +
+  "and this message may be used as legal evidence of the agreement between you and the shop.";
+
+export const GROOM_CONSENT_CONFIRM_EN =
+  "I confirm that I have read, understood and accept all service terms, " +
+  "and that I have given true information about my pet's health and behaviour.";
+
 /** คำยืนยันท้ายหน้ากดยอมรับข้อตกลงอาบน้ำ */
 export const GROOM_CONSENT_CONFIRM =
   "ข้าพเจ้ายืนยันว่าได้อ่าน เข้าใจ และยอมรับเงื่อนไขการใช้บริการทั้งหมด " +
@@ -129,11 +143,61 @@ export const DEFAULT_MESSAGES: MessagesConfig = {
   ],
 };
 
+/** ข้อตกลงค่าเริ่มต้นฉบับภาษาอังกฤษ (ลูกค้าที่เลือก EN) — เนื้อหาตรงกับ DEFAULT_MESSAGES */
+const DEFAULT_CONSENT_EN = {
+  consentTitle: "Boarding terms and conditions",
+  consentTerms: [
+    "The hotel promises to care for every pet in line with legal standards, such as the Prevention of Animal Cruelty and Provision of Animal Welfare Act B.E. 2557 (2014), and to keep the premises strictly hygienic.",
+    "The hotel will take the best possible care of your pet but is not responsible for illness, accidents or injuries caused by pre-existing conditions or the pet's own behaviour, such as biting, scratching or rough play.",
+    "The hotel is not responsible if a pet becomes ill or dies due to events beyond its control, such as natural disasters, hidden conditions the pet had before the stay, or emergencies outside the hotel's control.",
+    "If a pet is found to have a contagious disease, ticks or fleas, the hotel may separate the pet from shared areas to prevent spread, and the owner is responsible for any resulting damage.",
+    "If a pet becomes ill during the stay, the hotel will inform the owner as soon as any abnormal signs are found and coordinate with a veterinary hospital. The owner agrees to pay all treatment costs (examination, medicine, recovery, etc.). If the owner cannot be reached, the hotel will arrange emergency treatment at the vet's discretion.",
+    "For pets with a risk of dying during the stay, such as terminally ill or very elderly pets, the hotel reserves the right to accept no responsibility in any case.",
+    "Cancellations or changes to a stay must be notified 5–10 days in advance and may be subject to a fee set by the hotel.",
+    "The owner agrees to be responsible for any damage the pet causes to the hotel's property.",
+    "The hotel is not responsible for the owner's personal items left with the pet, such as collars, toys or other accessories.",
+    "If a pet is intentionally not collected on time or is abandoned, the hotel will act under the Animal Welfare Act and may take any action it considers appropriate.",
+    "If the owner does not attach the pet's vaccine book, the owner acknowledges and accepts all terms, including the risk of the hotel not having checked the pet's vaccination history.",
+  ],
+  groomConsentTitle: "Terms and conditions for pet grooming",
+  groomConsentTerms: [
+    "Health and existing conditions — Owners must truthfully tell us about any existing conditions, medicine or product allergies, skin disease, illness and other precautions. For pets that are unwell or suspected of having a contagious disease, the shop reserves the right to refuse or postpone the service.",
+    "Stress and behaviour — Bathing can make pets stressed, frightened or change their behaviour. If a pet shows severe stress, aggression, abnormal breathing or any health risk, the shop reserves the right to stop the service immediately for safety.",
+    "Skin and coat condition — With heavily matted or tangled fur or skin problems, brushing or clipping may cause irritation or reveal existing hidden wounds. The shop will let the owner know if anything abnormal is found or extra services are needed.",
+    "Safety during the service — Your pet's safety is our first priority and we handle every pet with care. However, allergies, irritation, stress or symptoms of conditions that had not shown before may still occur.",
+    "Emergencies — In an emergency the shop will contact the owner as quickly as possible. If the owner cannot be reached and urgent treatment is needed, the owner allows the shop to take the pet to a vet; costs and responsibility will be decided based on the cause and facts of the incident.",
+    "Stopping the service and charges — If grooming cannot be completed because of the pet's health or behaviour, the shop will inform the owner, summarise what has been done and charge accordingly.",
+    "Scope of responsibility — Owners acknowledge the natural risks of bathing and grooming pets. The shop remains legally responsible for any damage caused by its own negligence.",
+  ],
+};
+
+const sameList = (a: string[] | undefined, b: string[]) =>
+  !a?.length || (a.length === b.length && a.every((x, i) => x.trim() === b[i].trim()));
+
 /** หัวเรื่อง + ข้อตกลงที่ใช้กับนัดนี้ — นัดอาบน้ำใช้ข้อตกลงอาบน้ำ แยกจากกฎเข้าพัก */
 export function consentTextFor(
   m: Partial<MessagesConfig> | undefined,
-  service?: string
+  service?: string,
+  locale: "th" | "en" = "th",
 ): { title: string; terms: string[] } {
+  if (locale === "en") {
+    // ร้านใส่ภาษาอังกฤษเอง → ใช้ของร้าน · ร้านใช้ข้อตกลงของระบบ → ฉบับอังกฤษของระบบ · ร้านแก้ไทยเองไม่ได้ใส่อังกฤษ → ไทยของร้าน
+    const groom = service === "groom";
+    const th = consentTextFor(m, service, "th");
+    const ownEnTerms = (groom ? m?.groomConsentTermsEn : m?.consentTermsEn)?.filter((t) => t.trim());
+    const ownEnTitle = (groom ? m?.groomConsentTitleEn : m?.consentTitleEn)?.trim();
+    const isDefaultTerms = sameList(groom ? m?.groomConsentTerms : m?.consentTerms, groom ? DEFAULT_MESSAGES.groomConsentTerms : DEFAULT_MESSAGES.consentTerms);
+    const thTitle = groom ? m?.groomConsentTitle : m?.consentTitle;
+    const isDefaultTitle = !thTitle?.trim() || thTitle.trim() === (groom ? DEFAULT_MESSAGES.groomConsentTitle : DEFAULT_MESSAGES.consentTitle);
+    return {
+      title: ownEnTitle || (isDefaultTitle ? (groom ? DEFAULT_CONSENT_EN.groomConsentTitle : DEFAULT_CONSENT_EN.consentTitle) : th.title),
+      terms: ownEnTerms?.length
+        ? ownEnTerms
+        : isDefaultTerms
+          ? groom ? DEFAULT_CONSENT_EN.groomConsentTerms : DEFAULT_CONSENT_EN.consentTerms
+          : th.terms,
+    };
+  }
   if (service === "groom") {
     return {
       title: m?.groomConsentTitle || DEFAULT_MESSAGES.groomConsentTitle,

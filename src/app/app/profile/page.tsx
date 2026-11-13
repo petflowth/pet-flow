@@ -26,6 +26,7 @@ import {
 import { customerFetch } from "@/lib/customer-fetch";
 import { NumInput } from "@/components/NumInput";
 import { resolveRegisterForm } from "@/lib/register-form";
+import { breedLabel, enWord } from "@/lib/en-words";
 import {
   EmergencyContactInput,
   emergencyFromForm,
@@ -33,6 +34,7 @@ import {
   type EmergencyForm,
 } from "@/components/EmergencyContactInput";
 import { ReviewSheet, reviewDate, type ReviewSection } from "@/components/ReviewSheet";
+import { useTr, useLocale } from "@/components/LocaleProvider";
 
 const REFERRAL_FALLBACK = [
   "Facebook",
@@ -64,6 +66,8 @@ type CatForm = {
 };
 
 export default function ProfilePage() {
+  const { locale } = useLocale();
+  const tr = useTr();
   const { ready, profile } = useLiff();
   const { config } = useConfig();
   const breeds = breedOptionsFor(config);
@@ -84,8 +88,8 @@ export default function ProfilePage() {
   const [addressMapUrl, setAddressMapUrl] = useState("");
   const [postalCode, setPostalCode] = useState("");
   // เบอร์ติดต่อฉุกเฉิน — กรอกไว้ตอนสมัคร แก้ได้ที่นี่ (ร้านปิดช่องนี้ = ไม่แสดง)
-  const emergencyField = resolveRegisterForm(config.registerForm).emergency;
-  const nicknameField = resolveRegisterForm(config.registerForm).ownerNickname;
+  const emergencyField = resolveRegisterForm(config.registerForm, locale).emergency;
+  const nicknameField = resolveRegisterForm(config.registerForm, locale).ownerNickname;
   const [emergency, setEmergency] = useState<EmergencyForm>(() => emptyEmergencyForm());
   const [consent, setConsent] = useState(true);
   const [taxInvoice, setTaxInvoice] = useState<TaxInvoiceForm>(() => taxInvoiceToForm(null));
@@ -170,7 +174,7 @@ export default function ProfilePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ lineUserId, catId, photoDataUrl }),
     });
-    if (!res.ok) throw new Error("อัปโหลดรูปไม่สำเร็จ ลองใหม่อีกครั้งนะคะ");
+    if (!res.ok) throw new Error(tr("อัปโหลดรูปไม่สำเร็จ ลองใหม่อีกครั้งนะคะ", "Photo upload failed. Please try again."));
   };
 
   const pickPendingPhoto = async (tempId: string, file: File) => {
@@ -179,7 +183,7 @@ export default function ProfilePage() {
       const url = await toJpegDataUrl(file);
       setPendingPhotos((m) => ({ ...m, [tempId]: url }));
     } catch {
-      setPhotoError("เปิดรูปนี้ไม่ได้ ลองเลือกรูปอื่นนะคะ");
+      setPhotoError(tr("เปิดรูปนี้ไม่ได้ ลองเลือกรูปอื่นนะคะ", "Can't open this photo. Please choose another."));
     }
   };
 
@@ -192,7 +196,7 @@ export default function ProfilePage() {
       await postPhoto(profile.lineUserId, catId, photoDataUrl);
       await loadPhotos(profile.lineUserId);
     } catch (e) {
-      setPhotoError(e instanceof Error ? e.message : "อัปโหลดรูปไม่สำเร็จ");
+      setPhotoError(e instanceof Error ? e.message : tr("อัปโหลดรูปไม่สำเร็จ", "Photo upload failed"));
     } finally {
       setUploadingId(null);
     }
@@ -234,54 +238,54 @@ export default function ProfilePage() {
   /** สรุปข้อมูลทั้งหมดก่อนบันทึก */
   const reviewSections = (): ReviewSection[] => [
     {
-      title: "ข้อมูลผู้ปกครอง",
+      title: tr("ข้อมูลผู้ปกครอง", "Owner details"),
       icon: "user",
       rows: [
-        { label: "ชื่อผู้ปกครอง", value: name },
+        { label: tr("ชื่อผู้ปกครอง", "Owner name"), value: name },
         ...(nicknameField.enabled ? [{ label: nicknameField.label, value: nickname }] : []),
-        { label: "เบอร์โทร", value: phone },
-        { label: "อีเมล", value: email },
-        { label: "วันเกิด", value: reviewDate(birthday) },
-        { label: "ที่อยู่บ้าน", value: address },
-        { label: "ลิงก์แผนที่", value: addressMapUrl ? "แนบแล้ว" : "" },
-        { label: "รหัสไปรษณีย์", value: postalCode },
+        { label: tr("เบอร์โทร", "Phone"), value: phone },
+        { label: tr("อีเมล", "Email"), value: email },
+        { label: tr("วันเกิด", "Birthday"), value: reviewDate(birthday, locale) },
+        { label: tr("ที่อยู่บ้าน", "Home address"), value: address },
+        { label: tr("ลิงก์แผนที่", "Map link"), value: addressMapUrl ? tr("แนบแล้ว", "Attached") : "" },
+        { label: tr("รหัสไปรษณีย์", "Postal code"), value: postalCode },
         ...(emergencyField.enabled
           ? [{ label: emergencyField.label, value: [emergency.phone.trim(), emergency.relation.trim()].filter(Boolean).join(" · ") }]
           : []),
-        ...(taxInvoice.on ? [{ label: "ใบกำกับภาษี", value: [taxInvoice.name, taxInvoice.taxId].map((x) => x.trim()).filter(Boolean).join(" · ") }] : []),
+        ...(taxInvoice.on ? [{ label: tr("ใบกำกับภาษี", "Tax invoice"), value: [taxInvoice.name, taxInvoice.taxId].map((x) => x.trim()).filter(Boolean).join(" · ") }] : []),
       ],
     },
     ...cats
       .filter((c) => c.name.trim())
       .map((c) => ({
-        title: c.id.startsWith("new-") ? `น้อง${c.name.trim()} (เพิ่มใหม่)` : `น้อง${c.name.trim()}`,
+        title: c.id.startsWith("new-") ? tr(`น้อง${c.name.trim()} (เพิ่มใหม่)`, `${c.name.trim()} (new)`) : tr(`น้อง${c.name.trim()}`, c.name.trim()),
         icon: "paw",
         rows: [
-          ...(asksSpecies(config) ? [{ label: "ชนิด", value: speciesName(config, c.species) }] : []),
-          { label: "เพศ", value: c.gender === "male" ? "♂ ผู้" : c.gender === "female" ? "♀ เมีย" : "" },
-          { label: "สายพันธุ์", value: c.breed === OTHER_BREED ? c.breedOther : c.breed },
-          { label: "ทำหมัน", value: c.neutered === "yes" ? "ทำหมันแล้ว" : c.neutered === "no" ? "ยังไม่ทำ" : "" },
+          ...(asksSpecies(config) ? [{ label: tr("ชนิด", "Species"), value: speciesName(config, c.species) }] : []),
+          { label: tr("เพศ", "Sex"), value: c.gender === "male" ? tr("♂ ผู้", "♂ Male") : c.gender === "female" ? tr("♀ เมีย", "♀ Female") : "" },
+          { label: tr("สายพันธุ์", "Breed"), value: c.breed === OTHER_BREED ? c.breedOther : c.breed },
+          { label: tr("ทำหมัน", "Neutered"), value: c.neutered === "yes" ? tr("ทำหมันแล้ว", "Neutered") : c.neutered === "no" ? tr("ยังไม่ทำ", "Not yet") : "" },
           {
-            label: "อายุ",
+            label: tr("อายุ", "Age"),
             value: [
-              c.ageValue ? `${c.ageValue} ${c.ageUnit === "month" ? "เดือน" : "ปี"}` : "",
-              c.birthday ? `เกิด ${reviewDate(c.birthday)}` : "",
+              c.ageValue ? `${c.ageValue} ${c.ageUnit === "month" ? tr("เดือน", "months") : tr("ปี", "years")}` : "",
+              c.birthday ? `${tr("เกิด", "born")} ${reviewDate(c.birthday, locale)}` : "",
             ]
               .filter(Boolean)
               .join(" · "),
           },
-          { label: "น้ำหนัก", value: c.weightKg ? `${c.weightKg} กก.` : "" },
-          { label: "โรคประจำตัว / เรื่องที่ช่างต้องรู้", value: [c.medical, c.note].map((x) => x.trim()).filter(Boolean).join("\n") },
-          { label: "ประวัติการชัก/ช็อค", value: c.seizureHistory },
-          { label: "ประวัติการแพ้", value: c.allergy },
+          { label: tr("น้ำหนัก", "Weight"), value: c.weightKg ? `${c.weightKg} ${tr("กก.", "kg")}` : "" },
+          { label: tr("โรคประจำตัว / เรื่องที่ช่างต้องรู้", "Health conditions / notes for the groomer"), value: [c.medical, c.note].map((x) => x.trim()).filter(Boolean).join("\n") },
+          { label: tr("ประวัติการชัก/ช็อค", "Seizure/shock history"), value: c.seizureHistory },
+          { label: tr("ประวัติการแพ้", "Allergies"), value: c.allergy },
         ],
       })),
     {
-      title: "อื่น ๆ",
+      title: tr("อื่น ๆ", "Other"),
       icon: "sparkle",
       rows: [
-        { label: "รู้จักเราจากทางไหน", value: referral },
-        { label: "รับข่าวสาร/โปรโมชั่น", value: consent ? "ยินยอม" : "ไม่ยินยอม" },
+        { label: tr("รู้จักเราจากทางไหน", "How did you hear about us"), value: referral },
+        { label: tr("รับข่าวสาร/โปรโมชั่น", "News/promotions"), value: consent ? tr("ยินยอม", "Yes") : tr("ไม่ยินยอม", "No") },
       ],
     },
   ];
@@ -290,14 +294,14 @@ export default function ProfilePage() {
   const review = () => {
     if (!profile?.lineUserId || !name.trim()) return;
     if (asksSpecies(config) && cats.some((c) => c.name.trim() && !c.species)) {
-      setSaveError("เลือกชนิดของน้องแต่ละตัวด้วยนะคะ");
+      setSaveError(tr("เลือกชนิดของน้องแต่ละตัวด้วยนะคะ", "Please choose the species for each pet."));
       return;
     }
     if (emergency.phone.trim() && emergency.phone.replace(/\D/g, "").length < 9) {
-      setSaveError("เบอร์ติดต่อฉุกเฉินยังไม่ครบ ลองเช็คอีกทีนะคะ");
+      setSaveError(tr("เบอร์ติดต่อฉุกเฉินยังไม่ครบ ลองเช็คอีกทีนะคะ", "The emergency phone number looks incomplete. Please check it."));
       return;
     }
-    const taxProblem = taxInvoiceProblem(formToTaxInvoice(taxInvoice));
+    const taxProblem = taxInvoiceProblem(formToTaxInvoice(taxInvoice), locale);
     setSaveError(taxProblem);
     if (taxProblem) return;
     setReviewing(true);
@@ -348,7 +352,7 @@ export default function ProfilePage() {
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        setSaveError(d.error || "บันทึกไม่สำเร็จ ลองใหม่อีกครั้งนะคะ");
+        setSaveError(d.error || tr("บันทึกไม่สำเร็จ ลองใหม่อีกครั้งนะคะ", "Couldn't save. Please try again."));
       }
       if (res.ok) {
         // อัปรูปที่เลือกไว้ให้น้องที่เพิ่งได้ id จริง
@@ -358,21 +362,21 @@ export default function ProfilePage() {
           const url = pendingPhotos[tempId];
           if (!url) continue;
           await postPhoto(profile.lineUserId, id, url).catch(() =>
-            failed.push(cats.find((c) => c.id === tempId)?.name || "น้อง")
+            failed.push(cats.find((c) => c.id === tempId)?.name || tr("น้อง", "pet"))
           );
         }
         setPendingPhotos({});
         if (failed.length)
-          setPhotoError(`บันทึกข้อมูลแล้ว แต่อัปรูป ${failed.join(", ")} ไม่สำเร็จ ลองเพิ่มรูปใหม่อีกครั้งนะคะ`);
+          setPhotoError(tr(`บันทึกข้อมูลแล้ว แต่อัปรูป ${failed.join(", ")} ไม่สำเร็จ ลองเพิ่มรูปใหม่อีกครั้งนะคะ`, `Saved, but the photo for ${failed.join(", ")} didn't upload. Please add it again.`));
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);
         setReviewing(false);
-        savedPopup("บันทึกข้อมูลสำเร็จ");
+        savedPopup(tr("บันทึกข้อมูลสำเร็จ", "Saved"));
         // โหลดใหม่ให้น้องที่เพิ่งเพิ่ม (id "new-…") ได้ id จริง — ไม่งั้นกดบันทึกซ้ำจะสร้างซ้ำ และอัปรูปได้ทันที
         setReloadKey((k) => k + 1);
       }
     } catch {
-      setSaveError("เชื่อมต่อไม่สำเร็จ — เช็คสัญญาณอินเทอร์เน็ตแล้วลองใหม่นะคะ");
+      setSaveError(tr("เชื่อมต่อไม่สำเร็จ — เช็คสัญญาณอินเทอร์เน็ตแล้วลองใหม่นะคะ", "Connection failed. Check your internet and try again."));
     } finally {
       setSaving(false);
     }
@@ -389,9 +393,9 @@ export default function ProfilePage() {
     <div className="px-4 pb-6 pt-5">
       <PageHeader
         eyebrow="Profile"
-        title="แก้ไขข้อมูลของฉัน"
+        title={tr("แก้ไขข้อมูลของฉัน", "Edit my details")}
         back="/app"
-        backLabel="กลับหน้าแรก"
+        backLabel={tr("กลับหน้าแรก", "Back to home")}
         showLang={false}
       />
 
@@ -400,30 +404,30 @@ export default function ProfilePage() {
       ) : !found ? (
         <>
           <div className="rounded-petflow border border-petflow-line bg-card shadow-petflow-sm">
-            <EmptyState icon="user" title="ยังไม่มีข้อมูลของคุณในระบบ" />
+            <EmptyState icon="user" title={tr("ยังไม่มีข้อมูลของคุณในระบบ", "We don't have your details yet")} />
           </div>
           <Link href="/app/register" className={`mt-5 ${BTN_PRIMARY}`}>
             <Icon name="edit" size={18} />
-            ลงทะเบียนก่อนค่ะ
+            {tr("ลงทะเบียนก่อนค่ะ", "Sign up first")}
           </Link>
         </>
       ) : (
         <>
           {/* ── ผู้ปกครอง ── */}
-          <SectionLabel>Owner · ผู้ปกครอง</SectionLabel>
+          <SectionLabel>{tr("Owner · ผู้ปกครอง", "Owner")}</SectionLabel>
           <div className="space-y-3 rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm">
             <label className="block text-xs font-bold text-brown-soft">
-              ชื่อ-นามสกุล
+              {tr("ชื่อ-นามสกุล", "Full name")}
               <input value={name} onChange={(e) => setName(e.target.value)} className={`${field} mt-1 font-bold text-brown`} />
             </label>
             {nicknameField.enabled && (
               <label className="block text-xs font-bold text-brown-soft">
                 {nicknameField.label}
-                <input value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="เช่น มาย" className={`${field} mt-1`} />
+                <input value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder={tr("เช่น มาย", "e.g. May")} className={`${field} mt-1`} />
               </label>
             )}
             <label className="block text-xs font-bold text-brown-soft">
-              เบอร์โทร
+              {tr("เบอร์โทร", "Phone")}
               <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" placeholder="08x-xxx-xxxx" className={`${field} mt-1`} />
             </label>
             {emergencyField.enabled && (
@@ -437,41 +441,41 @@ export default function ProfilePage() {
             )}
             <div className="grid grid-cols-2 gap-3">
               <label className="block text-xs font-bold text-brown-soft">
-                อีเมล
+                {tr("อีเมล", "Email")}
                 <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="you@email.com" className={`${field} mt-1`} />
               </label>
               <label className="block text-xs font-bold text-brown-soft">
-                วันเกิด
+                {tr("วันเกิด", "Birthday")}
                 <input value={birthday} onChange={(e) => setBirthday(e.target.value)} type="date" className={`${field} mt-1`} />
               </label>
             </div>
             <label className="block text-xs font-bold text-brown-soft">
-              ที่อยู่บ้าน{" "}
-              <span className="font-normal text-brown-faint">(ไว้ใช้บริการรับ-ส่ง)</span>
+              {tr("ที่อยู่บ้าน", "Home address")}{" "}
+              <span className="font-normal text-brown-faint">{tr("(ไว้ใช้บริการรับ-ส่ง)", "(for pick-up/drop-off)")}</span>
               <textarea
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="เช่น บ้านเลขที่ ซอย ถนน แขวง/ตำบล เขต/อำเภอ"
+                placeholder={tr("เช่น บ้านเลขที่ ซอย ถนน แขวง/ตำบล เขต/อำเภอ", "e.g. house no., street, district")}
                 rows={2}
                 className={`${field} mt-1`}
               />
             </label>
             <label className="block text-xs font-bold text-brown-soft">
-              ลิงก์ Google Maps
+              {tr("ลิงก์ Google Maps", "Google Maps link")}
               <input
                 value={addressMapUrl}
                 onChange={(e) => setAddressMapUrl(e.target.value)}
-                placeholder="เปิด Maps แล้วกดแชร์ลิงก์มาวางตรงนี้"
+                placeholder={tr("เปิด Maps แล้วกดแชร์ลิงก์มาวางตรงนี้", "Open Maps, tap Share and paste the link here")}
                 className={`${field} mt-1`}
               />
             </label>
             <label className="block text-xs font-bold text-brown-soft">
-              รหัสไปรษณีย์
+              {tr("รหัสไปรษณีย์", "Postal code")}
               <input
                 value={postalCode}
                 onChange={(e) => setPostalCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 5))}
                 inputMode="numeric"
-                placeholder="เช่น 10260"
+                placeholder={tr("เช่น 10260", "e.g. 10260")}
                 className={`${field} mt-1`}
               />
             </label>
@@ -487,13 +491,13 @@ export default function ProfilePage() {
 
           {/* ── น้องแมว ── */}
           <div className="mt-6 space-y-3">
-            <SectionLabel>{`My ${pw.enPlural} · น้อง${pw.th}ของฉัน`}</SectionLabel>
+            <SectionLabel>{tr(`My ${pw.enPlural} · น้อง${pw.th}ของฉัน`, `My ${pw.enPlural}`)}</SectionLabel>
             {cats.map((cat, idx) => (
               <div key={cat.id} className="space-y-2.5 rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm">
                 {!cat.id.startsWith("new-") ? (
                   <CatPhoto
                     src={photos[cat.id]}
-                    name={cat.name || `น้อง${speciesWords(cat.species || undefined, config).th}`}
+                    name={cat.name || tr(`น้อง${speciesWords(cat.species || undefined, config).th}`, speciesWords(cat.species || undefined, config).en)}
                     size={0}
                     onPick={(f) => uploadPhoto(cat.id, f)}
                     uploading={uploadingId === cat.id}
@@ -501,7 +505,7 @@ export default function ProfilePage() {
                 ) : (
                   <CatPhoto
                     src={pendingPhotos[cat.id]}
-                    name={cat.name || `น้อง${speciesWords(cat.species || undefined, config).th}`}
+                    name={cat.name || tr(`น้อง${speciesWords(cat.species || undefined, config).th}`, speciesWords(cat.species || undefined, config).en)}
                     size={0}
                     onPick={(f) => pickPendingPhoto(cat.id, f)}
                   />
@@ -520,11 +524,11 @@ export default function ProfilePage() {
                   }
                 />
                 <label className="block text-xs font-bold text-brown-soft">
-                  ชื่อน้อง
+                  {tr("ชื่อน้อง", "Pet's name")}
                   <input value={cat.name} onChange={(e) => updateCat(idx, { name: e.target.value })} className={`${sub} mt-1 font-bold text-brown`} />
                 </label>
                 <div className="flex gap-1 rounded-full bg-paper p-1">
-                  {([["male", "♂ ผู้"], ["female", "♀ เมีย"]] as const).map(([v, l]) => (
+                  {([["male", tr("♂ ผู้", "♂ Male")], ["female", tr("♀ เมีย", "♀ Female")]] as const).map(([v, l]) => (
                     <button
                       key={v}
                       type="button"
@@ -541,17 +545,17 @@ export default function ProfilePage() {
                   onChange={(e) => updateCat(idx, { breed: e.target.value })}
                   className={`${sub} ${cat.breed ? "text-brown" : "text-brown-faint"}`}
                 >
-                  <option value="">เลือกสายพันธุ์…</option>
+                  <option value="">{tr("เลือกสายพันธุ์…", "Choose breed…")}</option>
                   {breedOptionsForSpecies(config, cat.species || undefined).map((b) => (
-                    <option key={b} value={b} className="text-brown">{b}</option>
+                    <option key={b} value={b} className="text-brown">{breedLabel(b, locale)}</option>
                   ))}
-                  <option value={OTHER_BREED} className="text-brown">{OTHER_BREED}</option>
+                  <option value={OTHER_BREED} className="text-brown">{breedLabel(OTHER_BREED, locale)}</option>
                 </select>
                 {cat.breed === OTHER_BREED && (
-                  <input value={cat.breedOther} onChange={(e) => updateCat(idx, { breedOther: e.target.value })} placeholder="ระบุสายพันธุ์" className={sub} />
+                  <input value={cat.breedOther} onChange={(e) => updateCat(idx, { breedOther: e.target.value })} placeholder={tr("ระบุสายพันธุ์", "Enter breed")} className={sub} />
                 )}
                 <div className="flex gap-1 rounded-full bg-paper p-1">
-                  {([["yes", "ทำหมันแล้ว"], ["no", "ยังไม่ทำ"]] as const).map(([v, l]) => (
+                  {([["yes", tr("ทำหมันแล้ว", "Neutered")], ["no", tr("ยังไม่ทำ", "Not yet")]] as const).map(([v, l]) => (
                     <button
                       key={v}
                       type="button"
@@ -564,7 +568,7 @@ export default function ProfilePage() {
                   ))}
                 </div>
                 <div className="flex gap-1 rounded-full bg-paper p-1">
-                  {([["yes", "วัคซีนครบแล้ว"], ["no", "วัคซีนยังไม่ครบ"]] as const).map(([v, l]) => (
+                  {([["yes", tr("วัคซีนครบแล้ว", "Vaccines up to date")], ["no", tr("วัคซีนยังไม่ครบ", "Vaccines not complete")]] as const).map(([v, l]) => (
                     <button
                       key={v}
                       type="button"
@@ -583,7 +587,7 @@ export default function ProfilePage() {
                     inputMode="numeric"
                     value={cat.ageValue}
                     onChange={(e) => updateCat(idx, { ageValue: e.target.value })}
-                    placeholder="อายุ"
+                    placeholder={tr("อายุ", "Age")}
                     className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-petflow-line bg-paper px-3 py-2 text-sm"
                   />
                   <select
@@ -591,12 +595,12 @@ export default function ProfilePage() {
                     onChange={(e) => updateCat(idx, { ageUnit: e.target.value as "year" | "month" })}
                     className="min-h-[44px] w-24 shrink-0 rounded-xl border border-petflow-line bg-paper px-3 py-2 text-sm"
                   >
-                    <option value="year">ปี</option>
-                    <option value="month">เดือน</option>
+                    <option value="year">{tr("ปี", "years")}</option>
+                    <option value="month">{tr("เดือน", "months")}</option>
                   </select>
                 </div>
                 <label className="block text-[11px] font-bold text-brown-soft">
-                  น้ำหนัก <span className="font-normal text-brown-faint">(กก. · ไม่บังคับ)</span>
+                  {tr("น้ำหนัก", "Weight")} <span className="font-normal text-brown-faint">{tr("(กก. · ไม่บังคับ)", "(kg · optional)")}</span>
                   <NumInput
                     type="number"
                     min="0"
@@ -604,12 +608,12 @@ export default function ProfilePage() {
                     inputMode="decimal"
                     value={cat.weightKg}
                     onChange={(e) => updateCat(idx, { weightKg: e.target.value })}
-                    placeholder="เช่น 4.5"
+                    placeholder={tr("เช่น 4.5", "e.g. 4.5")}
                     className={`${sub} mt-0.5`}
                   />
                 </label>
                 <div className="text-[11px] font-bold text-brown-soft">
-                  วันเกิดน้อง <span className="font-normal text-brown-faint">(ถ้าทราบ)</span>
+                  {tr("วันเกิดน้อง", "Pet's birthday")} <span className="font-normal text-brown-faint">{tr("(ถ้าทราบ)", "(if known)")}</span>
                   <div className="mt-0.5">
                     <BirthdayPicker
                       value={cat.birthday}
@@ -620,18 +624,18 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 <StaffNoteTagPicker
-                  label="โรคประจำตัว / เรื่องที่ช่างต้องรู้"
+                  label={tr("โรคประจำตัว / เรื่องที่ช่างต้องรู้", "Health conditions / notes for the groomer")}
                   medicalValue={cat.medical}
                   noteValue={cat.note}
                   onChange={(medical, note) => updateCat(idx, { medical, note })}
                 />
                 <label className="block text-[11px] font-bold text-brown-soft">
-                  ประวัติการชัก/ช็อค <span className="font-normal text-brown-faint">(ไม่มีเว้นว่างได้)</span>
-                  <input value={cat.seizureHistory} onChange={(e) => updateCat(idx, { seizureHistory: e.target.value })} placeholder="เช่น ไม่เคย · หรือ เคยชักตอนตกใจ" className={`${sub} mt-0.5 font-normal text-brown`} />
+                  {tr("ประวัติการชัก/ช็อค", "Seizure/shock history")} <span className="font-normal text-brown-faint">{tr("(ไม่มีเว้นว่างได้)", "(leave blank if none)")}</span>
+                  <input value={cat.seizureHistory} onChange={(e) => updateCat(idx, { seizureHistory: e.target.value })} placeholder={tr("เช่น ไม่เคย · หรือ เคยชักตอนตกใจ", "e.g. never · or had a seizure when frightened")} className={`${sub} mt-0.5 font-normal text-brown`} />
                 </label>
                 <label className="block text-[11px] font-bold text-brown-soft">
-                  ประวัติการแพ้ <span className="font-normal text-brown-faint">(อาหาร / ยา / แชมพู)</span>
-                  <input value={cat.allergy} onChange={(e) => updateCat(idx, { allergy: e.target.value })} placeholder="เช่น ไม่มี · หรือ แพ้ไก่ แพ้แชมพูบางยี่ห้อ" className={`${sub} mt-0.5 font-normal text-brown`} />
+                  {tr("ประวัติการแพ้", "Allergies")} <span className="font-normal text-brown-faint">{tr("(อาหาร / ยา / แชมพู)", "(food / medicine / shampoo)")}</span>
+                  <input value={cat.allergy} onChange={(e) => updateCat(idx, { allergy: e.target.value })} placeholder={tr("เช่น ไม่มี · หรือ แพ้ไก่ แพ้แชมพูบางยี่ห้อ", "e.g. none · or chicken, some shampoos")} className={`${sub} mt-0.5 font-normal text-brown`} />
                 </label>
                 {cat.id.startsWith("new-") && (
                   <button
@@ -640,7 +644,7 @@ export default function ProfilePage() {
                     className="-ml-1 flex min-h-[44px] items-center gap-1.5 px-1 text-xs font-bold text-brown-soft"
                   >
                     <Icon name="trash" size={15} />
-                    ลบน้อง{pw.th}ตัวนี้
+                    {tr(`ลบน้อง${pw.th}ตัวนี้`, `Remove this ${pw.en}`)}
                   </button>
                 )}
               </div>
@@ -661,19 +665,19 @@ export default function ProfilePage() {
                 <Icon name="plus" size={20} strokeWidth={2.4} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-extrabold">เพิ่มน้อง{pw.th}อีกตัว</span>
-                <span className="block text-[11px] text-petflow-chocolate/70">มีหลายตัว เพิ่มได้ทุกตัวเลยค่ะ</span>
+                <span className="block text-sm font-extrabold">{tr(`เพิ่มน้อง${pw.th}อีกตัว`, `Add another ${pw.en}`)}</span>
+                <span className="block text-[11px] text-petflow-chocolate/70">{tr("มีหลายตัว เพิ่มได้ทุกตัวเลยค่ะ", "Have several? Add them all.")}</span>
               </span>
               <Icon name="paw" size={22} className="text-petflow-chocolate/60" />
             </button>
             <p className="text-[11px] text-brown-faint">
-              กรอกข้อมูลน้องใหม่แล้วกด “บันทึก” ด้านล่างเพื่อเพิ่มเข้าระบบ 🧡
+              {tr("กรอกข้อมูลน้องใหม่แล้วกด “บันทึก” ด้านล่างเพื่อเพิ่มเข้าระบบ 🧡", "Fill in the new pet's details, then tap “Save” below 🧡")}
             </p>
           </div>
 
           {/* ── รู้จักเราจากทางไหน ── */}
           <div className="mt-6">
-            <SectionLabel>Referral · รู้จักเราจากทางไหน?</SectionLabel>
+            <SectionLabel>{tr("Referral · รู้จักเราจากทางไหน?", "How did you hear about us?")}</SectionLabel>
             <div className="flex flex-wrap gap-2 rounded-petflow border border-petflow-line bg-card p-3 shadow-petflow-sm">
               {referrals.map((opt) => (
                 <button
@@ -683,7 +687,7 @@ export default function ProfilePage() {
                   onClick={() => setReferral((p) => (p === opt ? "" : opt))}
                   className={chip(referral === opt)}
                 >
-                  {opt}
+                  {enWord(opt, locale)}
                 </button>
               ))}
             </div>
@@ -692,7 +696,7 @@ export default function ProfilePage() {
           {/* ── ยินยอมรับข่าวสาร ── */}
           <label className="mt-4 flex min-h-[48px] cursor-pointer items-center gap-3 rounded-petflow border border-petflow-line bg-card p-4 shadow-petflow-sm">
             <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="h-5 w-5 flex-none accent-latte-deep" />
-            <span className="text-xs text-brown">ยินยอมให้ส่งข่าวสาร โปรโมชั่น และสิทธิพิเศษ</span>
+            <span className="text-xs text-brown">{tr("ยินยอมให้ส่งข่าวสาร โปรโมชั่น และสิทธิพิเศษ", "I agree to receive news, promotions and special offers")}</span>
           </label>
 
           <button
@@ -701,7 +705,7 @@ export default function ProfilePage() {
             disabled={saving || !name.trim()}
             className={`mt-6 ${BTN_PRIMARY}`}
           >
-            {saving ? "กำลังบันทึก…" : "บันทึกข้อมูล"}
+            {saving ? tr("กำลังบันทึก…", "Saving…") : tr("บันทึกข้อมูล", "Save")}
           </button>
           {saveError && !reviewing && (
             <p className="mt-2 text-center text-sm font-bold text-red-700">{saveError}</p>
@@ -711,7 +715,7 @@ export default function ProfilePage() {
             sections={reviewing ? reviewSections() : []}
             saving={saving}
             error={saveError}
-            confirmLabel="ยืนยัน บันทึกข้อมูล"
+            confirmLabel={tr("ยืนยัน บันทึกข้อมูล", "Confirm and save")}
             onEdit={() => {
               setReviewing(false);
               setSaveError("");
@@ -721,7 +725,7 @@ export default function ProfilePage() {
           {saved && (
             <p className="mt-2 flex items-center justify-center gap-1.5 text-sm font-extrabold text-ok">
               <Icon name="check" size={16} strokeWidth={2.4} />
-              บันทึกเรียบร้อยแล้วค่ะ 🧡
+              {tr("บันทึกเรียบร้อยแล้วค่ะ 🧡", "Saved 🧡")}
             </p>
           )}
         </>

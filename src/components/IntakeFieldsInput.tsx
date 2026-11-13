@@ -1,5 +1,6 @@
 "use client";
 
+import { useTr } from "@/components/LocaleProvider";
 import { otherKey, type GroomField } from "@/lib/groom-form";
 import type { IntakeAnswers } from "@/lib/intake-rules";
 
@@ -18,6 +19,7 @@ export function IntakeFieldsInput({
   showMissing: boolean;
   inputClass: string;
 }) {
+  const tr = useTr();
   const chip = (active: boolean, label: string, onClick: () => void, key: string) => (
     <button
       key={key}
@@ -61,7 +63,7 @@ export function IntakeFieldsInput({
               <input
                 value={String(answers[otherKey(fd.key)] || "")}
                 onChange={(e) => onChange(otherKey(fd.key), e.target.value)}
-                placeholder="อื่นๆ พิมพ์เองได้ (ถ้ามี)"
+                placeholder={tr("อื่นๆ พิมพ์เองได้ (ถ้ามี)", "Other — type your own (if any)")}
                 className={`mt-2 ${inputClass}`}
               />
             )}

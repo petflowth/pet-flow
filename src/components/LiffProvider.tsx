@@ -125,6 +125,15 @@ const RELOGIN_KEY = "petflow-liff-relogin";
  * หมดอายุแล้ว → ล็อกอินใหม่เพื่อเอา token สด (กันวนซ้ำ: ลองได้ครั้งเดียวต่อ 1 นาที)
  * คืน true = กำลังพาไปล็อกอินใหม่ อย่าทำอะไรต่อ
  */
+/** ข้อความ error ตามภาษาที่ลูกค้าเลือกไว้ในเครื่อง (ใช้นอก hook ได้) */
+function lineErr(th: string, en: string): string {
+  try {
+    return localStorage.getItem("petflow-locale") === "en" ? en : th;
+  } catch {
+    return th;
+  }
+}
+
 function reloginIfTokenExpired(liff: LiffAuthModule | null): boolean {
   // ในแอป LINE เปิดใหม่ทุกครั้งได้ token สดอยู่แล้ว (login() ใช้ในนั้นไม่ได้)
   if (!liff || typeof window === "undefined" || liff.isInClient()) return false;
@@ -196,7 +205,7 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
         if (!auth) {
           // LINE ไม่ส่งทั้ง ID token และ access token มา
           setCustomerSessionIssue("no_token");
-          setError("เชื่อมต่อ LINE ไม่สำเร็จ — ปิดหน้านี้แล้วเปิดใหม่จาก LINE อีกครั้งนะคะ (รหัส L1)");
+          setError(lineErr("เชื่อมต่อ LINE ไม่สำเร็จ — ปิดหน้านี้แล้วเปิดใหม่จาก LINE อีกครั้งนะคะ (รหัส L1)", "Couldn't connect to LINE. Please close this page and reopen it from LINE (code L1)"));
           setReady(true);
           return;
         }
@@ -257,7 +266,7 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
         if (!isLocalDev) {
           // ร้านนี้หา LIFF ID ไม่เจอ (ยังไม่ตั้ง / หาร้านไม่เจอ) — แนบรหัสไว้ให้ไล่ปัญหาจากรูปหน้าจอได้
           setError(
-            `เชื่อมต่อ LINE ไม่สำเร็จ — ปิดหน้านี้แล้วเปิดใหม่จาก LINE อีกครั้งนะคะ (รหัส L2${liffErr ? `-${liffErr}` : ""})`
+            lineErr(`เชื่อมต่อ LINE ไม่สำเร็จ — ปิดหน้านี้แล้วเปิดใหม่จาก LINE อีกครั้งนะคะ (รหัส L2${liffErr ? `-${liffErr}` : ""})`, `Couldn't connect to LINE. Please close this page and reopen it from LINE (code L2${liffErr ? `-${liffErr}` : ""})`)
           );
           setReady(true);
           return;
@@ -290,7 +299,7 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
           })
         )
         .catch((e) => {
-          setError(`เชื่อมต่อ LINE ไม่สำเร็จ (รหัส L3: ${String(e)})`);
+          setError(lineErr(`เชื่อมต่อ LINE ไม่สำเร็จ (รหัส L3: ${String(e)})`, `Couldn't connect to LINE (code L3: ${String(e)})`));
           setReady(true);
         });
     }
@@ -300,7 +309,7 @@ export function LiffProvider({ children }: { children: React.ReactNode }) {
     // ถ้าล็อกอิน LINE ค้างระหว่างทาง (redirect ไม่กลับมา) อย่าค้างจอเปล่าตลอดไป
     const stuckTimer = setTimeout(() => {
       setReady((r) => {
-        if (!r) setError("เข้าสู่ระบบช้ากว่าปกติ — ลองแตะปุ่มด้านล่างเพื่อโหลดใหม่");
+        if (!r) setError(lineErr("เข้าสู่ระบบช้ากว่าปกติ — ลองแตะปุ่มด้านล่างเพื่อโหลดใหม่", "Signing in is taking longer than usual. Tap the button below to reload."));
         return r;
       });
     }, 10000);

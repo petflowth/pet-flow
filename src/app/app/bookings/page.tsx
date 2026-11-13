@@ -15,8 +15,8 @@ import { groupBookings, groupCatNames, stayForGroom } from "@/lib/booking-group"
 import { bangkokToday } from "@/lib/bangkok-date";
 import { useConfig } from "@/components/ConfigProvider";
 import { isFeatureOn } from "@/lib/features";
-import { formatThaiDateShort } from "@/lib/format-thai-date";
-import { FLOW_STEP_LABEL, flowStepHref, type FlowToken } from "@/lib/intake-flow";
+import { formatDateShort } from "@/lib/format-thai-date";
+import { flowStepLabel, flowStepHref, type FlowToken } from "@/lib/intake-flow";
 
 /** API ส่ง checkin มาด้วยจริง (ใช้จัดกลุ่มบ้านเดียวกัน/นัดเดียวกัน) แต่ type Booking กลางไม่มีฟิลด์นี้ */
 type BookingRow = Booking & {
@@ -34,7 +34,7 @@ type BookingRow = Booking & {
  * รวมเรื่องที่ค้างของทั้งบ้านเป็นลำดับเดียว (ประวัติ → สมุดวัคซีน → บัตร → กฎ) แล้วคืนลิงก์ขั้นแรก
  * ลูกค้าที่ปัดการ์ด LINE หายไป/ยังไม่ได้รับการ์ด ทำต่อเองจากหน้านี้ได้ ไม่ต้องทักถามร้าน
  */
-function todoFlow(group: BookingRow[]): { href: string; labels: string[] } | null {
+function todoFlow(group: BookingRow[], locale: "th" | "en" = "th"): { href: string; labels: string[] } | null {
   const pick = (k: "info" | "vaccine" | "idcard" | "consent") => group.filter((x) => x.todo?.[k]).map((x) => x.id);
   const tokens: FlowToken[] = [];
   const info = pick("info");
@@ -49,7 +49,7 @@ function todoFlow(group: BookingRow[]): { href: string; labels: string[] } | nul
   const kind = group[0].service === "room" ? "stay" : "groom";
   return {
     href: flowStepHref(tokens[0], tokens.slice(1), { by: "b", kind, total: tokens.length }),
-    labels: tokens.map((t) => FLOW_STEP_LABEL[t.step]),
+    labels: tokens.map((t) => flowStepLabel(t.step, locale)),
   };
 }
 
@@ -170,9 +170,9 @@ function BookingsContent() {
                         : config.rooms.find((r) => r.id === primary.room)?.name || m.room}{" "}
                       ·{" "}
                       {primary.service === "room" && primary.checkin
-                        ? `${formatThaiDateShort(primary.checkin)}${primary.checkout ? ` → ${formatThaiDateShort(primary.checkout)}` : ""}`
+                        ? `${formatDateShort(primary.checkin, locale)}${primary.checkout ? ` → ${formatDateShort(primary.checkout, locale)}` : ""}`
                         : primary.date
-                          ? formatThaiDateShort(primary.date)
+                          ? formatDateShort(primary.date, locale)
                           : ""}
                       {primary.time && !mixedTime ? ` · ${primary.time}` : ""}
                     </p>
@@ -201,7 +201,7 @@ function BookingsContent() {
                       <p className="mt-0.5 flex items-center gap-1 text-xs text-brown-soft">
                         <Icon name="bath" size={13} />
                         {locale === "th" ? "อาบน้ำก่อนกลับ" : "Bath before going home"}{" "}
-                        {baths[0].date ? formatThaiDateShort(baths[0].date) : ""}
+                        {baths[0].date ? formatDateShort(baths[0].date, locale) : ""}
                         {baths[0].time ? ` · ${baths[0].time}` : ""}
                       </p>
                     )}
@@ -228,7 +228,7 @@ function BookingsContent() {
                 </div>
 
                 {(() => {
-                  const flow = past || status === "cancelled" ? null : todoFlow(group);
+                  const flow = past || status === "cancelled" ? null : todoFlow(group, locale);
                   if (!flow) return null;
                   return (
                     <div className="mt-3 rounded-petflow-sm bg-honey/15 p-3">
@@ -281,13 +281,13 @@ function BookingsContent() {
                   savedArrival(primary) && (
                     <p className="mt-3 flex items-center gap-1.5 pl-[52px] text-xs font-semibold text-ok">
                       <Icon name="clock" size={14} />
-                      เวลามาส่งน้อง {savedArrival(primary)} น.
+                      {locale === "th" ? `เวลามาส่งน้อง ${savedArrival(primary)} น.` : `Drop-off time ${savedArrival(primary)}`}
                       {primary.status === "confirmed" && asksTime(primary) && (
                         <a
                           href={`/app/booking-time?id=${primary.id}&type=checkin`}
                           className="ml-auto inline-flex min-h-[44px] items-center px-1 font-bold text-brown-soft underline"
                         >
-                          เปลี่ยนเวลา
+                          {locale === "th" ? "เปลี่ยนเวลา" : "Change"}
                         </a>
                       )}
                     </p>

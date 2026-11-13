@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/LocaleProvider";
 import { useSearchParams } from "next/navigation";
 import { Icon } from "@/components/Icon";
 import { flowProgress } from "@/lib/intake-flow";
@@ -10,7 +11,9 @@ import { flowProgress } from "@/lib/intake-flow";
  */
 export function IntakeFlowBar({ mode }: { mode: "progress" | "next" }) {
   const params = useSearchParams();
-  const p = flowProgress(params);
+  const { locale } = useLocale();
+  const tr = (th: string, en: string) => (locale === "en" ? en : th);
+  const p = flowProgress(params, locale);
   if (!p) return null;
 
   if (mode === "progress") {
@@ -26,13 +29,13 @@ export function IntakeFlowBar({ mode }: { mode: "progress" | "next" }) {
           ))}
         </div>
         <span className="shrink-0 text-[11px] font-bold text-brown-soft">
-          ขั้นที่ {p.index} จาก {p.total}
+          {tr(`ขั้นที่ ${p.index} จาก ${p.total}`, `Step ${p.index} of ${p.total}`)}
         </span>
       </div>
       <p className="mt-1 text-[11px] text-brown-faint">
         {p.upcoming.length
-          ? `ขั้นถัดไป: ${p.upcoming.join(" → ")} · แต่ละเรื่องส่งหน้าเดียวพอค่ะ`
-          : "ขั้นสุดท้ายแล้วค่ะ"}
+          ? tr(`ขั้นถัดไป: ${p.upcoming.join(" → ")} · แต่ละเรื่องส่งหน้าเดียวพอค่ะ`, `Next: ${p.upcoming.join(" → ")} · each item only needs sending once`)
+          : tr("ขั้นสุดท้ายแล้วค่ะ", "This is the last step")}
       </p>
       </div>
     );
@@ -42,7 +45,7 @@ export function IntakeFlowBar({ mode }: { mode: "progress" | "next" }) {
     return (
       <p className="mt-4 flex items-center justify-center gap-1.5 rounded-petflow-sm bg-sage/20 px-3 py-3 text-xs font-bold text-ok">
         <Icon name="check" size={16} strokeWidth={2.4} />
-        ขั้นสุดท้ายแล้ว ส่งครบแล้วกลับไปที่แชท LINE ได้เลยค่ะ
+        {tr("ขั้นสุดท้ายแล้ว ส่งครบแล้วกลับไปที่แชท LINE ได้เลยค่ะ", "All done — you can go back to the LINE chat")}
       </p>
     );
   }
@@ -51,7 +54,7 @@ export function IntakeFlowBar({ mode }: { mode: "progress" | "next" }) {
       href={p.next.href}
       className="mt-4 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-petflow-sm bg-latte-deep px-4 py-3 text-sm font-extrabold text-white shadow-petflow-sm"
     >
-      ถัดไป: {p.next.label}
+      {tr("ถัดไป:", "Next:")} {p.next.label}
       <Icon name="chevron" size={16} />
     </a>
   );

@@ -4,12 +4,13 @@ import { savedPopup } from "@/components/Toast";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLiff } from "@/components/LiffProvider";
-import { formatThaiDateShort } from "@/lib/format-thai-date";
+import { formatDateShort } from "@/lib/format-thai-date";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { BTN_PRIMARY, PageHeader } from "@/components/PageHeader";
 import { EmptyState, SectionLabel } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { ReviewSheet } from "@/components/ReviewSheet";
+import { useTr, useLocale } from "@/components/LocaleProvider";
 
 type Bk = {
   id: string;
@@ -35,6 +36,8 @@ const field =
 
 /** ลูกค้ากรอกจุดรับ-ส่งน้องก่อนวันนัด — วางลิงก์ Google Maps หรือกดใช้ตำแหน่งปัจจุบัน */
 function BookingTransportContent() {
+  const { locale } = useLocale();
+  const tr = useTr();
   const sp = useSearchParams();
   const id = sp.get("id") || "";
   const kindHome = sp.get("kind") === "home";
@@ -52,7 +55,7 @@ function BookingTransportContent() {
   const [reviewing, setReviewing] = useState(false);
   // บริการที่บ้าน: หน้าเดียวกัน แต่ถามเป็น "ที่อยู่บ้าน" แทน "จุดรับ-ส่ง"
   const home = bk ? !!bk.atHome : kindHome;
-  const spot = home ? "ที่อยู่บ้าน" : "จุดรับ-ส่ง";
+  const spot = home ? tr("ที่อยู่บ้าน", "home address") : tr("จุดรับ-ส่ง", "pick-up/drop-off point");
 
   useEffect(() => {
     if (!id) {
@@ -74,7 +77,7 @@ function BookingTransportContent() {
 
   const useCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setError("เครื่องนี้ส่งตำแหน่งไม่ได้ — วางลิงก์ Google Maps แทนได้เลยค่ะ");
+      setError(tr("เครื่องนี้ส่งตำแหน่งไม่ได้ — วางลิงก์ Google Maps แทนได้เลยค่ะ", "This device can't share its location. Paste a Google Maps link instead."));
       return;
     }
     setLocating(true);
@@ -86,7 +89,7 @@ function BookingTransportContent() {
         setLocating(false);
       },
       () => {
-        setError("ยังไม่ได้อนุญาตให้ใช้ตำแหน่ง — วางลิงก์ Google Maps แทนได้เลยค่ะ");
+        setError(tr("ยังไม่ได้อนุญาตให้ใช้ตำแหน่ง — วางลิงก์ Google Maps แทนได้เลยค่ะ", "Location permission not given. Paste a Google Maps link instead."));
         setLocating(false);
       },
       { enableHighAccuracy: true, timeout: 15000 }
@@ -96,7 +99,7 @@ function BookingTransportContent() {
   /** กดส่ง → เช็คว่ามีอย่างน้อย 1 ช่อง แล้วโชว์สรุปก่อน */
   const review = () => {
     if (!mapUrl.trim() && !address.trim()) {
-      setError("ใส่ลิงก์ Google Maps หรือที่อยู่อย่างน้อย 1 ช่องนะคะ");
+      setError(tr("ใส่ลิงก์ Google Maps หรือที่อยู่อย่างน้อย 1 ช่องนะคะ", "Please enter a Google Maps link or an address."));
       return;
     }
     setError("");
@@ -121,16 +124,16 @@ function BookingTransportContent() {
       if (res.ok) {
         setReviewing(false);
         setDone(true);
-        savedPopup("ส่งตำแหน่งสำเร็จ", [home ? "ร้านได้รับที่อยู่บ้านแล้วค่ะ" : "ร้านได้รับที่อยู่รับ-ส่งแล้วค่ะ"]);
+        savedPopup(tr("ส่งตำแหน่งสำเร็จ", "Location sent"), [home ? tr("ร้านได้รับที่อยู่บ้านแล้วค่ะ", "The shop has your home address.") : tr("ร้านได้รับที่อยู่รับ-ส่งแล้วค่ะ", "The shop has your pick-up/drop-off address.")]);
       } else {
         setError(
           d.error === "bad_url"
-            ? "ลิงก์ไม่ถูกต้อง — คัดลอกลิงก์จากปุ่มแชร์ใน Google Maps มาวางได้เลยค่ะ"
-            : "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง หรือส่งตำแหน่งในแชท LINE ได้เลยค่ะ"
+            ? tr("ลิงก์ไม่ถูกต้อง — คัดลอกลิงก์จากปุ่มแชร์ใน Google Maps มาวางได้เลยค่ะ", "Invalid link. Copy the link from the Share button in Google Maps.")
+            : tr("บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง หรือส่งตำแหน่งในแชท LINE ได้เลยค่ะ", "Couldn't save. Try again, or send your location in the LINE chat.")
         );
       }
     } catch {
-      setError("เชื่อมต่อไม่สำเร็จ — เช็คสัญญาณอินเทอร์เน็ตแล้วลองใหม่นะคะ");
+      setError(tr("เชื่อมต่อไม่สำเร็จ — เช็คสัญญาณอินเทอร์เน็ตแล้วลองใหม่นะคะ", "Connection failed. Check your internet and try again."));
     } finally {
       setSaving(false);
     }
@@ -152,14 +155,14 @@ function BookingTransportContent() {
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-sage/25 text-ok">
             <Icon name="check" size={28} strokeWidth={2.4} />
           </span>
-          <h1 className="mt-4 text-lg font-extrabold text-petflow-chocolate">ได้รับ{spot}แล้วค่ะ</h1>
+          <h1 className="mt-4 text-lg font-extrabold text-petflow-chocolate">{tr(`ได้รับ${spot}แล้วค่ะ`, `We've received your ${spot}`)}</h1>
           <p className="mt-2 text-sm leading-relaxed text-brown-soft">
-            พี่เลี้ยงจะติดต่อก่อนออกเดินทางนะคะ
+            {tr("พี่เลี้ยงจะติดต่อก่อนออกเดินทางนะคะ", "Our team will contact you before setting off.")}
             <br />
-            กลับไปที่แชท LINE ได้เลยค่ะ
+            {tr("กลับไปที่แชท LINE ได้เลยค่ะ", "You can go back to the LINE chat now.")}
           </p>
           <button type="button" onClick={finish} className={`mt-5 ${BTN_PRIMARY}`}>
-            กลับไปที่แชท
+            {tr("กลับไปที่แชท", "Back to chat")}
           </button>
         </div>
       </div>
@@ -170,17 +173,17 @@ function BookingTransportContent() {
   const legs = bk
     ? [
         bk.pickup && {
-          label: "รับน้อง",
+          label: tr("รับน้อง", "Pick-up"),
           date: isRoom ? bk.checkin : bk.date,
           time: bk.pickupTime || (isRoom ? undefined : bk.time),
         },
         bk.dropoff && {
-          label: "ส่งน้องกลับบ้าน",
+          label: tr("ส่งน้องกลับบ้าน", "Drop-off home"),
           date: isRoom ? bk.checkout : bk.date,
           time: bk.dropoffTime,
         },
         bk.atHome && {
-          label: "ช่างไปบริการที่บ้าน",
+          label: tr("ช่างไปบริการที่บ้าน", "Groomer visits your home"),
           date: bk.date,
           time: bk.time,
         },
@@ -191,9 +194,9 @@ function BookingTransportContent() {
     <div className="px-4 pb-6 pt-5">
       <PageHeader
         eyebrow={home ? "Home service" : "Pick-up & drop-off"}
-        title={home ? "ที่อยู่บ้านสำหรับบริการที่บ้าน" : "จุดรับ-ส่งน้อง"}
+        title={home ? tr("ที่อยู่บ้านสำหรับบริการที่บ้าน", "Home address for at-home service") : tr("จุดรับ-ส่งน้อง", "Pick-up/drop-off point")}
         back="/app"
-        backLabel="กลับหน้าแรก"
+        backLabel={tr("กลับหน้าแรก", "Back to home")}
         showLang={false}
       />
 
@@ -201,11 +204,11 @@ function BookingTransportContent() {
         <LoadingScreen />
       ) : !bk ? (
         <div className="rounded-petflow border border-petflow-line bg-card shadow-petflow-sm">
-          <EmptyState icon="calendar" title="ไม่พบข้อมูลการจอง" />
+          <EmptyState icon="calendar" title={tr("ไม่พบข้อมูลการจอง", "Booking not found")} />
         </div>
       ) : !bk.pickup && !bk.dropoff && !bk.atHome ? (
         <div className="rounded-petflow border border-petflow-line bg-card shadow-petflow-sm">
-          <EmptyState icon="car" title="นัดนี้ไม่ได้ใช้บริการรับ-ส่ง" sub="ถ้าต้องการรับ-ส่ง ทักแชท LINE ได้เลยค่ะ" />
+          <EmptyState icon="car" title={tr("นัดนี้ไม่ได้ใช้บริการรับ-ส่ง", "This booking has no pick-up/drop-off")} sub={tr("ถ้าต้องการรับ-ส่ง ทักแชท LINE ได้เลยค่ะ", "Need pick-up/drop-off? Message us on LINE.")} />
         </div>
       ) : (
         <>
@@ -222,7 +225,7 @@ function BookingTransportContent() {
                   </span>
                   <span className="min-w-0 flex-1 text-sm font-bold text-brown">{l.label}</span>
                   <span className="shrink-0 text-xs text-brown-soft">
-                    {l.date ? formatThaiDateShort(l.date) : "—"}
+                    {l.date ? formatDateShort(l.date, locale) : "—"}
                     {l.time ? ` · ${l.time}` : ""}
                   </span>
                 </li>
@@ -240,11 +243,11 @@ function BookingTransportContent() {
                 className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-honey/40 px-3 text-sm font-extrabold text-petflow-chocolate disabled:opacity-50"
               >
                 <Icon name="pin" size={18} />
-                {locating ? "กำลังหาตำแหน่ง…" : "ใช้ตำแหน่งที่อยู่ตอนนี้"}
+                {locating ? tr("กำลังหาตำแหน่ง…", "Finding location…") : tr("ใช้ตำแหน่งที่อยู่ตอนนี้", "Use my current location")}
               </button>
 
               <div>
-                <p className="mb-1.5 text-xs font-bold text-brown-soft">หรือวางลิงก์ Google Maps</p>
+                <p className="mb-1.5 text-xs font-bold text-brown-soft">{tr("หรือวางลิงก์ Google Maps", "Or paste a Google Maps link")}</p>
                 <input
                   value={mapUrl}
                   onChange={(e) => setMapUrl(e.target.value)}
@@ -253,7 +256,7 @@ function BookingTransportContent() {
                   className={field}
                 />
                 <p className="mt-1 text-[11px] text-brown-faint">
-                  เปิด Google Maps › ปักหมุด › แชร์ › คัดลอกลิงก์ แล้วนำมาวางที่นี่
+                  {tr("เปิด Google Maps › ปักหมุด › แชร์ › คัดลอกลิงก์ แล้วนำมาวางที่นี่", "Open Google Maps › drop a pin › Share › Copy link, then paste it here")}
                 </p>
                 {mapUrl.trim() && /^https?:\/\//.test(mapUrl.trim()) && (
                   <a
@@ -263,18 +266,18 @@ function BookingTransportContent() {
                     className="mt-1.5 inline-flex items-center gap-1 text-xs font-bold text-latte-deep underline-offset-2 hover:underline"
                   >
                     <Icon name="link" size={13} />
-                    เปิดดูแผนที่ที่ใส่ไว้
+                    {tr("เปิดดูแผนที่ที่ใส่ไว้", "Open the map you entered")}
                   </a>
                 )}
               </div>
 
               <div>
-                <p className="mb-1.5 text-xs font-bold text-brown-soft">ที่อยู่ / จุดสังเกต (ถ้ามี)</p>
+                <p className="mb-1.5 text-xs font-bold text-brown-soft">{tr("ที่อยู่ / จุดสังเกต (ถ้ามี)", "Address / landmark (optional)")}</p>
                 <textarea
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   rows={3}
-                  placeholder="เช่น หมู่บ้าน… ซอย… บ้านรั้วสีขาว / คอนโดตึก B ฝากรปภ.ได้"
+                  placeholder={tr("เช่น หมู่บ้าน… ซอย… บ้านรั้วสีขาว / คอนโดตึก B ฝากรปภ.ได้", "e.g. village, street, white gate / condo building B, leave with security")}
                   className={field}
                 />
               </div>
@@ -284,7 +287,7 @@ function BookingTransportContent() {
               )}
 
               <button type="button" disabled={saving} onClick={review} className={BTN_PRIMARY}>
-                {saving ? "กำลังบันทึก…" : bk.saved ? "บันทึกการแก้ไข" : `ส่ง${spot}`}
+                {saving ? tr("กำลังบันทึก…", "Saving…") : bk.saved ? tr("บันทึกการแก้ไข", "Save changes") : tr(`ส่ง${spot}`, `Send ${spot}`)}
               </button>
               <ReviewSheet
                 open={reviewing}
@@ -295,16 +298,16 @@ function BookingTransportContent() {
                     rows: [
                       ...legs.map((l) => ({
                         label: l.label,
-                        value: [l.date ? formatThaiDateShort(l.date) : "", l.time || ""].filter(Boolean).join(" "),
+                        value: [l.date ? formatDateShort(l.date, locale) : "", l.time || ""].filter(Boolean).join(" "),
                       })),
-                      { label: "ลิงก์ Google Maps", value: mapUrl.trim() },
-                      { label: "ที่อยู่ / จุดสังเกต", value: address.trim() },
+                      { label: tr("ลิงก์ Google Maps", "Google Maps link"), value: mapUrl.trim() },
+                      { label: tr("ที่อยู่ / จุดสังเกต", "Address / landmark"), value: address.trim() },
                     ],
                   },
                 ]}
                 saving={saving}
                 error={error}
-                confirmLabel={bk.saved ? "ยืนยัน บันทึกการแก้ไข" : `ยืนยัน ส่ง${spot}`}
+                confirmLabel={bk.saved ? tr("ยืนยัน บันทึกการแก้ไข", "Confirm changes") : tr(`ยืนยัน ส่ง${spot}`, `Confirm and send ${spot}`)}
                 onEdit={() => {
                   setReviewing(false);
                   setError("");

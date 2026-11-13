@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale, useTr } from "@/components/LocaleProvider";
 import { savedPopup } from "@/components/Toast";
 import { IntakeFlowBar } from "@/components/IntakeFlowBar";
 import { flowProgress } from "@/lib/intake-flow";
@@ -11,6 +12,7 @@ import { answeredRecently, otherKey, type GroomField } from "@/lib/groom-form";
 import { intakeFields } from "@/lib/intake-rules";
 import { formKindOf, normalizeSpecies, petKindOf, petWords, speciesWords } from "@/lib/pet-kind";
 import { BATH_SHARED_WITH_STAY } from "@/lib/stay-form";
+import { localizeFields } from "@/lib/form-en";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { BTN_PRIMARY, PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui";
@@ -24,6 +26,8 @@ type CatForm = {
   catName: string;
   /** คำถามของน้องตัวนี้ — หมากับแมวคนละชุด (หมาไม่ถามเรื่องทราย) */
   fields: GroomField[];
+  /** คำถามภาษาไทยตามที่ร้านตั้ง — fields คือฉบับตามภาษาที่ลูกค้าเลือก (แปลใหม่เมื่อสลับภาษา) */
+  rawFields: GroomField[];
   /** อีโมจิของน้องตัวนี้ 🐶 / 🐱 */
   emoji: string;
   answers: Answers;
@@ -41,11 +45,12 @@ type CatForm = {
 };
 
 /** เหตุที่บันทึกไม่ผ่าน → ข้อความที่ลูกค้าอ่านเข้าใจ */
-function saveFailReason(status: number, error?: string): string {
-  if (status === 401) return "ยืนยันบัญชี LINE ไม่ผ่าน ปิดหน้านี้แล้วเปิดลิงก์จากแชทใหม่";
-  if (status === 404) return "ไม่พบน้องตัวนี้ในบัญชี";
-  if (error === "feature_disabled") return "ร้านปิดฟอร์มนี้อยู่";
-  return "ระบบขัดข้อง";
+function saveFailReason(status: number, error: string | undefined, en: boolean): string {
+  if (status === 401)
+    return en ? "LINE account check failed — close this page and open the link from the chat again" : "ยืนยันบัญชี LINE ไม่ผ่าน ปิดหน้านี้แล้วเปิดลิงก์จากแชทใหม่";
+  if (status === 404) return en ? "This pet isn't in your account" : "ไม่พบน้องตัวนี้ในบัญชี";
+  if (error === "feature_disabled") return en ? "The shop has turned this form off" : "ร้านปิดฟอร์มนี้อยู่";
+  return en ? "System error" : "ระบบขัดข้อง";
 }
 
 /** คำถามอาบน้ำในฟอร์มรวม — ใส่ "g:" กัน key ชนกับฝั่งเข้าพัก */
@@ -107,6 +112,9 @@ function GroomInfoContent() {
     .filter(Boolean);
   const { profile } = useLiff();
   const { config } = useConfig();
+  const { locale } = useLocale();
+  const tr = useTr();
+  const en = locale === "en";
 
   // คำถามทั้งหมด — ก่อนอาบน้ำ: ตามที่ร้านตั้งไว้ในหลังบ้าน · ก่อนเข้าพัก: ชุดการกิน/การดูแล (stay-form)
   // เลือกชุดตามชนิดของน้องแต่ละตัว (หมา/แมว) · ไม่รู้ชนิด = ชนิดที่ร้านรับ
@@ -130,6 +138,11 @@ function GroomInfoContent() {
   // ร้านกด "ขออัปเดต" — เปิดทุกข้อพร้อมคำตอบเดิม ให้แก้เฉพาะข้อที่เปลี่ยน (ไม่ซ่อนข้อที่เคยตอบ)
   const updateMode = params.get("update") === "1";
   const [isStay, setIsStay] = useState(kindParam === "stay");
+
+  // สลับภาษา → แปลคำถามใหม่ (คำตอบที่กรอกไว้ยังอยู่ เพราะเก็บเป็น key)
+  useEffect(() => {
+    setForms((prev) => prev.map((f) => ({ ...f, fields: localizeFields(f.rawFields, locale) })));
+  }, [locale]);
 
   useEffect(() => {
     if (ids.length === 0) {
@@ -155,7 +168,7 @@ function GroomInfoContent() {
         const stay = anyFound ? results.some((d) => d?.kind === "stay") : kindParam === "stay";
         setIsStay(stay);
         if (!anyFound && results.some((d) => d?.unauthorized)) {
-          setLoadError("ระบบยังยืนยันบัญชี LINE ไม่สำเร็จ — ปิดหน้านี้แล้วเปิดลิงก์จากแชท LINE ใหม่อีกครั้งนะคะ");
+          setLoadError(tr("ระบบยังยืนยันบัญชี LINE ไม่สำเร็จ — ปิดหน้านี้แล้วเปิดลิงก์จากแชท LINE ใหม่อีกครั้งนะคะ", "We couldn't verify your LINE account — close this page and open the link from the LINE chat again"));
         }
         results.forEach((d, i) => {
           if (!d?.found) return;
@@ -174,8 +187,9 @@ function GroomInfoContent() {
           const answers = loadAnswers(fs, info, updateMode);
           loaded.push({
             id: ids[i],
-            catName: d.booking?.catName || "น้อง",
-            fields: fs,
+            catName: d.booking?.catName || tr("น้อง", "Your pet"),
+            fields: localizeFields(fs, locale),
+            rawFields: fs,
             emoji: speciesWords(species, config).emoji,
             answers,
             weightUnknown: info?.weight === "unknown",
@@ -247,7 +261,7 @@ function GroomInfoContent() {
       })
       .map((fd) => fd.key);
 
-  const nextStep = flowProgress(params)?.next;
+  const nextStep = flowProgress(params, locale)?.next;
 
   /** กดส่ง → เช็คข้อบังคับ แล้วเปิดป๊อปอัปสรุปให้ดูก่อน (ยังไม่บันทึก) */
   const submit = () => {
@@ -262,7 +276,10 @@ function GroomInfoContent() {
         })
       );
       setSaveError(
-        `ยังไม่ได้ตอบ ${list.length} ข้อ: ${list.map((x) => x.text).join(" · ")} — ข้อที่ขาดมีตัวหนังสือสีส้มนะคะ 🙏`
+        tr(
+          `ยังไม่ได้ตอบ ${list.length} ข้อ: ${list.map((x) => x.text).join(" · ")} — ข้อที่ขาดมีตัวหนังสือสีส้มนะคะ 🙏`,
+          `${list.length} question(s) still to answer: ${list.map((x) => x.text).join(" · ")} — they're marked in orange 🙏`,
+        )
       );
       setTimeout(() => {
         const el = list[0] && document.getElementById(list[0].id);
@@ -290,14 +307,14 @@ function GroomInfoContent() {
             label,
             value: [...((v as string[]) || []).map((k) => fd.options.find((o) => o.key === k)?.label || k), other],
           };
-        if (fd.hasUnknownToggle && f.weightUnknown) return { label, value: "ไม่ทราบ" };
+        if (fd.hasUnknownToggle && f.weightUnknown) return { label, value: tr("ไม่ทราบ", "Not sure") };
         return { label, value: String(v || "") };
       };
       const own = visible.filter((fd) => !fd.key.startsWith(BATH_PREFIX)).map(row);
       const bath = visible.filter((fd) => fd.key.startsWith(BATH_PREFIX)).map(row);
       return [
         { title: f.catName, icon: "paw", rows: own },
-        ...(bath.length ? [{ title: `${f.catName} · ก่อนอาบน้ำ`, icon: "bath", rows: bath }] : []),
+        ...(bath.length ? [{ title: `${f.catName} · ${tr("ก่อนอาบน้ำ", "before grooming")}`, icon: "bath", rows: bath }] : []),
       ];
     });
 
@@ -339,22 +356,25 @@ function GroomInfoContent() {
           });
           const j = await r.json().catch(() => ({}));
           // 200 แต่ ok:false = เขียนลงฐานไม่สำเร็จ — ไม่นับว่าบันทึกแล้ว
-          if (!r.ok || j.ok === false) reason = saveFailReason(r.status, j.error);
+          if (!r.ok || j.ok === false) reason = saveFailReason(r.status, j.error, en);
         } catch {
-          reason = "อินเทอร์เน็ตหลุด";
+          reason = tr("อินเทอร์เน็ตหลุด", "internet connection lost");
         }
         if (reason) failed.push(`${f.catName} (${reason})`);
         else setForms((prev) => prev.map((x, k) => (k === i ? { ...x, saved: true } : x)));
       }
       if (failed.length > 0) {
         setSaveError(
-          `บันทึกไม่สำเร็จ: ${failed.join(", ")} — ลองกดบันทึกอีกครั้ง หรือแจ้งพนักงานที่ร้านได้เลยค่ะ`
+          tr(
+            `บันทึกไม่สำเร็จ: ${failed.join(", ")} — ลองกดบันทึกอีกครั้ง หรือแจ้งพนักงานที่ร้านได้เลยค่ะ`,
+            `Couldn't save: ${failed.join(", ")} — please tap save again or let our staff know`,
+          )
         );
         return;
       }
       // มาจากการ์ดรวมขอข้อมูล → ไปขั้นต่อไปเลย (สมุดวัคซีน / บัตร / กฎ) ไม่ปิดหน้า
       if (nextStep) {
-        savedPopup("บันทึกข้อมูลน้องสำเร็จ", ["ไปขั้นต่อไปกันเลยค่ะ"], { afterNav: true });
+        savedPopup(tr("บันทึกข้อมูลน้องสำเร็จ", "Saved"), [tr("ไปขั้นต่อไปกันเลยค่ะ", "On to the next step")], { afterNav: true });
         window.location.href = nextStep.href;
         return;
       }
@@ -369,9 +389,9 @@ function GroomInfoContent() {
       }
       setReviewing(false);
       setDone(true);
-      savedPopup("บันทึกข้อมูลน้องสำเร็จ");
+      savedPopup(tr("บันทึกข้อมูลน้องสำเร็จ", "Saved"));
     } catch {
-      setSaveError("บันทึกไม่สำเร็จ — ลองใหม่อีกครั้ง หรือแจ้งพนักงานที่ร้านได้เลยค่ะ");
+      setSaveError(tr("บันทึกไม่สำเร็จ — ลองใหม่อีกครั้ง หรือแจ้งพนักงานที่ร้านได้เลยค่ะ", "Couldn't save — please try again or let our staff know"));
     } finally {
       setSaving(false);
     }
@@ -406,12 +426,16 @@ function GroomInfoContent() {
           <Icon name="check" size={28} strokeWidth={2.4} />
         </span>
         <h1 className="mt-4 text-lg font-extrabold text-petflow-chocolate">
-          ขอบคุณที่แจ้งประวัติน้องนะคะ!
+          {tr("ขอบคุณที่แจ้งประวัติน้องนะคะ!", "Thanks for telling us about your pet!")}
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-brown-soft">
-          เราจะดูแล{forms.map((f) => f.catName).join(", ") || "น้อง"}อย่างระมัดระวังที่สุด {petWords(config).emoji}
+          {tr(
+            `เราจะดูแล${forms.map((f) => f.catName).join(", ") || "น้อง"}อย่างระมัดระวังที่สุด`,
+            `We'll take great care of ${forms.map((f) => f.catName).join(", ") || "your pet"}`,
+          )}{" "}
+          {petWords(config).emoji}
           <br />
-          กลับไปที่แชท LINE ได้เลยค่ะ
+          {tr("กลับไปที่แชท LINE ได้เลยค่ะ", "You can go back to the LINE chat now")}
         </p>
         </div>
       </div>
@@ -425,9 +449,15 @@ function GroomInfoContent() {
     <div className="px-4 pb-6 pt-5">
       <PageHeader
         eyebrow={isStay ? "Before your stay" : "Before grooming"}
-        title={isStay ? (forms.some((f) => f.bath) ? "ข้อมูลน้องก่อนเข้าพัก + อาบน้ำ" : "ข้อมูลน้องก่อนเข้าพัก") : "ประวัติน้องก่อนอาบน้ำ"}
+        title={
+          isStay
+            ? forms.some((f) => f.bath)
+              ? tr("ข้อมูลน้องก่อนเข้าพัก + อาบน้ำ", "Before your stay + grooming")
+              : tr("ข้อมูลน้องก่อนเข้าพัก", "Before your stay")
+            : tr("ประวัติน้องก่อนอาบน้ำ", "Before grooming")
+        }
         back="/app"
-        backLabel="กลับหน้าแรก"
+        backLabel={tr("กลับหน้าแรก", "Back to home")}
         showLang={false}
       />
       <IntakeFlowBar mode="progress" />
@@ -438,7 +468,7 @@ function GroomInfoContent() {
         <div className="rounded-petflow border border-petflow-line bg-card shadow-petflow-sm">
           <EmptyState
             icon="calendar"
-            title={loadError || (catMode ? "ไม่พบข้อมูลน้องในบัญชี LINE นี้" : "ไม่พบข้อมูลการนัด")}
+            title={loadError || (catMode ? tr("ไม่พบข้อมูลน้องในบัญชี LINE นี้", "No pets found in this LINE account") : tr("ไม่พบข้อมูลการนัด", "Booking not found"))}
           />
         </div>
       ) : (
@@ -446,13 +476,13 @@ function GroomInfoContent() {
           {updateMode && (
             <p className="mb-3 flex items-start gap-1.5 rounded-petflow-sm bg-sage/15 px-3 py-2 text-xs font-bold text-petflow-chocolate">
               <Icon name="edit" size={14} className="mt-0.5 shrink-0" />
-              ร้านขอให้ช่วยอัปเดตข้อมูลน้องให้เป็นปัจจุบันค่ะ — คำตอบเดิมใส่ไว้ให้แล้ว แก้เฉพาะข้อที่เปลี่ยน แล้วกดส่งได้เลย
+              {tr("ร้านขอให้ช่วยอัปเดตข้อมูลน้องให้เป็นปัจจุบันค่ะ — คำตอบเดิมใส่ไว้ให้แล้ว แก้เฉพาะข้อที่เปลี่ยน แล้วกดส่งได้เลย", "The shop asked you to update your pet's details — your previous answers are filled in, just change what's different and send")}
             </p>
           )}
           {forms.length > 1 && (
             <p className="flex items-center gap-1.5 rounded-petflow-sm bg-honey/20 px-3 py-2 text-xs font-bold text-petflow-chocolate">
               <Icon name="paw" size={14} />
-              มีน้อง {forms.length} ตัว — รบกวนกรอกให้ครบทุกตัวนะคะ
+              {tr(`มีน้อง ${forms.length} ตัว — รบกวนกรอกให้ครบทุกตัวนะคะ`, `${forms.length} pets — please fill in for each one`)}
             </p>
           )}
 
@@ -478,12 +508,12 @@ function GroomInfoContent() {
                     className="mt-2 flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-petflow-sm border border-dashed border-latte/60 bg-honey/10 px-3 text-xs font-bold text-latte-deep"
                   >
                     <Icon name="copy" size={15} />
-                    ตอบเหมือน{forms[0].catName} (แก้เฉพาะข้อที่ต่างได้)
+                    {tr(`ตอบเหมือน${forms[0].catName} (แก้เฉพาะข้อที่ต่างได้)`, `Same answers as ${forms[0].catName} (edit what's different)`)}
                   </button>
                 )}
                 {forms.length === 1 && shown.length > 0 && (
                   <p className="mt-1 text-xs text-brown-soft">
-                    เพื่อความปลอดภัยของน้อง 🧡 กดเลือกสั้นๆ ไม่กี่ข้อ ให้เราเตรียมดูแลน้องได้ถูกวิธีนะคะ
+                    {tr("เพื่อความปลอดภัยของน้อง 🧡 กดเลือกสั้นๆ ไม่กี่ข้อ ให้เราเตรียมดูแลน้องได้ถูกวิธีนะคะ", "For your pet's safety 🧡 a few quick taps help us care for them the right way")}
                   </p>
                 )}
                 {hidden.length > 0 && (
@@ -494,9 +524,9 @@ function GroomInfoContent() {
                   >
                     <Icon name="check" size={15} />
                     {shown.length === 0
-                      ? "ข้อมูลน้องครบแล้วจากที่เคยกรอกไว้ กดส่งได้เลยค่ะ"
-                      : `ข้อที่เคยตอบไว้แล้ว ${hidden.length} ข้อ ไม่ต้องตอบซ้ำค่ะ`}
-                    <span className="ml-auto shrink-0 text-brown-soft underline">แก้คำตอบเดิม</span>
+                      ? tr("ข้อมูลน้องครบแล้วจากที่เคยกรอกไว้ กดส่งได้เลยค่ะ", "Everything's already filled in from before — you can send now")
+                      : tr(`ข้อที่เคยตอบไว้แล้ว ${hidden.length} ข้อ ไม่ต้องตอบซ้ำค่ะ`, `${hidden.length} question(s) already answered — no need to repeat`)}
+                    <span className="ml-auto shrink-0 text-brown-soft underline">{tr("แก้คำตอบเดิม", "Edit answers")}</span>
                   </button>
                 )}
 
@@ -509,10 +539,10 @@ function GroomInfoContent() {
                         <div className="mt-5 border-t border-petflow-line pt-4">
                           <p className="flex items-center gap-1.5 text-sm font-extrabold text-petflow-chocolate">
                             <Icon name="bath" size={16} />
-                            ก่อนอาบน้ำ (อาบก่อนกลับบ้าน)
+                            {tr("ก่อนอาบน้ำ (อาบก่อนกลับบ้าน)", "Before grooming (bath before going home)")}
                           </p>
                           <p className="mt-0.5 text-[11px] text-brown-faint">
-                            น้องอาบน้ำก่อนกลับด้วย ขอถามเพิ่มอีกนิด ข้อที่ตอบไปแล้วด้านบนไม่ถามซ้ำค่ะ
+                            {tr("น้องอาบน้ำก่อนกลับด้วย ขอถามเพิ่มอีกนิด ข้อที่ตอบไปแล้วด้านบนไม่ถามซ้ำค่ะ", "Your pet is also having a bath before going home — just a few more questions")}
                           </p>
                         </div>
                       )}
@@ -523,15 +553,15 @@ function GroomInfoContent() {
                       >
                         {fd.label}
                         {fd.required && " *"}
-                        {!fd.required && !/ข้ามได้|ถ้ามี|หากมี|เว้นว่างได้/.test(fd.label) && (
-                          <span className="font-normal text-brown-faint"> (ไม่บังคับ)</span>
+                        {!fd.required && !/ข้ามได้|ถ้ามี|หากมี|เว้นว่างได้|if none|if any/.test(fd.label) && (
+                          <span className="font-normal text-brown-faint"> {tr("(ไม่บังคับ)", "(optional)")}</span>
                         )}
                         {isMissing &&
                           (fd.type === "multi"
-                            ? " — กรุณาเลือกอย่างน้อย 1 ข้อ"
+                            ? tr(" — กรุณาเลือกอย่างน้อย 1 ข้อ", " — please pick at least one")
                             : fd.type === "single"
-                              ? " — กรุณาเลือก"
-                              : " — กรุณากรอก")}
+                              ? tr(" — กรุณาเลือก", " — please choose")
+                              : tr(" — กรุณากรอก", " — please fill in"))}
                       </p>
 
                       {fd.type === "single" && (
@@ -564,7 +594,7 @@ function GroomInfoContent() {
                         <input
                           value={String(f.answers[otherKey(fd.key)] || "")}
                           onChange={(e) => setAnswer(idx, otherKey(fd.key), e.target.value)}
-                          placeholder="อื่นๆ พิมพ์เองได้ (ถ้ามี)"
+                          placeholder={tr("อื่นๆ พิมพ์เองได้ (ถ้ามี)", "Other — type your own (if any)")}
                           className={`mt-2 ${inputClass}`}
                         />
                       )}
@@ -595,7 +625,7 @@ function GroomInfoContent() {
                                 }
                                 className="h-5 w-5 accent-latte-deep"
                               />
-                              ไม่ทราบน้ำหนัก
+                              {tr("ไม่ทราบน้ำหนัก", "Weight unknown")}
                             </label>
                           )}
                         </>
@@ -631,12 +661,12 @@ function GroomInfoContent() {
           >
             {!saving && <Icon name="send" size={18} />}
             {saving
-              ? "กำลังบันทึก…"
+              ? tr("กำลังบันทึก…", "Saving…")
               : nextStep
-                ? `บันทึก แล้วไปขั้นต่อไป: ${nextStep.label}`
+                ? tr(`บันทึก แล้วไปขั้นต่อไป: ${nextStep.label}`, `Save and continue: ${nextStep.label}`)
                 : forms.length > 1
-                  ? `ส่งข้อมูลให้ร้าน (${forms.length} ตัว)`
-                  : "ส่งข้อมูลให้ร้าน"}
+                  ? tr(`ส่งข้อมูลให้ร้าน (${forms.length} ตัว)`, `Send to the shop (${forms.length} pets)`)
+                  : tr("ส่งข้อมูลให้ร้าน", "Send to the shop")}
           </button>
           <ReviewSheet
             open={reviewing}
@@ -645,10 +675,10 @@ function GroomInfoContent() {
             error={saveError}
             confirmLabel={
               nextStep
-                ? "ยืนยัน แล้วไปขั้นต่อไป"
+                ? tr("ยืนยัน แล้วไปขั้นต่อไป", "Confirm and continue")
                 : forms.length > 1
-                  ? `ยืนยัน ส่งข้อมูล (${forms.length} ตัว)`
-                  : "ยืนยัน ส่งข้อมูล"
+                  ? tr(`ยืนยัน ส่งข้อมูล (${forms.length} ตัว)`, `Confirm & send (${forms.length} pets)`)
+                  : tr("ยืนยัน ส่งข้อมูล", "Confirm & send")
             }
             onEdit={() => {
               setReviewing(false);

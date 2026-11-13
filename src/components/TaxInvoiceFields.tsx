@@ -1,5 +1,6 @@
 "use client";
 
+import { useTr } from "@/components/LocaleProvider";
 import type { TaxInvoiceForm, TaxInvoiceKind } from "@/lib/tax-invoice";
 import { useConfig } from "@/components/ConfigProvider";
 import { isFeatureOn } from "@/lib/features";
@@ -33,6 +34,7 @@ function TaxInvoiceDetail({
   /** หน้าสมัครสมาชิก: ต้องกรอกครบทุกช่อง (รวมเบอร์บริษัท) */
   requireAll?: boolean;
 }) {
+  const tr = useTr();
   const set = (patch: Partial<TaxInvoiceForm>) => onChange({ ...value, ...patch });
   const pickKind = (kind: TaxInvoiceKind) => {
     if (kind === value.kind) return;
@@ -52,29 +54,29 @@ function TaxInvoiceDetail({
       {kinds.length > 1 && (
         <div className="flex gap-2">
           <button type="button" onClick={() => pickKind("company")} className={chip(!person)}>
-            นิติบุคคล
+            {tr("นิติบุคคล", "Company")}
           </button>
           <button type="button" onClick={() => pickKind("person")} className={chip(person)}>
-            บุคคลธรรมดา
+            {tr("บุคคลธรรมดา", "Individual")}
           </button>
         </div>
       )}
 
       <label className="block">
-        <span className={label}>{person ? "ชื่อ-นามสกุล" : "ชื่อบริษัท / นิติบุคคล"}</span>
+        <span className={label}>{person ? tr("ชื่อ-นามสกุล", "Full name") : tr("ชื่อบริษัท / นิติบุคคล", "Company name")}</span>
         <input
           required={requireAll}
           value={value.name}
           onChange={(e) => set({ name: e.target.value })}
-          placeholder={person ? "เช่น สมชาย ใจดี" : "เช่น บริษัท ตัวอย่าง จำกัด"}
+          placeholder={person ? tr("เช่น สมชาย ใจดี", "e.g. Somchai Jaidee") : tr("เช่น บริษัท ตัวอย่าง จำกัด", "e.g. Example Co., Ltd.")}
           className={fieldClass}
         />
       </label>
 
       <label className="block">
         <span className={label}>
-          เลขประจำตัวผู้เสียภาษี{" "}
-          <span className={hint}>{person ? "(เลขบัตรประชาชน 13 หลัก)" : "(13 หลัก)"}</span>
+          {tr("เลขประจำตัวผู้เสียภาษี", "Tax ID")}{" "}
+          <span className={hint}>{person ? tr("(เลขบัตรประชาชน 13 หลัก)", "(13-digit ID card number)") : tr("(13 หลัก)", "(13 digits)")}</span>
         </span>
         <input
           required={requireAll}
@@ -88,13 +90,13 @@ function TaxInvoiceDetail({
 
       {!person && (
         <div>
-          <span className={label}>สำนักงาน</span>
+          <span className={label}>{tr("สำนักงาน", "Office")}</span>
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" onClick={() => set({ headOffice: true })} className={chip(value.headOffice)}>
-              สำนักงานใหญ่
+              {tr("สำนักงานใหญ่", "Head office")}
             </button>
             <button type="button" onClick={() => set({ headOffice: false })} className={chip(!value.headOffice)}>
-              สาขา
+              {tr("สาขา", "Branch")}
             </button>
           </div>
           {!value.headOffice && (
@@ -103,7 +105,7 @@ function TaxInvoiceDetail({
               value={value.branchNo}
               inputMode="numeric"
               onChange={(e) => set({ branchNo: e.target.value.replace(/\D/g, "").slice(0, 5) })}
-              placeholder="เลขสาขา 5 หลัก เช่น 00001"
+              placeholder={tr("เลขสาขา 5 หลัก เช่น 00001", "5-digit branch no. e.g. 00001")}
               className={`${fieldClass} mt-2`}
             />
           )}
@@ -111,20 +113,20 @@ function TaxInvoiceDetail({
       )}
 
       <label className="block">
-        <span className={label}>{person ? "ที่อยู่" : "ที่อยู่ตามทะเบียน"}</span>
+        <span className={label}>{person ? tr("ที่อยู่", "Address") : tr("ที่อยู่ตามทะเบียน", "Registered address")}</span>
         <textarea
           required={requireAll}
           value={value.address}
           onChange={(e) => set({ address: e.target.value })}
           rows={3}
-          placeholder="บ้านเลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด รหัสไปรษณีย์"
+          placeholder={tr("บ้านเลขที่ ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด รหัสไปรษณีย์", "House no., street, sub-district, district, province, postcode")}
           className={fieldClass}
         />
       </label>
 
       <label className="block">
         <span className={label}>
-          เบอร์โทร {!person && !phoneRequired && !requireAll && <span className={hint}>(ไม่บังคับ)</span>}
+          {tr("เบอร์โทร", "Phone")} {!person && !phoneRequired && !requireAll && <span className={hint}>{tr("(ไม่บังคับ)", "(optional)")}</span>}
         </span>
         <input
           required={requireAll}
@@ -160,6 +162,7 @@ export function TaxInvoiceFields({
   /** หน้าสมัครสมาชิก: ติ๊กแล้วต้องกรอกครบทุกช่อง */
   requireAll?: boolean;
 }) {
+  const tr = useTr();
   const { config } = useConfig();
   const personOnly = kinds.length === 1 && kinds[0] === "person";
   const toggle = (on: boolean) => {
@@ -192,9 +195,9 @@ export function TaxInvoiceFields({
           className="mt-0.5 h-5 w-5 shrink-0 accent-latte-deep"
         />
         <span className="text-sm font-bold text-brown">
-          {personOnly ? "ต้องการใบกำกับภาษี (ในนามบุคคลธรรมดา)" : "ต้องการใบกำกับภาษี / ออกบิลในนามนิติบุคคล"}
+          {personOnly ? tr("ต้องการใบกำกับภาษี (ในนามบุคคลธรรมดา)", "I need a tax invoice (as an individual)") : tr("ต้องการใบกำกับภาษี / ออกบิลในนามนิติบุคคล", "I need a tax invoice / bill in a company name")}
           <span className="block text-[11px] font-normal text-brown-faint">
-            ไม่ต้องการก็ไม่ต้องติ๊ก — ติ๊กแล้วร้านจะใช้ข้อมูลนี้ออกบิลให้อัตโนมัติ
+            {tr("ไม่ต้องการก็ไม่ต้องติ๊ก — ติ๊กแล้วร้านจะใช้ข้อมูลนี้ออกบิลให้อัตโนมัติ", "Leave unticked if not needed — if ticked, the shop uses these details on your bills")}
           </span>
         </span>
       </label>
@@ -233,19 +236,20 @@ export function AccountTypeFields({
   /** หน้าสมัครสมาชิก: ข้อมูลบริษัทต้องกรอกครบทุกช่อง (รวมเบอร์) */
   requireAll?: boolean;
 }) {
+  const tr = useTr();
   const { config } = useConfig();
   // ร้านปิด "ใบกำกับภาษี / สมัครในนามบริษัท" — สมัครแบบบุคคลธรรมดาอย่างเดียว
   if (!isFeatureOn(config, "taxInvoice") && !isCompany) return null;
   return (
     <div className="space-y-3">
       <div>
-        <span className={label}>สมัครในนาม</span>
+        <span className={label}>{tr("สมัครในนาม", "Sign up as")}</span>
         <div className="flex gap-2">
           <button type="button" onClick={() => onIsCompany(false)} className={chip(!isCompany)}>
-            บุคคลธรรมดา
+            {tr("บุคคลธรรมดา", "Individual")}
           </button>
           <button type="button" onClick={() => onIsCompany(true)} className={chip(isCompany)}>
-            นิติบุคคล (บริษัท)
+            {tr("นิติบุคคล (บริษัท)", "Company")}
           </button>
         </div>
       </div>
@@ -253,7 +257,7 @@ export function AccountTypeFields({
       {isCompany && (
         <>
           <div className="space-y-3 rounded-petflow-sm border border-dashed border-latte bg-paper/60 p-3">
-            <p className="text-xs font-extrabold text-petflow-chocolate">ข้อมูลบริษัท (ใช้ออกบิล/ใบกำกับภาษี)</p>
+            <p className="text-xs font-extrabold text-petflow-chocolate">{tr("ข้อมูลบริษัท (ใช้ออกบิล/ใบกำกับภาษี)", "Company details (for bills/tax invoices)")}</p>
             <TaxInvoiceDetail
               value={company}
               onChange={onCompany}
@@ -271,9 +275,9 @@ export function AccountTypeFields({
               className="mt-0.5 h-5 w-5 shrink-0 accent-latte-deep"
             />
             <span className="text-sm font-bold text-brown">
-              ข้อมูลผู้ติดต่อใช้ข้อมูลเดียวกับบริษัท
+              {tr("ข้อมูลผู้ติดต่อใช้ข้อมูลเดียวกับบริษัท", "Contact details are the same as the company")}
               <span className="block text-[11px] font-normal text-brown-faint">
-                ชื่อ เบอร์โทร และที่อยู่เดียวกับด้านบน — ถ้ามีคนติดต่อแยก เอาติ๊กออกแล้วกรอกเพิ่ม
+                {tr("ชื่อ เบอร์โทร และที่อยู่เดียวกับด้านบน — ถ้ามีคนติดต่อแยก เอาติ๊กออกแล้วกรอกเพิ่ม", "Same name, phone and address as above — untick to add a separate contact person")}
               </span>
             </span>
           </label>
@@ -284,7 +288,8 @@ export function AccountTypeFields({
 }
 
 /** ข้อความเตือนสำหรับโหมดนิติบุคคล (นอกจากที่ taxInvoiceProblem ตรวจ) */
-export function companyContactProblem(company: TaxInvoiceForm, sameContact: boolean): string {
-  if (sameContact && company.phone.replace(/\D/g, "").length < 9) return "กรอกเบอร์โทรของบริษัทด้วยนะคะ";
+export function companyContactProblem(company: TaxInvoiceForm, sameContact: boolean, locale: "th" | "en" = "th"): string {
+  if (sameContact && company.phone.replace(/\D/g, "").length < 9)
+    return locale === "en" ? "Please enter the company's phone number" : "กรอกเบอร์โทรของบริษัทด้วยนะคะ";
   return "";
 }

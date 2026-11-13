@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale } from "@/components/LocaleProvider";
+import { enWord } from "@/lib/en-words";
 import { useMemo, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { SearchField } from "@/components/ui";
@@ -22,7 +24,7 @@ export function StaffNoteTagPicker({
   medicalValue,
   noteValue,
   onChange,
-  label = "เรื่องที่ช่างต้องรู้",
+  label,
 }: {
   medicalValue: string;
   noteValue: string;
@@ -31,6 +33,9 @@ export function StaffNoteTagPicker({
   label?: string;
 }) {
   const { config } = useConfig();
+  const { locale } = useLocale();
+  const tr = (th: string, en: string) => (locale === "en" ? en : th);
+  const title = label ?? tr("เรื่องที่ช่างต้องรู้", "Things our groomer should know");
   const STAFF_NOTE_TAGS = useMemo(() => staffNoteTags(config), [config]);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -56,7 +61,7 @@ export function StaffNoteTagPicker({
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return STAFF_NOTE_TAGS;
-    return STAFF_NOTE_TAGS.filter((t) => t.label.toLowerCase().includes(q));
+    return STAFF_NOTE_TAGS.filter((t) => t.label.toLowerCase().includes(q) || enWord(t.label, "en").toLowerCase().includes(q));
   }, [search, STAFF_NOTE_TAGS]);
 
   const toggle = (id: string) => {
@@ -84,8 +89,11 @@ export function StaffNoteTagPicker({
 
   const summary = useMemo(() => {
     const parts = [...parseTags(medicalValue), ...parseTags(noteValue)];
-    return parts.length ? parts.join(", ") : "แตะเพื่อเลือก · ไม่มีก็ข้ามได้";
-  }, [medicalValue, noteValue]);
+    return parts.length
+      ? parts.map((p) => enWord(p, locale)).join(", ")
+      : tr("แตะเพื่อเลือก · ไม่มีก็ข้ามได้", "Tap to choose · skip if none");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [medicalValue, noteValue, locale]);
 
   const hasValue = parseTags(medicalValue).length > 0 || parseTags(noteValue).length > 0;
 
@@ -101,7 +109,7 @@ export function StaffNoteTagPicker({
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[10px] font-bold text-brown-soft">
-            {label}
+            {title}
           </span>
           <span
             className={`block truncate ${hasValue ? "text-brown" : "font-bold text-latte-deep"}`}
@@ -111,7 +119,7 @@ export function StaffNoteTagPicker({
         </span>
         {/* ป้าย "เลือก" ชัดๆ — ลูกค้าเคยไม่รู้ว่าแถวนี้แตะเลือกได้ */}
         <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-honey/40 py-1.5 pl-3 pr-2 text-xs font-bold text-petflow-chocolate">
-          {hasValue ? "แก้ไข" : "เลือก"}
+          {hasValue ? tr("แก้ไข", "Edit") : tr("เลือก", "Choose")}
           <Icon name="chevron" size={14} />
         </span>
       </button>
@@ -124,16 +132,16 @@ export function StaffNoteTagPicker({
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-brown-soft">Staff notes</p>
                   <h2 className="text-base font-extrabold text-petflow-chocolate">
-                    เรื่องที่ช่างต้องรู้
+                    {title}
                   </h2>
                   <p className="mt-0.5 text-[10px] text-brown-soft">
-                    พฤติกรรม โรคประจำตัว เรื่องผิวหนัง · เลือกได้หลายข้อ ไม่มีก็ข้ามได้
+                    {tr("พฤติกรรม โรคประจำตัว เรื่องผิวหนัง · เลือกได้หลายข้อ ไม่มีก็ข้ามได้", "Behaviour, health conditions, skin · pick any that apply, skip if none")}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  aria-label="ปิด"
+                  aria-label={tr("ปิด", "Close")}
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-paper text-brown"
                 >
                   <Icon name="x" size={16} />
@@ -142,14 +150,14 @@ export function StaffNoteTagPicker({
               <SearchField
                 value={search}
                 onChange={setSearch}
-                placeholder="พิมพ์เพื่อค้นหา"
+                placeholder={tr("พิมพ์เพื่อค้นหา", "Type to search")}
                 className="mt-3"
               />
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 py-2">
               {filtered.length === 0 ? (
-                <p className="py-8 text-center text-xs text-brown-faint">ไม่พบรายการที่ตรงกัน</p>
+                <p className="py-8 text-center text-xs text-brown-faint">{tr("ไม่พบรายการที่ตรงกัน", "No matches")}</p>
               ) : (
                 <ul className="divide-y divide-petflow-line/60">
                   {filtered.map((t) => {
@@ -173,7 +181,7 @@ export function StaffNoteTagPicker({
                           >
                             {active && <Icon name="check" size={14} strokeWidth={2.6} />}
                           </span>
-                          <span>{t.label}</span>
+                          <span>{enWord(t.label, locale)}</span>
                         </button>
                       </li>
                     );
@@ -183,12 +191,12 @@ export function StaffNoteTagPicker({
 
               <div className="py-3">
                 <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-brown-soft">
-                  Other · อื่นๆ (พิมพ์เอง)
+                  {tr("Other · อื่นๆ (พิมพ์เอง)", "Other (type your own)")}
                 </p>
                 <input
                   value={custom}
                   onChange={(e) => setCustom(e.target.value)}
-                  placeholder="เช่น แพ้ยาสลบ"
+                  placeholder={tr("เช่น แพ้ยาสลบ", "e.g. allergic to anaesthetic")}
                   className="w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-3 text-sm"
                 />
               </div>
@@ -200,7 +208,7 @@ export function StaffNoteTagPicker({
                 onClick={save}
                 className="min-h-[48px] w-full rounded-petflow-sm bg-gradient-to-r from-honey to-honey-deep py-3 text-sm font-extrabold text-petflow-chocolate shadow-petflow-sm"
               >
-                เสร็จสิ้น{selected.size > 0 ? ` (${selected.size})` : ""}
+                {tr("เสร็จสิ้น", "Done")}{selected.size > 0 ? ` (${selected.size})` : ""}
               </button>
             </div>
           </div>

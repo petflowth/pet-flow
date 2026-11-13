@@ -7,6 +7,7 @@ import { useConfig } from "@/components/ConfigProvider";
 import { petWords, speciesOf, speciesWords } from "@/lib/pet-kind";
 import { toJpegDataUrl } from "@/lib/image-convert";
 import { customerFetch } from "@/lib/customer-fetch";
+import { useTr } from "@/components/LocaleProvider";
 
 type MyCat = {
   id: string;
@@ -16,6 +17,8 @@ type MyCat = {
   species?: string | null;
 };
 
+const CHEERS_EN = ["Even cuter! 😍", "Great profile 🌟", "Looking good 🐾", "Nice shot 📸"];
+
 const CHEERS = [
   "น่ารักขึ้นอีก! 😍",
   "โปรไฟล์ปังมาก 🌟",
@@ -24,6 +27,7 @@ const CHEERS = [
 ];
 
 export function MyCatsSection() {
+  const tr = useTr();
   const { profile } = useLiff();
   const { config } = useConfig();
   const pw = petWords(config);
@@ -61,14 +65,14 @@ export function MyCatsSection() {
         }),
       });
       if (res.ok) {
-        setCheer(CHEERS[cats.findIndex((c) => c.id === cat.id) % CHEERS.length]);
+        setCheer((tr("th", "en") === "en" ? CHEERS_EN : CHEERS)[cats.findIndex((c) => c.id === cat.id) % CHEERS.length]);
         setTimeout(() => setCheer(""), 2500);
         await load();
       } else {
-        setUploadError("อัปโหลดรูปไม่สำเร็จ — ลองใหม่อีกครั้งนะคะ");
+        setUploadError(tr("อัปโหลดรูปไม่สำเร็จ — ลองใหม่อีกครั้งนะคะ", "Photo upload failed. Please try again."));
       }
     } catch (e) {
-      setUploadError(e instanceof Error ? e.message : "อัปโหลดรูปไม่สำเร็จ");
+      setUploadError(e instanceof Error ? e.message : tr("อัปโหลดรูปไม่สำเร็จ", "Photo upload failed"));
     } finally {
       setUploadingId(null);
     }
@@ -80,10 +84,10 @@ export function MyCatsSection() {
     <section className="mb-5">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-sm font-extrabold text-petflow-chocolate">
-          🐾 {pw.noun}ของฉัน
+          🐾 {tr(`${pw.noun}ของฉัน`, `My ${pw.enPlural}`)}
         </h2>
         <span className="text-[10px] font-bold text-brown-faint">
-          แตะรูปเพื่อเปลี่ยน 📸
+          {tr("แตะรูปเพื่อเปลี่ยน 📸", "Tap a photo to change it 📸")}
         </span>
       </div>
 
@@ -112,7 +116,7 @@ export function MyCatsSection() {
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center text-brown-faint">
                   <span className="text-3xl">{speciesWords(speciesOf(cat, config), config).emoji}</span>
-                  <span className="text-[9px] font-bold">แตะเพิ่มรูป</span>
+                  <span className="text-[9px] font-bold">{tr("แตะเพิ่มรูป", "Add photo")}</span>
                 </div>
               )}
               <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition group-active:bg-black/20">
@@ -122,7 +126,7 @@ export function MyCatsSection() {
               </div>
               {uploadingId === cat.id && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white/70 text-[10px] font-bold text-brown">
-                  กำลังอัป…
+                  {tr("กำลังอัป…", "Uploading…")}
                 </div>
               )}
             </div>

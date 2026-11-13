@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { GROOM_PROGRAMS, resolveGroomPrograms, type GroomProgram } from "@/lib/grooming-prices";
+import { useTr } from "@/components/LocaleProvider";
 
 /** โปรแกรมอาบน้ำจากตั้งค่าร้าน — โหลดครั้งเดียว ใช้ค่าเริ่มต้นไปก่อนระหว่างรอ */
 export function useGroomPrograms(): GroomProgram[] {
@@ -86,9 +87,10 @@ export function PetProgramSelect({
   programs: GroomProgram[];
   emptyLabel: string;
 }) {
+  const tr = useTr();
   return (
     <select
-      aria-label={`โปรแกรมอาบน้ำของ ${cat}`}
+      aria-label={tr(`โปรแกรมอาบน้ำของ ${cat}`, `Grooming program for ${cat}`)}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className="min-h-[40px] w-full basis-full rounded-petflow-sm border border-petflow-line bg-card px-2 py-1.5 text-sm text-brown"

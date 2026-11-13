@@ -16,7 +16,8 @@ import { idCardPurpose, watermarkIdCard } from "@/lib/id-card-watermark";
 import { IntakeFlowBar } from "@/components/IntakeFlowBar";
 import { flowProgress } from "@/lib/intake-flow";
 import { customerFetch } from "@/lib/customer-fetch";
-import { formatThaiDateShort, roomWithWord } from "@/lib/format-thai-date";
+import { formatDateShort, roomWithWord } from "@/lib/format-thai-date";
+import { useTr, useLocale } from "@/components/LocaleProvider";
 
 type StayBooking = Booking & { checkin?: string; room?: string; vaccinePhotoUrl?: string };
 
@@ -39,6 +40,8 @@ type VaccineTarget = {
  * id = นัด (ส่งจากการ์ดนัด) · cats = ตัวน้อง (ส่งจากหน้าข้อมูลลูกค้า ยังไม่ต้องมีนัด)
  */
 function PetDocsContent() {
+  const { locale } = useLocale();
+  const tr = useTr();
   const params = useSearchParams();
   const need = params.get("need") === "idcard" ? "idcard" : "vaccine";
   const split = (v: string | null) =>
@@ -118,7 +121,7 @@ function PetDocsContent() {
   const shop =
     typeof window !== "undefined" ? window.location.pathname.match(/^\/s\/[a-z0-9-]+/i)?.[0] || "" : "";
   // มาจากการ์ดรวมขอข้อมูล (ไล่ทีละหน้า) = ขั้นประวัติผ่านมาแล้ว/ไม่ต้องทำ — ไม่ชวนกรอกซ้ำ
-  const inFlow = !!flowProgress(params);
+  const inFlow = !!flowProgress(params, locale);
   const infoHref = idsKey
     ? `${shop}/app/groom-info?id=${noInfo.map((t) => t.key).join(",")}`
     : `${shop}/app/groom-info?cats=${noInfo.map((t) => t.key).join(",")}&kind=stay`;
@@ -127,14 +130,14 @@ function PetDocsContent() {
     <div className="px-4 pb-6 pt-5">
       <PageHeader
         eyebrow={need === "vaccine" ? "Vaccine book" : "ID card"}
-        title={need === "vaccine" ? "แนบสมุดวัคซีนน้อง" : "แนบบัตรประชาชนผู้ปกครอง"}
+        title={need === "vaccine" ? tr("แนบสมุดวัคซีนน้อง", "Attach vaccine book") : tr("แนบบัตรประชาชนผู้ปกครอง", "Attach owner's ID card")}
         subtitle={
           need === "vaccine"
-            ? "ถ่ายรูปหน้าสมุดที่มีสติกเกอร์วัคซีน / ตราประทับหมอ ให้เห็นชื่อวัคซีนและวันที่ชัดๆ นะคะ"
-            : `${config.business.name} — ใช้ประกอบการรับน้องเข้าใช้บริการ`
+            ? tr("ถ่ายรูปหน้าสมุดที่มีสติกเกอร์วัคซีน / ตราประทับหมอ ให้เห็นชื่อวัคซีนและวันที่ชัดๆ นะคะ", "Photograph the pages with vaccine stickers / vet stamps so the vaccine names and dates are clear.")
+            : `${config.business.name} — ${tr("ใช้ประกอบการรับน้องเข้าใช้บริการ", "required for your pet's check-in")}`
         }
         back="/app"
-        backLabel="กลับหน้าแรก"
+        backLabel={tr("กลับหน้าแรก", "Back to home")}
         showLang={false}
       />
       <IntakeFlowBar mode="progress" />
@@ -147,7 +150,7 @@ function PetDocsContent() {
           <IntakeFlowBar mode="next" />
         </>
       ) : targets.length === 0 ? (
-        <EmptyState icon="paw" title="ไม่พบข้อมูลน้อง" />
+        <EmptyState icon="paw" title={tr("ไม่พบข้อมูลน้อง", "Pet not found")} />
       ) : (
         <div className="space-y-4">
           {targets.map((t) => (
@@ -162,9 +165,9 @@ function PetDocsContent() {
                 <Icon name="edit" size={20} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-extrabold text-petflow-chocolate">แจ้งประวัติน้องต่อเลย</span>
+                <span className="block text-sm font-extrabold text-petflow-chocolate">{tr("แจ้งประวัติน้องต่อเลย", "Next: tell us about your pet")}</span>
                 <span className="block text-[11px] text-brown-soft">
-                  นิสัย สุขภาพ การดูแล — ให้ร้านเตรียมดูแลน้องได้ถูกวิธี
+                  {tr("นิสัย สุขภาพ การดูแล — ให้ร้านเตรียมดูแลน้องได้ถูกวิธี", "Habits, health and care, so the shop can prepare properly")}
                 </span>
               </span>
               <Icon name="chevron" size={16} className="text-brown-faint" />
@@ -178,19 +181,22 @@ function PetDocsContent() {
 }
 
 function StayLine({ b }: { b: StayBooking }) {
+  const { locale } = useLocale();
+  const tr = useTr();
   const { config } = useConfig();
   // นัดเก็บรหัสห้อง (mid-cozy) — ลูกค้าต้องเห็นชื่อห้องแบบในการ์ด (Mid Cozy Room)
   const roomLabel = b.room ? config.rooms.find((r) => r.id === b.room)?.name || b.room : "";
   return (
     <p className="text-xs text-brown-soft">
-      {b.service === "room" ? "เข้าพัก" : "นัด"}: {formatThaiDateShort(b.checkin || b.date)}
-      {b.checkout ? ` → ${formatThaiDateShort(b.checkout)}` : ""}
-      {roomLabel ? ` · ${roomWithWord(roomLabel)}` : ""}
+      {b.service === "room" ? tr("เข้าพัก", "Stay") : tr("นัด", "Booking")}: {formatDateShort(b.checkin || b.date, locale)}
+      {b.checkout ? ` → ${formatDateShort(b.checkout, locale)}` : ""}
+      {roomLabel ? ` · ${locale === "en" ? roomLabel : roomWithWord(roomLabel)}` : ""}
     </p>
   );
 }
 
 function VaccineSection({ target }: { target: VaccineTarget }) {
+  const tr = useTr();
   const booking = target.booking;
   const [sentCount, setSentCount] = useState(target.initialCount);
   const [photos, setPhotos] = useState<string[]>([]);
@@ -240,9 +246,9 @@ function VaccineSection({ target }: { target: VaccineTarget }) {
       setSentCount((prev) => data.count ?? prev + list.length);
       setPhotos([]);
       setDone(true);
-      savedPopup("ส่งรูปสมุดวัคซีนสำเร็จ", ["ร้านได้รับรูปแล้วค่ะ"]);
+      savedPopup(tr("ส่งรูปสมุดวัคซีนสำเร็จ", "Vaccine photos sent"), [tr("ร้านได้รับรูปแล้วค่ะ", "The shop has received the photos.")]);
     } catch {
-      alert("ส่งรูปไม่สำเร็จ ลองใหม่อีกครั้งนะคะ");
+      alert(tr("ส่งรูปไม่สำเร็จ ลองใหม่อีกครั้งนะคะ", "Couldn't send the photos. Please try again."));
     } finally {
       setSaving(false);
     }
@@ -263,14 +269,14 @@ function VaccineSection({ target }: { target: VaccineTarget }) {
       {target.update && !done ? (
         <p className="mb-2 flex items-start gap-1.5 rounded-petflow-sm bg-honey/20 px-3 py-2 text-[11px] font-bold text-petflow-chocolate">
           <Icon name="image" size={14} className="mt-0.5 shrink-0" />
-          ร้านขอรูปสมุดวัคซีนหน้าล่าสุด (เช่น หลังฉีดเข็มใหม่)
-          {sentCount > 0 ? ` · รูปเดิม ${sentCount} รูป ร้านยังเก็บไว้` : ""}
+          {tr("ร้านขอรูปสมุดวัคซีนหน้าล่าสุด (เช่น หลังฉีดเข็มใหม่)", "The shop asks for the latest vaccine page (e.g. after a new shot)")}
+          {sentCount > 0 ? tr(` · รูปเดิม ${sentCount} รูป ร้านยังเก็บไว้`, ` · the shop still has your ${sentCount} earlier photo(s)`) : ""}
         </p>
       ) : (
         sentCount > 0 && (
           <p className="mb-2 flex items-center gap-1.5 rounded-petflow-sm bg-sage/20 px-3 py-2 text-[11px] font-bold text-ok">
             <Icon name="check" size={14} strokeWidth={2.4} />
-            ร้านได้รับสมุดวัคซีนแล้ว {sentCount} รูป{done ? " — ขอบคุณค่ะ 🧡" : " · แนบเพิ่มได้"}
+            {tr(`ร้านได้รับสมุดวัคซีนแล้ว ${sentCount} รูป`, `The shop has ${sentCount} vaccine photo(s)`)}{done ? tr(" — ขอบคุณค่ะ 🧡", ". Thank you 🧡") : tr(" · แนบเพิ่มได้", " · you can add more")}
           </p>
         )
       )}
@@ -280,10 +286,10 @@ function VaccineSection({ target }: { target: VaccineTarget }) {
           {photos.map((src, i) => (
             <div key={i} className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt={`สมุดวัคซีน ${i + 1}`} className="aspect-square w-full rounded-lg object-cover" />
+              <img src={src} alt={`${tr("สมุดวัคซีน", "Vaccine book")} ${i + 1}`} className="aspect-square w-full rounded-lg object-cover" />
               <button
                 type="button"
-                aria-label="ลบรูปนี้"
+                aria-label={tr("ลบรูปนี้", "Remove this photo")}
                 onClick={() => setPhotos((prev) => prev.filter((_, j) => j !== i))}
                 className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white"
               >
@@ -311,26 +317,26 @@ function VaccineSection({ target }: { target: VaccineTarget }) {
           </span>
           <span className="text-xs font-bold text-brown-soft">
             {converting
-              ? "กำลังแนบรูป…"
+              ? tr("กำลังแนบรูป…", "Attaching…")
               : photos.length
-                ? `เพิ่มรูปอีก (สูงสุด ${MAX_VACCINE_PHOTOS} รูป)`
+                ? tr(`เพิ่มรูปอีก (สูงสุด ${MAX_VACCINE_PHOTOS} รูป)`, `Add more (up to ${MAX_VACCINE_PHOTOS} photos)`)
                 : target.update
-                  ? "แตะเพื่อถ่าย/เลือกรูปสมุดวัคซีนหน้าล่าสุด (เลือกแล้วส่งให้ร้านทันที)"
+                  ? tr("แตะเพื่อถ่าย/เลือกรูปสมุดวัคซีนหน้าล่าสุด (เลือกแล้วส่งให้ร้านทันที)", "Tap to take/choose a photo of the latest vaccine page (sent to the shop right away)")
                   : sentCount > 0
-                  ? "แนบเพิ่ม (เลือกแล้วส่งให้ร้านทันที)"
-                  : "แตะเพื่อถ่าย/เลือกรูปสมุดวัคซีน (เลือกแล้วส่งให้ร้านทันที)"}
+                  ? tr("แนบเพิ่ม (เลือกแล้วส่งให้ร้านทันที)", "Add more (sent to the shop right away)")
+                  : tr("แตะเพื่อถ่าย/เลือกรูปสมุดวัคซีน (เลือกแล้วส่งให้ร้านทันที)", "Tap to take/choose vaccine book photos (sent to the shop right away)")}
           </span>
         </label>
       )}
 
       {saving ? (
-        <p className="mt-3 text-center text-xs font-bold text-brown-soft">กำลังส่งรูปให้ร้าน…</p>
+        <p className="mt-3 text-center text-xs font-bold text-brown-soft">{tr("กำลังส่งรูปให้ร้าน…", "Sending photos to the shop…")}</p>
       ) : (
         photos.length > 0 &&
         !converting && (
           // เหลือรูปค้าง = ส่งรอบก่อนไม่ผ่าน
           <button type="button" onClick={() => send()} className={`mt-3 ${BTN_PRIMARY}`}>
-            ส่งไม่สำเร็จ — แตะเพื่อลองส่ง {photos.length} รูปอีกครั้ง
+            {tr(`ส่งไม่สำเร็จ — แตะเพื่อลองส่ง ${photos.length} รูปอีกครั้ง`, `Sending failed. Tap to resend ${photos.length} photo(s)`)}
           </button>
         )
       )}
@@ -339,6 +345,7 @@ function VaccineSection({ target }: { target: VaccineTarget }) {
 }
 
 function IdCardSection({ stay }: { stay?: StayBooking }) {
+  const tr = useTr();
   const { profile } = useLiff();
   const { config } = useConfig();
   const [idCardUrl, setIdCardUrl] = useState("");
@@ -357,7 +364,7 @@ function IdCardSection({ stay }: { stay?: StayBooking }) {
   // ขีดทับบนเครื่องลูกค้าก่อน แล้วค่อยส่งขึ้นระบบ — รูปบัตรแบบไม่มีข้อความไม่เคยออกจากมือถือ
   const upload = async (file: File) => {
     if (!profile?.lineUserId) {
-      alert("ยังเชื่อมบัญชี LINE ไม่เสร็จ — ปิดหน้านี้แล้วเปิดลิงก์จากแชท LINE ใหม่อีกครั้งนะคะ");
+      alert(tr("ยังเชื่อมบัญชี LINE ไม่เสร็จ — ปิดหน้านี้แล้วเปิดลิงก์จากแชท LINE ใหม่อีกครั้งนะคะ", "Your LINE account isn't linked yet. Please close this page and open the link from the LINE chat again."));
       return;
     }
     setBusy(true);
@@ -374,7 +381,7 @@ function IdCardSection({ stay }: { stay?: StayBooking }) {
       setJustSent(true);
     } catch (e) {
       const msg = e instanceof Error && !e.message.startsWith("upload") ? e.message : "";
-      alert(msg || "แนบรูปบัตรไม่สำเร็จ ลองใหม่อีกครั้งนะคะ");
+      alert(msg || tr("แนบรูปบัตรไม่สำเร็จ ลองใหม่อีกครั้งนะคะ", "Couldn't attach the ID card photo. Please try again."));
     } finally {
       setBusy(false);
     }
@@ -389,19 +396,19 @@ function IdCardSection({ stay }: { stay?: StayBooking }) {
         </div>
       )}
       <p className="mb-2 text-[11px] text-brown-faint">
-        ระบบจะพิมพ์ข้อความขีดทับลงในรูปให้อัตโนมัติก่อนส่ง: &quot;{idCardPurpose(config.business.name)}&quot;
-        แนบครั้งเดียวพอ รอบต่อไปไม่ต้องแนบอีก
+        {tr("ระบบจะพิมพ์ข้อความขีดทับลงในรูปให้อัตโนมัติก่อนส่ง:", "A watermark is added to the photo automatically before sending:")} &quot;{idCardPurpose(config.business.name)}&quot;{" "}
+        {tr("แนบครั้งเดียวพอ รอบต่อไปไม่ต้องแนบอีก", "You only need to attach it once.")}
       </p>
       {idCardUrl && (
         <>
           <p className="mb-2 flex items-center gap-1.5 rounded-petflow-sm bg-sage/20 px-3 py-2 text-[11px] font-bold text-ok">
             <Icon name="check" size={14} strokeWidth={2.4} />
-            {justSent ? "ส่งบัตรให้ร้านแล้ว ขอบคุณค่ะ 🧡" : "ร้านมีบัตรของคุณแล้ว · แตะด้านล่างถ้าต้องการเปลี่ยนรูป"}
+            {justSent ? tr("ส่งบัตรให้ร้านแล้ว ขอบคุณค่ะ 🧡", "ID card sent to the shop. Thank you 🧡") : tr("ร้านมีบัตรของคุณแล้ว · แตะด้านล่างถ้าต้องการเปลี่ยนรูป", "The shop already has your ID · tap below to change it")}
           </p>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={idCardUrl}
-            alt="บัตรประชาชน (ขีดทับแล้ว)"
+            alt={tr("บัตรประชาชน (ขีดทับแล้ว)", "ID card (watermarked)")}
             className="mb-2 w-full rounded-lg border border-petflow-line object-contain"
           />
         </>
@@ -422,10 +429,10 @@ function IdCardSection({ stay }: { stay?: StayBooking }) {
         </span>
         <span className="text-xs font-bold text-brown-soft">
           {busy
-            ? "กำลังขีดทับและแนบรูป…"
+            ? tr("กำลังขีดทับและแนบรูป…", "Watermarking and attaching…")
             : idCardUrl
-              ? "แตะเพื่อเปลี่ยนรูปบัตร"
-              : "แตะเพื่อถ่าย/เลือกรูปบัตรประชาชน"}
+              ? tr("แตะเพื่อเปลี่ยนรูปบัตร", "Tap to change the ID photo")
+              : tr("แตะเพื่อถ่าย/เลือกรูปบัตรประชาชน", "Tap to take/choose an ID card photo")}
         </span>
       </label>
     </section>

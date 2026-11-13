@@ -11,7 +11,7 @@ export default function BoardingRulesPage() {
   const { config } = useConfig();
   const blocks = config.boardingRules || [];
   // กฎชุดเดียวกับการ์ด "กฎ + กดยินยอม" (ตั้งค่า › ข้อความ) — ร้านแก้ที่เดียว ข้อความตรงกันเสมอ
-  const { title, terms } = consentTextFor(config.messages, "stay");
+  const { title, terms } = consentTextFor(config.messages, "stay", locale);
 
   return (
     <div className="px-4 pb-6 pt-5">

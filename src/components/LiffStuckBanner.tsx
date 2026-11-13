@@ -1,6 +1,7 @@
 "use client";
 
 import { useLiff } from "@/components/LiffProvider";
+import { useTr } from "@/components/LocaleProvider";
 
 /**
  * โผล่ทับทุกหน้าถ้า LIFF มีปัญหา — ครอบคลุม 2 เคส:
@@ -10,6 +11,7 @@ import { useLiff } from "@/components/LiffProvider";
  *    profile.lineUserId (จองคิวเอง, ผูกบัญชี, แต้มสะสม ฯลฯ) พังเงียบๆ โดยไม่มีคำอธิบาย
  */
 export function LiffStuckBanner() {
+  const tr = useTr();
   const { ready, profile, error } = useLiff();
   if (!error) return null;
   if (ready && profile?.lineUserId) return null;
@@ -23,7 +25,7 @@ export function LiffStuckBanner() {
           onClick={() => window.location.reload()}
           className="mt-3 w-full rounded-petflow-sm bg-latte-deep py-2.5 text-sm font-extrabold text-white"
         >
-          🔄 โหลดใหม่
+          {tr("🔄 โหลดใหม่", "🔄 Reload")}
         </button>
       </div>
     </div>

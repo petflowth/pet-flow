@@ -1,10 +1,11 @@
 "use client";
 
+import { useLocale, useTr } from "@/components/LocaleProvider";
 import { savedPopup } from "@/components/Toast";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLiff } from "@/components/LiffProvider";
-import { formatThaiDateShort } from "@/lib/format-thai-date";
+import { formatDateShort } from "@/lib/format-thai-date";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { BTN_PRIMARY, PageHeader } from "@/components/PageHeader";
 import { EmptyState, SectionLabel } from "@/components/ui";
@@ -30,6 +31,8 @@ function BookingTimeContent() {
   const id = params.get("id") || "";
   const type = params.get("type") === "checkout" ? "checkout" : "checkin";
   const { profile } = useLiff();
+  const { locale } = useLocale();
+  const tr = useTr();
 
   const [bk, setBk] = useState<Bk | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,7 +42,7 @@ function BookingTimeContent() {
 
   const isCheckin = type === "checkin";
   // เปิดมาจากปุ่มเดียว (ไล่ทีละหน้า) — เลือกเวลาแล้วไปขั้นต่อไป ไม่ปิดหน้ากลับแชท
-  const flow = flowProgress(params);
+  const flow = flowProgress(params, locale);
 
   useEffect(() => {
     if (!id) {
@@ -73,7 +76,7 @@ function BookingTimeContent() {
       });
       if (res.ok) {
         setSaved(time);
-        savedPopup("บันทึกเวลาสำเร็จ", [`${isCheckin ? "เวลามาส่ง" : "เวลามารับ"} ${time} น.`]);
+        savedPopup(tr("บันทึกเวลาสำเร็จ", "Time saved"), [tr(`${isCheckin ? "เวลามาส่ง" : "เวลามารับ"} ${time} น.`, `${isCheckin ? "Drop-off" : "Pick-up"} at ${time}`)]);
       }
     } finally {
       setSaving(false);
@@ -95,11 +98,11 @@ function BookingTimeContent() {
   const shopGoes = isCheckin ? !!bk?.shopPickup : !!bk?.shopDropoff;
   const title = shopGoes
     ? isCheckin
-      ? "เลือกเวลาให้ร้านไปรับน้อง"
-      : "เลือกเวลาให้ร้านไปส่งน้องที่บ้าน"
+      ? tr("เลือกเวลาให้ร้านไปรับน้อง", "Choose a time for us to pick up your pet")
+      : tr("เลือกเวลาให้ร้านไปส่งน้องที่บ้าน", "Choose a time for us to bring your pet home")
     : isCheckin
-      ? "เลือกเวลาที่จะมาส่งน้อง"
-      : "เลือกเวลาที่จะมารับน้อง";
+      ? tr("เลือกเวลาที่จะมาส่งน้อง", "Choose your drop-off time")
+      : tr("เลือกเวลาที่จะมารับน้อง", "Choose your pick-up time");
 
   if (done) {
     return (
@@ -109,18 +112,18 @@ function BookingTimeContent() {
           <Icon name="check" size={28} strokeWidth={2.4} />
         </span>
         <h1 className="mt-4 text-lg font-extrabold text-petflow-chocolate">
-          บันทึกเวลาเรียบร้อยแล้ว!
+          {tr("บันทึกเวลาเรียบร้อยแล้ว!", "Time saved!")}
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-brown-soft">
           {shopGoes
             ? isCheckin
-              ? `ร้านจะไปรับ${bk?.catName || "น้อง"}ตามจุดรับ-ส่งตอน ${saved} นะคะ 🚗`
-              : `ร้านจะพา${bk?.catName || "น้อง"}ไปส่งที่บ้านตอน ${saved} นะคะ 🚗`
+              ? tr(`ร้านจะไปรับ${bk?.catName || "น้อง"}ตามจุดรับ-ส่งตอน ${saved} นะคะ 🚗`, `We'll pick up ${bk?.catName || "your pet"} at ${saved} 🚗`)
+              : tr(`ร้านจะพา${bk?.catName || "น้อง"}ไปส่งที่บ้านตอน ${saved} นะคะ 🚗`, `We'll bring ${bk?.catName || "your pet"} home at ${saved} 🚗`)
             : isCheckin
-              ? `เราจะเตรียมห้องรอต้อนรับ${bk?.catName || "น้อง"}ตอน ${saved} นะคะ 🐾`
-              : `เราจะเตรียม${bk?.catName || "น้อง"}ให้พร้อมก่อนกลับบ้านตอน ${saved} นะคะ 🐾`}
+              ? tr(`เราจะเตรียมห้องรอต้อนรับ${bk?.catName || "น้อง"}ตอน ${saved} นะคะ 🐾`, `We'll have the room ready for ${bk?.catName || "your pet"} at ${saved} 🐾`)
+              : tr(`เราจะเตรียม${bk?.catName || "น้อง"}ให้พร้อมก่อนกลับบ้านตอน ${saved} นะคะ 🐾`, `We'll have ${bk?.catName || "your pet"} ready to go home at ${saved} 🐾`)}
           <br />
-          กลับไปที่แชท LINE ได้เลยค่ะ
+          {tr("กลับไปที่แชท LINE ได้เลยค่ะ", "You can go back to the LINE chat now")}
         </p>
         </div>
       </div>
@@ -133,7 +136,7 @@ function BookingTimeContent() {
         eyebrow={shopGoes ? (isCheckin ? "Pick-up by shop" : "Delivery time") : isCheckin ? "Drop-off time" : "Pick-up time"}
         title={title}
         back="/app"
-        backLabel="กลับหน้าแรก"
+        backLabel={tr("กลับหน้าแรก", "Back to home")}
         showLang={false}
       />
       <IntakeFlowBar mode="progress" />
@@ -142,7 +145,7 @@ function BookingTimeContent() {
         <LoadingScreen />
       ) : !bk ? (
         <div className="rounded-petflow border border-petflow-line bg-card shadow-petflow-sm">
-          <EmptyState icon="calendar" title="ไม่พบข้อมูลการจอง" />
+          <EmptyState icon="calendar" title={tr("ไม่พบข้อมูลการจอง", "Booking not found")} />
         </div>
       ) : (
         <>
@@ -153,14 +156,14 @@ function BookingTimeContent() {
             <div className="min-w-0">
               <p className="truncate text-sm font-extrabold text-petflow-chocolate">{bk.catName}</p>
               <p className="text-xs text-brown-soft">
-                {isCheckin ? "วันเข้าพัก" : "วันรับน้อง"}:{" "}
-                {dateLabel ? formatThaiDateShort(dateLabel) : "—"}
+                {isCheckin ? tr("วันเข้าพัก", "Check-in") : tr("วันรับน้อง", "Pick-up day")}:{" "}
+                {dateLabel ? formatDateShort(dateLabel, locale) : "—"}
               </p>
             </div>
           </div>
 
           <section className="mt-5">
-            <SectionLabel>{saved ? "Change time · เปลี่ยนเวลา (ถ้าต้องการ)" : "Time · เลือกเวลา"}</SectionLabel>
+            <SectionLabel>{saved ? tr("Change time · เปลี่ยนเวลา (ถ้าต้องการ)", "Change time (if needed)") : tr("Time · เลือกเวลา", "Choose a time")}</SectionLabel>
             <div className="rounded-petflow border border-petflow-line bg-paper p-3 shadow-petflow-sm">
               <TimeSlotPicker value={saved} onPick={pick} disabled={saving} />
             </div>
@@ -170,20 +173,20 @@ function BookingTimeContent() {
             <div className="mt-5 rounded-petflow bg-sage/15 p-4">
               <p className="flex items-center justify-center gap-1.5 text-base font-extrabold text-petflow-chocolate">
                 <Icon name="check" size={18} strokeWidth={2.4} className="text-ok" />
-                เลือกเวลา {saved} แล้ว
+                {tr(`เลือกเวลา ${saved} แล้ว`, `${saved} selected`)}
               </p>
               {flow?.next ? (
                 <a href={flow.next.href} className={`mt-3 ${BTN_PRIMARY}`}>
-                  ถัดไป: {flow.next.label}
+                  {tr("ถัดไป:", "Next:")} {flow.next.label}
                   <Icon name="chevron" size={16} />
                 </a>
               ) : (
                 <>
                   <p className="mt-1 text-center text-xs text-brown-soft">
-                    ถ้าถูกต้องแล้ว กดปุ่มด้านล่างเพื่อยืนยันและกลับไปที่แชทได้เลยค่ะ 🧡
+                    {tr("ถ้าถูกต้องแล้ว กดปุ่มด้านล่างเพื่อยืนยันและกลับไปที่แชทได้เลยค่ะ 🧡", "If that's right, tap below to confirm and go back to the chat 🧡")}
                   </p>
                   <button type="button" onClick={finish} className={`mt-3 ${BTN_PRIMARY}`}>
-                    เสร็จแล้ว — กลับไปที่แชท
+                    {tr("เสร็จแล้ว — กลับไปที่แชท", "Done — back to chat")}
                   </button>
                 </>
               )}

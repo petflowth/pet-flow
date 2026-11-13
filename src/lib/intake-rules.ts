@@ -1,5 +1,5 @@
 import type { SiteConfig } from "./config-types";
-import { otherKey, resolveGroomForm, type GroomField } from "./groom-form";
+import { answeredRecently, otherKey, resolveGroomForm, type GroomField } from "./groom-form";
 import { resolveHistoryForm, resolveStayForm } from "./stay-form";
 import type { PetKind } from "./pet-kind";
 
@@ -94,6 +94,8 @@ export function registerHistoryFields(
   if (!resolveHistoryForm(kind, undefined, cfg?.stayForm)) return null;
   const fs = resolveStayForm(cfg?.stayForm, kind, { allRequired })
     .filter((f) => f.section === "owner" || f.section === "pet" || (allRequired && f.section === "care"))
+    // ข้อที่ถามใหม่ทุกนัด (เช่น โรคติดต่อตอนนี้) ไม่ถามตอนสมัคร — ถามในฟอร์มก่อนนัดแทน
+    .filter((f) => !f.askEveryTime)
     .map((f) => ({
       ...f,
       required: allRequired ? f.required : false,
@@ -115,6 +117,27 @@ export function stayInfoDone(json?: string | null): boolean {
     return (JSON.parse(json) as { source?: string }).source !== REGISTER_HISTORY_SOURCE;
   } catch {
     return true;
+  }
+}
+
+/**
+ * คำตอบฟอร์มนี้ยังใช้กับนัดที่กำลังจะถึงได้ไหม — ไม่มีคำตอบ = ไม่ได้ · ฟอร์มมีข้อ "ถามใหม่ทุกนัด" (เช่น โรคติดต่อ)
+ * และกรอกไว้นานเกิน ASK_AGAIN_DAYS วัน = ต้องขอใหม่ (หน้าฟอร์มซ่อนข้ออื่นที่ตอบแล้ว ลูกค้าตอบแค่ข้อนั้น)
+ * ฟอร์มก่อนเข้าพักที่มาจากหน้าสมัครอย่างเดียวยังไม่นับ (stayInfoDone)
+ */
+export function intakeFresh(
+  form: "groom" | "stay",
+  kind: PetKind | undefined,
+  cfg: Parameters<typeof intakeFields>[2],
+  json?: string | null,
+  now = Date.now()
+): boolean {
+  if (!json || (form === "stay" && !stayInfoDone(json))) return false;
+  if (!intakeFields(form, kind, cfg).some((f) => f.askEveryTime)) return true;
+  try {
+    return answeredRecently((JSON.parse(json) as { submittedAt?: unknown }).submittedAt, now);
+  } catch {
+    return false;
   }
 }
 

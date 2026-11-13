@@ -53,6 +53,19 @@ export function FormFieldsEditor({
                 />
                 บังคับตอบ
               </label>
+              <label
+                className="flex items-center gap-1.5 text-[11px] font-bold text-brown"
+                title="ไม่ใช้คำตอบเก่า — ลูกค้าตอบใหม่ทุกครั้งที่มีนัด (เช่น อาการป่วยตอนนี้)"
+              >
+                <input
+                  type="checkbox"
+                  checked={c.askEveryTime ?? def.askEveryTime ?? false}
+                  disabled={!enabled}
+                  onChange={(e) => onPatch(def.key, { askEveryTime: e.target.checked })}
+                  className="h-4 w-4 accent-latte-deep"
+                />
+                ถามใหม่ทุกนัด
+              </label>
               <span className="ml-auto rounded-full bg-card px-2 py-0.5 text-[9px] font-bold text-brown-faint">
                 {def.type === "multi"
                   ? "เลือกหลายข้อ"

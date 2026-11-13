@@ -1,3 +1,5 @@
+import { answeredRecently } from "./groom-form";
+
 /** ป้ายกำกับคำตอบประวัติน้องก่อนอาบน้ำ — ใช้ร่วมกันทั้งฟอร์ม, Telegram brief, แอดมิน */
 export const GROOM_TEMPERAMENT_LABELS: Record<string, string> = {
   normal: "ปกติ",
@@ -98,6 +100,7 @@ export function groomInfoSummary(
     label: string;
     options: { key: string; label: string }[];
     allowOther?: boolean;
+    askEveryTime?: boolean;
   }[]
 ): Record<string, string> {
   const val = (k: string) => (info as Record<string, unknown>)[k];
@@ -109,11 +112,20 @@ export function groomInfoSummary(
     const out: Record<string, string> = {};
     for (const f of fields) {
       const raw = val(f.key);
+      // ข้อที่ถามใหม่ทุกนัด (โรคติดต่อ/เชื้อรา) — คำตอบเก่าเกินสัปดาห์ไม่ใช่อาการตอนนี้ ขึ้นว่ายังไม่ได้ตอบ
+      if (f.askEveryTime && !answeredRecently(val("submittedAt"))) {
+        out[f.label] = "-";
+        continue;
+      }
       if (f.type === "multi" || f.type === "single") {
         const label = (k: string) =>
           f.options.find((o) => o.key === k)?.label || LEGACY_LABELS[k] || k;
         const typed = f.allowOther ? String(val(`${f.key}Other`) ?? "").trim() : "";
-        out[f.label] = [...asList(raw).map(label), ...(typed ? [typed] : [])].join(", ") || "-";
+        const picked = asList(raw);
+        const text = [...picked.map(label), ...(typed ? [typed] : [])].join(", ");
+        // ตอบว่ามีโรค/อาการ (ไม่ใช่ "ไม่มี") — ให้ร้านเห็นชัดใน Telegram/สรุป
+        const warn = f.askEveryTime && (typed || picked.some((k) => k !== "none"));
+        out[f.label] = text ? (warn ? `⚠️ ${text}` : text) : "-";
       } else {
         const s = String(raw ?? "").trim();
         out[f.label] = LEGACY_TEXT_LABELS[f.key]?.[s] || (s === "unknown" ? "ไม่ทราบ" : s || "-");

@@ -308,14 +308,16 @@ async function runForTenant() {
       // นัดอาบน้ำ: เช็คทีละตัวในกลุ่ม — ตัวที่เคยกรอกประวัติแล้วบรีฟให้ร้านทาง Telegram
       // ตัวที่ยังไม่เคย รวมขอในการ์ดเดียว (ลิงก์เดียวกรอกได้ครบทุกตัว เหมือนปุ่มขอประวัติรวม)
       if (auto?.groomInfoEnabled !== false && primary.service === "groom") {
-        const checked: { b: typeof primary; info: ReturnType<typeof parseGroomInfo> }[] = [];
+        const checked: { b: typeof primary; info: ReturnType<typeof parseGroomInfo>; fresh: boolean }[] = [];
         for (const cat of group) {
           if (autoMuted(cat, "groomInfo") || !cat.lineUserId) continue;
+          const st = await getIntakeStatus(cat.lineUserId, cat.catName);
           const info = parseGroomInfo(await getCatGroomInfo(cat.lineUserId, cat.catName));
-          checked.push({ b: cat, info });
+          checked.push({ b: cat, info, fresh: st.groomInfo });
         }
         const alreadyHave = checked.filter((x) => x.info);
-        const needInfo = checked.filter((x) => !x.info);
+        // ยังไม่เคยกรอก หรือข้อ "ถามใหม่ทุกนัด" (โรคติดต่อ/เชื้อรา) ตอบไว้นานแล้ว → ขอฟอร์มอีกรอบ
+        const needInfo = checked.filter((x) => !x.fresh);
 
         for (const { b: cat, info } of alreadyHave) {
           // โน้ตนิสัย/โน้ตลับร้าน — สิ่งที่ช่างต้องรู้ก่อนจับน้อง (เช่น กัด ดุตอนอาบ)
@@ -338,11 +340,11 @@ async function runForTenant() {
           );
           groomBriefs++;
         }
-        // เคยกรอกประวัติแล้ว = ไม่ส่งการ์ดขอประวัติใดๆ อีกเลย (รวมการ์ด "แก้ไข/เพิ่มเติม" ด้วย)
+        // เคยกรอกประวัติแล้ว = ไม่ส่งการ์ดขอประวัติอีก — ยกเว้นข้อ "ถามใหม่ทุกนัด" ที่ตอบไว้นานแล้ว (ฟอร์มโชว์แค่ข้อนั้น)
         // ร้านยังได้บรีฟทาง Telegram ด้านบนตามเดิม
         // ยังไม่เคยกรอกประวัติ แต่ร้านเคยจดโน้ตไว้ (เช่น "กัด") — ช่างต้องรู้อยู่ดี
         // ไม่งั้นเคสอันตรายที่สุดคือเคสที่ไม่มีประวัติ กลับเป็นเคสที่ไม่มีใครเตือน
-        for (const { b: cat } of needInfo) {
+        for (const { b: cat } of needInfo.filter((x) => !x.info)) {
           const notes = cat.lineUserId
             ? await getCatStaffNotes(cat.lineUserId, cat.catName)
             : undefined;

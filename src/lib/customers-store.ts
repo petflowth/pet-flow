@@ -15,10 +15,10 @@ import { getSiteConfig } from "./config-store";
 import { requireTenantId } from "./tenant-context";
 import { ensureMigration } from "./migrations";
 import { parseEmergencyContact, type EmergencyContact } from "./emergency-contact";
-import { normalizeSpecies, type PetSpecies } from "./pet-kind";
+import { formKindOf, normalizeSpecies, speciesOf, type PetSpecies } from "./pet-kind";
 import { taxInvoiceFromRow, type CustomerTaxInvoice } from "./tax-invoice";
 import { MAX_VACCINE_PHOTOS, MAX_VACCINE_STORED, joinVaccinePhotos, splitVaccinePhotos } from "./vaccine-photos";
-import { stayInfoDone } from "./intake-rules";
+import { intakeFresh } from "./intake-rules";
 import { cleanPetName } from "./pet-name";
 
 export type { CustomerTier } from "./customer-tier";
@@ -1620,9 +1620,12 @@ export async function getIntakeStatus(lineUserId: string, catName?: string) {
   const c = await findCustomerByLine(lineUserId);
   const key = catName ? catKey(catName) : "";
   const cat = c?.cats.find((x) => !key || catKey(x.name) === key);
+  // ข้อ "ถามใหม่ทุกนัด" (โรคติดต่อ/เชื้อรา) ตอบไว้นานแล้ว = ขอฟอร์มอีกรอบ (ลูกค้าเห็นแค่ข้อนั้น)
+  const cfg = await getSiteConfig();
+  const kind = formKindOf(speciesOf(cat, cfg), cfg);
   return {
-    stayInfo: stayInfoDone(cat?.stayInfo),
-    groomInfo: Boolean(cat?.groomHealthInfo),
+    stayInfo: intakeFresh("stay", kind, cfg, cat?.stayInfo),
+    groomInfo: intakeFresh("groom", kind, cfg, cat?.groomHealthInfo),
     vaccine: splitVaccinePhotos(cat?.vaccinePhotos).length > 0,
     idCard: Boolean(c?.idCardUrl),
   };

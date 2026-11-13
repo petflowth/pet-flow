@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppHealth } from "@/components/AppHealth";
+import { TEXT_SIZE_BOOT_SCRIPT } from "@/lib/text-size";
 
 export const metadata: Metadata = {
   title: "PetFlow",
@@ -19,7 +20,11 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="th">
+    <html lang="th" suppressHydrationWarning>
+      <head>
+        {/* ขนาดตัวอักษรที่ผู้ใช้เลือก — ใส่ก่อนหน้าแสดงจะได้ไม่กระพริบ */}
+        <script dangerouslySetInnerHTML={{ __html: TEXT_SIZE_BOOT_SCRIPT }} />
+      </head>
       <body className="min-h-screen antialiased">
         <AppHealth />
         {children}

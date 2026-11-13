@@ -13,6 +13,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { useLiff } from "@/components/LiffProvider";
 import { Logo } from "@/components/Logo";
 import { LangSwitch } from "@/components/LangSwitch";
+import { TextSizeSwitch } from "@/components/TextSizeSwitch";
 import { CustomerExclusivePromos } from "@/components/CustomerExclusivePromos";
 import { MyCatsSection } from "@/components/MyCatsSection";
 import { MyPackagesSection } from "@/components/MyPackagesSection";
@@ -127,6 +128,7 @@ export default function CustomerHome() {
               {config.business.name}
             </h1>
           </div>
+          <TextSizeSwitch locale={locale} />
           <LangSwitch />
         </header>
       </HeaderBand>

@@ -16,6 +16,7 @@ import {
 } from "@/components/AdminNav";
 import { Toaster } from "@/components/Toast";
 import { Icon } from "@/components/Icon";
+import { TextSizeScope, TextSizeSwitch } from "@/components/TextSizeSwitch";
 import { disabledFeatureForAdminPath } from "@/lib/features";
 import { STAFF_BRANCHES_KEY, isMultiBranch, knownBranchId, readBranchCookie, shopBranches, staffBranchIds, writeBranchCookie } from "@/lib/branches";
 import type { SiteConfig } from "@/lib/config-types";
@@ -326,6 +327,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                   })}
                 </p>
               </div>
+              <TextSizeSwitch />
               <LogoutButton onClick={logout} />
             </div>
             {/* แดชบอร์ด: การ์ดสรุปเกยขึ้นมาทับใต้แถบหัว จึงวางแถบสาขาไว้ในแถบหัวเลย */}
@@ -341,6 +343,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-latte-deep">Back office</p>
               <p className="truncate text-sm font-extrabold text-petflow-chocolate">{shopName}</p>
             </div>
+            <TextSizeSwitch />
             <LogoutButton onClick={logout} subtle />
           </div>
         </header>
@@ -364,6 +367,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <LocaleProvider>
       <ConfigProvider>
         <BrandingStyle />
+        <TextSizeScope />
         <AdminShell>{children}</AdminShell>
       </ConfigProvider>
     </LocaleProvider>

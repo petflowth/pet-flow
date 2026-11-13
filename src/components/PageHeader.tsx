@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { LangSwitch } from "@/components/LangSwitch";
+import { TextSizeSwitch } from "@/components/TextSizeSwitch";
+import { useLocale } from "@/components/LocaleProvider";
 import { useConfig } from "@/components/ConfigProvider";
 import { Icon } from "@/components/Icon";
 
@@ -36,6 +38,7 @@ export function PageHeader({
   backLabel?: string;
   showLang?: boolean;
 }) {
+  const { locale } = useLocale();
   return (
     <div className="mb-5 flex items-center gap-3">
       {back && (
@@ -56,6 +59,7 @@ export function PageHeader({
         <h1 className="text-xl font-extrabold leading-tight text-petflow-chocolate">{title}</h1>
         {subtitle ? <p className="mt-0.5 text-xs text-brown-soft">{subtitle}</p> : null}
       </div>
+      <TextSizeSwitch locale={locale} />
       {showLang && <LangSwitch />}
     </div>
   );

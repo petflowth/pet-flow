@@ -6,6 +6,7 @@ import { CustomerNav } from "@/components/CustomerNav";
 import { LiffStuckBanner } from "@/components/LiffStuckBanner";
 import { AppFeatureGate } from "@/components/AppFeatureGate";
 import { Toaster } from "@/components/Toast";
+import { TextSizeScope } from "@/components/TextSizeSwitch";
 import { getPageSiteConfig } from "@/lib/page-config";
 
 export default async function CustomerLayout({
@@ -19,6 +20,7 @@ export default async function CustomerLayout({
     <LocaleProvider>
       <ConfigProvider initialConfig={initialConfig}>
         <BrandingStyle />
+        <TextSizeScope />
         <LiffProvider>
           <div className="bg-petflow-gradient min-h-screen pb-[calc(6rem+env(safe-area-inset-bottom))]">
             <LiffStuckBanner />

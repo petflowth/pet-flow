@@ -111,3 +111,62 @@ body {
     animation: none;
   }
 }
+
+/* ขนาดตัวอักษรที่ผู้ใช้เลือก (ปุ่ม "กก" — src/lib/text-size.ts) ขยายทั้งหน้าพร้อมกัน
+   ตอนพิมพ์ใช้ขนาดจริงเสมอ */
+html {
+  zoom: var(--pf-zoom, 1);
+}
+@media print {
+  html {
+    zoom: 1 !important;
+  }
+}
+
+/* zoom ทำให้หน่วย vh/dvh ขยายตามไปด้วย (กล่อง 90vh กลายเป็นสูงเกินจอ) — หารกลับเมื่อผู้ใช้เลือกขนาดอื่น
+   เพิ่มคลาส vh ใหม่ในโค้ดเมื่อไร ให้เพิ่มบรรทัดที่นี่ด้วย */
+html[style*="--pf-zoom"] .h-\[80vh\] {
+  height: calc(80vh / var(--pf-zoom));
+}
+html[style*="--pf-zoom"] .h-\[85vh\] {
+  height: calc(85vh / var(--pf-zoom));
+}
+html[style*="--pf-zoom"] .max-h-\[60vh\] {
+  max-height: calc(60vh / var(--pf-zoom));
+}
+html[style*="--pf-zoom"] .max-h-\[75vh\] {
+  max-height: calc(75vh / var(--pf-zoom));
+}
+html[style*="--pf-zoom"] .max-h-\[80vh\] {
+  max-height: calc(80vh / var(--pf-zoom));
+}
+html[style*="--pf-zoom"] .max-h-\[85vh\] {
+  max-height: calc(85vh / var(--pf-zoom));
+}
+html[style*="--pf-zoom"] .max-h-\[88dvh\] {
+  max-height: calc(88dvh / var(--pf-zoom));
+}
+html[style*="--pf-zoom"] .max-h-\[88vh\] {
+  max-height: calc(88vh / var(--pf-zoom));
+}
+html[style*="--pf-zoom"] .max-h-\[90dvh\] {
+  max-height: calc(90dvh / var(--pf-zoom));
+}
+html[style*="--pf-zoom"] .max-h-\[90vh\] {
+  max-height: calc(90vh / var(--pf-zoom));
+}
+html[style*="--pf-zoom"] .max-h-\[92dvh\] {
+  max-height: calc(92dvh / var(--pf-zoom));
+}
+html[style*="--pf-zoom"] .max-h-\[92vh\] {
+  max-height: calc(92vh / var(--pf-zoom));
+}
+html[style*="--pf-zoom"] .max-h-\[calc\(100dvh-92px\)\] {
+  max-height: calc(100dvh / var(--pf-zoom) - 92px);
+}
+html[style*="--pf-zoom"] .min-h-\[60vh\] {
+  min-height: calc(60vh / var(--pf-zoom));
+}
+html[style*="--pf-zoom"] .min-h-screen {
+  min-height: calc(100vh / var(--pf-zoom));
+}

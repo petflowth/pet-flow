@@ -285,6 +285,8 @@ export function resolveStayForm(
       label: c.label?.trim() || def.label,
       placeholder: c.placeholder ?? def.placeholder,
       askEveryTime: c.askEveryTime ?? def.askEveryTime,
+      labelEn: c.labelEn?.trim() || undefined,
+      placeholderEn: c.placeholderEn?.trim() || undefined,
       options: c.options && c.options.length > 0 ? c.options.filter((o) => o.key && o.label) : def.options,
     };
   }).filter((f) => f.enabled);

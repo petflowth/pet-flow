@@ -74,6 +74,14 @@ export function RegisterFormEditor({
                   onChange={(e) => onPatch(def.key, { label: e.target.value })}
                   className="w-full rounded-petflow-sm border border-petflow-line bg-card px-2.5 py-2 text-xs font-bold text-brown"
                 />
+                {/* ลูกค้าที่เลือกภาษาอังกฤษในแอปเห็นชื่อนี้ — เว้นว่าง = ใช้ภาษาอังกฤษของระบบ */}
+                <input
+                  value={value[def.key]?.labelEn ?? ""}
+                  disabled={!f.enabled}
+                  placeholder={`EN: ${def.en}`}
+                  onChange={(e) => onPatch(def.key, { labelEn: e.target.value })}
+                  className="mt-1.5 w-full rounded-petflow-sm border border-petflow-line bg-card px-2.5 py-1.5 text-[11px] text-brown-soft"
+                />
               </div>
             );
           })}

@@ -77,16 +77,25 @@ export function formToTaxInvoice(f: TaxInvoiceForm): CustomerTaxInvoice | null {
 }
 
 /** ข้อความเตือนถ้ากรอกไม่ครบ (ภาษาไทย) — ไม่มีปัญหาคืน "" */
-export function taxInvoiceProblem(t: CustomerTaxInvoice | null | undefined): string {
+export function taxInvoiceProblem(t: CustomerTaxInvoice | null | undefined, locale: "th" | "en" = "th"): string {
   if (!t) return "";
+  const en = locale === "en";
   const person = t.kind === "person";
-  if (!t.name) return person ? "กรอกชื่อ-นามสกุลสำหรับออกบิลด้วยนะคะ" : "กรอกชื่อบริษัท/นิติบุคคลสำหรับออกบิลด้วยนะคะ";
-  if (person && t.name.trim().split(/\s+/).length < 2) return "กรอกทั้งชื่อและนามสกุล (เว้นวรรค) สำหรับออกบิลนะคะ";
-  if (!/^\d{13}$/.test(t.taxId)) return "เลขประจำตัวผู้เสียภาษีต้องเป็นตัวเลข 13 หลักค่ะ";
+  if (!t.name)
+    return person
+      ? en ? "Please enter the full name for the invoice" : "กรอกชื่อ-นามสกุลสำหรับออกบิลด้วยนะคะ"
+      : en ? "Please enter the company name for the invoice" : "กรอกชื่อบริษัท/นิติบุคคลสำหรับออกบิลด้วยนะคะ";
+  if (person && t.name.trim().split(/\s+/).length < 2)
+    return en ? "Please enter both first and last name (with a space)" : "กรอกทั้งชื่อและนามสกุล (เว้นวรรค) สำหรับออกบิลนะคะ";
+  if (!/^\d{13}$/.test(t.taxId)) return en ? "The tax ID must be 13 digits" : "เลขประจำตัวผู้เสียภาษีต้องเป็นตัวเลข 13 หลักค่ะ";
   if (!person && t.branch !== HEAD_OFFICE && (!/^สาขา \d{5}$/.test(t.branch || "") || t.branch === "สาขา 00000"))
-    return "กรอกเลขสาขา (5 หลัก) ด้วยนะคะ";
-  if (!t.address) return person ? "กรอกที่อยู่สำหรับออกบิลด้วยนะคะ" : "กรอกที่อยู่ตามทะเบียนของบริษัทด้วยนะคะ";
-  if (person && (t.phone || "").replace(/\D/g, "").length < 9) return "กรอกเบอร์โทรสำหรับออกบิลด้วยนะคะ";
+    return en ? "Please enter the 5-digit branch number" : "กรอกเลขสาขา (5 หลัก) ด้วยนะคะ";
+  if (!t.address)
+    return person
+      ? en ? "Please enter the address for the invoice" : "กรอกที่อยู่สำหรับออกบิลด้วยนะคะ"
+      : en ? "Please enter the company's registered address" : "กรอกที่อยู่ตามทะเบียนของบริษัทด้วยนะคะ";
+  if (person && (t.phone || "").replace(/\D/g, "").length < 9)
+    return en ? "Please enter a phone number for the invoice" : "กรอกเบอร์โทรสำหรับออกบิลด้วยนะคะ";
   return "";
 }
 

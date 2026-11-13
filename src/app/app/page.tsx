@@ -25,7 +25,7 @@ import { isFeatureOn, type FeatureKey } from "@/lib/features";
 import { referralReward } from "@/lib/referral";
 import { bookingGroupKey, groupCatNames, stayForGroom } from "@/lib/booking-group";
 import { bangkokToday } from "@/lib/bangkok-date";
-import { formatThaiDateShort } from "@/lib/format-thai-date";
+import { formatDateShort } from "@/lib/format-thai-date";
 
 type HomeBooking = Booking & { checkin?: string; checkout?: string };
 
@@ -97,7 +97,7 @@ export default function CustomerHome() {
 
   const points = profile?.points ?? 0;
   // วันที่แบบไทย "3 พ.ย. 2026" (เดิมโชว์ 2026-11-03)
-  const showDate = (iso?: string) => (iso ? (locale === "th" ? formatThaiDateShort(iso) : iso) : "");
+  const showDate = (iso?: string) => (iso ? formatDateShort(iso, locale) : "");
 
   // ยังไม่ได้สมัคร/ข้อมูลไม่ครบ (ไม่มีเบอร์ = ยังไม่เคยกรอกฟอร์มสมัคร) → ชวนให้กรอกให้จบ
   // กัน record ว่างค้างในระบบ และร้านติดต่อกลับได้เสมอ
@@ -161,9 +161,9 @@ export default function CustomerHome() {
       >
         <span className="text-2xl">📅</span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-extrabold">จองคิวเอง</span>
+          <span className="block text-sm font-extrabold">{locale === "th" ? "จองคิวเอง" : "Book online"}</span>
           <span className="block text-[11px] opacity-80">
-            เลือกวัน-เวลาว่างเอง ไม่ต้องคุยกับพนักงาน
+            {locale === "th" ? "เลือกวัน-เวลาว่างเอง ไม่ต้องคุยกับพนักงาน" : "Pick an available day and time yourself"}
           </span>
         </span>
         <span>→</span>
@@ -177,16 +177,16 @@ export default function CustomerHome() {
       >
         <div className="min-w-0">
           <p className="text-base font-extrabold text-amber-deep">
-            🎫 กระเป๋าคูปองของฉัน
+            🎫 {locale === "th" ? "กระเป๋าคูปองของฉัน" : "My coupons"}
           </p>
           <p className="mt-0.5 text-[11px] font-bold text-brown-soft">
             {on("referral")
-              ? `ชวนเพื่อนสมัคร รับคูปองคนละ ${referralReward(config).amount}฿`
-              : "คูปองส่วนลดของคุณ ใช้ที่ร้านได้เลย"}
+              ? locale === "th" ? `ชวนเพื่อนสมัคร รับคูปองคนละ ${referralReward(config).amount}฿` : `Invite friends, you each get ${referralReward(config).amount}฿`
+              : locale === "th" ? "คูปองส่วนลดของคุณ ใช้ที่ร้านได้เลย" : "Your discount coupons, use them in store"}
           </p>
         </div>
         <span className="flex shrink-0 items-center gap-1 rounded-full bg-amber-deep px-3.5 py-2 text-xs font-extrabold text-card shadow-petflow-sm">
-          {couponCount > 0 ? `${couponCount} ใบ` : "เปิด"} →
+          {couponCount > 0 ? (locale === "th" ? `${couponCount} ใบ` : `${couponCount}`) : locale === "th" ? "เปิด" : "Open"} →
         </span>
       </Link>
       )}

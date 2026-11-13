@@ -8,6 +8,7 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { BTN_PRIMARY, BTN_SECONDARY, PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui";
 import { Icon } from "@/components/Icon";
+import { useTr } from "@/components/LocaleProvider";
 
 type Preview = {
   id: string;
@@ -18,6 +19,7 @@ type Preview = {
 };
 
 export function LinkLineContent() {
+  const tr = useTr();
   const router = useRouter();
   const searchParams = useSearchParams();
   const customerId = searchParams.get("customerId") || "";
@@ -31,16 +33,16 @@ export function LinkLineContent() {
   useEffect(() => {
     if (!customerId) {
       setLoading(false);
-      setError("ลิงก์ไม่ถูกต้อง");
+      setError(tr("ลิงก์ไม่ถูกต้อง", "Invalid link"));
       return;
     }
     fetch(`/api/customers/link?customerId=${encodeURIComponent(customerId)}`)
       .then((r) => r.json())
       .then((d) => {
         if (d.customer) setPreview(d.customer);
-        else setError(d.error || "ไม่พบลูกค้า");
+        else setError(d.error || tr("ไม่พบลูกค้า", "Customer not found"));
       })
-      .catch(() => setError("โหลดข้อมูลไม่สำเร็จ"))
+      .catch(() => setError(tr("โหลดข้อมูลไม่สำเร็จ", "Couldn't load data")))
       .finally(() => setLoading(false));
   }, [customerId]);
 
@@ -62,26 +64,26 @@ export function LinkLineContent() {
     setLinking(false);
 
     if (!res.ok) {
-      setError(data.error || "ผูกไม่สำเร็จ");
+      setError(data.error || tr("ผูกไม่สำเร็จ", "Linking failed"));
       return;
     }
 
     await refreshCustomer();
     setDone(true);
-    savedPopup("ผูก LINE สำเร็จ", [], { afterNav: true });
+    savedPopup(tr("ผูก LINE สำเร็จ", "LINE linked"), [], { afterNav: true });
     setTimeout(() => router.replace("/app"), 1500);
   };
 
   if (!ready || loading) {
-    return <LoadingScreen message="กำลังเชื่อมต่อ LINE…" />;
+    return <LoadingScreen message={tr("กำลังเชื่อมต่อ LINE…", "Connecting LINE…")} />;
   }
 
   if (!customerId || (!preview && error)) {
     return (
       <div className="px-4 pb-6 pt-5">
-        <PageHeader eyebrow="Link account" title="ผูกบัญชี LINE" showLang={false} />
+        <PageHeader eyebrow="Link account" title={tr("ผูกบัญชี LINE", "Link LINE account")} showLang={false} />
         <div className="rounded-petflow border border-petflow-line bg-card shadow-petflow-sm">
-          <EmptyState icon="alert" title={error || "ลิงก์ไม่ถูกต้อง"} />
+          <EmptyState icon="alert" title={error || tr("ลิงก์ไม่ถูกต้อง", "Invalid link")} />
         </div>
       </div>
     );
@@ -95,7 +97,7 @@ export function LinkLineContent() {
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-sage/25 text-ok">
             <Icon name="check" size={28} strokeWidth={2.4} />
           </span>
-          <p className="mt-3 text-base font-extrabold text-ok">ผูก LINE สำเร็จ!</p>
+          <p className="mt-3 text-base font-extrabold text-ok">{tr("ผูก LINE สำเร็จ!", "LINE linked!")}</p>
           <p className="mt-1 text-sm text-brown">{preview.name}</p>
         </div>
         <button
@@ -104,7 +106,7 @@ export function LinkLineContent() {
           className={`mt-5 ${BTN_PRIMARY}`}
         >
           <Icon name="home" size={16} />
-          ไปหน้าแรก
+          {tr("ไปหน้าแรก", "Go to home")}
         </button>
       </div>
     );
@@ -118,7 +120,7 @@ export function LinkLineContent() {
             <Icon name="check" size={28} strokeWidth={2.4} />
           </span>
           <p className="mt-3 text-base font-extrabold text-petflow-chocolate">
-            ลูกค้ารายนี้ผูก LINE แล้ว
+            {tr("ลูกค้ารายนี้ผูก LINE แล้ว", "This account is already linked to LINE")}
           </p>
         </div>
         <button
@@ -127,7 +129,7 @@ export function LinkLineContent() {
           className={`mt-5 ${BTN_SECONDARY}`}
         >
           <Icon name="home" size={16} />
-          ไปหน้าแรก
+          {tr("ไปหน้าแรก", "Go to home")}
         </button>
       </div>
     );
@@ -140,8 +142,8 @@ export function LinkLineContent() {
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-sage/25 text-ok">
             <Icon name="check" size={28} strokeWidth={2.4} />
           </span>
-          <p className="mt-3 text-base font-extrabold text-ok">ผูก LINE สำเร็จ!</p>
-          <p className="mt-1 text-xs text-brown-soft">กำลังพาไปหน้าแรก…</p>
+          <p className="mt-3 text-base font-extrabold text-ok">{tr("ผูก LINE สำเร็จ!", "LINE linked!")}</p>
+          <p className="mt-1 text-xs text-brown-soft">{tr("กำลังพาไปหน้าแรก…", "Taking you home…")}</p>
         </div>
       </div>
     );
@@ -151,8 +153,8 @@ export function LinkLineContent() {
     <div className="px-4 pb-6 pt-5">
       <PageHeader
         eyebrow="Link account"
-        title="ผูกบัญชี LINE"
-        subtitle="ร้านบันทึกข้อมูลไว้แล้ว — กดยืนยันเพื่อเชื่อมกับ LINE ของคุณ"
+        title={tr("ผูกบัญชี LINE", "Link LINE account")}
+        subtitle={tr("ร้านบันทึกข้อมูลไว้แล้ว — กดยืนยันเพื่อเชื่อมกับ LINE ของคุณ", "The shop has saved your details. Confirm to link them to your LINE.")}
         showLang={false}
       />
 
@@ -205,11 +207,11 @@ export function LinkLineContent() {
         className={BTN_PRIMARY}
       >
         {!linking && <Icon name="link" size={18} />}
-        {linking ? "กำลังผูก…" : "ยืนยันผูก LINE กับบัญชีนี้"}
+        {linking ? tr("กำลังผูก…", "Linking…") : tr("ยืนยันผูก LINE กับบัญชีนี้", "Link LINE to this account")}
       </button>
 
       <p className="mt-3 text-center text-[11px] text-brown-faint">
-        ชื่อ LINE: {profile?.displayName}
+        {tr("ชื่อ LINE", "LINE name")}: {profile?.displayName}
       </p>
     </div>
   );

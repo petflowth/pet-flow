@@ -35,6 +35,7 @@ import { PetPickList, type PetPickItem } from "@/components/PetPickList";
 import { PetProgramSelect } from "@/components/GroomProgramPicker";
 import { petWords, speciesOf } from "@/lib/pet-kind";
 import { customerFetch } from "@/lib/customer-fetch";
+import { useTr } from "@/components/LocaleProvider";
 
 type Service = "groom" | "room";
 
@@ -81,14 +82,16 @@ function assignGroomSlots(
 }
 
 export default function BookPage() {
+  const tr = useTr();
   return (
-    <Suspense fallback={<p className="py-10 text-center text-sm text-brown-soft">กำลังโหลด…</p>}>
+    <Suspense fallback={<p className="py-10 text-center text-sm text-brown-soft">{tr("กำลังโหลด…", "Loading…")}</p>}>
       <BookPageInner />
     </Suspense>
   );
 }
 
 function BookPageInner() {
+  const tr = useTr();
   const params = useSearchParams();
   const { customer, profile, ready } = useLiff();
   const { config } = useConfig();
@@ -309,7 +312,7 @@ function BookPageInner() {
     try {
       setSlip(await toJpegDataUrl(file, 1400));
     } catch (e) {
-      setSlipErr(e instanceof Error ? e.message : "แนบรูปไม่สำเร็จ ลองใหม่อีกครั้ง");
+      setSlipErr(e instanceof Error ? e.message : tr("แนบรูปไม่สำเร็จ ลองใหม่อีกครั้ง", "Couldn't attach the photo. Please try again."));
     } finally {
       setSlipBusy(false);
     }
@@ -385,14 +388,14 @@ function BookPageInner() {
           setRoomAvail(null);
           setRoomAvailErr(
             d.error === "not_self_bookable"
-              ? "ห้องประเภทนี้ยังจองเองไม่ได้ — ทักแชทร้านแทนนะคะ"
-              : "เช็คความว่างไม่สำเร็จ"
+              ? tr("ห้องประเภทนี้ยังจองเองไม่ได้ — ทักแชทร้านแทนนะคะ", "This room type can't be booked online yet. Please message the shop.")
+              : tr("เช็คความว่างไม่สำเร็จ", "Couldn't check availability")
           );
         } else {
           setRoomAvail(d);
         }
       })
-      .catch(() => alive && setRoomAvailErr("เช็คความว่างไม่สำเร็จ"))
+      .catch(() => alive && setRoomAvailErr(tr("เช็คความว่างไม่สำเร็จ", "Couldn't check availability")))
       .finally(() => alive && setLoadingRoom(false));
     return () => {
       alive = false;
@@ -483,52 +486,52 @@ function BookPageInner() {
           slipSent: created[0]?.depositStatus === "pending_review",
         });
         setSlip("");
-        savedPopup(service === "groom" ? "จองคิวอาบน้ำสำเร็จ" : "จองห้องพักสำเร็จ", [
-          "ร้านจะยืนยันกลับทาง LINE นะคะ",
+        savedPopup(service === "groom" ? tr("จองคิวอาบน้ำสำเร็จ", "Grooming booked") : tr("จองห้องพักสำเร็จ", "Stay booked"), [
+          tr("ร้านจะยืนยันกลับทาง LINE นะคะ", "The shop will confirm via LINE."),
         ]);
       } else if (d.error === "slot_full" || d.error === "room_full") {
         setSubmitErr(
           service === "groom"
-            ? "คิววันนี้ไม่พอสำหรับน้องที่เลือกไว้ทั้งหมด ลองเลือกวัน/เวลาอื่นนะคะ"
-            : "ช่วงนี้เต็มไปแล้วพอดี ลองเลือกวัน/เวลาอื่นนะคะ"
+            ? tr("คิววันนี้ไม่พอสำหรับน้องที่เลือกไว้ทั้งหมด ลองเลือกวัน/เวลาอื่นนะคะ", "Not enough slots left today for all selected pets. Please try another day or time.")
+            : tr("ช่วงนี้เต็มไปแล้วพอดี ลองเลือกวัน/เวลาอื่นนะคะ", "That slot just filled up. Please choose another day or time.")
         );
       } else if (d.error === "address_required" || d.error === "bad_url") {
-        setSubmitErr("ใส่ที่อยู่ หรือลิงก์ Google Maps ที่ถูกต้องก่อนนะคะ");
+        setSubmitErr(tr("ใส่ที่อยู่ หรือลิงก์ Google Maps ที่ถูกต้องก่อนนะคะ", "Please enter a valid address or Google Maps link."));
       } else if (d.error === "zone_required") {
-        setSubmitErr("เลือกโซนที่บ้านอยู่ก่อนนะคะ");
+        setSubmitErr(tr("เลือกโซนที่บ้านอยู่ก่อนนะคะ", "Please choose your home zone."));
       } else if (d.error === "shop_closed") {
-        setSubmitErr("ร้านปิดวันที่เลือกไว้พอดี ลองเลือกวันอื่นนะคะ");
+        setSubmitErr(tr("ร้านปิดวันที่เลือกไว้พอดี ลองเลือกวันอื่นนะคะ", "The shop is closed on that day. Please choose another day."));
       } else if (d.error === "duplicate_booking") {
-        setSubmitErr("น้องตัวนี้มีคิว/การจองช่วงนี้อยู่แล้วค่ะ — ดูได้ที่เมนู “คิวของฉัน” นะคะ");
+        setSubmitErr(tr("น้องตัวนี้มีคิว/การจองช่วงนี้อยู่แล้วค่ะ — ดูได้ที่เมนู “คิวของฉัน” นะคะ", "This pet already has a booking around then. See “My bookings”."));
       } else if (d.error === "past_date") {
-        setSubmitErr("วันที่เลือกผ่านมาแล้วค่ะ ลองเลือกวันใหม่นะคะ");
+        setSubmitErr(tr("วันที่เลือกผ่านมาแล้วค่ะ ลองเลือกวันใหม่นะคะ", "That date has passed. Please choose a new date."));
       } else {
-        setSubmitErr("จองไม่สำเร็จ — ลองใหม่อีกครั้ง");
+        setSubmitErr(tr("จองไม่สำเร็จ — ลองใหม่อีกครั้ง", "Booking failed. Please try again."));
       }
     } catch {
-      setSubmitErr("เชื่อมต่อไม่สำเร็จ — ลองใหม่อีกครั้ง");
+      setSubmitErr(tr("เชื่อมต่อไม่สำเร็จ — ลองใหม่อีกครั้ง", "Connection failed. Please try again."));
     } finally {
       setSubmitting(false);
     }
   };
 
   if (!ready) {
-    return <p className="py-10 text-center text-sm text-brown-soft">กำลังโหลด…</p>;
+    return <p className="py-10 text-center text-sm text-brown-soft">{tr("กำลังโหลด…", "Loading…")}</p>;
   }
 
   if (done) {
     return (
       <div className="px-4 pb-6 pt-5">
-        <PageHeader title="✅ ส่งคำขอจองแล้ว" />
+        <PageHeader title={tr("✅ ส่งคำขอจองแล้ว", "✅ Booking request sent")} />
         <div className="rounded-petflow border border-petflow-line bg-card p-5 text-center shadow-petflow-sm">
           <p className="text-4xl">🐾</p>
           <p className="mt-2 text-sm font-bold text-brown">
-            ส่งคำขอ{done.service === "room" ? "จองห้องพัก" : done.massage ? "จองคิวนวด" : "จองคิวอาบน้ำ"}เรียบร้อยแล้วค่ะ
+            {tr(`ส่งคำขอ${done.service === "room" ? "จองห้องพัก" : done.massage ? "จองคิวนวด" : "จองคิวอาบน้ำ"}เรียบร้อยแล้วค่ะ`, `Your ${done.service === "room" ? "stay" : done.massage ? "massage" : "grooming"} request has been sent.`)}
           </p>
           {done.schedule && done.schedule.length > 1 && (
             <div className="mt-3 space-y-1 rounded-petflow-sm bg-paper px-3 py-2.5 text-left text-xs">
               <p className="mb-1 text-center font-bold text-brown-soft">
-                🕒 คิวที่ได้ (แยกตามความว่างของแต่ละช่วง)
+                {tr("🕒 คิวที่ได้ (แยกตามความว่างของแต่ละช่วง)", "🕒 Your times (based on each slot's availability)")}
               </p>
               {done.schedule.map((s, i) => (
                 <p key={i} className="flex items-center justify-between text-brown">
@@ -539,12 +542,12 @@ function BookPageInner() {
             </div>
           )}
           <p className="mt-1 text-xs text-brown-soft">
-            รอร้านกดยืนยันอีกนิดนะคะ — เช็คสถานะได้ที่เมนู “คิวของฉัน” ด้านล่าง
+            {tr("รอร้านกดยืนยันอีกนิดนะคะ — เช็คสถานะได้ที่เมนู “คิวของฉัน” ด้านล่าง", "Please wait for the shop to confirm. Check the status in “My bookings” below.")}
           </p>
           {done.depositAmount > 0 &&
             (done.slipSent ? (
               <p className="mt-3 rounded-petflow-sm bg-sage/15 px-3 py-2 text-xs font-bold text-ok">
-                📎 ส่งสลิปมัดจำ {done.depositAmount.toLocaleString()} บาทแล้ว — รอร้านตรวจสลิปนะคะ
+                {tr(`📎 ส่งสลิปมัดจำ ${done.depositAmount.toLocaleString()} บาทแล้ว — รอร้านตรวจสลิปนะคะ`, `📎 Deposit slip for ${done.depositAmount.toLocaleString()} THB sent. Waiting for the shop to check it.`)}
               </p>
             ) : (
               <div className="mt-3 text-left">
@@ -572,22 +575,22 @@ function BookPageInner() {
                       if (res.ok) {
                         setDone({ ...done, slipSent: true });
                         setSlip("");
-                        savedPopup("ส่งสลิปสำเร็จ", ["ร้านจะตรวจสอบแล้วยืนยันให้นะคะ"]);
+                        savedPopup(tr("ส่งสลิปสำเร็จ", "Slip sent"), [tr("ร้านจะตรวจสอบแล้วยืนยันให้นะคะ", "The shop will check it and confirm.")]);
                       } else {
-                        setSlipErr("ส่งสลิปไม่สำเร็จ — ลองใหม่อีกครั้ง หรือส่งสลิปในแชทร้านแทนนะคะ");
+                        setSlipErr(tr("ส่งสลิปไม่สำเร็จ — ลองใหม่อีกครั้ง หรือส่งสลิปในแชทร้านแทนนะคะ", "Couldn't send the slip. Try again, or send it in the shop's chat."));
                       }
                     } catch {
-                      setSlipErr("เชื่อมต่อไม่สำเร็จ — ลองใหม่อีกครั้ง");
+                      setSlipErr(tr("เชื่อมต่อไม่สำเร็จ — ลองใหม่อีกครั้ง", "Connection failed. Please try again."));
                     } finally {
                       setLateSending(false);
                     }
                   }}
                   className="mt-2 w-full rounded-petflow-sm bg-gradient-to-r from-honey to-honey-deep py-3 text-sm font-extrabold text-petflow-chocolate shadow-petflow-sm disabled:opacity-50"
                 >
-                  {lateSending ? "กำลังส่งสลิป…" : "📎 ส่งสลิปมัดจำ"}
+                  {lateSending ? tr("กำลังส่งสลิป…", "Sending slip…") : tr("📎 ส่งสลิปมัดจำ", "📎 Send deposit slip")}
                 </button>
                 <p className="mt-1.5 text-center text-[11px] text-brown-faint">
-                  ยังไม่สะดวกโอนตอนนี้ก็ได้ค่ะ — ร้านจะติดต่อเรื่องมัดจำอีกครั้ง
+                  {tr("ยังไม่สะดวกโอนตอนนี้ก็ได้ค่ะ — ร้านจะติดต่อเรื่องมัดจำอีกครั้ง", "No problem if you can't transfer now. The shop will contact you about the deposit.")}
                 </p>
               </div>
             ))}
@@ -603,7 +606,7 @@ function BookPageInner() {
             }}
             className="mt-4 rounded-full bg-honey/30 px-4 py-2 text-xs font-bold text-latte-deep"
           >
-            จองอีกรายการ
+            {tr("จองอีกรายการ", "Book another")}
           </button>
         </div>
       </div>
@@ -612,15 +615,15 @@ function BookPageInner() {
 
   return (
     <div className="px-4 pb-6 pt-5">
-      <PageHeader title="📅 จองคิวเอง" subtitle="เลือกวัน-เวลาที่ว่างได้เลย ไม่ต้องคุยกับพนักงาน" />
+      <PageHeader title={tr("📅 จองคิวเอง", "📅 Book online")} subtitle={tr("เลือกวัน-เวลาที่ว่างได้เลย ไม่ต้องคุยกับพนักงาน", "Pick an available day and time yourself.")} />
 
       {[groomOn, massageOn, hotelOn].filter(Boolean).length > 1 && (
       <div className="mb-4 flex overflow-hidden rounded-full border border-petflow-line text-xs font-bold">
         {(
           [
-            groomOn && { id: "groom", label: "🛁 อาบน้ำ" },
-            massageOn && { id: "massage", label: "💆 นวด" },
-            hotelOn && { id: "room", label: "🏠 เข้าพักโรงแรม" },
+            groomOn && { id: "groom", label: tr("🛁 อาบน้ำ", "🛁 Grooming") },
+            massageOn && { id: "massage", label: tr("💆 นวด", "💆 Massage") },
+            hotelOn && { id: "room", label: tr("🏠 เข้าพักโรงแรม", "🏠 Hotel stay") },
           ].filter(Boolean) as { id: Service | "massage"; label: string }[]
         ).map((t) => (
           <button
@@ -643,7 +646,7 @@ function BookPageInner() {
 
       {multiBranch && (
         <div className="mb-4">
-          <p className="mb-1.5 text-xs font-bold text-brown-soft">📍 เลือกสาขา</p>
+          <p className="mb-1.5 text-xs font-bold text-brown-soft">{tr("📍 เลือกสาขา", "📍 Choose branch")}</p>
           <div className="grid gap-2">
             {branches.map((b) => (
               <button
@@ -669,7 +672,7 @@ function BookPageInner() {
 
       {!customer?.cats?.length ? (
         <p className="rounded-petflow-sm bg-wait/10 px-3 py-2.5 text-xs font-bold text-wait">
-          ยังไม่มีข้อมูลน้อง{pw.th}ในระบบ — กรุณาลงทะเบียนก่อนจองนะคะ
+          {tr(`ยังไม่มีข้อมูลน้อง${pw.th}ในระบบ — กรุณาลงทะเบียนก่อนจองนะคะ`, `No ${pw.en} on file yet. Please sign up before booking.`)}
         </p>
       ) : (
         <>
@@ -682,8 +685,8 @@ function BookPageInner() {
               <>
                 <label className="mb-3 block text-xs font-bold text-brown-soft">
                   {massage
-                    ? `💆 ${catNames.length > 1 ? "โปรแกรมนวด — ทุกตัว" : "โปรแกรมนวด"}`
-                    : `🧴 ${catNames.length > 1 ? "โปรแกรมอาบน้ำ — ทุกตัว (ไม่บังคับ)" : "โปรแกรมอาบน้ำ (ไม่บังคับ)"}`}
+                    ? `💆 ${catNames.length > 1 ? tr("โปรแกรมนวด — ทุกตัว", "Massage program (all pets)") : tr("โปรแกรมนวด", "Massage program")}`
+                    : `🧴 ${catNames.length > 1 ? tr("โปรแกรมอาบน้ำ — ทุกตัว (ไม่บังคับ)", "Grooming program, all pets (optional)") : tr("โปรแกรมอาบน้ำ (ไม่บังคับ)", "Grooming program (optional)")}`}
                   <select
                     value={groomProgram}
                     onChange={(e) => {
@@ -692,7 +695,7 @@ function BookPageInner() {
                     }}
                     className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
                   >
-                    {!massage && <option value="">ยังไม่เลือก — ให้ทางร้านแนะนำหน้างาน</option>}
+                    {!massage && <option value="">{tr("ยังไม่เลือก — ให้ทางร้านแนะนำหน้างาน", "Not chosen. Let the shop recommend on the day")}</option>}
                     {tabPrograms.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name}
@@ -715,7 +718,7 @@ function BookPageInner() {
                 {catNames.length > 1 && (
                   <div className="mb-3 space-y-1.5">
                     <p className="text-[11px] text-brown-faint">
-                      {massage ? "แต่ละตัวนวดไม่เหมือนกัน" : "แต่ละตัวอาบไม่เหมือนกัน"} เปลี่ยนรายตัวได้เลย
+                      {massage ? tr("แต่ละตัวนวดไม่เหมือนกัน", "Different massage per pet?") : tr("แต่ละตัวอาบไม่เหมือนกัน", "Different program per pet?")} {tr("เปลี่ยนรายตัวได้เลย", "Change each one here.")}
                     </p>
                     {catNames.map((n) => (
                       <div
@@ -728,7 +731,7 @@ function BookPageInner() {
                           value={petPrograms[n] ?? groomProgram}
                           onChange={(v) => setPetPrograms((p) => ({ ...p, [n]: v }))}
                           programs={allTabPrograms.filter((p) => programFitsSpecies(p, speciesOfPet(n)))}
-                          emptyLabel="ยังไม่เลือก — ให้ทางร้านแนะนำ"
+                          emptyLabel={tr("ยังไม่เลือก — ให้ทางร้านแนะนำ", "Not chosen. Let the shop recommend")}
                         />
                       </div>
                     ))}
@@ -743,7 +746,7 @@ function BookPageInner() {
                   />
                 )}
                 <label className="mb-3 block text-xs font-bold text-brown-soft">
-                  📅 วันที่
+                  {tr("📅 วันที่", "📅 Date")}
                   <input
                     type="date"
                     value={date}
@@ -752,12 +755,12 @@ function BookPageInner() {
                     className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-sm"
                   />
                 </label>
-                <p className="mb-2 text-xs font-bold text-brown-soft">🕒 เลือกเวลา</p>
+                <p className="mb-2 text-xs font-bold text-brown-soft">{tr("🕒 เลือกเวลา", "🕒 Choose a time")}</p>
                 {loadingSlots ? (
-                  <p className="text-xs text-brown-faint">กำลังเช็คความว่าง…</p>
+                  <p className="text-xs text-brown-faint">{tr("กำลังเช็คความว่าง…", "Checking availability…")}</p>
                 ) : groomClosed ? (
                   <p className="rounded-petflow-sm bg-wait/10 px-3 py-2.5 text-xs font-bold text-wait">
-                    ร้านปิดวันนี้ค่ะ — ลองเลือกวันอื่นนะคะ
+                    {tr("ร้านปิดวันนี้ค่ะ — ลองเลือกวันอื่นนะคะ", "The shop is closed this day. Please choose another day.")}
                   </p>
                 ) : (
                   <div className="grid grid-cols-3 gap-2">
@@ -783,17 +786,17 @@ function BookPageInner() {
                           {s.time}
                           <span className="block text-[9px] font-normal opacity-80">
                             {full
-                              ? "เต็มแล้ว"
+                              ? tr("เต็มแล้ว", "Full")
                               : groomMode === "together" && s.endTime
-                                ? `ถึง ${s.endTime}`
-                                : `ว่าง ${s.remaining}`}
+                                ? tr(`ถึง ${s.endTime}`, `to ${s.endTime}`)
+                                : tr(`ว่าง ${s.remaining}`, `${s.remaining} free`)}
                           </span>
                         </button>
                       );
                     })}
                     {slots && slots.length === 0 && (
                       <p className="col-span-3 text-xs text-brown-faint">
-                        ร้านยังไม่ได้ตั้งรอบเวลาไว้ — ทักแชทร้านแทนนะคะ
+                        {tr("ร้านยังไม่ได้ตั้งรอบเวลาไว้ — ทักแชทร้านแทนนะคะ", "The shop hasn't set time slots yet. Please message the shop.")}
                       </p>
                     )}
                   </div>
@@ -802,8 +805,8 @@ function BookPageInner() {
                 {/* พรีวิวคิวที่จะได้ — ถ้าน้องเกินที่สล็อตนี้รับไหว จะไหลไปสล็อตถัดไปให้เห็นก่อนกดจอง */}
                 {time && groomMode === "together" && pickedSlot?.endTime && (
                   <p className="mt-2 rounded-petflow-sm bg-paper px-3 py-2 text-[11px] font-bold text-brown">
-                    🕒 {catNames.length > 1 ? `น้องทั้ง ${catNames.length} ตัว` : catNames[0]} เริ่ม{" "}
-                    <span className="text-latte-deep">{time}</span> เสร็จประมาณ{" "}
+                    🕒 {catNames.length > 1 ? tr(`น้องทั้ง ${catNames.length} ตัว`, `All ${catNames.length} pets`) : catNames[0]} {tr("เริ่ม", "start")}{" "}
+                    <span className="text-latte-deep">{time}</span> {tr("เสร็จประมาณ", "finish around")}{" "}
                     <span className="text-latte-deep">{pickedSlot.endTime}</span>
                   </p>
                 )}
@@ -811,7 +814,7 @@ function BookPageInner() {
                   <div className="mt-2 rounded-petflow-sm bg-paper px-3 py-2 text-[11px]">
                     {assignedPreview ? (
                       <>
-                        <p className="mb-1 font-bold text-brown-soft">🕒 คิวที่จะได้:</p>
+                        <p className="mb-1 font-bold text-brown-soft">{tr("🕒 คิวที่จะได้:", "🕒 Your times:")}</p>
                         {catNames.map((name, i) => (
                           <p key={i} className="flex items-center justify-between text-brown">
                             <span>{pw.emoji} {name}</span>
@@ -823,8 +826,7 @@ function BookPageInner() {
                       </>
                     ) : (
                       <p className="font-bold text-wait">
-                        คิวที่เหลือในวันนี้ไม่พอสำหรับน้องทั้ง {catNames.length} ตัว —
-                        ลองเลือกวันอื่นนะคะ
+                        {tr(`คิวที่เหลือในวันนี้ไม่พอสำหรับน้องทั้ง ${catNames.length} ตัว — ลองเลือกวันอื่นนะคะ`, `Not enough slots left today for all ${catNames.length} pets. Please try another day.`)}
                       </p>
                     )}
                   </div>
@@ -832,12 +834,12 @@ function BookPageInner() {
               </>
             ) : roomTypes.length === 0 ? (
               <p className="rounded-petflow-sm bg-wait/10 px-3 py-2.5 text-xs font-bold text-wait">
-                ยังจองห้องพักเองไม่ได้ตอนนี้ — ทักแชทร้านแทนนะคะ
+                {tr("ยังจองห้องพักเองไม่ได้ตอนนี้ — ทักแชทร้านแทนนะคะ", "Stays can't be booked online yet. Please message the shop.")}
               </p>
             ) : (
               <>
                 <label className="mb-3 block text-xs font-bold text-brown-soft">
-                  🏠 ประเภทห้อง
+                  {tr("🏠 ประเภทห้อง", "🏠 Room type")}
                   <select
                     value={roomType}
                     onChange={(e) => setRoomType(e.target.value)}
@@ -852,7 +854,7 @@ function BookPageInner() {
                 </label>
                 <div className="mb-3 grid grid-cols-2 gap-2">
                   <label className="block text-xs font-bold text-brown-soft">
-                    วันเข้าพัก
+                    {tr("วันเข้าพัก", "Check-in")}
                     <input
                       type="date"
                       value={checkin}
@@ -865,7 +867,7 @@ function BookPageInner() {
                     />
                   </label>
                   <label className="block text-xs font-bold text-brown-soft">
-                    วันออก
+                    {tr("วันออก", "Check-out")}
                     <input
                       type="date"
                       value={checkout}
@@ -876,7 +878,7 @@ function BookPageInner() {
                   </label>
                 </div>
                 {loadingRoom ? (
-                  <p className="text-xs text-brown-faint">กำลังเช็คความว่าง…</p>
+                  <p className="text-xs text-brown-faint">{tr("กำลังเช็คความว่าง…", "Checking availability…")}</p>
                 ) : roomAvailErr ? (
                   <p className="rounded-petflow-sm bg-wait/10 px-3 py-2 text-xs font-bold text-wait">
                     {roomAvailErr}
@@ -888,31 +890,31 @@ function BookPageInner() {
                     }`}
                   >
                     {roomAvail.remaining >= roomsNeeded
-                      ? `✅ ว่าง ${roomAvail.remaining} ห้อง`
+                      ? tr(`✅ ว่าง ${roomAvail.remaining} ห้อง`, `✅ ${roomAvail.remaining} room(s) available`)
                       : roomAvail.remaining > 0
-                        ? `ว่างแค่ ${roomAvail.remaining} ห้อง แต่น้อง ${catNames.length} ตัวต้องใช้ ${roomsNeeded} ห้อง`
+                        ? tr(`ว่างแค่ ${roomAvail.remaining} ห้อง แต่น้อง ${catNames.length} ตัวต้องใช้ ${roomsNeeded} ห้อง`, `Only ${roomAvail.remaining} room(s) left, but ${catNames.length} pets need ${roomsNeeded} rooms`)
                       : roomAvail.closed
-                        ? "ร้านปิดวันเช็คอิน/เช็คเอาท์ที่เลือกไว้ — ลองเปลี่ยนวันดูนะคะ"
-                        : "เต็มแล้วช่วงนี้ — ลองเปลี่ยนวันดูนะคะ"}
+                        ? tr("ร้านปิดวันเช็คอิน/เช็คเอาท์ที่เลือกไว้ — ลองเปลี่ยนวันดูนะคะ", "The shop is closed on your check-in/check-out day. Please change the dates.")
+                        : tr("เต็มแล้วช่วงนี้ — ลองเปลี่ยนวันดูนะคะ", "Fully booked for these dates. Please try other dates.")}
                   </p>
                 ) : null}
                 {roomPrice && (
                   <div className="mt-2 rounded-petflow-sm bg-paper px-3 py-2 text-xs text-brown">
                     <p className="font-bold">
-                      💰 ประมาณ ฿{roomPrice.total.toLocaleString()} ({roomPrice.nights} คืน)
+                      💰 {tr("ประมาณ", "About")} ฿{roomPrice.total.toLocaleString()} ({roomPrice.nights} {tr("คืน", "night(s)")})
                     </p>
                     {roomPrice.seasonParts ? (
                       roomPrice.seasonParts.map((p, i) => (
                         <p key={i} className="text-brown-soft">
-                          {SEASON_LABEL[p.season]} ฿{p.perNight.toLocaleString()} × {p.nights} คืน
+                          {SEASON_LABEL[p.season]} ฿{p.perNight.toLocaleString()} × {p.nights} {tr("คืน", "night(s)")}
                         </p>
                       ))
                     ) : (
                       <p className="text-brown-soft">
-                        ห้อง ฿{roomPrice.roomPerNight.toLocaleString()} × {roomPrice.rooms} ห้อง
+                        {tr("ห้อง", "Room")} ฿{roomPrice.roomPerNight.toLocaleString()} × {roomPrice.rooms} {tr("ห้อง", "room(s)")}
                         {roomPrice.extraCats > 0 &&
-                          ` + น้องตัวที่ ${roomPrice.included + 1} ขึ้นไป ${roomPrice.extraCats} ตัว × ฿${roomPrice.extraCatPrice}`}{" "}
-                        ต่อคืน
+                          tr(` + น้องตัวที่ ${roomPrice.included + 1} ขึ้นไป ${roomPrice.extraCats} ตัว × ฿${roomPrice.extraCatPrice}`, ` + ${roomPrice.extraCats} extra pet(s) × ฿${roomPrice.extraCatPrice}`)}{" "}
+                        {tr("ต่อคืน", "per night")}
                       </p>
                     )}
                   </div>
@@ -942,10 +944,10 @@ function BookPageInner() {
             className="mt-4 w-full rounded-petflow-sm bg-gradient-to-r from-honey to-honey-deep py-3.5 text-sm font-extrabold text-petflow-chocolate shadow-petflow-sm disabled:opacity-50"
           >
             {submitting
-              ? "กำลังส่งคำขอ…"
+              ? tr("กำลังส่งคำขอ…", "Sending request…")
               : deposit && slip
-                ? "🐾 ยืนยันจอง + ส่งสลิปมัดจำ"
-                : "🐾 ยืนยันจองคิว"}
+                ? tr("🐾 ยืนยันจอง + ส่งสลิปมัดจำ", "🐾 Book + send deposit slip")
+                : tr("🐾 ยืนยันจองคิว", "🐾 Confirm booking")}
           </button>
           {deposit && canSubmit && slip && (
             <button
@@ -954,12 +956,12 @@ function BookPageInner() {
               onClick={() => submit(false)}
               className="mt-2 w-full rounded-petflow-sm bg-card py-2.5 text-xs font-bold text-brown-soft ring-1 ring-petflow-line disabled:opacity-50"
             >
-              จองก่อน โอนทีหลัง
+              {tr("จองก่อน โอนทีหลัง", "Book now, pay later")}
             </button>
           )}
           {deposit && canSubmit && !slip && (
             <p className="mt-2 text-center text-[11px] text-brown-faint">
-              ยังไม่ได้แนบสลิป — กดจองได้เลย (โอนทีหลัง) แล้วค่อยแนบสลิปหลังจองได้ค่ะ
+              {tr("ยังไม่ได้แนบสลิป — กดจองได้เลย (โอนทีหลัง) แล้วค่อยแนบสลิปหลังจองได้ค่ะ", "No slip yet. You can book now and attach the slip later.")}
             </p>
           )}
         </>
@@ -986,26 +988,27 @@ function DepositCard({
   onPick: (f: File) => void;
   onClear: () => void;
 }) {
+  const tr = useTr();
   const amount = amountOverride || deposit.amount;
   // QR ผูกยอดไว้ — ถ้ายอดของนัดไม่ตรงกับยอดปัจจุบันในตั้งค่า (ร้านเพิ่งแก้) อย่าโชว์ QR ยอดผิด
   const showQr = !!deposit.qr && (!amountOverride || amountOverride === deposit.amount);
   return (
     <div className="mt-4 rounded-petflow border border-honey-deep/40 bg-honey/10 p-4 shadow-petflow-sm">
-      <p className="text-xs font-bold text-brown-soft">💰 มัดจำเพื่อยืนยันคิว</p>
+      <p className="text-xs font-bold text-brown-soft">{tr("💰 มัดจำเพื่อยืนยันคิว", "💰 Deposit to confirm")}</p>
       <p className="mt-0.5 text-2xl font-extrabold text-petflow-chocolate">
-        {amount.toLocaleString()} <span className="text-sm">บาท</span>
+        {amount.toLocaleString()} <span className="text-sm">{tr("บาท", "THB")}</span>
       </p>
       {showQr ? (
         <div className="mt-3 flex flex-col items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={deposit.qr}
-            alt={`QR พร้อมเพย์ ${amount} บาท`}
+            alt={`PromptPay QR ${amount}`}
             className="h-52 w-52 rounded-petflow-sm bg-white p-2"
           />
           <p className="mt-1.5 text-center text-[11px] text-brown-soft">
-            สแกนด้วยแอปธนาคาร — ยอดขึ้นให้อัตโนมัติ
-            {deposit.promptpay ? ` · พร้อมเพย์ ${deposit.promptpay}` : ""}
+            {tr("สแกนด้วยแอปธนาคาร — ยอดขึ้นให้อัตโนมัติ", "Scan with your banking app. The amount fills in automatically.")}
+            {deposit.promptpay ? ` · ${tr("พร้อมเพย์", "PromptPay")} ${deposit.promptpay}` : ""}
             {deposit.accountName ? ` · ${deposit.accountName}` : ""}
           </p>
           <a
@@ -1013,12 +1016,12 @@ function DepositCard({
             download="deposit-qr.png"
             className="mt-1.5 rounded-full bg-card px-3 py-1 text-[11px] font-bold text-latte-deep ring-1 ring-petflow-line"
           >
-            บันทึกรูป QR
+            {tr("บันทึกรูป QR", "Save QR image")}
           </a>
         </div>
       ) : deposit.accountNumber ? (
         <p className="mt-2 rounded-petflow-sm bg-card px-3 py-2 text-xs text-brown">
-          โอนเข้า {deposit.bankName} <b>{deposit.accountNumber}</b>
+          {tr("โอนเข้า", "Transfer to")} {deposit.bankName} <b>{deposit.accountNumber}</b>
           {deposit.accountName ? ` (${deposit.accountName})` : ""}
         </p>
       ) : null}
@@ -1036,14 +1039,14 @@ function DepositCard({
         />
         {slip ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={slip} alt="สลิปโอนมัดจำ" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+          <img src={slip} alt={tr("สลิปโอนมัดจำ", "Deposit slip")} className="h-14 w-14 shrink-0 rounded-lg object-cover" />
         ) : (
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-card text-lg">
             🧾
           </span>
         )}
         <span className="text-xs font-bold text-brown-soft">
-          {busy ? "กำลังแนบสลิป…" : slip ? "แนบสลิปแล้ว — แตะเพื่อเปลี่ยนรูป" : "โอนแล้ว แตะเพื่อแนบสลิป"}
+          {busy ? tr("กำลังแนบสลิป…", "Attaching slip…") : slip ? tr("แนบสลิปแล้ว — แตะเพื่อเปลี่ยนรูป", "Slip attached. Tap to change") : tr("โอนแล้ว แตะเพื่อแนบสลิป", "Paid? Tap to attach the slip")}
         </span>
       </label>
       {slip && (
@@ -1052,7 +1055,7 @@ function DepositCard({
           onClick={onClear}
           className="mt-1.5 text-[11px] font-bold text-brown-faint underline"
         >
-          เอาสลิปออก
+          {tr("เอาสลิปออก", "Remove slip")}
         </button>
       )}
       {error && <p className="mt-1.5 text-[11px] font-bold text-wait">{error}</p>}

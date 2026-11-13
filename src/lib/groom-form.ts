@@ -5,15 +5,23 @@
 
 export type GroomFieldType = "single" | "multi" | "text" | "textarea";
 
-export type GroomFormOption = { key: string; label: string };
+export type GroomFormOption = {
+  key: string;
+  label: string;
+  /** ตัวเลือกภาษาอังกฤษ (ลูกค้าที่เลือก EN) — ไม่ตั้ง = ใช้คำแปลของระบบ ดู form-en.ts */
+  labelEn?: string;
+};
 
 /** ค่าที่ร้านแก้เองได้ต่อคำถาม — ไม่ตั้ง = ใช้ค่าเริ่มต้น */
 export type GroomFieldConfig = {
   enabled?: boolean;
   required?: boolean;
   label?: string;
+  /** คำถามภาษาอังกฤษ (ลูกค้าที่เลือก EN) — ไม่ตั้ง = ใช้คำแปลของระบบ ดู form-en.ts */
+  labelEn?: string;
   /** ข้อความช่วยใต้ช่องพิมพ์ (เฉพาะ text/textarea) */
   placeholder?: string;
+  placeholderEn?: string;
   options?: GroomFormOption[];
   /** ถามใหม่ทุกนัด (ไม่ใช้คำตอบเก่าที่นานเกิน ASK_AGAIN_DAYS วัน) */
   askEveryTime?: boolean;
@@ -26,6 +34,9 @@ export type GroomField = {
   type: GroomFieldType;
   label: string;
   placeholder?: string;
+  /** ภาษาอังกฤษที่ร้านพิมพ์เอง — ดู localizeFields ใน form-en.ts */
+  labelEn?: string;
+  placeholderEn?: string;
   required: boolean;
   enabled: boolean;
   options: GroomFormOption[];
@@ -194,6 +205,8 @@ export function resolveGroomForm(config?: GroomFormConfig, kind?: string): Groom
       label: c.label?.trim() || def.label,
       placeholder: c.placeholder ?? def.placeholder,
       askEveryTime: c.askEveryTime ?? def.askEveryTime,
+      labelEn: c.labelEn?.trim() || undefined,
+      placeholderEn: c.placeholderEn?.trim() || undefined,
       options:
         c.options && c.options.length > 0
           ? c.options.filter((o) => o.key && o.label)

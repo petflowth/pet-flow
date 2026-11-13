@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useLiff } from "@/components/LiffProvider";
+import { useTr } from "@/components/LocaleProvider";
 
 type CustomerPackage = {
   id: string;
@@ -28,6 +29,7 @@ export function MyPackagesSection({
   /** บอกหน้าแม่ว่าเช็คเสร็จแล้วและมีคอร์สไหม — ใช้ตัดสินใจว่าจะโชว์ช่องแต้มไหม */
   onChecked?: (hasPackages: boolean) => void;
 }) {
+  const tr = useTr();
   const { profile } = useLiff();
   const [packages, setPackages] = useState<CustomerPackage[]>([]);
 
@@ -57,28 +59,28 @@ export function MyPackagesSection({
   return (
     <section className="mb-4 rounded-petflow border-2 border-latte/50 bg-gradient-to-br from-latte/20 via-card to-honey/10 p-4 shadow-petflow">
       <p className="mb-2 text-sm font-extrabold text-petflow-chocolate">
-        🎫 คอร์สของฉัน
+        🎫 {tr("คอร์สของฉัน", "My packages")}
       </p>
       <div className="space-y-2">
         {packages.map((p) => {
           const left = Math.max(0, p.totalUses - p.usedUses);
-          const unit = p.unit === "night" ? "คืน" : "ครั้ง";
+          const unit = p.unit === "night" ? tr("คืน", "nights") : tr("ครั้ง", "uses");
           const usedPct = p.totalUses > 0 ? (p.usedUses / p.totalUses) * 100 : 0;
           return (
             <div key={p.id} className="rounded-petflow-sm bg-card/80 px-3 py-2.5">
               <div className="flex items-baseline justify-between gap-2">
                 <p className="min-w-0 truncate text-xs font-bold text-brown">{p.name}</p>
                 <p className="shrink-0 text-xs font-extrabold text-latte-deep">
-                  เหลือ {left}/{p.totalUses} {unit}
+                  {tr("เหลือ", "Left")} {left}/{p.totalUses} {unit}
                 </p>
               </div>
               {(p.roomLabel || p.locked) && (
                 <p className="mt-0.5 text-[11px] text-brown-soft">
-                  {p.roomLabel && `ใช้กับ${p.roomLabel}`}
+                  {p.roomLabel && tr(`ใช้กับ${p.roomLabel}`, `For ${p.roomLabel}`)}
                   {p.roomLabel && p.locked && " · "}
                   {p.locked && (
                     <span className="font-bold text-wait">
-                      🔒 ใช้ได้เมื่อจ่ายครบ (ค้าง {Math.round(p.outstanding || 0).toLocaleString()} บาท)
+                      🔒 {tr(`ใช้ได้เมื่อจ่ายครบ (ค้าง ${Math.round(p.outstanding || 0).toLocaleString()} บาท)`, `Usable once fully paid (${Math.round(p.outstanding || 0).toLocaleString()} THB outstanding)`)}
                     </span>
                   )}
                 </p>
@@ -95,7 +97,7 @@ export function MyPackagesSection({
         })}
       </div>
       <p className="mt-2 text-[10px] text-brown-faint">
-        ใช้ได้เลยตอนมาใช้บริการ — แจ้งร้านได้ว่าจะหักจากคอร์สนะคะ 🧡
+        {tr("ใช้ได้เลยตอนมาใช้บริการ — แจ้งร้านได้ว่าจะหักจากคอร์สนะคะ 🧡", "Use it on your next visit. Just tell the shop to deduct from your package 🧡")}
       </p>
     </section>
   );

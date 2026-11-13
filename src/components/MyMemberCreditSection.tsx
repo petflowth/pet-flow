@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useLiff } from "@/components/LiffProvider";
 import { customerFetch } from "@/lib/customer-fetch";
+import { useTr, useLocale } from "@/components/LocaleProvider";
 
 type LedgerEntry = {
   id: string;
@@ -14,6 +15,13 @@ type LedgerEntry = {
   balanceAfter: number;
 };
 
+const KIND_LABEL_EN: Record<LedgerEntry["kind"], string> = {
+  topup: "Top-up",
+  refund: "Refunded as credit (cancelled booking)",
+  legacy: "Opening balance",
+  usage: "Credit used",
+};
+
 const KIND_LABEL: Record<LedgerEntry["kind"], string> = {
   topup: "เติมเครดิต",
   refund: "คืนเป็นเครดิต (ยกเลิกนัด)",
@@ -22,10 +30,10 @@ const KIND_LABEL: Record<LedgerEntry["kind"], string> = {
 };
 
 /** 2026-11-11 → 11 พ.ย. 2026 (ปี ค.ศ. ให้ตรงกับบิล) */
-function thaiDate(d: string) {
+function thaiDate(d: string, locale: "th" | "en" = "th") {
   const dt = new Date(`${d}T00:00:00`);
   if (Number.isNaN(dt.getTime())) return d;
-  return dt.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "numeric", calendar: "gregory" });
+  return dt.toLocaleDateString(locale === "en" ? "en-GB" : "th-TH", { day: "numeric", month: "short", year: "numeric", calendar: "gregory" });
 }
 
 /**
@@ -42,6 +50,8 @@ export function MyMemberCreditSection({
 }: {
   onChecked?: (hasCredit: boolean) => void;
 }) {
+  const { locale } = useLocale();
+  const tr = useTr();
   const { customer, ready } = useLiff();
   const credit = customer?.isMember ? customer.memberCredit || 0 : 0;
   const [open, setOpen] = useState(false);
@@ -84,13 +94,13 @@ export function MyMemberCreditSection({
 
   return (
     <section className="mb-4 overflow-hidden rounded-petflow bg-gradient-to-br from-latte/35 via-card to-honey/15 p-5 shadow-petflow">
-      <p className="text-xs font-bold text-brown-soft">💎 เครดิต Member ของคุณ</p>
+      <p className="text-xs font-bold text-brown-soft">{tr("💎 เครดิต Member ของคุณ", "💎 Your member credit")}</p>
       <p className="mt-1 text-4xl font-extrabold text-latte-deep">
         {credit.toLocaleString()}
-        <span className="ml-1 text-sm font-bold text-brown-faint">บาท</span>
+        <span className="ml-1 text-sm font-bold text-brown-faint">{tr("บาท", "THB")}</span>
       </p>
       <p className="mt-1 text-[10px] text-brown-faint">
-        ใช้จ่ายค่าบริการได้เลย — แจ้งร้านว่าขอหักจากเครดิตนะคะ 🧡
+        {tr("ใช้จ่ายค่าบริการได้เลย — แจ้งร้านว่าขอหักจากเครดิตนะคะ 🧡", "Use it to pay for services. Just ask the shop to deduct from your credit 🧡")}
       </p>
 
       <button
@@ -99,19 +109,19 @@ export function MyMemberCreditSection({
         aria-expanded={open}
         className="mt-3 w-full rounded-petflow-sm border border-petflow-line bg-card/70 px-3 py-2 text-xs font-bold text-latte-deep active:scale-[0.99]"
       >
-        {open ? "ซ่อนประวัติเครดิต ▲" : "ดูประวัติเติม / ตัดเครดิต ▼"}
+        {open ? tr("ซ่อนประวัติเครดิต ▲", "Hide credit history ▲") : tr("ดูประวัติเติม / ตัดเครดิต ▼", "View credit history ▼")}
       </button>
 
       {open && (
         <div className="mt-2 overflow-hidden rounded-petflow-sm border border-petflow-line bg-card">
           {loading ? (
-            <p className="px-3 py-3 text-xs text-brown-faint">กำลังโหลด…</p>
+            <p className="px-3 py-3 text-xs text-brown-faint">{tr("กำลังโหลด…", "Loading…")}</p>
           ) : failed ? (
             <p className="px-3 py-3 text-xs text-brown-faint">
-              โหลดประวัติไม่สำเร็จ ลองกดอีกครั้งนะคะ
+              {tr("โหลดประวัติไม่สำเร็จ ลองกดอีกครั้งนะคะ", "Couldn't load history. Please tap again.")}
             </p>
           ) : !entries || entries.length === 0 ? (
-            <p className="px-3 py-3 text-xs text-brown-faint">ยังไม่มีประวัติ</p>
+            <p className="px-3 py-3 text-xs text-brown-faint">{tr("ยังไม่มีประวัติ", "No history yet")}</p>
           ) : (
             <ul className="divide-y divide-petflow-line">
               {entries.map((e) => {
@@ -120,12 +130,12 @@ export function MyMemberCreditSection({
                   <li key={`${e.kind}-${e.id}`} className="flex items-start gap-2 px-3 py-2.5 text-xs">
                     <div className="min-w-0 flex-1">
                       <p className={`font-bold ${plus ? "text-ok" : "text-brown"}`}>
-                        {KIND_LABEL[e.kind]}
+                        {(locale === "en" ? KIND_LABEL_EN : KIND_LABEL)[e.kind]}
                       </p>
                       <p className="text-[11px] text-brown-soft">
-                        {thaiDate(e.date)}
+                        {thaiDate(e.date, locale)}
                         {e.description ? ` · ${e.description}` : ""}
-                        {e.bonusAmount ? ` · แถม ${e.bonusAmount.toLocaleString()} บาท` : ""}
+                        {e.bonusAmount ? tr(` · แถม ${e.bonusAmount.toLocaleString()} บาท`, ` · bonus ${e.bonusAmount.toLocaleString()} THB`) : ""}
                       </p>
                     </div>
                     <div className="shrink-0 text-right">
@@ -134,7 +144,7 @@ export function MyMemberCreditSection({
                         {Math.abs(e.amount).toLocaleString()}
                       </p>
                       <p className="text-[10px] text-brown-faint">
-                        คงเหลือ {e.balanceAfter.toLocaleString()}
+                        {tr("คงเหลือ", "Balance")} {e.balanceAfter.toLocaleString()}
                       </p>
                     </div>
                   </li>

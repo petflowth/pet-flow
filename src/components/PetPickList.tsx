@@ -1,9 +1,12 @@
 "use client";
 
+import { breedLabel } from "@/lib/en-words";
+
 import { useState } from "react";
 import Image from "next/image";
 import { useConfig } from "@/components/ConfigProvider";
 import { speciesOf, speciesWords } from "@/lib/pet-kind";
+import { useTr } from "@/components/LocaleProvider";
 
 export type PetPickItem = {
   id: string;
@@ -70,21 +73,22 @@ export function PetPickList({
   selected: string[];
   onToggle: (name: string) => void;
 }) {
+  const tr = useTr();
   const { config } = useConfig();
   // รูปเสีย/ลิงก์หมดอายุ → กลับไปใช้รูปการ์ตูนแทน ไม่โชว์ไอคอนรูปแตก
   const [brokenIds, setBrokenIds] = useState<string[]>([]);
   return (
     <div>
       <div className="mb-2 flex items-baseline justify-between">
-        <p className="text-sm font-extrabold text-petflow-chocolate">🐾 เลือกน้องที่จะมา</p>
+        <p className="text-sm font-extrabold text-petflow-chocolate">{tr("🐾 เลือกน้องที่จะมา", "🐾 Which pets are coming?")}</p>
         <p className="text-[11px] font-bold text-brown-faint">
-          เลือกแล้ว {selected.length}/{pets.length} ตัว
+          {tr(`เลือกแล้ว ${selected.length}/${pets.length} ตัว`, `${selected.length}/${pets.length} selected`)}
         </p>
       </div>
       <div className="overflow-hidden rounded-petflow border border-petflow-line bg-paper">
         {pets.map((pet, i) => {
           const active = selected.includes(pet.name);
-          const breed = shortBreed(pet.breed);
+          const breed = tr("th", "en") === "en" ? breedLabel(pet.breed || "", "en") : shortBreed(pet.breed);
           const species = speciesOf(pet, config);
           const pw = speciesWords(species, config);
           return (
@@ -130,7 +134,7 @@ export function PetPickList({
                 <p className="truncate text-sm font-extrabold text-petflow-chocolate">
                   {pet.name}
                 </p>
-                <p className="truncate text-xs text-brown-soft">{breed || `น้อง${pw.th} ${pw.emoji}`}</p>
+                <p className="truncate text-xs text-brown-soft">{breed || tr(`น้อง${pw.th} ${pw.emoji}`, `${pw.en} ${pw.emoji}`)}</p>
               </div>
               <span
                 className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 transition ${

@@ -6,6 +6,7 @@ import { useLiff } from "@/components/LiffProvider";
 import { toJpegDataUrl } from "@/lib/image-convert";
 import { Icon } from "@/components/Icon";
 import { ExpandableText } from "@/components/ExpandableText";
+import { useTr } from "@/components/LocaleProvider";
 
 type Offer = {
   id: string;
@@ -54,6 +55,7 @@ function fileToDataUrl(file: File): Promise<string> {
  * ไม่มีของขายและไม่มีออร์เดอร์ค้าง = ซ่อนทั้งช่อง
  */
 export function PackageShopSection() {
+  const tr = useTr();
   const { profile } = useLiff();
   const [offers, setOffers] = useState<Offer[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -89,15 +91,16 @@ export function PackageShopSection() {
     const detail = offer.itemLabels?.length
       ? `(${offer.itemLabels.join(" · ")})`
       : offer.kind === "credit"
-        ? `ได้รับเครดิต ${(offer.creditAmount ?? offer.price).toLocaleString()} บาท`
+        ? tr(`ได้รับเครดิต ${(offer.creditAmount ?? offer.price).toLocaleString()} บาท`, `get ${(offer.creditAmount ?? offer.price).toLocaleString()} THB credit`)
         : offer.kind === "nights"
-          ? `(เข้าพักได้ ${offer.totalUses} คืน${offer.roomLabel ? ` · ${offer.roomLabel}` : ""})`
-          : `(${offer.totalUses} ครั้ง)`;
+          ? tr(`(เข้าพักได้ ${offer.totalUses} คืน${offer.roomLabel ? ` · ${offer.roomLabel}` : ""})`, `(${offer.totalUses} nights${offer.roomLabel ? ` · ${offer.roomLabel}` : ""})`)
+          : tr(`(${offer.totalUses} ครั้ง)`, `(${offer.totalUses} uses)`);
     if (
       !confirm(
-        `สั่งซื้อ "${offer.name}" ${detail}\n` +
-          `ยอดที่ต้องโอน ${offer.price.toLocaleString()} บาท\n\n` +
-          `กดตกลงแล้วจะมีเลขบัญชีให้โอน แล้วแนบสลิปได้เลยนะคะ`
+        tr(
+          `สั่งซื้อ "${offer.name}" ${detail}\nยอดที่ต้องโอน ${offer.price.toLocaleString()} บาท\n\nกดตกลงแล้วจะมีเลขบัญชีให้โอน แล้วแนบสลิปได้เลยนะคะ`,
+          `Buy "${offer.name}" ${detail}\nAmount to transfer: ${offer.price.toLocaleString()} THB\n\nTap OK to see the account number, then attach your slip.`
+        )
       )
     )
       return;
@@ -114,14 +117,14 @@ export function PackageShopSection() {
         }),
       });
       if (res.ok) {
-        setMsg("สั่งซื้อแล้ว — โอนตามเลขบัญชีด้านล่าง แล้วแนบสลิปได้เลยค่ะ 🧡");
+        setMsg(tr("สั่งซื้อแล้ว — โอนตามเลขบัญชีด้านล่าง แล้วแนบสลิปได้เลยค่ะ 🧡", "Ordered. Transfer to the account below, then attach your slip 🧡"));
         load();
       } else {
         const d = await res.json().catch(() => ({}));
         setMsg(
           d.error === "not_registered"
-            ? "กรุณาสมัครสมาชิกก่อนสั่งซื้อนะคะ"
-            : "สั่งซื้อไม่สำเร็จ ลองใหม่อีกครั้งนะคะ"
+            ? tr("กรุณาสมัครสมาชิกก่อนสั่งซื้อนะคะ", "Please register before ordering.")
+            : tr("สั่งซื้อไม่สำเร็จ ลองใหม่อีกครั้งนะคะ", "Order failed. Please try again.")
         );
       }
     } finally {
@@ -148,8 +151,8 @@ export function PackageShopSection() {
       });
       setMsg(
         res.ok
-          ? "ส่งสลิปแล้ว รอร้านตรวจสอบสักครู่นะคะ 🧾"
-          : "ส่งสลิปไม่สำเร็จ ลองใหม่อีกครั้งนะคะ"
+          ? tr("ส่งสลิปแล้ว รอร้านตรวจสอบสักครู่นะคะ 🧾", "Slip sent. The shop will check it shortly 🧾")
+          : tr("ส่งสลิปไม่สำเร็จ ลองใหม่อีกครั้งนะคะ", "Couldn't send the slip. Please try again.")
       );
       if (res.ok) load();
     } finally {
@@ -178,18 +181,18 @@ export function PackageShopSection() {
         </span>
         <div className="min-w-0">
           <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-brown-soft">Packages</p>
-          <p className="text-sm font-extrabold text-mint-deep">คอร์สที่เปิดขาย</p>
+          <p className="text-sm font-extrabold text-mint-deep">{tr("คอร์สที่เปิดขาย", "Packages for sale")}</p>
         </div>
       </div>
       <p className="-mt-1 mb-3 text-[11px] text-brown-soft">
-        ซื้อล่วงหน้าคุ้มกว่า · ใช้ได้ทุกครั้งที่มาใช้บริการ
+        {tr("ซื้อล่วงหน้าคุ้มกว่า · ใช้ได้ทุกครั้งที่มาใช้บริการ", "Save by buying ahead · use them on any visit")}
       </p>
 
       {offers.length > 0 && (
         <>
         {offers.length > 1 && (
           <p className="mb-1.5 flex items-center gap-1 text-[11px] text-brown-faint">
-            เลื่อนดูคอร์สทั้งหมด <Icon name="chevron" size={12} />
+            {tr("เลื่อนดูคอร์สทั้งหมด", "Scroll to see all")} <Icon name="chevron" size={12} />
           </p>
         )}
         {/* เลื่อนซ้าย-ขวาแบบเดียวกับโปรโมชั่น — เพิ่มคอร์สใหม่แล้วไม่ดันหน้ายาว */}
@@ -228,36 +231,36 @@ export function PackageShopSection() {
                       ))
                     ) : o.kind === "credit" ? (
                       <span className="rounded-full bg-sage/20 px-2 py-0.5 text-ok">
-                        ได้เครดิต {(o.creditAmount ?? o.price).toLocaleString()}฿
+                        {tr("ได้เครดิต", "Credit")} {(o.creditAmount ?? o.price).toLocaleString()}฿
                         {(o.creditAmount ?? o.price) > o.price ? " 🎁" : ""}
                       </span>
                     ) : o.kind === "nights" ? (
                       <>
                         <span className="rounded-full bg-sage/20 px-2 py-0.5 text-ok">
-                          เข้าพักได้ {o.totalUses} คืน
+                          {tr(`เข้าพักได้ ${o.totalUses} คืน`, `${o.totalUses} nights`)}
                         </span>
                         {o.roomLabel && <span>{o.roomLabel}</span>}
                         {o.totalUses > 0 && (
                           <span className="text-brown-faint">
-                            ตกคืนละ {Math.round(o.price / o.totalUses).toLocaleString()}฿
+                            {tr("ตกคืนละ", "per night")} {Math.round(o.price / o.totalUses).toLocaleString()}฿
                           </span>
                         )}
                       </>
                     ) : (
                       <>
                         <span className="rounded-full bg-sage/20 px-2 py-0.5 text-ok">
-                          ใช้ได้ {o.totalUses} ครั้ง
+                          {tr(`ใช้ได้ ${o.totalUses} ครั้ง`, `${o.totalUses} uses`)}
                         </span>
                         {perUse > 0 && (
                           <span className="text-brown-faint">
-                            ตกครั้งละ {perUse.toLocaleString()}฿
+                            {tr("ตกครั้งละ", "per use")} {perUse.toLocaleString()}฿
                           </span>
                         )}
                       </>
                     )}
                   </p>
                   {o.branchLabel && (
-                    <p className="mt-1 text-[10px] font-bold text-latte-deep">ใช้ได้{o.branchLabel}</p>
+                    <p className="mt-1 text-[10px] font-bold text-latte-deep">{tr(`ใช้ได้${o.branchLabel}`, `Valid at: ${o.branchLabel.replace(/^เฉพาะ/, "")}`)}</p>
                   )}
                   {o.description && (
                     <div className="mt-1">
@@ -279,7 +282,7 @@ export function PackageShopSection() {
                       onClick={() => buy(o)}
                       className="min-h-[44px] rounded-full bg-latte-deep px-5 text-sm font-extrabold text-card shadow-petflow-sm transition active:scale-[0.97] disabled:opacity-40"
                     >
-                      {buying === o.id ? "…" : "ซื้อเลย"}
+                      {buying === o.id ? "…" : tr("ซื้อเลย", "Buy")}
                     </button>
                   </div>
                 </div>
@@ -298,12 +301,12 @@ export function PackageShopSection() {
         >
           <p className="flex items-center gap-1.5 text-xs font-extrabold text-wait">
             <Icon name="clock" size={14} />
-            <span className="min-w-0 truncate">รอโอนเงิน · {o.name}</span>
+            <span className="min-w-0 truncate">{tr("รอโอนเงิน", "Awaiting payment")} · {o.name}</span>
           </p>
           <p className="mt-1 text-[11px] text-brown-soft">
-            ยอดที่ต้องโอน{" "}
+            {tr("ยอดที่ต้องโอน", "Amount to transfer")}{" "}
             <span className="text-sm font-extrabold text-petflow-chocolate">
-              {o.price.toLocaleString()} บาท
+              {o.price.toLocaleString()} {tr("บาท", "THB")}
             </span>
           </p>
 
@@ -316,18 +319,18 @@ export function PackageShopSection() {
                 </p>
                 {payment.accountName && (
                   <p className="truncate text-[11px] text-brown-faint">
-                    ชื่อบัญชี: {payment.accountName}
+                    {tr("ชื่อบัญชี", "Account name")}: {payment.accountName}
                   </p>
                 )}
               </div>
               <button
                 type="button"
                 onClick={copyAccount}
-                aria-label="คัดลอกเลขบัญชี"
+                aria-label={tr("คัดลอกเลขบัญชี", "Copy account number")}
                 className="flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full bg-card px-3.5 text-xs font-extrabold text-petflow-chocolate shadow-petflow-sm"
               >
                 <Icon name={copied ? "check" : "copy"} size={15} />
-                {copied ? "คัดลอกแล้ว" : "คัดลอก"}
+                {copied ? tr("คัดลอกแล้ว", "Copied") : tr("คัดลอก", "Copy")}
               </button>
             </div>
           )}
@@ -335,12 +338,12 @@ export function PackageShopSection() {
           {o.slipUrl ? (
             <p className="mt-2 flex items-start gap-1.5 rounded-petflow-sm bg-sage/15 px-3 py-2 text-[11px] font-bold text-ok">
               <Icon name="check" size={14} strokeWidth={2.4} className="mt-px" />
-              ส่งสลิปแล้ว — รอร้านยืนยันรับเงิน คอร์สจะเข้าให้อัตโนมัติค่ะ
+              {tr("ส่งสลิปแล้ว — รอร้านยืนยันรับเงิน คอร์สจะเข้าให้อัตโนมัติค่ะ", "Slip sent. Once the shop confirms payment, the package is added automatically.")}
             </p>
           ) : (
             <label className="mt-2 flex min-h-[48px] cursor-pointer items-center justify-center gap-2 rounded-petflow-sm bg-latte-deep text-sm font-extrabold text-card shadow-petflow-sm transition active:scale-[0.98]">
               <Icon name="image" size={18} />
-              {uploading === o.id ? "กำลังส่ง…" : "แนบสลิปโอนเงิน"}
+              {uploading === o.id ? tr("กำลังส่ง…", "Sending…") : tr("แนบสลิปโอนเงิน", "Attach transfer slip")}
               <input
                 type="file"
                 accept="image/*"

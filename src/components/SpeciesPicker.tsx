@@ -1,5 +1,6 @@
 "use client";
 
+import { useTr } from "@/components/LocaleProvider";
 import { useConfig } from "@/components/ConfigProvider";
 import { asksSpecies, speciesListOf, type PetSpecies } from "@/lib/pet-kind";
 
@@ -17,6 +18,7 @@ export function SpeciesPicker({
   onChange: (v: PetSpecies) => void;
   className?: string;
 }) {
+  const tr = useTr();
   const { config } = useConfig();
   if (!asksSpecies(config)) return null;
   const list = speciesListOf(config);
@@ -25,7 +27,7 @@ export function SpeciesPicker({
     <div
       className={`flex gap-1 bg-paper p-1 ${many ? "flex-wrap rounded-petflow-sm" : "rounded-full"} ${className}`}
       role="radiogroup"
-      aria-label="ชนิดของน้อง"
+      aria-label={tr("ชนิดของน้อง", "Type of pet")}
     >
       {list.map((s) => (
         <button
@@ -38,7 +40,7 @@ export function SpeciesPicker({
             value === s.id ? "bg-card text-petflow-chocolate shadow-petflow-sm" : "text-brown-soft"
           }`}
         >
-          {s.emoji} {s.name}
+          {s.emoji} {tr(s.name, s.en ? s.en[0].toUpperCase() + s.en.slice(1) : s.name)}
         </button>
       ))}
     </div>

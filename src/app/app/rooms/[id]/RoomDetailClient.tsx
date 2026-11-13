@@ -35,7 +35,7 @@ export default function RoomDetailClient({ roomId }: { roomId: string }) {
       <PageHeader
         eyebrow="Room"
         title={room.name}
-        subtitle={roomPriceLine(room, config.roomSeasons, m.perNight)}
+        subtitle={roomPriceLine(room, config.roomSeasons, m.perNight, locale === "en")}
         back="/app/rooms"
         backLabel={m.back}
       />
@@ -46,7 +46,7 @@ export default function RoomDetailClient({ roomId }: { roomId: string }) {
         <p className="mt-3 rounded-petflow-sm bg-paper px-3 py-2 text-xs text-brown">{room.note.th}</p>
       )}
       {(room.maxCats ?? 1) > 1 && locale === "th" && (
-        <p className="mt-2 text-xs text-brown-soft">🐾 พักได้สูงสุด {room.maxCats} ตัว/ห้อง (บ้านเดียวกัน)</p>
+        <p className="mt-2 text-xs text-brown-soft">{locale === "th" ? `🐾 พักได้สูงสุด ${room.maxCats} ตัว/ห้อง (บ้านเดียวกัน)` : `🐾 Up to ${room.maxCats} pets per room (same household)`}</p>
       )}
       <div className="mt-3">
         <RoomSeasonPrices raw={config.roomSeasons} rooms={config.rooms} room={room} />

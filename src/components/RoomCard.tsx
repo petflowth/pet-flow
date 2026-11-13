@@ -31,7 +31,7 @@ export function RoomCard({
             {room.name}
           </p>
           <p className="text-[11px] text-brown-soft">
-            {roomPriceLine(room, config.roomSeasons, m.perNight)} · {m.tapToView}
+            {roomPriceLine(room, config.roomSeasons, m.perNight, locale === "en")} · {m.tapToView}
           </p>
           {room.note?.th && locale === "th" && (
             <p className="mt-0.5 text-[11px] leading-snug text-brown-faint">{room.note.th}</p>

@@ -49,7 +49,7 @@ export default function PromosPage() {
       </div>
       {!promos.length ? (
         <div className="rounded-petflow border border-petflow-line bg-card shadow-petflow-sm">
-          <EmptyState icon="gift" title="ยังไม่มีโปรทั่วไปช่วงนี้" />
+          <EmptyState icon="gift" title={locale === "th" ? "ยังไม่มีโปรทั่วไปช่วงนี้" : "No promotions right now"} />
         </div>
       ) : (
         <ul className="space-y-3">
@@ -79,7 +79,7 @@ export default function PromosPage() {
                     />
                   </div>
                   {promo.branchLabel ? (
-                    <p className="mt-1 text-[11px] font-bold text-latte-deep">ใช้ได้{promo.branchLabel}</p>
+                    <p className="mt-1 text-[11px] font-bold text-latte-deep">{locale === "th" ? `ใช้ได้${promo.branchLabel}` : `Valid at: ${promo.branchLabel.replace(/^เฉพาะ/, "")}`}</p>
                   ) : null}
                   {promo.until ? (
                     <span className="mt-2 flex items-center gap-1 text-[11px] font-bold text-brown-faint">

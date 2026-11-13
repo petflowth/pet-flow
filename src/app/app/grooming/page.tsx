@@ -142,7 +142,7 @@ export default function GroomingPage() {
                 </tbody>
               </table>
               {!!p.includes?.length && (
-                <p className="border-t border-petflow-line px-4 py-2 text-[11px] text-brown-soft">รวม: {p.includes.join(" · ")}</p>
+                <p className="border-t border-petflow-line px-4 py-2 text-[11px] text-brown-soft">{locale === "th" ? "รวม" : "Includes"}: {p.includes.join(" · ")}</p>
               )}
             </div>
             );
@@ -158,7 +158,7 @@ export default function GroomingPage() {
           href="/app/book?service=groom"
           className="mt-5 block rounded-petflow-sm bg-latte-deep py-3.5 text-center text-sm font-extrabold text-white shadow-petflow-sm"
         >
-          📅 จองคิวอาบน้ำเอง
+          📅 {locale === "th" ? "จองคิวอาบน้ำเอง" : "Book grooming online"}
         </Link>
       )}
       {isFeatureOn(config, "selfBooking") && isFeatureOn(config, "massage") && (
@@ -166,7 +166,7 @@ export default function GroomingPage() {
           href="/app/book?service=massage"
           className="mt-3 block rounded-petflow-sm border border-latte-deep bg-card py-3.5 text-center text-sm font-extrabold text-latte-deep shadow-petflow-sm"
         >
-          💆 จองคิวนวดเอง
+          💆 {locale === "th" ? "จองคิวนวดเอง" : "Book a massage online"}
         </Link>
       )}
       <LineBookingCta locale={locale} />

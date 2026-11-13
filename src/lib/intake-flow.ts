@@ -26,6 +26,18 @@ export const FLOW_STEP_LABEL: Record<FlowStep, string> = {
   consent: "อ่านกฎ + กดยินยอม",
 };
 
+export const FLOW_STEP_LABEL_EN: Record<FlowStep, string> = {
+  info: "Pet details",
+  vaccine: "Vaccine book",
+  idcard: "ID card",
+  time: "Drop-off time",
+  consent: "Rules + consent",
+};
+
+export function flowStepLabel(step: FlowStep, locale: "th" | "en" = "th"): string {
+  return (locale === "en" ? FLOW_STEP_LABEL_EN : FLOW_STEP_LABEL)[step];
+}
+
 export function encodeFlow(tokens: FlowToken[]): string {
   return tokens.map((t) => (t.ids.length ? `${t.step}:${t.ids.join(".")}` : t.step)).join(",");
 }
@@ -98,7 +110,7 @@ function shopPrefix(): string {
 }
 
 /** ขั้นต่อไปจากหน้าปัจจุบัน — null = ไม่ได้มาจากลำดับ หรือเป็นขั้นสุดท้ายแล้ว */
-export function flowProgress(params: URLSearchParams): {
+export function flowProgress(params: URLSearchParams, locale: "th" | "en" = "th"): {
   index: number;
   total: number;
   next: { href: string; label: string } | null;
@@ -112,8 +124,8 @@ export function flowProgress(params: URLSearchParams): {
   const next = rest.length
     ? {
         href: shopPrefix() + flowStepHref(rest[0], rest.slice(1), { by, kind: params.get("fk") || "", total, up: params.get("up") || "" }),
-        label: FLOW_STEP_LABEL[rest[0].step],
+        label: flowStepLabel(rest[0].step, locale),
       }
     : null;
-  return { index: total - rest.length, total, next, upcoming: rest.map((t) => FLOW_STEP_LABEL[t.step]) };
+  return { index: total - rest.length, total, next, upcoming: rest.map((t) => flowStepLabel(t.step, locale)) };
 }

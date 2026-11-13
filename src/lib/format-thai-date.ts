@@ -49,3 +49,29 @@ export function roomWithWord(name: string): string {
   if (!n) return "";
   return /^ห้อง/.test(n) ? n : `ห้อง ${n}`;
 }
+
+const EN_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** ISO date → "5 ก.ค. 2026" หรือ "5 Jul 2026" ตามภาษาที่ลูกค้าเลือก */
+export function formatDateShort(iso: string, locale: "th" | "en" = "th"): string {
+  if (locale !== "en") return formatThaiDateShort(iso);
+  if (!iso) return "";
+  const d = new Date(`${iso.slice(0, 10)}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return `${d.getDate()} ${EN_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/** formatBookingWhen ตามภาษาที่ลูกค้าเลือก */
+export function formatBookingWhenL(
+  booking: { service: string; date?: string; time?: string; checkin?: string; checkout?: string },
+  locale: "th" | "en" = "th",
+): string {
+  if (locale !== "en") return formatBookingWhen(booking);
+  if (booking.service === "room" || booking.checkin) {
+    const start = formatDateShort(booking.checkin || booking.date || "", "en");
+    const end = booking.checkout ? formatDateShort(booking.checkout, "en") : "";
+    return end ? `${start} → ${end}` : start;
+  }
+  const date = formatDateShort(booking.date || "", "en");
+  return booking.time ? `${date} · ${booking.time}` : date;
+}

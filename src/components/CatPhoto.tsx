@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
+import { useTr } from "@/components/LocaleProvider";
 
 /**
  * รูปน้องแมว: แตะรูปเพื่อดูเต็มจอ · ปุ่มกล้องมุมล่างขวาสำหรับเปลี่ยนรูป (ถ้าส่ง onPick มา)
@@ -24,6 +25,7 @@ export function CatPhoto({
   onPick?: (file: File) => void;
   uploading?: boolean;
 }) {
+  const tr = useTr();
   const [open, setOpen] = useState(false);
   const full = size === 0;
   const box = full ? "aspect-[4/3] w-full" : "";
@@ -51,7 +53,7 @@ export function CatPhoto({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label={`ดูรูป ${name}`}
+          aria-label={tr(`ดูรูป ${name}`, `View photo of ${name}`)}
           className="block h-full w-full overflow-hidden rounded-petflow-sm bg-paper ring-2 ring-honey/40"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -59,11 +61,11 @@ export function CatPhoto({
         </button>
       ) : onPick ? (
         picker(
-          `เพิ่มรูป ${name}`,
+          tr(`เพิ่มรูป ${name}`, `Add photo of ${name}`),
           "flex h-full w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-petflow-sm border-2 border-dashed border-latte/50 bg-paper text-latte-deep",
           <>
             <Icon name="image" size={full ? 30 : 22} />
-            <span className={`font-bold ${full ? "text-sm" : "text-[9px]"}`}>เพิ่มรูป</span>
+            <span className={`font-bold ${full ? "text-sm" : "text-[9px]"}`}>{tr("เพิ่มรูป", "Add photo")}</span>
           </>
         )
       ) : (
@@ -74,19 +76,19 @@ export function CatPhoto({
 
       {src && onPick &&
         picker(
-          "เปลี่ยนรูป",
+          tr("เปลี่ยนรูป", "Change photo"),
           `absolute flex cursor-pointer items-center justify-center rounded-full bg-petflow-chocolate text-card shadow-petflow-sm ${
             full ? "bottom-2 right-2 h-10 gap-1.5 px-3 text-xs font-bold" : "-bottom-1 -right-1 h-8 w-8"
           }`,
           <>
             <Icon name="image" size={15} />
-            {full && "เปลี่ยนรูป"}
+            {full && tr("เปลี่ยนรูป", "Change photo")}
           </>
         )}
 
       {uploading && (
         <div className="absolute inset-0 flex items-center justify-center rounded-petflow-sm bg-card/75 text-[11px] font-bold text-brown">
-          กำลังอัป…
+          {tr("กำลังอัป…", "Uploading…")}
         </div>
       )}
 
@@ -97,6 +99,7 @@ export function CatPhoto({
 
 /** ดูรูปเต็มจอ — แตะพื้นหลังหรือ ✕ เพื่อปิด */
 export function PhotoViewer({ src, name, onClose }: { src: string; name: string; onClose: () => void }) {
+  const tr = useTr();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -105,13 +108,13 @@ export function PhotoViewer({ src, name, onClose }: { src: string; name: string;
   return (
     <div
       role="dialog"
-      aria-label={`รูป ${name}`}
+      aria-label={tr(`รูป ${name}`, `Photo of ${name}`)}
       onClick={onClose}
       className="fixed inset-0 z-[70] flex flex-col items-center justify-center bg-black/85 p-4"
     >
       <button
         type="button"
-        aria-label="ปิด"
+        aria-label={tr("ปิด", "Close")}
         onClick={onClose}
         className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white"
       >

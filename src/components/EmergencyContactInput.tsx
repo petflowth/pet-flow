@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/components/LocaleProvider";
 import { EMERGENCY_RELATIONS, type EmergencyContact } from "@/lib/emergency-contact";
 
 /** ค่าที่กำลังกรอก — relation เป็นข้อความ (ตัวเลือกที่กด หรือพิมพ์เอง) */
@@ -19,11 +20,13 @@ export function emergencyFromForm(f: EmergencyForm): EmergencyContact | undefine
 }
 
 /** ยังกรอกไม่ครบ (ร้านตั้งบังคับ) — คืนข้อความเตือน */
-export function emergencyProblem(f: EmergencyForm, required: boolean): string {
+export function emergencyProblem(f: EmergencyForm, required: boolean, locale: "th" | "en" = "th"): string {
   const digits = f.phone.replace(/\D/g, "");
+  const en = locale === "en";
   if (!required && !f.phone.trim() && !f.relation.trim()) return "";
-  if (digits.length < 9) return "กรอกเบอร์ติดต่อฉุกเฉินด้วยนะคะ";
-  if (!f.relation.trim()) return "เลือกว่าผู้ติดต่อฉุกเฉินเกี่ยวข้องเป็นอะไรกับคุณด้วยนะคะ";
+  if (digits.length < 9) return en ? "Please enter an emergency contact number" : "กรอกเบอร์ติดต่อฉุกเฉินด้วยนะคะ";
+  if (!f.relation.trim())
+    return en ? "Please choose how the emergency contact is related to you" : "เลือกว่าผู้ติดต่อฉุกเฉินเกี่ยวข้องเป็นอะไรกับคุณด้วยนะคะ";
   return "";
 }
 
@@ -38,7 +41,7 @@ export function EmergencyContactInput({
   required,
   showMissing,
   inputClass,
-  relationLabel = "เกี่ยวข้องเป็นอะไรกับคุณคะ",
+  relationLabel,
 }: {
   value: EmergencyForm;
   onChange: (v: EmergencyForm) => void;
@@ -50,6 +53,9 @@ export function EmergencyContactInput({
   /** หัวข้อช่องความเกี่ยวข้อง — หลังบ้านใช้ "เกี่ยวข้องเป็นอะไรกับลูกค้า" */
   relationLabel?: string;
 }) {
+  const { locale } = useLocale();
+  const tr = (th: string, en: string) => (locale === "en" ? en : th);
+  const relLabel = relationLabel ?? tr("เกี่ยวข้องเป็นอะไรกับคุณคะ", "How are they related to you?");
   const preset = EMERGENCY_RELATIONS.find((r) => r.label === value.relation.trim());
   const typed = preset ? "" : value.relation;
   const phoneMissing = showMissing && required && value.phone.replace(/\D/g, "").length < 9;
@@ -59,20 +65,20 @@ export function EmergencyContactInput({
       <label className="block">
         <span className={`mb-1 block text-xs font-bold ${phoneMissing ? "text-wait" : "text-brown"}`}>
           {label}
-          {!required && <span className="font-normal text-brown-faint"> (ไม่บังคับ)</span>}
+          {!required && <span className="font-normal text-brown-faint"> {tr("(ไม่บังคับ)", "(optional)")}</span>}
         </span>
         <input
           type="tel"
           inputMode="tel"
           value={value.phone}
           onChange={(e) => onChange({ ...value, phone: e.target.value })}
-          placeholder="เช่น 081-234-5678"
+          placeholder={tr("เช่น 081-234-5678", "e.g. 081-234-5678")}
           className={inputClass}
         />
       </label>
       <div>
         <p className={`mb-1 text-xs font-bold ${relationMissing ? "text-wait" : "text-brown"}`}>
-          {relationLabel}
+          {relLabel}
         </p>
         <div className="flex flex-wrap gap-2">
           {EMERGENCY_RELATIONS.map((r) => {
@@ -87,7 +93,7 @@ export function EmergencyContactInput({
                   active ? "bg-latte-deep text-card shadow-petflow-sm" : "bg-paper text-brown-soft"
                 }`}
               >
-                {r.emoji} {r.label}
+                {r.emoji} {locale === "en" ? r.en : r.label}
               </button>
             );
           })}
@@ -95,7 +101,7 @@ export function EmergencyContactInput({
         <input
           value={typed}
           onChange={(e) => onChange({ ...value, relation: e.target.value })}
-          placeholder="อื่นๆ พิมพ์เองได้ (ถ้าไม่มีในตัวเลือก)"
+          placeholder={tr("อื่นๆ พิมพ์เองได้ (ถ้าไม่มีในตัวเลือก)", "Other — type your own")}
           className={`mt-2 ${inputClass}`}
         />
       </div>

@@ -44,7 +44,7 @@ export function PageHeader({
       {back && (
         <Link
           href={back}
-          aria-label={backLabel || "ย้อนกลับ"}
+          aria-label={backLabel || (locale === "en" ? "Back" : "ย้อนกลับ")}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-card text-petflow-chocolate shadow-petflow-sm transition active:scale-95"
         >
           <Icon name="back" size={20} strokeWidth={2.2} />

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useConfig } from "@/components/ConfigProvider";
 import { LogoInitial } from "@/components/Logo";
 import { isExternalLogo, shopLogoSrc } from "@/lib/shop-logo";
+import { useTr } from "@/components/LocaleProvider";
 
 /**
  * หน้าจอรอโหลดของแอปลูกค้า — ใช้แทนข้อความ "กำลังโหลด…" เปล่าๆ ทุกจุด
@@ -11,10 +12,11 @@ import { isExternalLogo, shopLogoSrc } from "@/lib/shop-logo";
  * ดึงโลโก้/ชื่อร้านจาก config เสมอ — คนละร้านต้องเห็นคนละโลโก้ ไม่ใช่ใช้ค่าเดียวทั้งระบบ
  */
 export function LoadingScreen({
-  message = "กำลังโหลดข้อมูล...",
+  message,
 }: {
   message?: string;
 }) {
+  const tr = useTr();
   const { config } = useConfig();
   const src = shopLogoSrc(config);
   const name = config.business?.name || "";
@@ -42,7 +44,7 @@ export function LoadingScreen({
         <p className="text-sm font-extrabold tracking-wide text-petflow-chocolate">
           {name}
         </p>
-        <p className="mt-1 text-xs text-brown-soft">{message}</p>
+        <p className="mt-1 text-xs text-brown-soft">{message ?? tr("กำลังโหลดข้อมูล...", "Loading...")}</p>
       </div>
       <div className="flex gap-1.5">
         <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-honey-deep [animation-delay:-0.3s]" />

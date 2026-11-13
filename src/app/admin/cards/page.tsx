@@ -857,6 +857,15 @@ const CARDS: CardMeta[] = [
         label: "นัดอาบน้ำ: ข้อตกลงอาบน้ำ (1 บรรทัด = 1 ข้อ · \"หัวข้อ — เนื้อหา\" หัวข้อจะเป็นตัวหนา)",
         multiline: true,
       },
+      // ลูกค้าที่เลือกภาษาอังกฤษในแอป — เว้นว่าง: ร้านใช้ข้อตกลงของระบบ = ฉบับอังกฤษของระบบ · ร้านแก้เอง = โชว์ภาษาไทยของร้าน
+      {
+        stateKey: "consentTitleEn",
+        label: "English: หัวข้อข้อตกลงเข้าพัก (ไม่บังคับ)",
+        hint: "ลูกค้าที่เลือกภาษาอังกฤษเห็นข้อความนี้ — เว้นว่างได้ ถ้าใช้ข้อตกลงเดิมของระบบ จะขึ้นภาษาอังกฤษให้อัตโนมัติ",
+      },
+      { stateKey: "consentTermsEn", label: "English: ข้อตกลงเข้าพัก (1 บรรทัด = 1 ข้อ · ไม่บังคับ)", multiline: true },
+      { stateKey: "groomConsentTitleEn", label: "English: หัวข้อข้อตกลงอาบน้ำ (ไม่บังคับ)" },
+      { stateKey: "groomConsentTermsEn", label: "English: ข้อตกลงอาบน้ำ (1 บรรทัด = 1 ข้อ · ไม่บังคับ)", multiline: true },
     ],
   },
 ];
@@ -1786,6 +1795,10 @@ export default function CardsStudioPage() {
           consentTerms: (cfg.messages?.consentTerms || []).join("\n"),
           groomConsentTitle: cfg.messages?.groomConsentTitle || "",
           groomConsentTerms: (cfg.messages?.groomConsentTerms || []).join("\n"),
+          consentTitleEn: cfg.messages?.consentTitleEn || "",
+          consentTermsEn: (cfg.messages?.consentTermsEn || []).join("\n"),
+          groomConsentTitleEn: cfg.messages?.groomConsentTitleEn || "",
+          groomConsentTermsEn: (cfg.messages?.groomConsentTermsEn || []).join("\n"),
           // การ์ดเลือกเวลาเช็คอิน/เช็คเอาท์
           checkinReminder: cfg.messages?.checkinReminder || "",
           checkoutReminder: cfg.messages?.checkoutReminder || "",
@@ -1902,6 +1915,10 @@ export default function CardsStudioPage() {
               consentTerms: lines(texts.consentTerms),
               groomConsentTitle: texts.groomConsentTitle,
               groomConsentTerms: lines(texts.groomConsentTerms),
+              consentTitleEn: texts.consentTitleEn,
+              consentTermsEn: lines(texts.consentTermsEn),
+              groomConsentTitleEn: texts.groomConsentTitleEn,
+              groomConsentTermsEn: lines(texts.groomConsentTermsEn),
               // การ์ดเลือกเวลาเช็คอิน/เช็คเอาท์
               checkinReminder: texts.checkinReminder,
               checkoutReminder: texts.checkoutReminder,
@@ -2137,7 +2154,7 @@ export default function CardsStudioPage() {
                       <textarea
                         value={texts[t.stateKey] || ""}
                         onChange={(e) => patchText(t.stateKey, e.target.value)}
-                        rows={t.stateKey === "consentTerms" || t.stateKey === "groomConsentTerms" ? 8 : 3}
+                        rows={/consentTerms/i.test(t.stateKey) ? 8 : 3}
                         className="mt-1 w-full rounded-petflow-sm border border-petflow-line bg-paper px-3 py-2 text-xs font-normal"
                       />
                     ) : (

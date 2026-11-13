@@ -109,6 +109,14 @@ export type MessagesConfig = {
   groomConsentTitle: string;
   /** ข้อตกลงก่อนอาบน้ำ — บรรทัดละ 1 ข้อ ("หัวข้อ — เนื้อหา" ได้) */
   groomConsentTerms: string[];
+  /**
+   * ข้อตกลงภาษาอังกฤษ (ลูกค้าที่เลือก EN) — ไม่ตั้ง: ถ้าร้านใช้ข้อตกลงของระบบ = ใช้ฉบับอังกฤษของระบบ
+   * ถ้าร้านแก้ข้อตกลงภาษาไทยเองแต่ไม่ได้ใส่ภาษาอังกฤษ = แสดงภาษาไทยของร้าน
+   */
+  consentTitleEn?: string;
+  consentTermsEn?: string[];
+  groomConsentTitleEn?: string;
+  groomConsentTermsEn?: string[];
   /** การ์ดเรียกเก็บมัดจำ (ส่งก่อนลูกค้าโอน) — หัวเรื่อง */
   depositRequestTitle: string;
   /** การ์ดเรียกเก็บมัดจำ — ข้อความ ({name} {pet} {amount}) */

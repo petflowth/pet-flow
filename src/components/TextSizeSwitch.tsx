@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   TEXT_SIZE_KEY,
   TEXT_SIZES,
@@ -21,7 +22,6 @@ export function TextSizeSwitch({
 }) {
   const [size, setSize] = useState(1);
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setSize(readTextSize());
@@ -29,11 +29,9 @@ export function TextSizeSwitch({
 
   useEffect(() => {
     if (!open) return;
-    const close = (e: Event) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("pointerdown", close);
-    return () => document.removeEventListener("pointerdown", close);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
   const choose = (v: number) => {
@@ -48,7 +46,7 @@ export function TextSizeSwitch({
 
   const th = locale === "th";
   return (
-    <div ref={ref} className={`relative shrink-0 ${className}`}>
+    <div className={`relative shrink-0 ${className}`}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -59,12 +57,17 @@ export function TextSizeSwitch({
         <span className="text-[12px] leading-none">ก</span>
         <span className="text-[17px] leading-none">ก</span>
       </button>
-      {open && (
+      {/* แผงเลือกขนาดเปิดเป็นแผ่นล่างจอ (portal ไปที่ body) — เดิมลอยใต้ปุ่มแล้วโดนหัวหน้าที่ overflow-hidden
+          และการ์ดตัวเลขตัดจนเห็นแค่ขอบบน (หน้าแรกหลังบ้านบนมือถือ 2026-11-13) */}
+      {open &&
+        createPortal(
+        <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/30" onClick={() => setOpen(false)}>
         <div
           role="menu"
-          className="absolute right-0 top-full z-[70] mt-2 w-[236px] rounded-petflow border border-petflow-line bg-card p-2 shadow-petflow"
+          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-md rounded-t-petflow border border-petflow-line bg-card p-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-petflow"
         >
-          <p className="px-2 pb-1.5 pt-1 text-[12px] font-bold text-brown-soft">
+          <p className="px-2 pb-2 pt-1 text-[13px] font-bold text-brown-soft">
             {th ? "ขนาดตัวอักษร" : "Text size"}
           </p>
           <div className="grid grid-cols-4 gap-1.5">
@@ -92,7 +95,9 @@ export function TextSizeSwitch({
             })}
           </div>
         </div>
-      )}
+        </div>,
+          document.body
+        )}
     </div>
   );
 }

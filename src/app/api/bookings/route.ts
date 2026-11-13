@@ -57,8 +57,6 @@ import {
   findCustomerForBooking,
   recalculateCustomerTier,
   adjustDepositCredit,
-  getCatGroomInfo,
-  getCatStayInfo,
   getCustomer,
   getIntakeStatus,
   copyBookingDocsToCustomer,
@@ -587,9 +585,14 @@ function singleCardPart(action: unknown, kind: unknown, b: StoredBooking): strin
       return null;
   }
 }
-/** เคยกรอกฟอร์มแบบนี้ไว้แล้วหรือยัง (ผูกกับตัวน้อง ข้ามนัดก็ยังจำได้) */
-const infoAlreadyFilled = (to: string, catName: string, kind: InfoKind) =>
-  kind === "stay" ? getCatStayInfo(to, catName) : getCatGroomInfo(to, catName);
+/**
+ * เคยกรอกฟอร์มแบบนี้ไว้แล้วหรือยัง (ผูกกับตัวน้อง ข้ามนัดก็ยังจำได้)
+ * ข้อ "ถามใหม่ทุกนัด" (โรคติดต่อ/เชื้อรา) ตอบไว้เกินสัปดาห์ = ขออีกรอบ — ฟอร์มโชว์แค่ข้อนั้น
+ */
+const infoAlreadyFilled = async (to: string, catName: string, kind: InfoKind) => {
+  const st = await getIntakeStatus(to, catName);
+  return kind === "stay" ? st.stayInfo : st.groomInfo;
+};
 
 /** นัดเข้าพักใช้การ์ดขอประวัติใบเดียวกัน — เปลี่ยนหัวการ์ด/วันที่ให้ตรงบริการ (หัวที่ร้านตั้งเองเป็นของการ์ดก่อนอาบน้ำ — นัดเข้าพักใช้หัวเข้าพักเสมอ) */
 function groomInfoCardFor(

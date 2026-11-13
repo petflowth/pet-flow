@@ -7,7 +7,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLiff } from "@/components/LiffProvider";
 import { useConfig } from "@/components/ConfigProvider";
-import { otherKey, type GroomField } from "@/lib/groom-form";
+import { answeredRecently, otherKey, type GroomField } from "@/lib/groom-form";
 import { intakeFields } from "@/lib/intake-rules";
 import { formKindOf, normalizeSpecies, petKindOf, petWords, speciesWords } from "@/lib/pet-kind";
 import { BATH_SHARED_WITH_STAY } from "@/lib/stay-form";
@@ -61,10 +61,13 @@ function emptyAnswers(fields: GroomField[]): Answers {
 }
 
 /** แปลงค่าที่เคยบันทึกไว้ให้ตรงชนิดของคำถาม (รองรับข้อมูลเก่าที่เป็น string เดี่ยว) */
-function loadAnswers(fields: GroomField[], info: Record<string, unknown> | null): Answers {
+function loadAnswers(fields: GroomField[], info: Record<string, unknown> | null, keepOld = false): Answers {
   const a = emptyAnswers(fields);
   if (!info) return a;
+  const recent = answeredRecently(info.submittedAt);
   for (const f of fields) {
+    // ข้อที่ถามใหม่ทุกนัด (โรคติดต่อ/เชื้อรา) — คำตอบเก่าเกินสัปดาห์ไม่ใส่ให้ ลูกค้าเลือกใหม่ตามอาการตอนนี้
+    if (f.askEveryTime && !recent && !keepOld) continue;
     const v = info[f.key];
     if (v == null) continue;
     if (f.type === "multi") {
@@ -168,7 +171,7 @@ function GroomInfoContent() {
                 .map((fd) => ({ ...fd, key: BATH_PREFIX + fd.key }))
             : [];
           const fs = [...own, ...bathFs];
-          const answers = loadAnswers(fs, info);
+          const answers = loadAnswers(fs, info, updateMode);
           loaded.push({
             id: ids[i],
             catName: d.booking?.catName || "น้อง",
@@ -178,7 +181,11 @@ function GroomInfoContent() {
             weightUnknown: info?.weight === "unknown",
             skip: d.knownMedical ? ["medical"] : [],
             bath,
-            answered: answeredKeys(fs, answers),
+            // ข้อที่ถามใหม่ทุกนัด ไม่ซ่อน (ยกเว้นเพิ่งตอบในสัปดาห์นี้)
+            answered: answeredKeys(
+              fs.filter((fd) => !fd.askEveryTime || answeredRecently(info?.submittedAt)),
+              answers
+            ),
             showAnswered: updateMode,
           });
         });
@@ -218,15 +225,13 @@ function GroomInfoContent() {
       prev.map((f, i) => {
         if (i !== idx) return f;
         const cur = (f.answers[key] as string[]) || [];
-        return {
-          ...f,
-          answers: {
-            ...f.answers,
-            [key]: cur.includes(optKey)
-              ? cur.filter((x) => x !== optKey)
-              : [...cur, optKey],
-          },
-        };
+        // "✅ ไม่มี" กับตัวเลือกอื่นเลือกพร้อมกันไม่ได้ — กดไม่มี = ล้างข้ออื่น · กดข้ออื่น = เอาไม่มีออก
+        const next = cur.includes(optKey)
+          ? cur.filter((x) => x !== optKey)
+          : optKey === "none"
+            ? ["none"]
+            : [...cur.filter((x) => x !== "none"), optKey];
+        return { ...f, answers: { ...f.answers, [key]: next } };
       })
     );
 

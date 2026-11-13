@@ -15,6 +15,8 @@ export type GroomFieldConfig = {
   /** ข้อความช่วยใต้ช่องพิมพ์ (เฉพาะ text/textarea) */
   placeholder?: string;
   options?: GroomFormOption[];
+  /** ถามใหม่ทุกนัด (ไม่ใช้คำตอบเก่าที่นานเกิน ASK_AGAIN_DAYS วัน) */
+  askEveryTime?: boolean;
 };
 
 export type GroomFormConfig = Record<string, GroomFieldConfig>;
@@ -35,6 +37,44 @@ export type GroomField = {
   canSkip?: boolean;
   /** ปุ่มเลือก + ช่องพิมพ์เอง (ไม่มีในตัวเลือก) — คำตอบที่พิมพ์เก็บที่ key otherKey(key) */
   allowOther?: boolean;
+  /**
+   * ข้อที่อาการเปลี่ยนได้ทุกครั้ง (เช่น โรคติดต่อ/เชื้อราตอนนี้) — ถามใหม่ทุกนัด ไม่ซ่อนเป็น "ตอบไว้แล้ว"
+   * คำตอบเก่าที่นานเกิน ASK_AGAIN_DAYS วัน ถือว่ายังไม่ได้ตอบ · ร้านปิดได้ในหลังบ้าน › การ์ด
+   */
+  askEveryTime?: boolean;
+};
+
+/** คำตอบข้อ "ถามใหม่ทุกนัด" ใช้ได้กี่วัน — เกินนี้ถามใหม่ (นัดที่ห่างกันเกินสัปดาห์ = นัดใหม่) */
+export const ASK_AGAIN_DAYS = 7;
+
+/** คำตอบที่กรอกเมื่อ submittedAt ยังใหม่พอสำหรับข้อ "ถามใหม่ทุกนัด" ไหม */
+export function answeredRecently(submittedAt: unknown, now = Date.now()): boolean {
+  const t = typeof submittedAt === "string" ? Date.parse(submittedAt) : NaN;
+  return Number.isFinite(t) && now - t < ASK_AGAIN_DAYS * 86400000;
+}
+
+/**
+ * โรคติดต่อ / โรคผิวหนัง / เชื้อรา ตอนนี้ — ถามทั้งฟอร์มก่อนอาบน้ำและก่อนเข้าพัก (key เดียวกัน ฟอร์มรวมถามครั้งเดียว)
+ * กดปุ่มเดียว "✅ ไม่มี" ได้ ไม่ต้องพิมพ์ · ถามใหม่ทุกนัด (เจ้าของระบบ 2026-11-13)
+ */
+export const CONTAGIOUS_FIELD: GroomField = {
+  key: "contagious",
+  type: "multi",
+  label: "ตอนนี้น้องมีโรคติดต่อ โรคผิวหนัง หรือเชื้อราไหมคะ (เลือกได้หลายข้อ)",
+  required: true,
+  enabled: true,
+  allowOther: true,
+  askEveryTime: true,
+  options: [
+    { key: "none", label: "✅ ไม่มี" },
+    { key: "skin", label: "🩹 โรคผิวหนัง / ผื่น คัน" },
+    { key: "fungus", label: "🍄 เชื้อรา / กลาก" },
+    { key: "mange", label: "🐛 ขี้เรื้อน / ไรขน" },
+    { key: "fleas", label: "🪲 มีเห็บหมัดอยู่ตอนนี้" },
+    { key: "cold", label: "🤧 หวัด ไอ จาม มีน้ำมูก" },
+    { key: "stomach", label: "🤢 ท้องเสีย / อาเจียน" },
+    { key: "treating", label: "💊 กำลังรักษาโรคอยู่" },
+  ],
 };
 
 /** key ที่เก็บคำตอบพิมพ์เองของข้อที่มีปุ่มเลือก (allowOther) */
@@ -102,6 +142,7 @@ export const GROOM_FORM_DEFAULTS: GroomField[] = [
       { key: "unknown", label: "❓ ไม่เคยตรวจ" },
     ],
   },
+  { ...CONTAGIOUS_FIELD },
   {
     key: "dryMethod",
     type: "multi",
@@ -152,6 +193,7 @@ export function resolveGroomForm(config?: GroomFormConfig, kind?: string): Groom
       required: c.required ?? def.required,
       label: c.label?.trim() || def.label,
       placeholder: c.placeholder ?? def.placeholder,
+      askEveryTime: c.askEveryTime ?? def.askEveryTime,
       options:
         c.options && c.options.length > 0
           ? c.options.filter((o) => o.key && o.label)

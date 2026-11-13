@@ -1,4 +1,4 @@
-import { type GroomField, type GroomFormConfig } from "./groom-form";
+import { CONTAGIOUS_FIELD, type GroomField, type GroomFormConfig } from "./groom-form";
 import type { PetKind } from "./pet-kind";
 
 /**
@@ -88,6 +88,7 @@ export const STAY_FORM_DEFAULTS: GroomField[] = [
     enabled: true,
     options: [],
   },
+  { ...CONTAGIOUS_FIELD },
   {
     key: "note",
     canSkip: true,
@@ -167,6 +168,8 @@ const DOG_FORM: GroomField[] = [
       { key: "none", label: "✅ ไม่มี" },
     ],
   },
+  // โรคติดต่อ/ผิวหนัง/เชื้อรา ตอนนี้ — ถามใหม่ทุกนัด (นัดอาบน้ำที่ใช้ฟอร์มประวัติก็ถามข้อนี้ด้วย)
+  { ...CONTAGIOUS_FIELD },
   { ...text("likes", "อยากบอกอะไรเพิ่มไหมคะ (ไม่มีข้ามได้)", "เช่น ชอบลูกบอล ไม่ชอบให้จับหาง"), canSkip: true },
   {
     key: "fleaMethod",
@@ -220,6 +223,7 @@ const LITTER_BOTH: Pick<GroomField, "label" | "placeholder"> = {
 const DOG_SECTIONS: Record<string, GroomField["section"]> = {
   temperament: "pet",
   cautions: "pet",
+  contagious: "pet",
   likes: "pet",
   fleaMethod: "pet",
   fleaLast: "pet",
@@ -280,6 +284,7 @@ export function resolveStayForm(
       required: c.required ?? def.required,
       label: c.label?.trim() || def.label,
       placeholder: c.placeholder ?? def.placeholder,
+      askEveryTime: c.askEveryTime ?? def.askEveryTime,
       options: c.options && c.options.length > 0 ? c.options.filter((o) => o.key && o.label) : def.options,
     };
   }).filter((f) => f.enabled);

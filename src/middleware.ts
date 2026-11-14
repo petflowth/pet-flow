@@ -408,7 +408,7 @@ export async function middleware(req: NextRequest) {
 
   // ลิงก์เมนูหลังบ้านเป็น /admin/... เปล่า ๆ — ถ้ากดมาจากหน้าของร้านหนึ่ง ให้คงอยู่ในลิงก์ร้านนั้น
   // (ไม่งั้นแท็บของอีกร้านที่เปิดค้างไว้จะสลับไปใช้ร้านที่เปิดล่าสุด)
-  if (!tenantSlug && pathname.startsWith("/admin")) {
+  if (!tenantSlug && (pathname.startsWith("/admin") || pathname.startsWith("/salon"))) {
     const fromShop = refererShop(req);
     if (fromShop) {
       const url = req.nextUrl.clone();
@@ -429,7 +429,8 @@ export async function middleware(req: NextRequest) {
   }
 
   // หน้าหลังบ้าน — ไม่มีคุกกี้ก็เด้งไปหน้าล็อกอิน
-  if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
+  // /salon = ระบบร้านทำผม ใช้บัญชีหลังบ้านเดียวกัน
+  if ((pathname.startsWith("/admin") && pathname !== "/admin/login") || pathname === "/salon" || pathname.startsWith("/salon/")) {
     const session = await verifySession(sessionToken);
     if (!session) {
       const url = req.nextUrl.clone();

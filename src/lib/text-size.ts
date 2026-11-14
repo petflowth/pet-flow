@@ -17,7 +17,7 @@ export const TEXT_SIZES = [
 ] as const;
 
 /** path ที่ใช้ขนาดตัวอักษรที่เลือก (รองรับ /s/<slug>/ ข้างหน้า) */
-export const TEXT_SIZE_PATH_RE = /^(\/s\/[^/]+)?\/(admin|app)(\/|$)/;
+export const TEXT_SIZE_PATH_RE = /^(\/s\/[^/]+)?\/(admin|app|salon)(\/|$)/;
 
 export function readTextSize(): number {
   try {

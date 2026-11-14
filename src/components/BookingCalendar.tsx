@@ -745,7 +745,10 @@ export function BookingCalendar() {
   const openEdit = (b: CalendarDay, group?: CalendarDay[]) =>
     setEditing({ b, group: group && group.length > 1 ? group : [b] });
   // บ้านที่มาหลายตัว — รวมแก้ไข/ยกเลิกทั้งบ้านหรือรายตัวไว้ในแผ่นเดียว แทนเมนูยาวทีละตัว
-  const [managing, setManaging] = useState<CalendarDay[] | null>(null);
+  // เก็บเป็นรหัสนัด แล้วดึงข้อมูลสดจาก bookings ทุกครั้ง — ลบ/แก้ไขรายตัวแล้วแผ่นนี้ค้างไว้
+  // พร้อมข้อมูลใหม่ แก้ต่อได้เลย ปิดเองเมื่อไม่เหลือนัดในบ้านนี้แล้ว
+  const [managingIds, setManagingIds] = useState<string[] | null>(null);
+  const setManaging = (group: CalendarDay[] | null) => setManagingIds(group ? group.map((x) => x.id) : null);
   const [zoomSignature, setZoomSignature] = useState<string | null>(null);
   // นัดที่บิลจ่ายจบแล้ว (รายงานขึ้นมาจาก BillButton) — ติดป้าย "จบเคส" ให้เห็นชัดทั้งการ์ด
   const [paidCases, setPaidCases] = useState<Record<string, boolean>>({});
@@ -1068,6 +1071,15 @@ export function BookingCalendar() {
   const [view, setView] = useState<"month" | "week" | "day" | "rooms">("month");
 
   const liveBookings = useMemo(() => bookings.filter((b) => b.status !== "cancelled"), [bookings]);
+  const managing = useMemo(() => {
+    if (!managingIds) return null;
+    const ids = new Set(managingIds);
+    return liveBookings.filter((b) => ids.has(b.id));
+  }, [managingIds, liveBookings]);
+  // ยกเลิกครบทุกตัวแล้ว — ไม่มีอะไรให้จัดการ ปิดแผ่นเอง
+  useEffect(() => {
+    if (managingIds && managing && managing.length === 0 && !loading) setManagingIds(null);
+  }, [managingIds, managing, loading]);
   const dayBookings = liveBookings.filter((b) => bookingOnDate(b, activeDate));
 
   const pickDate = (key: string) => {
@@ -1209,11 +1221,12 @@ export function BookingCalendar() {
   const cancelGroup = async (group: CalendarDay[]) => {
     const names = group.map((b) => b.catName).join(", ");
     const label = group[0].service === "room" ? "การเข้าพัก" : "นัด";
-    if (!confirm(`ยกเลิก${label} ${names} · ${group[0].customerName}?`)) return;
+    if (!confirm(`ยกเลิก${label} ${names} · ${group[0].customerName}?`)) return false;
     const results = await Promise.all(group.map(cancelBooking));
     if (results.every(Boolean)) toast("ยกเลิกแล้ว", "info");
     else toast("ยกเลิกไม่สำเร็จบางรายการ", "error");
-    load();
+    await load();
+    return true;
   };
 
   // เดือนที่กำลังดู — เลื่อนไปเดือนอื่นได้ (ดูนัดล่วงหน้า/ย้อนหลัง)
@@ -1537,14 +1550,12 @@ export function BookingCalendar() {
           }
         />
       )}
-      {managing && (
+      {/* ระหว่างแก้ไขรายตัว ซ่อนแผ่นไว้ก่อน — บันทึก/ปิดหน้าแก้ไขแล้วกลับมาที่แผ่นเดิมพร้อมข้อมูลใหม่ */}
+      {managing && managing.length > 0 && !editing && (
         <GroupManageSheet
           group={managing}
           onClose={() => setManaging(null)}
-          onEdit={(x) => {
-            setManaging(null);
-            openEdit(x, managing);
-          }}
+          onEdit={(x) => openEdit(x, managing)}
           onMove={() => {
             setManaging(null);
             openMove(managing);
@@ -1561,9 +1572,10 @@ export function BookingCalendar() {
             setManaging(null);
             addCatToGroup(managing);
           }}
-          onCancel={(list) => {
-            setManaging(null);
-            cancelGroup(list);
+          onCancel={async (list) => {
+            // ทั้งบ้าน = ปิดแผ่น / รายตัว = ค้างไว้ที่แผ่นเดิม (ปิดเองถ้าไม่เหลือตัวไหนแล้ว)
+            const done = await cancelGroup(list);
+            if (done && list.length >= managing.length) setManaging(null);
           }}
         />
       )}

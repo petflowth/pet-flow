@@ -7,6 +7,8 @@ import { DateRangePicker } from "@/components/DateRangePicker";
 import { resolveRange, type RangeId } from "@/lib/date-range";
 import { IconChip, ListRowContent } from "@/components/HeaderBand";
 import { Icon } from "@/components/Icon";
+import { TodayCustomers } from "@/components/TodayCustomers";
+import { bangkokToday } from "@/lib/bangkok-date";
 
 type Stats = {
   today: string;
@@ -61,7 +63,6 @@ const STATUS_STRIP: { id: string; label: string; cls: string }[] = [
 export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [tasks, setTasks] = useState<Tasks | null>(null);
-  const [todayItems, setTodayItems] = useState<TodayItem[]>([]);
   const [day, setDay] = useState<DayInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -87,7 +88,7 @@ export default function AdminDashboard() {
     }
     // งานที่ต้องทำ + ภาพรวมวันนี้ — บิลค้าง, นัด, ห้องพัก, ลูกค้าใหม่
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = bangkokToday();
       const [invR, bkR, cuR] = await Promise.all([
         fetch("/api/invoices").then((r) => r.json()),
         fetch("/api/bookings").then((r) => r.json()),
@@ -141,7 +142,6 @@ export default function AdminDashboard() {
       for (const g of all) if (g.kind !== "checkout") byStatus[g.status] = (byStatus[g.status] || 0) + 1;
       const active = all.filter((g) => g.status !== "cancelled");
       active.sort((a, b) => (a.time || "99").localeCompare(b.time || "99"));
-      setTodayItems(active);
       const arriving = active.filter((g) => g.kind !== "checkout");
       setDay({
         houses: arriving.length,
@@ -298,68 +298,8 @@ export default function AdminDashboard() {
         </section>
       )}
 
-      {/* ไทม์ไลน์วันนี้ */}
-      <section>
-        <SectionTitle
-          title="Timeline วันนี้"
-          sub={`${todayItems.length} รายการ`}
-          action={<Link href="/admin/schedule" className="text-xs font-bold text-latte-deep">ดูตารางนัด</Link>}
-        />
-        {todayItems.length === 0 ? (
-          <div className="flex flex-col items-center rounded-petflow bg-card px-4 py-8 text-center shadow-petflow-sm">
-            <span className="mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-paper text-brown-soft">
-              <Icon name="paw" size={24} />
-            </span>
-            <p className="text-sm font-bold text-brown">วันนี้ยังไม่มีนัด</p>
-            <p className="text-xs text-brown-soft">กดปุ่ม + ด้านล่างเพื่อจองให้ลูกค้า</p>
-          </div>
-        ) : (
-          <ul className="rounded-petflow bg-card px-4 py-2 shadow-petflow-sm">
-            {todayItems.slice(0, 10).map((it, i, arr) => (
-              <li key={it.id} className="flex gap-3">
-                <span className="w-11 shrink-0 pt-3 text-right text-xs font-extrabold text-petflow-chocolate">
-                  {it.time || "–"}
-                </span>
-                {/* เส้นไทม์ไลน์ + จุด */}
-                <span className="relative flex w-3 shrink-0 justify-center">
-                  <span className={`absolute w-px bg-petflow-line ${i === 0 ? "top-4" : "top-0"} ${i === arr.length - 1 ? "h-4" : "bottom-0"}`} />
-                  <span
-                    className={`relative mt-3.5 h-2.5 w-2.5 rounded-full ring-2 ring-card ${
-                      it.kind === "groom" ? "bg-sage" : it.kind === "checkin" ? "bg-honey-deep" : "bg-latte-deep"
-                    }`}
-                  />
-                </span>
-                <span className="flex min-w-0 flex-1 items-center gap-2 border-b border-petflow-line py-2.5 last:border-0">
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-bold text-petflow-chocolate">
-                      {it.catNames.join(", ")}
-                    </span>
-                    <span className="flex items-center gap-1 truncate text-[11px] text-brown-soft">
-                      <Icon name={it.kind === "groom" ? "bath" : "bed"} size={12} />
-                      {it.kind === "groom" ? "อาบน้ำ" : it.kind === "checkin" ? "เช็คอิน" : "เช็คเอาท์"} · {it.customerName}
-                      {it.catNames.length > 1 ? ` · ${it.catNames.length} ตัว` : ""}
-                    </span>
-                  </span>
-                  {it.kind !== "checkout" && it.status === "pending" ? (
-                    <span className="shrink-0 rounded-full bg-wait/15 px-2 py-0.5 text-[10px] font-bold text-wait">รอยืนยัน</span>
-                  ) : it.kind !== "checkout" && it.status === "confirmed" ? (
-                    <span className="shrink-0 rounded-full bg-ok/15 px-2 py-0.5 text-[10px] font-bold text-ok">ยืนยันแล้ว</span>
-                  ) : it.status === "no_show" ? (
-                    <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600">ไม่มา</span>
-                  ) : null}
-                </span>
-              </li>
-            ))}
-            {todayItems.length > 10 && (
-              <li className="py-3 text-center">
-                <Link href="/admin/schedule" className="text-xs font-bold text-latte-deep">
-                  ดูอีก {todayItems.length - 10} รายการ
-                </Link>
-              </li>
-            )}
-          </ul>
-        )}
-      </section>
+      {/* ลูกค้าวันนี้ — ต้องระวัง / ต้องทำ / การดูแล ของแต่ละบ้าน จากคำตอบที่ลูกค้ากรอก */}
+      <TodayCustomers />
     </div>
   );
 }
